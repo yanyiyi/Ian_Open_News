@@ -68,6 +68,8 @@ http://127.0.0.1:8765
 
 一行一個關鍵字。儲存後會寫進 `database/triage-keywords.json`，下一次抓 RSS 候選時套用。
 
+如果想立刻套用到目前候選清單與 `database/items.jsonl` 裡的 `inbox` 項目，關鍵字頁下方有「重新跑關鍵字判斷」按鈕。
+
 ## 加 RSS 與管理來源
 
 打開 `http://127.0.0.1:8765/sources/new`，填：
@@ -124,6 +126,7 @@ python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --di
 首頁的「本機指令」區塊目前有這些 allowlist 按鈕，每個按鈕旁都有白話說明：
 
 - 立刻抓 RSS 候選：`python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl`
+- 重新跑關鍵字判斷：`python3 scripts/apply_triage_keywords.py`
 - 驗證資料庫：`python3 scripts/validate_database.py`
 - 匯出 SQLite：`python3 scripts/export_sqlite.py --output .cache/knowledge.sqlite`
 - 查看檔案變更：`git status --short`

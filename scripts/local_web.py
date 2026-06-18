@@ -104,6 +104,12 @@ COMMANDS = {
         "button": "檢查資料有沒有壞",
         "command": [sys.executable, str(ROOT / "scripts" / "validate_database.py")],
     },
+    "apply_triage_keywords": {
+        "label": "重新跑關鍵字判斷",
+        "description": "把目前候選清單和待整理 inbox 重新套用兩條主線的關鍵字。你改過關鍵字後按這個。",
+        "button": "更新建議收 / 不要看",
+        "command": [sys.executable, str(ROOT / "scripts" / "apply_triage_keywords.py")],
+    },
     "export_sqlite": {
         "label": "匯出 SQLite",
         "description": "把 JSONL 正本轉成 .cache/knowledge.sqlite，方便用資料庫工具查詢。",
@@ -893,6 +899,15 @@ class Handler(BaseHTTPRequestHandler):
   <button type="submit">儲存關鍵字設定</button>
   <p class="help">儲存後會寫進 database/triage-keywords.json。下一次按「抓到候選清單」才會套用。</p>
 </form>
+<div class="card">
+  <h2>套用到目前待整理</h2>
+  <p class="muted">如果你剛改完關鍵字，可以立刻重跑目前候選清單與 database/items.jsonl 裡的 inbox 項目。</p>
+  <form method="post" action="/commands/run">
+    <input type="hidden" name="command" value="apply_triage_keywords">
+    <button type="submit" class="secondary">重新跑關鍵字判斷</button>
+  </form>
+  <p class="help">這只更新 triage 建議，不會自動收下、不會刪資料，也不會開 GitHub issue。</p>
+</div>
 """
         self.send_html("篩選關鍵字", body)
 
