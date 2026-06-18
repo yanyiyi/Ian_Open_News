@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DATABASE = ROOT / "database"
+
+
+def load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_jsonl(path: Path) -> list[dict]:
+    records: list[dict] = []
+    if not path.exists():
+        return records
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").split("\n"), start=1):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{path}:{line_number}: invalid JSON: {exc}") from exc
+        record["_line"] = line_number
+        records.append(record)
+    return records
+
+
+def require(record: dict, path: Path, field: str) -> str:
+    value = record.get(field)
+    if value in (None, ""):
+        raise ValueError(f"{path}:{record.get('_line', '?')}: missing required field {field}")
+    return str(value)
+
+
+def validate_unique(records: list[dict], path: Path) -> None:
+    seen: dict[str, int] = {}
+    for record in records:
+        record_id = require(record, path, "id")
+        if record_id in seen:
+            raise ValueError(f"{path}:{record['_line']}: duplicate id {record_id}; first seen on line {seen[record_id]}")
+        seen[record_id] = record["_line"]
+
+
+def validate() -> list[str]:
+    taxonomy = load_json(DATABASE / "taxonomy.json")
+    tracks = set(taxonomy["tracks"].keys())
+    statuses = set(taxonomy["statuses"])
+    priorities = set(taxonomy["priorities"])
+    source_types = set(taxonomy["source_types"])
+    review_steps = set(taxonomy["review_steps"])
+
+    sources_path = DATABASE / "sources.jsonl"
+    items_path = DATABASE / "items.jsonl"
+    reviews_path = DATABASE / "review-events.jsonl"
+    sources = load_jsonl(sources_path)
+    items = load_jsonl(items_path)
+    reviews = load_jsonl(reviews_path)
+
+    validate_unique(sources, sources_path)
+    validate_unique(items, items_path)
+    validate_unique(reviews, reviews_path)
+
+    errors: list[str] = []
+    source_ids = {record["id"] for record in sources}
+    item_ids = {record["id"] for record in items}
+
+    for source in sources:
+        try:
+            require(source, sources_path, "name")
+            require(source, sources_path, "track")
+            require(source, sources_path, "source_type")
+            require(source, sources_path, "status")
+            if source["track"] not in tracks:
+                errors.append(f"{sources_path}:{source['_line']}: unknown track {source['track']}")
+            if source["source_type"] not in source_types:
+                errors.append(f"{sources_path}:{source['_line']}: unknown source_type {source['source_type']}")
+        except ValueError as exc:
+            errors.append(str(exc))
+
+    for item in items:
+        try:
+            require(item, items_path, "track")
+            require(item, items_path, "status")
+            require(item, items_path, "priority")
+            require(item, items_path, "title")
+            require(item, items_path, "source_id")
+            require(item, items_path, "source_name")
+            require(item, items_path, "origin")
+            if item["track"] not in tracks:
+                errors.append(f"{items_path}:{item['_line']}: unknown track {item['track']}")
+            if item["status"] not in statuses:
+                errors.append(f"{items_path}:{item['_line']}: unknown status {item['status']}")
+            if item["priority"] not in priorities:
+                errors.append(f"{items_path}:{item['_line']}: unknown priority {item['priority']}")
+            if item["source_id"] not in source_ids:
+                errors.append(f"{items_path}:{item['_line']}: source_id not found: {item['source_id']}")
+            if not isinstance(item.get("tags"), list):
+                errors.append(f"{items_path}:{item['_line']}: tags must be a list")
+            if not isinstance(item.get("reference"), dict):
+                errors.append(f"{items_path}:{item['_line']}: reference must be an object")
+            if not isinstance(item.get("review"), dict):
+                errors.append(f"{items_path}:{item['_line']}: review must be an object")
+        except ValueError as exc:
+            errors.append(str(exc))
+
+    for review in reviews:
+        try:
+            item_id = require(review, reviews_path, "item_id")
+            require(review, reviews_path, "track")
+            require(review, reviews_path, "step")
+            require(review, reviews_path, "status")
+            if item_id != "manual-seed" and item_id not in item_ids:
+                errors.append(f"{reviews_path}:{review['_line']}: item_id not found: {item_id}")
+            if review["track"] not in tracks:
+                errors.append(f"{reviews_path}:{review['_line']}: unknown track {review['track']}")
+            if review["step"] not in review_steps:
+                errors.append(f"{reviews_path}:{review['_line']}: unknown review step {review['step']}")
+            if not isinstance(review.get("evidence"), list):
+                errors.append(f"{reviews_path}:{review['_line']}: evidence must be a list")
+        except ValueError as exc:
+            errors.append(str(exc))
+
+    return errors
+
+
+def main() -> None:
+    errors = validate()
+    if errors:
+        for error in errors:
+            print(error, file=sys.stderr)
+        raise SystemExit(1)
+    print("database validation passed")
+
+
+if __name__ == "__main__":
+    main()

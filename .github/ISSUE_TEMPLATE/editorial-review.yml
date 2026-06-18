@@ -1,0 +1,36 @@
+name: Editorial review request
+description: 要求針對既有 brief、資料庫更新或文章草稿跑審查鏈
+title: "[審稿] "
+labels:
+  - knowledge:review
+body:
+  - type: dropdown
+    id: track
+    attributes:
+      label: 主線
+      options:
+        - 數位人文與在地知識建構
+        - 開放科技與開放產業發展
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: 要審的檔案或 PR
+      placeholder: knowledge/.../briefs/xxx.md 或 PR URL
+    validations:
+      required: true
+  - type: checkboxes
+    id: review_steps
+    attributes:
+      label: 需要的審查
+      options:
+        - label: 結構審：主線、段落順序、缺背景
+        - label: 文字審：語氣、用詞、台灣慣用語
+        - label: 讀者審：看不懂、不被說服、不知道下一步
+        - label: 事實查核：數字、日期、技術、法規、授權、來源
+  - type: textarea
+    id: context
+    attributes:
+      label: 背景與希望特別注意的地方
+      description: 例如目標讀者、發布場合、已知爭議、不能改動的段落。

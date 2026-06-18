@@ -1,0 +1,69 @@
+name: Knowledge item intake
+description: 新增一筆值得追蹤的知識來源或候選題
+title: "[知識候選] "
+labels:
+  - knowledge:inbox
+body:
+  - type: dropdown
+    id: track
+    attributes:
+      label: 主線
+      options:
+        - 數位人文與在地知識建構
+        - 開放科技與開放產業發展
+        - 未分類，請協助判斷
+    validations:
+      required: true
+  - type: input
+    id: title
+    attributes:
+      label: 標題
+      placeholder: 原始文章、資料、事件或議題名稱
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: 原始網址
+      placeholder: https://
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: 來源 / 網站 / 作者
+      placeholder: 例如：聚珍臺灣、Open Knowledge Foundation、data.gov.tw
+  - type: input
+    id: published_at
+    attributes:
+      label: 發布日期
+      placeholder: YYYY-MM-DD；不知道可留空
+  - type: textarea
+    id: summary
+    attributes:
+      label: 原文重點
+      description: 用自己的話簡短說明原文在講什麼。若是轉貼，也請標明原始來源。
+  - type: textarea
+    id: why
+    attributes:
+      label: 為什麼值得追
+      description: 說明它和主線、OCF、台灣、社群、公共利益或後續行動的關係。
+    validations:
+      required: true
+  - type: checkboxes
+    id: source_type
+    attributes:
+      label: 來源類型
+      options:
+        - label: RSS / 網站文章
+        - label: Facebook / 社群貼文
+        - label: Google Alert
+        - label: YouTube / Podcast
+        - label: 官方文件 / 法規 / 標準
+        - label: GitHub repo / 技術文件
+        - label: Excel / 既有表格補登
+  - type: textarea
+    id: notes
+    attributes:
+      label: 備註與風險
+      description: 可填敏感資料、地方脈絡、查核疑點、授權疑問、後續要問誰。

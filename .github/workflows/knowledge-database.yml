@@ -1,0 +1,44 @@
+name: Knowledge database
+
+on:
+  pull_request:
+    paths:
+      - "database/**"
+      - "scripts/**"
+      - "knowledge/**"
+      - "templates/**"
+      - ".github/workflows/knowledge-database.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "database/**"
+      - "scripts/**"
+      - "knowledge/**"
+      - "templates/**"
+      - ".github/workflows/knowledge-database.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Validate JSONL database
+        run: python3 scripts/validate_database.py
+
+      - name: Export SQLite artifact
+        run: python3 scripts/export_sqlite.py --output .cache/knowledge.sqlite
+
+      - name: Upload SQLite artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: knowledge-sqlite
+          path: .cache/knowledge.sqlite

@@ -1,0 +1,73 @@
+{
+  "tracks": {
+    "digital-humanities-local-knowledge": {
+      "name_zh": "數位人文與在地知識建構",
+      "description": "文化記憶、地方知識、數位典藏、博物館、檔案、社群共筆、在地媒體與公共史學。",
+      "beats": [
+        "文化記憶庫",
+        "地方知識",
+        "博物館與檔案",
+        "數位典藏",
+        "社群共筆",
+        "民眾書寫",
+        "地方媒體",
+        "數位策展"
+      ]
+    },
+    "open-tech-open-industry": {
+      "name_zh": "開放科技與開放產業發展",
+      "description": "開源、開放資料、資料治理、授權、標準、公共數位基礎建設、AI governance 與開放產業案例。",
+      "beats": [
+        "開放資料",
+        "開放原始碼",
+        "資料治理",
+        "資料標準",
+        "開放授權",
+        "公共數位基礎建設",
+        "AI governance",
+        "開放產業"
+      ]
+    },
+    "unclassified": {
+      "name_zh": "未分類",
+      "description": "匯入後尚未人工分流的資料。",
+      "beats": []
+    }
+  },
+  "statuses": [
+    "inbox",
+    "triaged",
+    "researching",
+    "drafting",
+    "reviewing",
+    "fact-checking",
+    "ready",
+    "published",
+    "archived"
+  ],
+  "priorities": [
+    "low",
+    "normal",
+    "high",
+    "urgent"
+  ],
+  "source_types": [
+    "rss",
+    "facebook",
+    "google-alert",
+    "youtube",
+    "podcast",
+    "spreadsheet",
+    "manual",
+    "inoreader-monitor"
+  ],
+  "review_steps": [
+    "news-scout",
+    "angle-strategist",
+    "source-research",
+    "structure-editor",
+    "line-editor",
+    "target-reader",
+    "fact-checker"
+  ]
+}
