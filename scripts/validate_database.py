@@ -52,6 +52,7 @@ def validate() -> list[str]:
     statuses = set(taxonomy["statuses"])
     priorities = set(taxonomy["priorities"])
     source_types = set(taxonomy["source_types"])
+    source_statuses = set(taxonomy.get("source_statuses", ["active", "paused", "archived"]))
     review_steps = set(taxonomy["review_steps"])
 
     sources_path = DATABASE / "sources.jsonl"
@@ -79,6 +80,8 @@ def validate() -> list[str]:
                 errors.append(f"{sources_path}:{source['_line']}: unknown track {source['track']}")
             if source["source_type"] not in source_types:
                 errors.append(f"{sources_path}:{source['_line']}: unknown source_type {source['source_type']}")
+            if source["status"] not in source_statuses:
+                errors.append(f"{sources_path}:{source['_line']}: unknown source status {source['status']}")
         except ValueError as exc:
             errors.append(str(exc))
 

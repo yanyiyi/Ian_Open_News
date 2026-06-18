@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ian.opennews.rss-fetch</string>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/ianliu/Documents/Ian_Open_News</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>python3</string>
+    <string>/Users/ianliu/Documents/Ian_Open_News/scripts/fetch_rss.py</string>
+    <string>--report</string>
+    <string>/Users/ianliu/Documents/Ian_Open_News/.cache/rss-fetch-report.md</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict>
+      <key>Hour</key>
+      <integer>10</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+    <dict>
+      <key>Hour</key>
+      <integer>18</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+  </array>
+
+  <key>StandardOutPath</key>
+  <string>/Users/ianliu/Documents/Ian_Open_News/.cache/launchd-rss-fetch.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/ianliu/Documents/Ian_Open_News/.cache/launchd-rss-fetch.err</string>
+</dict>
+</plist>

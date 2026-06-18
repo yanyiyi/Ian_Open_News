@@ -1,0 +1,54 @@
+name: Daily RSS fetch
+
+on:
+  schedule:
+    # 10:00 and 18:00 Asia/Taipei
+    - cron: "0 2,10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Fetch RSS into inbox
+        run: >
+          python3 scripts/fetch_rss.py
+          --since-days 3
+          --max-per-source 10
+          --report .cache/rss-fetch-report.md
+
+      - name: Validate JSONL database
+        run: python3 scripts/validate_database.py
+
+      - name: Export SQLite artifact
+        run: python3 scripts/export_sqlite.py --output .cache/knowledge.sqlite
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: automation/daily-rss-fetch
+          delete-branch: true
+          title: "chore: daily RSS inbox update"
+          commit-message: "chore: update RSS inbox"
+          body-path: .cache/rss-fetch-report.md
+          labels: |
+            knowledge:inbox
+            automated
+
+      - name: Upload SQLite artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: knowledge-sqlite
+          path: .cache/knowledge.sqlite

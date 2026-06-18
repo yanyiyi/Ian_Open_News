@@ -9,6 +9,8 @@
 3. 摘要、研究札記、對外文章或內部 brief 走 PR。
 4. 審查鏈與查核結果留在 GitHub。
 
+每日抓 RSS 的自動化由 `.github/workflows/daily-rss-fetch.yml` 負責。它讀取 `database/sources.jsonl` 裡 `status: active` 的 RSS/Atom 來源，新增近 3 天的資料到 `database/items.jsonl`，再自動開 PR 讓人審。排程是台灣時間 10:00 與 18:00。
+
 ## 兩條主線
 
 ### 數位人文與在地知識建構
@@ -118,5 +120,14 @@ GitHub 對應：
 - `source_group`
 - `source_type`
 - `status`
+
+`scripts/fetch_rss.py` 只會自動抓：
+
+- `status: active`
+- `track` 為 `digital-humanities-local-knowledge` 或 `open-tech-open-industry`
+- `source_type` 為 `rss`、`google-alert`、`youtube`、`podcast`
+- `feed_url` 是可直接讀取的 RSS/Atom URL
+
+Facebook 頁面、Inoreader keyword monitoring id、純網站頁面可能無法解析；這些會出現在 fetch report 的 skipped 或 failed sources 裡。
 
 完整欄位見 [database/README.md](../database/README.md)。

@@ -61,6 +61,11 @@
     "manual",
     "inoreader-monitor"
   ],
+  "source_statuses": [
+    "active",
+    "paused",
+    "archived"
+  ],
   "review_steps": [
     "news-scout",
     "angle-strategist",

@@ -1,5 +1,7 @@
 .DS_Store
 reference/.DS_Store
 .cache/
+__pycache__/
+*.pyc
 *.sqlite
 *.sqlite3

@@ -7,6 +7,7 @@ on:
       - "scripts/**"
       - "knowledge/**"
       - "templates/**"
+      - ".github/workflows/daily-rss-fetch.yml"
       - ".github/workflows/knowledge-database.yml"
   push:
     branches:
@@ -16,6 +17,7 @@ on:
       - "scripts/**"
       - "knowledge/**"
       - "templates/**"
+      - ".github/workflows/daily-rss-fetch.yml"
       - ".github/workflows/knowledge-database.yml"
   workflow_dispatch:
 

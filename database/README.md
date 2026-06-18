@@ -6,7 +6,7 @@
 
 - `taxonomy.json`：兩大主線、狀態、優先順序、來源類型。
 - `sources.jsonl`：來源資料庫，由 Inoreader OPML 與其他來源匯入。
-- `items.jsonl`：知識項目資料庫，由 Inoreader starred、Excel 與人工 PR 更新。
+- `items.jsonl`：知識項目資料庫，由 Inoreader starred、Excel、RSS fetch 與人工 PR 更新。
 - `review-events.jsonl`：審稿與查核事件，可人工追加。
 - `schema.sql`：SQLite 輸出 schema。
 
@@ -25,7 +25,7 @@
 - `captured_at`：被 Inoreader、Excel 或 repo 收錄的日期。
 - `summary`：摘要或舊資料描述。
 - `tags`：來源 label、sheet 名稱或人工標籤。
-- `origin`：`inoreader-starred`、`inoreader-subscription`、`xlsx:<sheet>` 或 `manual`。
+- `origin`：`inoreader-starred`、`rss-fetch`、`manual-web`、`xlsx:<sheet>` 或 `manual`。
 - `reference`：原始檔案、原始 record id、舊欄位等。
 - `review`：審查狀態、切角、查核與備註。
 
@@ -48,6 +48,14 @@
 ```bash
 python3 scripts/import_reference_data.py
 ```
+
+每日/手動抓 RSS：
+
+```bash
+python3 scripts/fetch_rss.py
+```
+
+預設抓 `status: active`、兩條主線內、`source_type` 為 `rss`、`google-alert`、`youtube`、`podcast` 的來源。抓到的新項目會以 `origin: rss-fetch`、`status: inbox` append 到 `items.jsonl`。
 
 驗證：
 

@@ -13,6 +13,8 @@
 - `subscriptions.xml` 匯入 `database/sources.jsonl`。
 - `starred.json` 匯入 `database/items.jsonl`，預設狀態為 `inbox`。
 - Inoreader label 會轉成 `tags`，並協助判斷兩大主線。
+- 每日新資料改由 `scripts/fetch_rss.py` 直接讀 `database/sources.jsonl` 抓 RSS/Atom，不再依賴 Inoreader。
+- Inoreader `keyword-monitoring-*` 和 Facebook pseudo-feed 不是公開 RSS，棄用 Inoreader 後需要替換成 Google Alert RSS、網站原生 RSS、RSSHub、自建爬取器或人工來源。
 
 ### Make AIRTable API 版本.blueprint.json
 
