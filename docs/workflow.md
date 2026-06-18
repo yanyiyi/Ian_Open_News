@@ -4,12 +4,16 @@
 
 把舊流程中的「RSS / Facebook / Google 快訊 / Inoreader 收藏 -> Make 摘要 -> Airtable 紀錄 -> LINE 通知」改成 GitHub 上可審核的流程：
 
-1. 來源與候選資料進 `database/`。
-2. 篩選與切角在 Issue 討論。
-3. 摘要、研究札記、對外文章或內部 brief 走 PR。
-4. 審查鏈與查核結果留在 GitHub。
+1. RSS 新資料先進本機 `.cache/rss-candidates.jsonl`。
+2. 本機候選清單依 `database/triage-keywords.json` 標示建議收或建議不要看。
+3. 人工收下後才進 `database/items.jsonl`。
+4. 值得線上整理的項目再開 GitHub Issue。
+5. 摘要、研究札記、對外文章或內部 brief 走 PR。
+6. 審查鏈與查核結果留在 GitHub。
 
-每日抓 RSS 的自動化由 `.github/workflows/daily-rss-fetch.yml` 負責。它讀取 `database/sources.jsonl` 裡 `status: active` 的 RSS/Atom 來源，新增近 3 天的資料到 `database/items.jsonl`，再自動開 PR 讓人審。排程是台灣時間 10:00 與 18:00。
+每日抓 RSS 的第一站改成本機候選清單。`launchd` 會在台灣時間 10:00 與 18:00 讀取 `database/sources.jsonl`，把新資料放進 `.cache/rss-candidates.jsonl`。你在本機網頁看過後，按「收下」才會新增到 `database/items.jsonl`；按「收下並開 GitHub issue」才進入線上審查管理。
+
+`.github/workflows/daily-rss-fetch.yml` 只保留手動執行，用來在 GitHub 上產生候選 artifact 或 SQLite 查詢檔，不再每天自動開 PR。
 
 ## 兩條主線
 
@@ -57,6 +61,15 @@
 
 ## 依 agents-writing-pipeline.html 改寫的鏈條
 
+### 0. 本機先篩選：候選清單
+
+- RSS 自動抓取只寫進 `.cache/rss-candidates.jsonl`。
+- 命中主線保留關鍵字會標成「建議收」。
+- 命中排除關鍵字，或沒有命中主線關鍵字，會標成「建議不要看」。
+- 按「不要看，以後略過」會寫進 `.cache/rss-dismissed.jsonl`，避免下次重複出現。
+- 按「收下到資料庫」才會寫進 `database/items.jsonl`。
+- 按「收下並開 GitHub issue」才開始線上整理。
+
 ### 1. 動筆前：找題與備料
 
 - `news-scout`：掃來源與 beat，列出事件、關聯、急迫性。
@@ -65,7 +78,7 @@
 
 GitHub 對應：
 
-- 新題目開 Issue。
+- 本機已收下、值得追的新題目才開 Issue。
 - 來源補在 Issue comment 或 `knowledge/<track>/research/`。
 - 確定要處理後開 branch / PR。
 
@@ -127,6 +140,14 @@ GitHub 對應：
 - `track` 為 `digital-humanities-local-knowledge` 或 `open-tech-open-industry`
 - `source_type` 為 `rss`、`google-alert`、`youtube`、`podcast`
 - `feed_url` 是可直接讀取的 RSS/Atom URL
+
+日常請用候選模式：
+
+```bash
+python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --dismissed .cache/rss-dismissed.jsonl --report .cache/rss-fetch-report.md
+```
+
+沒有加 `--candidate-output` 時，才會直接寫進 `database/items.jsonl`。這個直接寫入模式保留給特殊批次處理或明確知道要匯入時使用。
 
 Facebook 頁面、Inoreader keyword monitoring id、純網站頁面可能無法解析；這些會出現在 fetch report 的 skipped 或 failed sources 裡。
 

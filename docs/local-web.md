@@ -5,6 +5,7 @@
 - 看到不錯的網頁時，加入 `database/items.jsonl` 的 `inbox`。
 - 看到不錯的 RSS/Atom 時，加入或編輯 `database/sources.jsonl`。
 - 依「開放科技與開放產業發展」和「數位人文與在地知識建構」兩條主線查看待整理項目與來源。
+- 先審 RSS 候選清單，真的值得追再收進資料庫或開 GitHub issue。
 
 啟動：
 
@@ -36,6 +37,36 @@ http://127.0.0.1:8765
 - `http://127.0.0.1:8765/track/digital-humanities-local-knowledge`
 
 從主線入口按「幫這條主線加收藏」時，表單會自動預選該主線。
+
+## RSS 候選清單
+
+日常 RSS 抓取會先寫到：
+
+```text
+.cache/rss-candidates.jsonl
+```
+
+這不是正式資料庫。打開 `http://127.0.0.1:8765/candidates` 後，你可以做三件事：
+
+- 收下到資料庫：把這筆候選寫進 `database/items.jsonl`。
+- 收下並開 GitHub issue：先寫進資料庫，再用 `gh issue create` 開線上整理 issue。
+- 不要看，以後略過：從候選清單移除，並寫入 `.cache/rss-dismissed.jsonl`，下一次抓取不會重複出現。
+
+候選清單會依 `database/triage-keywords.json` 標示：
+
+- 建議收：命中該主線的保留關鍵字。
+- 建議不要看：命中排除關鍵字，或沒有命中任何保留關鍵字。
+
+你仍然可以手動收下「建議不要看」的項目，系統只做第一層提示。
+
+## 關鍵字設定
+
+打開 `http://127.0.0.1:8765/keywords`，可以分別設定兩條主線的：
+
+- 建議收的關鍵字。
+- 建議不要看的關鍵字。
+
+一行一個關鍵字。儲存後會寫進 `database/triage-keywords.json`，下一次抓 RSS 候選時套用。
 
 ## 加 RSS 與管理來源
 
@@ -80,19 +111,19 @@ http://127.0.0.1:8765
 
 ## 手動抓 RSS
 
-首頁有「現在抓新資料」按鈕，會執行：
+首頁有「抓到候選清單」按鈕，會執行：
 
 ```bash
-python3 scripts/fetch_rss.py --report .cache/rss-fetch-report.md
+python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --dismissed .cache/rss-dismissed.jsonl --report .cache/rss-fetch-report.md
 ```
 
-抓到的新資料會 append 到 `database/items.jsonl`，之後用 Git diff 或 PR 審。
+抓到的新資料會先 append 到 `.cache/rss-candidates.jsonl`。只有你在候選清單按「收下」後，才會進 `database/items.jsonl`。
 
 ## 本機指令按鈕
 
 首頁的「本機指令」區塊目前有這些 allowlist 按鈕，每個按鈕旁都有白話說明：
 
-- 立刻抓 RSS：`python3 scripts/fetch_rss.py`
+- 立刻抓 RSS 候選：`python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl`
 - 驗證資料庫：`python3 scripts/validate_database.py`
 - 匯出 SQLite：`python3 scripts/export_sqlite.py --output .cache/knowledge.sqlite`
 - 查看檔案變更：`git status --short`

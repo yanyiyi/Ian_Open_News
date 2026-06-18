@@ -1,14 +1,10 @@
-name: Daily RSS fetch
+name: Manual RSS candidate check
 
 on:
-  schedule:
-    # 10:00 and 18:00 Asia/Taipei
-    - cron: "0 2,10 * * *"
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   fetch:
@@ -22,11 +18,13 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Fetch RSS into inbox
+      - name: Fetch RSS into local candidate file
         run: >
           python3 scripts/fetch_rss.py
           --since-days 3
           --max-per-source 10
+          --candidate-output .cache/rss-candidates.jsonl
+          --dismissed .cache/rss-dismissed.jsonl
           --report .cache/rss-fetch-report.md
 
       - name: Validate JSONL database
@@ -35,17 +33,13 @@ jobs:
       - name: Export SQLite artifact
         run: python3 scripts/export_sqlite.py --output .cache/knowledge.sqlite
 
-      - name: Create pull request
-        uses: peter-evans/create-pull-request@v6
+      - name: Upload RSS candidate artifact
+        uses: actions/upload-artifact@v4
         with:
-          branch: automation/daily-rss-fetch
-          delete-branch: true
-          title: "chore: daily RSS inbox update"
-          commit-message: "chore: update RSS inbox"
-          body-path: .cache/rss-fetch-report.md
-          labels: |
-            knowledge:inbox
-            automated
+          name: rss-candidates
+          path: |
+            .cache/rss-candidates.jsonl
+            .cache/rss-fetch-report.md
 
       - name: Upload SQLite artifact
         uses: actions/upload-artifact@v4

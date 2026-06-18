@@ -5,8 +5,9 @@
 ## Files
 
 - `taxonomy.json`：兩大主線、狀態、優先順序、來源類型。
+- `triage-keywords.json`：本機 RSS 候選清單使用的保留/排除關鍵字。
 - `sources.jsonl`：來源資料庫，由 Inoreader OPML 與其他來源匯入。
-- `items.jsonl`：知識項目資料庫，由 Inoreader starred、Excel、RSS fetch 與人工 PR 更新。
+- `items.jsonl`：知識項目資料庫，由 Inoreader starred、Excel、人工收下的 RSS 候選與人工 PR 更新。
 - `review-events.jsonl`：審稿與查核事件，可人工追加。
 - `schema.sql`：SQLite 輸出 schema。
 
@@ -49,13 +50,21 @@
 python3 scripts/import_reference_data.py
 ```
 
-每日/手動抓 RSS：
+每日/手動抓 RSS 到本機候選清單：
+
+```bash
+python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --dismissed .cache/rss-dismissed.jsonl --report .cache/rss-fetch-report.md
+```
+
+候選清單不是正式資料庫。請在本機網頁 `/candidates` 按「收下」後，才寫入 `items.jsonl`。
+
+直接抓 RSS 到正式資料庫：
 
 ```bash
 python3 scripts/fetch_rss.py
 ```
 
-預設抓 `status: active`、兩條主線內、`source_type` 為 `rss`、`google-alert`、`youtube`、`podcast` 的來源。抓到的新項目會以 `origin: rss-fetch`、`status: inbox` append 到 `items.jsonl`。
+預設抓 `status: active`、兩條主線內、`source_type` 為 `rss`、`google-alert`、`youtube`、`podcast` 的來源。沒有加 `--candidate-output` 時，抓到的新項目會以 `origin: rss-fetch`、`status: inbox` append 到 `items.jsonl`。
 
 驗證：
 

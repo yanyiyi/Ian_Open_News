@@ -13,9 +13,7 @@
   <array>
     <string>/usr/bin/env</string>
     <string>python3</string>
-    <string>/Users/ianliu/Documents/Ian_Open_News/scripts/fetch_rss.py</string>
-    <string>--report</string>
-    <string>/Users/ianliu/Documents/Ian_Open_News/.cache/rss-fetch-report.md</string>
+    <string>/Users/ianliu/Documents/Ian_Open_News/scripts/local_rss_daily.py</string>
   </array>
 
   <key>StartCalendarInterval</key>

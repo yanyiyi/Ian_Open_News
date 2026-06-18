@@ -18,6 +18,9 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 DATABASE = ROOT / "database"
+TRIAGE_KEYWORDS = DATABASE / "triage-keywords.json"
+DEFAULT_CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
+DEFAULT_DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
 DEFAULT_SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast"]
 
 
@@ -47,6 +50,12 @@ def load_jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
     return [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+
+
+def load_json(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def append_jsonl(path: Path, records: list[dict]) -> None:
@@ -229,6 +238,60 @@ def default_review() -> dict:
     }
 
 
+def normalized(value: object) -> str:
+    return clean_text(value).casefold()
+
+
+def keyword_matches(text: str, keywords: list[str]) -> list[str]:
+    haystack = normalized(text)
+    matches = []
+    for keyword in keywords:
+        if normalized(keyword) and normalized(keyword) in haystack:
+            matches.append(keyword)
+    return list(dict.fromkeys(matches))
+
+
+def candidate_haystack(record: dict) -> str:
+    return "\n".join(
+        [
+            record.get("title", ""),
+            record.get("summary", ""),
+            record.get("source_name", ""),
+            record.get("author", ""),
+            " ".join(str(tag) for tag in record.get("tags", [])),
+            record.get("url", ""),
+        ]
+    )
+
+
+def evaluate_triage(record: dict, keyword_config: dict) -> dict:
+    track = record.get("track", "unclassified")
+    track_config = (keyword_config.get("tracks") or {}).get(track, {})
+    keep_keywords = track_config.get("keep_keywords") or []
+    skip_keywords = track_config.get("skip_keywords") or []
+    text = candidate_haystack(record)
+    keep_matches = keyword_matches(text, keep_keywords)
+    skip_matches = keyword_matches(text, skip_keywords)
+
+    if skip_matches:
+        recommendation = "suggest-skip"
+        reason = "出現排除關鍵字，先標成建議不要看。"
+    elif keep_matches:
+        recommendation = "suggest-keep"
+        reason = "符合主線關鍵字，建議進候選清單人工看過。"
+    else:
+        recommendation = "suggest-skip"
+        reason = "沒有符合目前主線關鍵字，建議先不要看。"
+
+    return {
+        "recommendation": recommendation,
+        "reason": reason,
+        "matched_keywords": keep_matches,
+        "skip_keywords": skip_matches,
+        "keyword_config_version": keyword_config.get("version", 1),
+    }
+
+
 def item_record(source: dict, entry: FeedEntry, captured_at: str) -> dict:
     url = entry.url or entry.guid
     return {
@@ -277,22 +340,27 @@ def build_report(
     failures: list[tuple[dict, str]],
     skipped: list[tuple[dict, str]],
     dry_run: bool,
+    candidate_mode: bool,
 ) -> str:
+    item_label = "candidates" if candidate_mode else "items"
+    mode = "candidate review queue" if candidate_mode else "database inbox"
     lines = [
         "# Daily RSS fetch report",
         "",
-        f"- Mode: {'dry run' if dry_run else 'write'}",
+        f"- Mode: {'dry run' if dry_run else 'write'} to {mode}",
         f"- Sources fetched: {fetched_sources}",
-        f"- New items: {len(new_items)}",
+        f"- New {item_label}: {len(new_items)}",
         f"- Failed sources: {len(failures)}",
         f"- Skipped sources: {len(skipped)}",
         "",
     ]
     if new_items:
-        lines.extend(["## New items", ""])
+        lines.extend([f"## New {item_label}", ""])
         for item in new_items[:80]:
             title = item["title"].replace("\n", " ")
-            lines.append(f"- [{item['track']}] {title} - {item.get('url', '')}")
+            recommendation = (item.get("triage") or {}).get("recommendation", "")
+            suffix = f" ({recommendation})" if recommendation else ""
+            lines.append(f"- [{item['track']}] {title}{suffix} - {item.get('url', '')}")
         if len(new_items) > 80:
             lines.append(f"- ...and {len(new_items) - 80} more")
         lines.append("")
@@ -327,6 +395,18 @@ def main() -> None:
     parser.add_argument("--timeout", type=int, default=20)
     parser.add_argument("--user-agent", default="IanOpenNewsBot/1.0 (+https://github.com/)")
     parser.add_argument("--report", type=Path)
+    parser.add_argument(
+        "--candidate-output",
+        type=Path,
+        help="Write new entries to a local review queue instead of database/items.jsonl.",
+    )
+    parser.add_argument(
+        "--dismissed",
+        type=Path,
+        default=DEFAULT_DISMISSED,
+        help="JSONL file of candidates dismissed locally; used only with --candidate-output.",
+    )
+    parser.add_argument("--triage-keywords", type=Path, default=TRIAGE_KEYWORDS)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--fail-on-source-error", action="store_true")
     args = parser.parse_args()
@@ -338,13 +418,30 @@ def main() -> None:
 
     sources = load_jsonl(args.sources)
     existing_items = load_jsonl(args.items)
+    existing_candidates = load_jsonl(args.candidate_output) if args.candidate_output else []
+    dismissed_candidates = load_jsonl(args.dismissed) if args.candidate_output else []
+    keyword_config = load_json(args.triage_keywords) if args.candidate_output else {}
     seen_ids = {item.get("id") for item in existing_items}
+    seen_ids.update(candidate.get("id") for candidate in existing_candidates)
+    seen_ids.update(candidate.get("id") for candidate in dismissed_candidates)
     seen_urls = {item.get("url") for item in existing_items if item.get("url")}
+    seen_urls.update(candidate.get("url") for candidate in existing_candidates if candidate.get("url"))
+    seen_urls.update(candidate.get("url") for candidate in dismissed_candidates if candidate.get("url"))
     seen_guids = {
         (item.get("reference") or {}).get("guid")
         for item in existing_items
         if isinstance(item.get("reference"), dict) and (item.get("reference") or {}).get("guid")
     }
+    seen_guids.update(
+        (candidate.get("reference") or {}).get("guid")
+        for candidate in existing_candidates
+        if isinstance(candidate.get("reference"), dict) and (candidate.get("reference") or {}).get("guid")
+    )
+    seen_guids.update(
+        (candidate.get("reference") or {}).get("guid")
+        for candidate in dismissed_candidates
+        if isinstance(candidate.get("reference"), dict) and (candidate.get("reference") or {}).get("guid")
+    )
 
     selected_sources: list[dict] = []
     skipped: list[tuple[dict, str]] = []
@@ -385,6 +482,9 @@ def main() -> None:
                 continue
             if entry.guid and entry.guid in seen_guids:
                 continue
+            if args.candidate_output:
+                record["triage"] = evaluate_triage(record, keyword_config)
+                record["candidate_status"] = "pending"
             new_items.append(record)
             seen_ids.add(record["id"])
             if record["url"]:
@@ -396,7 +496,10 @@ def main() -> None:
                 break
 
     if not args.dry_run:
-        append_jsonl(args.items, new_items)
+        if args.candidate_output:
+            append_jsonl(args.candidate_output, new_items)
+        else:
+            append_jsonl(args.items, new_items)
 
     report = build_report(
         fetched_sources=fetched_sources,
@@ -404,6 +507,7 @@ def main() -> None:
         failures=failures,
         skipped=skipped,
         dry_run=args.dry_run,
+        candidate_mode=bool(args.candidate_output),
     )
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)

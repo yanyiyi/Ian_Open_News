@@ -21,6 +21,9 @@ ROOT = Path(__file__).resolve().parents[1]
 DATABASE = ROOT / "database"
 SOURCES = DATABASE / "sources.jsonl"
 ITEMS = DATABASE / "items.jsonl"
+TRIAGE_KEYWORDS = DATABASE / "triage-keywords.json"
+CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
+DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
 
 TRACKS = [
     ("digital-humanities-local-knowledge", "數位人文與在地知識建構"),
@@ -81,12 +84,16 @@ SOURCE_STATUS_LABELS = {
 
 COMMANDS = {
     "fetch_rss": {
-        "label": "立刻抓 RSS",
-        "description": "去啟用中的 RSS / Google 快訊 / YouTube / Podcast 來源看有沒有新內容，新增到待整理清單。",
-        "button": "現在抓新資料",
+        "label": "立刻抓 RSS 候選",
+        "description": "先抓到本機候選清單，不直接寫進正式資料庫。你看過後按「收下」才會進 database/items.jsonl。",
+        "button": "抓到候選清單",
         "command": [
             sys.executable,
             str(ROOT / "scripts" / "fetch_rss.py"),
+            "--candidate-output",
+            str(CANDIDATES),
+            "--dismissed",
+            str(DISMISSED),
             "--report",
             str(ROOT / ".cache" / "rss-fetch-report.md"),
         ],
@@ -153,6 +160,17 @@ def load_jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
     return [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+
+
+def load_json(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write_json(path: Path, record: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def write_jsonl(path: Path, records: list[dict]) -> None:
@@ -267,6 +285,72 @@ def command_card(name: str, config: dict) -> str:
         "</form>"
         "</div>"
     )
+
+
+def remove_local_candidate_fields(record: dict) -> dict:
+    item = dict(record)
+    item.pop("candidate_status", None)
+    return item
+
+
+def candidate_recommendation(candidate: dict) -> str:
+    return (candidate.get("triage") or {}).get("recommendation", "unknown")
+
+
+def candidate_issue_body(item: dict) -> str:
+    triage = item.get("triage") or {}
+    matched = ", ".join(triage.get("matched_keywords") or []) or "無"
+    skipped = ", ".join(triage.get("skip_keywords") or []) or "無"
+    return "\n".join(
+        [
+            "## 主線",
+            track_label(item.get("track", "unclassified")),
+            "",
+            "## 原始網址",
+            item.get("url", ""),
+            "",
+            "## 來源 / 網站 / 作者",
+            item.get("source_name", ""),
+            "",
+            "## 發布日期",
+            item.get("published_at", ""),
+            "",
+            "## 原文重點",
+            clean_text(item.get("summary"), 1200),
+            "",
+            "## 本機關鍵字判斷",
+            f"- 建議：{triage.get('recommendation', '未標示')}",
+            f"- 理由：{triage.get('reason', '未標示')}",
+            f"- 命中關鍵字：{matched}",
+            f"- 排除關鍵字：{skipped}",
+            "",
+            "## 為什麼值得追",
+            "本機已收下，待補切角、處理建議與審查。",
+            "",
+            "## 下一步",
+            "- [ ] 補來源與摘要",
+            "- [ ] 補切角與處理建議",
+            "- [ ] 判斷是否開 PR 寫 brief 或更新 database/items.jsonl",
+        ]
+    )
+
+
+def create_github_issue(item: dict) -> tuple[int, str]:
+    title = clean_text(item.get("title"), 160) or "未命名知識候選"
+    command = [
+        "gh",
+        "issue",
+        "create",
+        "--title",
+        f"[知識候選] {title}",
+        "--body",
+        candidate_issue_body(item),
+    ]
+    try:
+        result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=120)
+    except FileNotFoundError:
+        return 127, "找不到 gh 指令。請先安裝 GitHub CLI，或先只收進資料庫。"
+    return result.returncode, result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
 
 
 def page(title: str, body: str) -> bytes:
@@ -426,6 +510,8 @@ def page(title: str, body: str) -> bytes:
     .badge--active, .badge--rss, .badge--google-alert, .badge--youtube, .badge--podcast {{ background: #e7f5fc; color: #00699f; }}
     .badge--paused {{ background: #fff0f6; color: var(--ocf-magenda); }}
     .badge--archived {{ background: #eceff5; color: #667085; }}
+    .badge--suggest-keep {{ background: #ece8ff; color: var(--ocf-primary); }}
+    .badge--suggest-skip {{ background: #fff0f6; color: var(--ocf-magenda); }}
     .source-group {{ margin-bottom: 14px; overflow: hidden; }}
     .source-group summary {{
       cursor: pointer;
@@ -439,6 +525,9 @@ def page(title: str, body: str) -> bytes:
     .list-item {{ border-left: 4px solid var(--ocf-cyan); padding: 10px 12px; background: #fff; border-radius: 6px; }}
     .list-item--opentech {{ border-left-color: var(--ocf-primary); }}
     .list-item--humanities {{ border-left-color: var(--humanities); }}
+    .candidate-card {{ display: grid; gap: 10px; }}
+    .candidate-card--suggest-skip {{ border-color: #f1bfd3; }}
+    .danger {{ background: var(--ocf-magenda); }}
     .command-card form {{ margin-top: 8px; }}
     .command-output {{ margin-top: 16px; }}
     @media (max-width: 760px) {{
@@ -457,6 +546,8 @@ def page(title: str, body: str) -> bytes:
       <a href="/">共通入口</a>
       <a href="/track/open-tech-open-industry">開放科技</a>
       <a href="/track/digital-humanities-local-knowledge">人文知識</a>
+      <a href="/candidates">候選清單</a>
+      <a href="/keywords">關鍵字</a>
       <a href="/sources">RSS 來源</a>
       <a href="/items/new">加收藏</a>
       <a href="/sources/new">加 RSS</a>
@@ -496,6 +587,10 @@ class Handler(BaseHTTPRequestHandler):
             self.show_home(query)
         elif parsed.path.startswith("/track/"):
             self.show_track(parsed.path.removeprefix("/track/"))
+        elif parsed.path == "/candidates":
+            self.show_candidates(query)
+        elif parsed.path == "/keywords":
+            self.show_keywords()
         elif parsed.path == "/items/new":
             self.show_item_form(query)
         elif parsed.path == "/sources":
@@ -511,6 +606,12 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/items":
             self.save_item(self.read_form())
+        elif parsed.path == "/candidates/accept":
+            self.accept_candidate(self.read_form())
+        elif parsed.path == "/candidates/dismiss":
+            self.dismiss_candidate(self.read_form())
+        elif parsed.path == "/keywords":
+            self.save_keywords(self.read_form())
         elif parsed.path == "/sources":
             self.save_source(self.read_form())
         elif parsed.path == "/commands/run":
@@ -521,6 +622,9 @@ class Handler(BaseHTTPRequestHandler):
     def show_home(self, query: dict[str, list[str]]) -> None:
         items = load_jsonl(ITEMS)
         sources = load_jsonl(SOURCES)
+        candidates = load_jsonl(CANDIDATES)
+        keep_candidates = [candidate for candidate in candidates if candidate_recommendation(candidate) == "suggest-keep"]
+        skip_candidates = [candidate for candidate in candidates if candidate_recommendation(candidate) == "suggest-skip"]
         notice = ""
         if query.get("saved"):
             notice = '<div class="notice">已儲存。</div>'
@@ -575,10 +679,23 @@ class Handler(BaseHTTPRequestHandler):
     <p class="help">這不會直接發布內容，只是先放進待整理 inbox。</p>
   </div>
   <div class="card">
+    <h3>RSS 候選清單</h3>
+    <p class="muted">RSS 自動抓完會先放這裡。先看系統建議，真的值得追再按「收下」。</p>
+    <p>{badge("建議收 " + str(len(keep_candidates)), "suggest-keep")} {badge("建議不要看 " + str(len(skip_candidates)), "suggest-skip")}</p>
+    <p><a class="button" href="/candidates">打開候選清單</a></p>
+    <p class="help">這一步還沒進 GitHub issue，也還沒進正式資料庫。</p>
+  </div>
+  <div class="card">
     <h3>新增 RSS 來源</h3>
     <p class="muted">看到值得長期追蹤的網站、Google 快訊、YouTube 或 Podcast，就先加到來源資料庫。</p>
     <p><a class="button secondary" href="/sources/new">新增一個 RSS</a></p>
     <p class="help">新增後每天 10:00、18:00 的流程才會有機會抓到它。</p>
+  </div>
+  <div class="card">
+    <h3>調整關鍵字</h3>
+    <p class="muted">兩條主線各有「建議收」與「建議不要看」關鍵字，可隨時改。</p>
+    <p><a class="button quiet" href="/keywords">編輯篩選關鍵字</a></p>
+    <p class="help">改完後，下一次 RSS 抓取就會套用新的判斷。</p>
   </div>
   <div class="card">
     <h3>全部 RSS 來源</h3>
@@ -592,6 +709,206 @@ class Handler(BaseHTTPRequestHandler):
 <div class="grid">{''.join(command_cards)}</div>
 """
         self.send_html("總覽", body)
+
+    def show_candidates(self, query: dict[str, list[str]]) -> None:
+        candidates = load_jsonl(CANDIDATES)
+        track_filter = (query.get("track") or ["all"])[0]
+        recommendation_filter = (query.get("recommendation") or ["all"])[0]
+
+        def matches(candidate: dict) -> bool:
+            if track_filter != "all" and candidate.get("track") != track_filter:
+                return False
+            if recommendation_filter != "all" and candidate_recommendation(candidate) != recommendation_filter:
+                return False
+            return True
+
+        filtered = [candidate for candidate in candidates if matches(candidate)]
+        filtered.sort(
+            key=lambda item: (candidate_recommendation(item) == "suggest-skip", item.get("captured_at", ""), item.get("published_at", "")),
+            reverse=False,
+        )
+        counts = Counter(candidate_recommendation(candidate) for candidate in candidates)
+        track_counts = Counter(candidate.get("track", "unclassified") for candidate in candidates)
+        rows = []
+        for candidate in filtered:
+            triage = candidate.get("triage") or {}
+            recommendation = triage.get("recommendation", "unknown")
+            recommendation_label = "建議收" if recommendation == "suggest-keep" else "建議不要看"
+            matched = "、".join(triage.get("matched_keywords") or []) or "無"
+            skipped = "、".join(triage.get("skip_keywords") or []) or "無"
+            css_class = track_class(candidate.get("track", "unclassified"))
+            rows.append(
+                f"""
+<article class="card candidate-card candidate-card--{h(recommendation)}">
+  <div>
+    {badge(track_meta(candidate.get("track", "unclassified"))["short"], css_class)}
+    {badge(recommendation_label, recommendation)}
+    <strong><a href="{h(candidate.get('url'))}" target="_blank" rel="noreferrer">{h(candidate.get('title'))}</a></strong>
+  </div>
+  <p class="muted break-anywhere">{h(candidate.get('source_name'))} · {h(candidate.get('published_at') or candidate.get('captured_at'))} · {h(candidate.get('url'))}</p>
+  <p>{h(clean_text(candidate.get('summary'), 360))}</p>
+  <p class="help">判斷理由：{h(triage.get('reason', '未標示'))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
+  <div class="button-row">
+    <form method="post" action="/candidates/accept">
+      <input type="hidden" name="id" value="{h(candidate.get('id'))}">
+      <button type="submit" name="mode" value="accept">收下到資料庫</button>
+    </form>
+    <form method="post" action="/candidates/accept">
+      <input type="hidden" name="id" value="{h(candidate.get('id'))}">
+      <button type="submit" class="secondary" name="mode" value="accept_issue">收下並開 GitHub issue</button>
+    </form>
+    <form method="post" action="/candidates/dismiss">
+      <input type="hidden" name="id" value="{h(candidate.get('id'))}">
+      <button type="submit" class="danger">不要看，以後略過</button>
+    </form>
+  </div>
+  <p class="help">收下才會寫進 database/items.jsonl；不要看只會寫進 .cache/rss-dismissed.jsonl，不會進正式資料庫。</p>
+</article>
+"""
+            )
+        if not rows:
+            rows.append('<div class="card"><strong>目前沒有符合條件的候選項目</strong><p class="muted">可以回首頁按「抓到候選清單」，或放寬篩選條件。</p></div>')
+
+        track_options = [("all", "全部主線")] + [(track, TRACK_META[track]["label"]) for track in TRACK_ORDER]
+        recommendation_options = [
+            ("all", "全部建議"),
+            ("suggest-keep", "只看建議收"),
+            ("suggest-skip", "只看建議不要看"),
+        ]
+        body = f"""
+<h1>RSS 候選清單</h1>
+<p class="lede">這裡是每天開始的第一站。RSS 抓到的新文章先留在本機，系統用關鍵字標出「建議收」或「建議不要看」；你按收下後才進正式資料庫與 GitHub 審查。</p>
+<div class="grid">
+  <div class="card"><div class="metric">{len(candidates)}</div><div class="metric-label">本機候選</div></div>
+  <div class="card"><div class="metric">{counts.get("suggest-keep", 0)}</div><div class="metric-label">建議收</div></div>
+  <div class="card"><div class="metric">{counts.get("suggest-skip", 0)}</div><div class="metric-label">建議不要看</div></div>
+</div>
+<h2>篩選候選</h2>
+<form class="filter-panel" method="get" action="/candidates">
+  <div class="form-grid">
+    <div>
+      <label>主線</label>
+      <select name="track">{option_list(track_options, track_filter)}</select>
+      <p class="help">目前候選：開放科技 {track_counts.get('open-tech-open-industry', 0)}、人文 {track_counts.get('digital-humanities-local-knowledge', 0)}、未分類 {track_counts.get('unclassified', 0)}。</p>
+    </div>
+    <div>
+      <label>系統建議</label>
+      <select name="recommendation">{option_list(recommendation_options, recommendation_filter)}</select>
+      <p class="help">建議只是第一層篩選，你仍然可以收下建議不要看的項目。</p>
+    </div>
+  </div>
+  <div class="button-row">
+    <button type="submit">套用篩選</button>
+    <a class="button secondary" href="/keywords">調整關鍵字</a>
+  </div>
+</form>
+<h2>候選項目</h2>
+<div class="list">{''.join(rows)}</div>
+"""
+        self.send_html("RSS 候選清單", body)
+
+    def accept_candidate(self, data: dict[str, list[str]]) -> None:
+        candidate_id = form_value(data, "id")
+        mode = form_value(data, "mode", "accept")
+        candidates = load_jsonl(CANDIDATES)
+        candidate = next((row for row in candidates if row.get("id") == candidate_id), None)
+        if not candidate:
+            self.send_html("找不到候選項目", "<h1>找不到候選項目</h1><p><a href='/candidates'>回候選清單</a></p>", HTTPStatus.NOT_FOUND)
+            return
+
+        item = remove_local_candidate_fields(candidate)
+        items = load_jsonl(ITEMS)
+        already_exists = any(existing.get("id") == item.get("id") or existing.get("url") == item.get("url") for existing in items)
+        candidates = [row for row in candidates if row.get("id") != candidate_id]
+        write_jsonl(CANDIDATES, candidates)
+        if not already_exists:
+            append_jsonl(ITEMS, item)
+
+        if mode == "accept_issue":
+            returncode, output = create_github_issue(item)
+            body = f"""
+<h1>已收下候選項目</h1>
+<p class="muted">資料庫：{'原本已存在，已從候選清單移除。' if already_exists else '已寫進 database/items.jsonl。'}</p>
+<p class="muted">GitHub issue exit code: {returncode}</p>
+<pre>{h(output)}</pre>
+<p><a class="button" href="/candidates">回候選清單</a></p>
+"""
+            self.send_html("已收下候選項目", body)
+            return
+
+        self.redirect("/candidates?saved=accepted")
+
+    def dismiss_candidate(self, data: dict[str, list[str]]) -> None:
+        candidate_id = form_value(data, "id")
+        candidates = load_jsonl(CANDIDATES)
+        candidate = next((row for row in candidates if row.get("id") == candidate_id), None)
+        if not candidate:
+            self.send_html("找不到候選項目", "<h1>找不到候選項目</h1><p><a href='/candidates'>回候選清單</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        candidates = [row for row in candidates if row.get("id") != candidate_id]
+        write_jsonl(CANDIDATES, candidates)
+        dismissed = {
+            "id": candidate.get("id"),
+            "track": candidate.get("track"),
+            "title": candidate.get("title"),
+            "url": candidate.get("url"),
+            "source_id": candidate.get("source_id"),
+            "source_name": candidate.get("source_name"),
+            "reference": candidate.get("reference", {}),
+            "triage": candidate.get("triage", {}),
+            "dismissed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "notes": "本機候選清單按鈕標記不要看。",
+        }
+        append_jsonl(DISMISSED, dismissed)
+        self.redirect("/candidates?saved=dismissed")
+
+    def show_keywords(self) -> None:
+        config = load_json(TRIAGE_KEYWORDS)
+        track_sections = []
+        for track in ["open-tech-open-industry", "digital-humanities-local-knowledge"]:
+            meta = track_meta(track)
+            track_config = (config.get("tracks") or {}).get(track, {})
+            keep_keywords = "\n".join(track_config.get("keep_keywords") or [])
+            skip_keywords = "\n".join(track_config.get("skip_keywords") or [])
+            css_class = track_class(track)
+            track_sections.append(
+                f"""
+<section class="card track-card track-card--{h(css_class)}">
+  {badge(meta["short"], css_class)}
+  <h2>{h(meta["label"])}</h2>
+  <label>建議收的關鍵字</label>
+  <textarea name="{h(track)}__keep_keywords">{h(keep_keywords)}</textarea>
+  <p class="help">一行一個。候選文章標題、摘要、來源或標籤有命中，就會標成建議收。</p>
+  <label>建議不要看的關鍵字</label>
+  <textarea name="{h(track)}__skip_keywords">{h(skip_keywords)}</textarea>
+  <p class="help">一行一個。命中這裡會優先標成建議不要看，例如交通管制、抽獎、停水。</p>
+</section>
+"""
+            )
+        body = f"""
+<h1>篩選關鍵字</h1>
+<p class="lede">這裡控制 RSS 候選清單的第一層判斷。它不會刪資料，只會影響下一次抓取時標示「建議收」或「建議不要看」。</p>
+<form method="post" action="/keywords">
+  <div class="track-grid">{''.join(track_sections)}</div>
+  <button type="submit">儲存關鍵字設定</button>
+  <p class="help">儲存後會寫進 database/triage-keywords.json。下一次按「抓到候選清單」才會套用。</p>
+</form>
+"""
+        self.send_html("篩選關鍵字", body)
+
+    def save_keywords(self, data: dict[str, list[str]]) -> None:
+        config = load_json(TRIAGE_KEYWORDS) or {"version": 1, "tracks": {}}
+        config.setdefault("version", 1)
+        config.setdefault("tracks", {})
+        for track in ["open-tech-open-industry", "digital-humanities-local-knowledge"]:
+            config["tracks"].setdefault(track, {"label": track_meta(track)["label"]})
+            keep = [line.strip() for line in form_value(data, f"{track}__keep_keywords").split("\n") if line.strip()]
+            skip = [line.strip() for line in form_value(data, f"{track}__skip_keywords").split("\n") if line.strip()]
+            config["tracks"][track]["label"] = track_meta(track)["label"]
+            config["tracks"][track]["keep_keywords"] = keep
+            config["tracks"][track]["skip_keywords"] = skip
+        write_json(TRIAGE_KEYWORDS, config)
+        self.redirect("/keywords?saved=1")
 
     def show_track(self, track: str) -> None:
         if track not in TRACK_META:
