@@ -8,6 +8,7 @@ import json
 import re
 import subprocess
 import sys
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -26,13 +27,63 @@ TRACKS = [
     ("open-tech-open-industry", "開放科技與開放產業發展"),
     ("unclassified", "未分類"),
 ]
-SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast", "facebook", "inoreader-monitor", "manual"]
+TRACK_META = {
+    "digital-humanities-local-knowledge": {
+        "label": "數位人文與在地知識建構",
+        "short": "人文與在地知識",
+        "class": "humanities",
+        "description": "地方知識、文化記憶、數位典藏、博物館、檔案與社群共筆。",
+        "entry": "進入人文工作台",
+    },
+    "open-tech-open-industry": {
+        "label": "開放科技與開放產業發展",
+        "short": "開放科技",
+        "class": "opentech",
+        "description": "開源、開放資料、資料治理、標準、授權、公共數位基礎建設與開放產業。",
+        "entry": "進入開放科技工作台",
+    },
+    "unclassified": {
+        "label": "未分類",
+        "short": "未分類",
+        "class": "neutral",
+        "description": "還沒決定要放進哪一條主線的來源與項目。",
+        "entry": "查看未分類",
+    },
+}
+TRACK_ORDER = ["open-tech-open-industry", "digital-humanities-local-knowledge", "unclassified"]
+SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast", "facebook", "inoreader-monitor", "spreadsheet", "manual"]
 SOURCE_STATUSES = ["active", "paused", "archived"]
+SOURCE_TYPE_LABELS = {
+    "rss": "RSS / 網站",
+    "google-alert": "Google 快訊",
+    "youtube": "YouTube",
+    "podcast": "Podcast",
+    "facebook": "Facebook",
+    "inoreader-monitor": "Inoreader 關鍵字",
+    "spreadsheet": "既有表格",
+    "manual": "手動加入",
+}
+SOURCE_TYPE_HELP = {
+    "rss": "一般網站或部落格 feed，可由本機或 GitHub Actions 自動抓。",
+    "google-alert": "Google Alert 匯出的 feed，適合追關鍵字。",
+    "youtube": "YouTube 頻道 feed，適合追影片發布。",
+    "podcast": "Podcast feed，適合追音訊節目。",
+    "facebook": "從 Inoreader 或舊流程留下的 Facebook 來源，通常不直接由 GitHub 抓。",
+    "inoreader-monitor": "Inoreader 關鍵字監測來源，保留作為舊流程對照。",
+    "spreadsheet": "從既有 Excel 跟追表匯入的來源。",
+    "manual": "在本機網頁手動加入的來源。",
+}
+SOURCE_STATUS_LABELS = {
+    "active": "啟用",
+    "paused": "暫停",
+    "archived": "封存",
+}
 
 COMMANDS = {
     "fetch_rss": {
-        "label": "抓 RSS",
-        "description": "執行 scripts/fetch_rss.py，新增近幾天的 inbox items。",
+        "label": "立刻抓 RSS",
+        "description": "去啟用中的 RSS / Google 快訊 / YouTube / Podcast 來源看有沒有新內容，新增到待整理清單。",
+        "button": "現在抓新資料",
         "command": [
             sys.executable,
             str(ROOT / "scripts" / "fetch_rss.py"),
@@ -42,12 +93,14 @@ COMMANDS = {
     },
     "validate": {
         "label": "驗證資料庫",
-        "description": "執行 scripts/validate_database.py，檢查 JSONL 欄位、分類與關聯。",
+        "description": "檢查 JSONL 欄位、主線分類、來源關聯是否正確。送 PR 前先按這個。",
+        "button": "檢查資料有沒有壞",
         "command": [sys.executable, str(ROOT / "scripts" / "validate_database.py")],
     },
     "export_sqlite": {
         "label": "匯出 SQLite",
-        "description": "執行 scripts/export_sqlite.py，產生 .cache/knowledge.sqlite。",
+        "description": "把 JSONL 正本轉成 .cache/knowledge.sqlite，方便用資料庫工具查詢。",
+        "button": "做一份查詢用資料庫",
         "command": [
             sys.executable,
             str(ROOT / "scripts" / "export_sqlite.py"),
@@ -56,13 +109,15 @@ COMMANDS = {
         ],
     },
     "git_status": {
-        "label": "看 git status",
-        "description": "顯示目前有哪些檔案變更。",
+        "label": "查看檔案變更",
+        "description": "列出目前哪些檔案被新增或修改，方便確認接下來要不要開 PR。",
+        "button": "看有哪些檔案變了",
         "command": ["git", "status", "--short"],
     },
     "git_diff_stat": {
-        "label": "看 diff stat",
-        "description": "顯示目前變更的摘要統計。",
+        "label": "查看變更摘要",
+        "description": "只看每個檔案改了多少行，不展開完整內容。",
+        "button": "看每個檔案改多少",
         "command": ["git", "diff", "--stat"],
     },
 }
