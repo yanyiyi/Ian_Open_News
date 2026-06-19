@@ -5,7 +5,7 @@ import re
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
-from urllib.parse import urljoin
+from urllib.parse import parse_qs, urljoin, urlparse
 
 
 DEFAULT_USER_AGENT = "IanOpenNewsBot/1.0 metadata fetch (+local reading database)"
@@ -36,6 +36,35 @@ BOILERPLATE_PATTERNS = [
     "延伸閱讀",
 ]
 
+CODELIKE_PATTERNS = [
+    "function(",
+    "function (",
+    "=>",
+    "var ",
+    "let ",
+    "const ",
+    "window.",
+    "document.",
+    "__next_data__",
+    "webpack",
+    "gtag(",
+    "datalayer",
+]
+
+
+def unwrap_google_alert_url(value: object) -> str:
+    url = str(value or "").strip()
+    parsed = urlparse(url)
+    host = parsed.netloc.casefold()
+    if host not in {"www.google.com", "google.com"} or parsed.path not in {"/url", "/search"}:
+        return url
+    query = parse_qs(parsed.query)
+    for key in ["url", "q"]:
+        target = (query.get(key) or [""])[0].strip()
+        if target.startswith(("http://", "https://")):
+            return target
+    return url
+
 
 def clean_text(value: object, limit: int | None = None) -> str:
     text = html.unescape(str(value or ""))
@@ -51,6 +80,28 @@ def clean_text(value: object, limit: int | None = None) -> str:
 
 def normalized(value: object) -> str:
     return re.sub(r"\s+", " ", clean_text(value)).casefold()
+
+
+def is_code_like_text(value: object) -> bool:
+    text = clean_text(value, 2400)
+    if len(text) < 20:
+        return False
+    lowered = text.casefold()
+    if any(pattern in lowered for pattern in CODELIKE_PATTERNS):
+        symbol_count = sum(text.count(char) for char in "{}[]();=<>")
+        if len(text) < 120 and symbol_count >= 5:
+            return True
+        if symbol_count >= max(12, len(text) // 22):
+            return True
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    if len(lines) >= 3:
+        code_lines = sum(1 for line in lines if re.search(r"[{}();=<>]{2,}|^\s*(var|let|const|function|import|export)\b", line))
+        if code_lines / len(lines) >= 0.45:
+            return True
+    compact = re.sub(r"\s+", "", text)
+    if len(compact) >= 180 and sum(char in "{}[]:," for char in compact) / len(compact) >= 0.18:
+        return True
+    return False
 
 
 def inline_markdown(fragment: str, base_url: str = "") -> str:
@@ -169,6 +220,8 @@ def paragraph_texts(block: str) -> list[str]:
         lowered = text.casefold()
         if any(pattern in lowered for pattern in BOILERPLATE_PATTERNS):
             continue
+        if is_code_like_text(text):
+            continue
         if len(re.sub(r"\W+", "", text)) < 20:
             continue
         texts.append(text)
@@ -184,6 +237,8 @@ def text_to_markdown(text: str, title: str = "", limit: int = 60000) -> str:
     raw = re.sub(r"\n[ \t]+", "\n", raw)
     raw = re.sub(r"\n{3,}", "\n\n", raw).strip()
     paragraphs = [clean_text(part) for part in re.split(r"\n\s*\n", raw) if clean_text(part)]
+    while paragraphs and is_code_like_text(paragraphs[0]):
+        paragraphs.pop(0)
     lines: list[str] = []
     clean_title = clean_text(title, 220)
     if clean_title:
@@ -229,6 +284,8 @@ def block_to_markdown(block: str, title: str = "", base_url: str = "", limit: in
         text = inline_markdown(match.group(2), base_url)
         plain = clean_text(text)
         if not plain:
+            continue
+        if is_code_like_text(plain):
             continue
         lowered = plain.casefold()
         if any(pattern in lowered for pattern in BOILERPLATE_PATTERNS):
@@ -292,6 +349,7 @@ def extract_article_text(html_text: str, limit: int = 30000) -> tuple[str, str]:
 
 
 def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) -> dict[str, str]:
+    url = unwrap_google_alert_url(url)
     request = urllib.request.Request(
         url,
         headers={
@@ -348,7 +406,8 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
 
 
 def enrich_item_metadata(item: dict, timeout: int = 8) -> tuple[dict, bool, str]:
-    url = str(item.get("url") or "").strip()
+    original_url = str(item.get("url") or "").strip()
+    url = unwrap_google_alert_url(original_url)
     if not url.startswith(("http://", "https://")):
         return item, False, "no fetchable url"
     try:
@@ -357,6 +416,10 @@ def enrich_item_metadata(item: dict, timeout: int = 8) -> tuple[dict, bool, str]
         return item, False, str(exc)
 
     updated = dict(item)
+    if url != original_url:
+        reference = updated.get("reference") if isinstance(updated.get("reference"), dict) else {}
+        updated["url"] = url
+        updated["reference"] = {**reference, "original_google_url": original_url}
     current = updated.get("reading_metadata") if isinstance(updated.get("reading_metadata"), dict) else {}
     updated["reading_metadata"] = {**current, **metadata}
     if metadata.get("image_url"):
