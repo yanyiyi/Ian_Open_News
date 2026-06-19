@@ -5,7 +5,8 @@
 - 看到不錯的網頁時，加入 `database/items.jsonl` 的 `inbox`。
 - 看到不錯的 RSS/Atom 時，加入或編輯 `database/sources.jsonl`。
 - 依「開放科技與開放產業發展」和「數位人文與在地知識建構」兩條主線查看待整理項目與來源。
-- 先審 RSS 候選清單，真的值得追再收進資料庫或開 GitHub issue。
+- 先審 RSS 暫存，真的值得追再收進資料庫的待整理清單。
+- 在閱讀區看已確認收下的文章/小消息，並留下「我的關鍵紀錄」。
 
 啟動：
 
@@ -38,7 +39,7 @@ http://127.0.0.1:8765
 
 從主線入口按「幫這條主線加收藏」時，表單會自動預選該主線。
 
-## RSS 候選清單
+## RSS 暫存
 
 日常 RSS 抓取會先寫到：
 
@@ -46,18 +47,71 @@ http://127.0.0.1:8765
 .cache/rss-candidates.jsonl
 ```
 
-這不是正式資料庫。打開 `http://127.0.0.1:8765/candidates` 後，你可以做三件事：
+這不是正式資料庫。打開 `http://127.0.0.1:8765/rss-candidates` 後，會看到 RSS 剛抓到的新候選。你可以做兩件事：
 
-- 收下到資料庫：把這筆候選寫進 `database/items.jsonl`。
-- 收下並開 GitHub issue：先寫進資料庫，再用 `gh issue create` 開線上整理 issue。
+- 收進待整理：把這筆候選寫進 `database/items.jsonl` 的 `inbox`。
 - 不要看，以後略過：從候選清單移除，並寫入 `.cache/rss-dismissed.jsonl`，下一次抓取不會重複出現。
 
-候選清單會依 `database/triage-keywords.json` 標示：
+RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 - 建議收：命中該主線的保留關鍵字。
 - 建議不要看：命中排除關鍵字，或沒有命中任何保留關鍵字。
 
 你仍然可以手動收下「建議不要看」的項目，系統只做第一層提示。
+
+## 候選清單
+
+打開 `http://127.0.0.1:8765/candidates`，只會看到已經在待整理清單按過「確認收，準備跑 skill」的資料。這裡不再混入 RSS 新候選。
+
+候選清單是下一站：跑 skill 做摘要、切角與文章編修，整理好後再送 GitHub PR。
+
+## 閱讀區
+
+打開 `http://127.0.0.1:8765/reader`，可以閱讀已確認收下的精選文章與小消息。閱讀區會盡量使用資料中的 `image`、`image_url`、`thumbnail`、`og_image` 或摘要內圖片 URL 來產生文章卡片；沒有圖片時會用主線色塊。
+
+每篇文章點進單篇頁後可以做兩件事：
+
+- 我的關鍵紀錄：寫下你自己的判斷、疑問、想補的台灣/OCF 脈絡或後續角度，會存進 `personal_notes`。
+- 用我的觀點重新送 skill：把文章狀態放回 `triaged`，並在 `skill_requests` 與 `review-events.jsonl` 留下紀錄。後續跑撰稿 skill 時，應該把 `personal_notes` 當成新的檢視角度。
+
+閱讀區不會自動開 PR，也不會自動發布。它是「看完覺得更值得處理」時，把資料送回整理流程的入口。
+
+## 待整理清單
+
+打開 `http://127.0.0.1:8765/items`，可以查看已經收進 `database/items.jsonl`、狀態仍是 `inbox` 的資料。這裡會顯示「建議收」「建議不要看」「未判斷」的數量，也可以依主線、系統建議與關鍵字篩選。
+
+例如重新跑關鍵字後看到的 `696` 筆建議收與 `44` 筆建議不要看，就是在這個頁面查看。
+
+每筆待整理項目都有人工決定按鈕：
+
+- 確認收，準備跑 skill：把項目從 `inbox` 改成 `triaged`，代表它值得追，但還不會自動開 issue、送 PR 或發布。處理後會從待整理清單消失，移到候選清單的「已確認收，待跑 skill」。
+- 直接送 PR（小消息）：把純事實、很短的小消息從 `inbox` 改成 `ready`，留下「直接送 PR」紀錄，不進候選清單，也不跑 skill。
+- 不收原因小按鈕：在同一張卡片上直接按預設原因，就會把項目改成 `archived`。原因會留在項目紀錄和 `database/review-events.jsonl`。
+- 其他原因：展開「其他原因」，寫一句原因後送出。
+
+篩選區不用按套用。改主線、系統建議，或勾選關鍵字後，下面列表會自動更新。
+
+待整理清單上方也有批次處理：
+
+- 勾選多則後，可以按「批次確認收，準備跑 skill」。
+- 勾選多則後，可以批次直接送 PR，或按其中一個批次不收原因。
+
+不管單筆或批次，處理過的項目都會離開待整理清單，避免代辦永遠清不完。
+
+在待整理清單送出單筆或批次處理後，頁面會留在原本的篩選條件，只讓處理完成的卡片淡出消失。
+
+卡片上的標題會進入本機單篇整理頁；「開原文」才會打開外部網站。單篇頁會顯示完整摘要、關鍵字判斷、AI/規則初篩、個人紀錄與重送 skill 按鈕。
+
+## AI/規則初篩
+
+`triage` 是第一層關鍵字判斷；`editorial_triage` 是更接近你日常判斷的欄位。它會綜合：
+
+- 關鍵字匹配程度。
+- 過去不收文章的來源、標籤、原因與低價值訊號。
+- 過去已收錄、舊新聞表或已確認項目的來源與標籤。
+- 文章像「純事實新聞 / 小消息」還是「值得收錄的精選文章」。
+
+如果 `editorial_triage.recommendation` 是 `suggest-collect` 或 `suggest-review`，畫面會列出「為什麼建議看」三個理由。如果是 `suggest-skip`，畫面只列出不要看的主要線索，避免花時間替明顯不收的文章寫理由。
 
 ## 關鍵字設定
 
@@ -67,6 +121,8 @@ http://127.0.0.1:8765
 - 建議不要看的關鍵字。
 
 一行一個關鍵字。儲存後會寫進 `database/triage-keywords.json`，下一次抓 RSS 候選時套用。
+
+如果想立刻套用到目前 RSS 暫存與 `database/items.jsonl` 裡的 `inbox` 項目，關鍵字頁下方有「重新跑 AI/關鍵字初篩」按鈕。
 
 ## 加 RSS 與管理來源
 
@@ -117,13 +173,14 @@ http://127.0.0.1:8765
 python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --dismissed .cache/rss-dismissed.jsonl --report .cache/rss-fetch-report.md
 ```
 
-抓到的新資料會先 append 到 `.cache/rss-candidates.jsonl`。只有你在候選清單按「收下」後，才會進 `database/items.jsonl`。
+抓到的新資料會先 append 到 `.cache/rss-candidates.jsonl`。只有你在 RSS 暫存按「收進待整理」後，才會進 `database/items.jsonl`。
 
 ## 本機指令按鈕
 
 首頁的「本機指令」區塊目前有這些 allowlist 按鈕，每個按鈕旁都有白話說明：
 
 - 立刻抓 RSS 候選：`python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl`
+- 重新跑 AI/關鍵字初篩：`python3 scripts/apply_triage_keywords.py`
 - 驗證資料庫：`python3 scripts/validate_database.py`
 - 匯出 SQLite：`python3 scripts/export_sqlite.py --output .cache/knowledge.sqlite`
 - 查看檔案變更：`git status --short`

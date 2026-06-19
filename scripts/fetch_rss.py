@@ -15,6 +15,8 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
+from editorial_triage import build_editorial_context, evaluate_editorial_triage
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DATABASE = ROOT / "database"
@@ -420,7 +422,8 @@ def main() -> None:
     existing_items = load_jsonl(args.items)
     existing_candidates = load_jsonl(args.candidate_output) if args.candidate_output else []
     dismissed_candidates = load_jsonl(args.dismissed) if args.candidate_output else []
-    keyword_config = load_json(args.triage_keywords) if args.candidate_output else {}
+    keyword_config = load_json(args.triage_keywords)
+    editorial_context = build_editorial_context(existing_items, keyword_config)
     seen_ids = {item.get("id") for item in existing_items}
     seen_ids.update(candidate.get("id") for candidate in existing_candidates)
     seen_ids.update(candidate.get("id") for candidate in dismissed_candidates)
@@ -482,8 +485,9 @@ def main() -> None:
                 continue
             if entry.guid and entry.guid in seen_guids:
                 continue
+            record["triage"] = evaluate_triage(record, keyword_config)
+            record["editorial_triage"] = evaluate_editorial_triage(record, keyword_config, editorial_context)
             if args.candidate_output:
-                record["triage"] = evaluate_triage(record, keyword_config)
                 record["candidate_status"] = "pending"
             new_items.append(record)
             seen_ids.add(record["id"])

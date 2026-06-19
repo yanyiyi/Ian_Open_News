@@ -11,7 +11,9 @@
 5. 摘要、研究札記、對外文章或內部 brief 走 PR。
 6. 審查鏈與查核結果留在 GitHub。
 
-每日抓 RSS 的第一站改成本機候選清單。`launchd` 會在台灣時間 10:00 與 18:00 讀取 `database/sources.jsonl`，把新資料放進 `.cache/rss-candidates.jsonl`。你在本機網頁看過後，按「收下」才會新增到 `database/items.jsonl`；按「收下並開 GitHub issue」才進入線上審查管理。
+每日抓 RSS 的第一站改成本機候選清單。`launchd` 會在台灣時間 10:00 與 18:00 讀取 `database/sources.jsonl`，把新資料放進 `.cache/rss-candidates.jsonl`。抓到資料時會先跑一輪 `triage` 與 `editorial_triage`：前者是關鍵字第一層判斷，後者會補上「為什麼建議看」三個理由、是否建議收錄、與過去不收/收錄類型的相似度。
+
+你在本機網頁看過後，按「收進待整理」才會新增到 `database/items.jsonl`。進入 `database/items.jsonl` 後，仍先留在 `inbox`，由你在「待整理」人工分流。
 
 `.github/workflows/daily-rss-fetch.yml` 只保留手動執行，用來在 GitHub 上產生候選 artifact 或 SQLite 查詢檔，不再每天自動開 PR。
 
@@ -58,6 +60,31 @@
 - `ready`：已可發布或內部使用。
 - `published`：已發布或納入正式知識庫。
 - `archived`：保留但暫不處理。
+
+## 每天實際工作流
+
+1. 固定時間或手動抓 RSS。
+   - 10:00 與 18:00 的本機自動流程會抓 RSS 到 `.cache/rss-candidates.jsonl`。
+   - 手動時可在本機網頁首頁按「抓到候選清單」。
+2. 抓完後先跑初篩。
+   - RSS 抓取會自動產生 `triage` 與 `editorial_triage`。
+   - 若更新過關鍵字，可在首頁或關鍵字頁按「重新跑 AI/關鍵字初篩」。
+   - `editorial_triage` 會呈現：為什麼建議看的三個理由、AI/規則初步是否建議收錄、關鍵字匹配、過去刪除類型特徵、過去已收錄/新聞表類型特徵。
+3. 人工查看「待整理」。
+   - 純屬新聞或短訊：按「直接送 PR（小消息）」，後續只做事實查核、摘要、標題、網址等必要資訊。
+   - 值得收錄的精選文章：按「確認收，準備跑 skill」，進入候選清單，再跑撰稿與審查 skill。
+   - 不值得看：按不收原因，保留原因，未來會變成更快的不收按鈕與判斷線索。
+4. 小消息 PR。
+   - 多則小消息可以整理成同一個 PR。
+   - PR 內以清單列：文章標題、查核結果、對應小 commit 或 markdown。
+   - 線上再挑要保留的可信新聞，不需要的在 PR 裡刪除。
+5. 精選文章 PR。
+   - 跑 angle/source/structure/line/target-reader/fact-check 等 skill。
+   - 產出 brief 或更新 `database/items.jsonl`。
+   - 開 PR，最後由人手動決定 merge。
+6. 回到閱讀區。
+   - 閱讀區顯示已確認收錄或小消息。
+   - 讀完如果覺得文章很好，可在單篇頁填「我的關鍵紀錄」，再按「用我的觀點重新送 skill」。
 
 ## 依 agents-writing-pipeline.html 改寫的鏈條
 

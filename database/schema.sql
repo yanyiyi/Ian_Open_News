@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS items (
   origin TEXT NOT NULL,
   reference_json TEXT NOT NULL,
   review_json TEXT NOT NULL,
+  editorial_triage_json TEXT NOT NULL,
+  personal_notes_json TEXT NOT NULL,
   FOREIGN KEY (source_id) REFERENCES sources(id)
 );
 

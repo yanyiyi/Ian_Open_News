@@ -16,7 +16,7 @@ REPORT = ROOT / ".cache" / "rss-fetch-report.md"
 def load_jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
 
 
 def notify(title: str, message: str) -> None:
