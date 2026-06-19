@@ -32,7 +32,7 @@
 - `triage`：關鍵字第一層判斷，標示建議收、建議不要看、命中與排除關鍵字。
 - `editorial_triage`：本機規則初篩欄位，綜合關鍵字、過去不收紀錄、過去收錄類型，產生「為什麼建議看」與下一步建議；若有 `codex_review`，代表由 Codex 另行閱讀主文後生成的閱讀建議。
 - `personal_notes`：閱讀區的「我的關鍵紀錄」，用來讓重送 skill 時依個人觀點重新檢視文章。
-- `reading_metadata`：按「閱讀更多」或批次補資料時，從原始網址抓回的 `og:image`、title、description、canonical URL、摘錄與 `article_text` 原始主文。
+- `reading_metadata`：按「閱讀更多」或批次補資料時，從原始網址抓回的 `og:image`、title、description、canonical URL、摘錄、`article_text` 原始主文與 `article_markdown` Markdown 閱讀版。
 
 ## Source 欄位
 

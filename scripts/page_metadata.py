@@ -49,6 +49,36 @@ def clean_text(value: object, limit: int | None = None) -> str:
     return text
 
 
+def normalized(value: object) -> str:
+    return re.sub(r"\s+", " ", clean_text(value)).casefold()
+
+
+def inline_markdown(fragment: str, base_url: str = "") -> str:
+    fragment = re.sub(r"(?is)<(script|style).*?</\1>", " ", fragment)
+
+    def link_repl(match: re.Match[str]) -> str:
+        attrs = attrs_from_tag(match.group(1))
+        href = attrs.get("href", "").strip()
+        label = clean_text(match.group(2), 220)
+        if not href or not label or href.startswith(("javascript:", "mailto:")):
+            return label
+        return f"[{label}]({urljoin(base_url, href)})"
+
+    fragment = re.sub(r"(?is)<a\b([^>]*)>(.*?)</a>", link_repl, fragment)
+
+    def emphasis_repl(marker: str):
+        def repl(match: re.Match[str]) -> str:
+            text = clean_text(match.group(1), 320)
+            return f"{marker}{text}{marker}" if text else ""
+
+        return repl
+
+    fragment = re.sub(r"(?is)<(?:strong|b)\b[^>]*>(.*?)</(?:strong|b)>", emphasis_repl("**"), fragment)
+    fragment = re.sub(r"(?is)<(?:em|i)\b[^>]*>(.*?)</(?:em|i)>", emphasis_repl("*"), fragment)
+    fragment = re.sub(r"(?is)<code\b[^>]*>(.*?)</code>", emphasis_repl("`"), fragment)
+    return clean_text(fragment, 1600)
+
+
 def attrs_from_tag(tag: str) -> dict[str, str]:
     attrs: dict[str, str] = {}
     for match in re.finditer(r"""([:\w-]+)\s*=\s*(['"])(.*?)\2""", tag, flags=re.S):
@@ -145,6 +175,103 @@ def paragraph_texts(block: str) -> list[str]:
     return texts
 
 
+def text_to_markdown(text: str, title: str = "", limit: int = 60000) -> str:
+    raw = html.unescape(str(text or ""))
+    raw = re.sub(r"(?is)<(script|style).*?</\1>", " ", raw)
+    raw = re.sub(r"(?is)<[^>]+>", " ", raw)
+    raw = raw.replace("\r\n", "\n").replace("\r", "\n")
+    raw = re.sub(r"[ \t\f\v]+", " ", raw)
+    raw = re.sub(r"\n[ \t]+", "\n", raw)
+    raw = re.sub(r"\n{3,}", "\n\n", raw).strip()
+    paragraphs = [clean_text(part) for part in re.split(r"\n\s*\n", raw) if clean_text(part)]
+    lines: list[str] = []
+    clean_title = clean_text(title, 220)
+    if clean_title:
+        lines.extend([f"# {clean_title}", ""])
+    for index, paragraph in enumerate(paragraphs):
+        if clean_title and normalized(paragraph) == normalized(clean_title):
+            continue
+        is_heading = (
+            index > 0
+            and len(paragraph) <= 90
+            and not re.search(r"[。！？.!?]$", paragraph)
+            and not paragraph.startswith(("-", "•"))
+        )
+        if is_heading:
+            lines.extend([f"## {paragraph.rstrip(':：')}", ""])
+        elif re.match(r"^[-•]\s+", paragraph):
+            lines.append("- " + re.sub(r"^[-•]\s+", "", paragraph))
+        else:
+            lines.extend([paragraph, ""])
+    return clean_text("\n".join(lines), limit)
+
+
+def block_to_markdown(block: str, title: str = "", base_url: str = "", limit: int = 60000) -> str:
+    lines: list[str] = []
+    clean_title = clean_text(title, 220)
+    if clean_title:
+        lines.extend([f"# {clean_title}", ""])
+    last_was_list = False
+
+    def append_block(line: str, is_list: bool = False) -> None:
+        nonlocal last_was_list
+        if not line:
+            return
+        if lines and lines[-1] != "" and not (is_list and last_was_list):
+            lines.append("")
+        lines.append(line)
+        if not is_list:
+            lines.append("")
+        last_was_list = is_list
+
+    for match in re.finditer(r"(?is)<(h[1-6]|p|li|blockquote)\b[^>]*>(.*?)</\1>", block):
+        tag = match.group(1).lower()
+        text = inline_markdown(match.group(2), base_url)
+        plain = clean_text(text)
+        if not plain:
+            continue
+        lowered = plain.casefold()
+        if any(pattern in lowered for pattern in BOILERPLATE_PATTERNS):
+            continue
+        if tag.startswith("h"):
+            if clean_title and normalized(plain) == normalized(clean_title):
+                continue
+            level = min(max(int(tag[1]), 2), 4)
+            append_block(f"{'#' * level} {plain.rstrip(':：')}")
+        elif tag == "li":
+            if len(re.sub(r"\W+", "", plain)) >= 12:
+                append_block(f"- {plain}", is_list=True)
+        elif tag == "blockquote":
+            quote_lines = [f"> {line}" for line in plain.split("\n") if line.strip()]
+            append_block("\n".join(quote_lines))
+        else:
+            if len(plain) >= 28 and len(re.sub(r"\W+", "", plain)) >= 20:
+                append_block(plain)
+
+    return clean_text("\n".join(lines), limit)
+
+
+def extract_article_markdown(html_text: str, final_url: str = "", title: str = "", limit: int = 60000) -> tuple[str, str]:
+    jsonld = article_body_from_jsonld(html_text)
+    if jsonld:
+        return text_to_markdown(jsonld, title=title, limit=limit), "jsonld.articleBody"
+
+    candidates: list[tuple[int, str, str]] = []
+    for block in candidate_blocks(html_text):
+        paragraphs = paragraph_texts(block)
+        chars = sum(len(paragraph) for paragraph in paragraphs)
+        if chars >= 300:
+            markdown = block_to_markdown(block, title=title, base_url=final_url, limit=limit)
+            if markdown:
+                candidates.append((chars, markdown, "semantic-block"))
+    if candidates:
+        _, markdown, method = max(candidates, key=lambda row: row[0])
+        return markdown, method
+
+    markdown = block_to_markdown(html_text, title=title, base_url=final_url, limit=limit)
+    return markdown, "all-paragraphs"
+
+
 def extract_article_text(html_text: str, limit: int = 30000) -> tuple[str, str]:
     jsonld = article_body_from_jsonld(html_text)
     if jsonld:
@@ -182,11 +309,12 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
     image = first_meta(html_text, "og:image", "og:image:url", "twitter:image", "twitter:image:src")
     canonical = first_link(html_text, "canonical")
     description = first_meta(html_text, "og:description", "description", "twitter:description")
+    title = title_from_html(html_text)
     metadata = {
         "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source_url": url,
         "final_url": final_url,
-        "title": title_from_html(html_text),
+        "title": title,
         "description": description,
         "image_url": urljoin(final_url, image) if image else "",
         "canonical_url": urljoin(final_url, canonical) if canonical else "",
@@ -195,6 +323,7 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
         "status": "ok",
     }
     article_text, article_method = extract_article_text(html_text)
+    article_markdown, article_markdown_method = extract_article_markdown(html_text, final_url=final_url, title=title)
     if article_text:
         metadata.update(
             {
@@ -203,6 +332,16 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
                 "article_text_method": article_method,
                 "article_text_status": "ok" if len(article_text) >= 280 else "short",
                 "article_text_label": "原始主文",
+            }
+        )
+    if article_markdown:
+        metadata.update(
+            {
+                "article_markdown": article_markdown,
+                "article_markdown_chars": len(article_markdown),
+                "article_markdown_method": article_markdown_method,
+                "article_markdown_status": "ok" if len(article_markdown) >= 280 else "short",
+                "article_markdown_label": "Markdown 閱讀版",
             }
         )
     return metadata

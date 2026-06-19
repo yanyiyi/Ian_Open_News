@@ -16,7 +16,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 import hashlib
 
-from page_metadata import enrich_item_metadata
+from page_metadata import enrich_item_metadata, text_to_markdown
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -489,6 +489,123 @@ def item_reading_metadata(item: dict) -> dict:
 
 def item_article_text(item: dict) -> str:
     return clean_text(item_reading_metadata(item).get("article_text"))
+
+
+def item_article_markdown(item: dict) -> str:
+    metadata = item_reading_metadata(item)
+    markdown = clean_text(metadata.get("article_markdown"))
+    if markdown:
+        return markdown
+    article_text = clean_text(metadata.get("article_text"))
+    if article_text:
+        return text_to_markdown(article_text, title=metadata.get("title") or item.get("title") or "")
+    return ""
+
+
+def inline_markdown_html(text: str) -> str:
+    def format_segment(segment: str) -> str:
+        escaped = h(segment)
+        escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
+        escaped = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", escaped)
+        escaped = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<em>\1</em>", escaped)
+        return escaped
+
+    parts: list[str] = []
+    position = 0
+    for match in re.finditer(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", text):
+        parts.append(format_segment(text[position : match.start()]))
+        label = format_segment(match.group(1))
+        url = h(match.group(2))
+        parts.append(f'<a href="{url}" target="_blank" rel="noreferrer">{label}</a>')
+        position = match.end()
+    parts.append(format_segment(text[position:]))
+    return "".join(parts)
+
+
+def markdown_to_html(markdown: str) -> str:
+    raw = html.unescape(str(markdown or ""))
+    raw = raw.replace("\r\n", "\n").replace("\r", "\n")
+    raw = re.sub(r"[ \t\f\v]+", " ", raw)
+    raw = re.sub(r"\n[ \t]+", "\n", raw)
+    raw = re.sub(r"\n{3,}", "\n\n", raw).strip()
+    lines = raw.split("\n")
+    parts: list[str] = []
+    paragraph: list[str] = []
+    list_tag = ""
+
+    def close_list() -> None:
+        nonlocal list_tag
+        if list_tag:
+            parts.append(f"</{list_tag}>")
+            list_tag = ""
+
+    def flush_paragraph() -> None:
+        if paragraph:
+            parts.append(f"<p>{inline_markdown_html(' '.join(paragraph))}</p>")
+            paragraph.clear()
+
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line:
+            flush_paragraph()
+            close_list()
+            continue
+        heading = re.match(r"^(#{1,4})\s+(.+)$", line)
+        if heading:
+            flush_paragraph()
+            close_list()
+            level = min(len(heading.group(1)), 3)
+            parts.append(f"<h{level}>{inline_markdown_html(heading.group(2))}</h{level}>")
+            continue
+        if line.startswith("> "):
+            flush_paragraph()
+            close_list()
+            parts.append(f"<blockquote>{inline_markdown_html(line[2:])}</blockquote>")
+            continue
+        unordered = re.match(r"^[-*]\s+(.+)$", line)
+        ordered = re.match(r"^\d+[.)]\s+(.+)$", line)
+        if unordered or ordered:
+            flush_paragraph()
+            target_tag = "ul" if unordered else "ol"
+            if list_tag != target_tag:
+                close_list()
+                parts.append(f"<{target_tag}>")
+                list_tag = target_tag
+            item_text = (unordered or ordered).group(1)
+            parts.append(f"<li>{inline_markdown_html(item_text)}</li>")
+            continue
+        close_list()
+        paragraph.append(line)
+
+    flush_paragraph()
+    close_list()
+    return "\n".join(parts) or "<p>這次沒有抓到可顯示的主文。</p>"
+
+
+def item_article_html(item: dict) -> str:
+    return markdown_to_html(item_article_markdown(item))
+
+
+def ensure_article_markdown(item: dict) -> tuple[dict, bool]:
+    metadata = item_reading_metadata(item)
+    if metadata.get("article_markdown") or not metadata.get("article_text"):
+        return item, False
+    markdown = text_to_markdown(metadata.get("article_text"), title=metadata.get("title") or item.get("title") or "")
+    if not markdown:
+        return item, False
+    updated = dict(item)
+    updated_metadata = dict(metadata)
+    updated_metadata.update(
+        {
+            "article_markdown": markdown,
+            "article_markdown_chars": len(markdown),
+            "article_markdown_method": f"{metadata.get('article_text_method', 'text')}.markdown",
+            "article_markdown_status": "ok" if len(markdown) >= 280 else "short",
+            "article_markdown_label": "Markdown 閱讀版",
+        }
+    )
+    updated["reading_metadata"] = updated_metadata
+    return updated, True
 
 
 def item_image_url(item: dict) -> str:
@@ -1079,13 +1196,55 @@ def page(title: str, body: str) -> bytes:
     }}
     .fulltext-panel[hidden] {{ display: none; }}
     .article-text {{
-      white-space: pre-wrap;
-      max-height: 64vh;
-      overflow: auto;
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 14px;
+      padding: clamp(18px, 4vw, 34px);
       background: #fff;
+      max-width: 820px;
+      margin: 0 auto;
+      color: #17212f;
+      font-size: 16px;
+      line-height: 1.78;
+    }}
+    .reader-card .fulltext-panel .article-text {{
+      max-height: 54vh;
+      overflow: auto;
+      padding: 16px;
+      font-size: 15px;
+    }}
+    .article-markdown h1,
+    .article-markdown h2,
+    .article-markdown h3 {{
+      color: var(--ocf-dark);
+      line-height: 1.35;
+      margin: 1.25em 0 .55em;
+      letter-spacing: 0;
+    }}
+    .article-markdown h1 {{ font-size: 28px; margin-top: 0; }}
+    .article-markdown h2 {{
+      font-size: 21px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 6px;
+    }}
+    .article-markdown h3 {{ font-size: 18px; }}
+    .article-markdown p {{ margin: 0 0 1em; }}
+    .article-markdown ul,
+    .article-markdown ol {{ margin: 0 0 1em 1.4em; padding: 0; }}
+    .article-markdown li {{ margin: .35em 0; }}
+    .article-markdown blockquote {{
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--ocf-cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }}
+    .article-markdown a {{ overflow-wrap: anywhere; }}
+    .article-markdown code {{
+      background: #f2f5f8;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 1px 4px;
+      font-size: .92em;
     }}
     .loading-overlay {{
       position: fixed;
@@ -1151,7 +1310,7 @@ def page(title: str, body: str) -> bytes:
   <div class="loading-overlay" id="read-more-loading" aria-live="polite" aria-hidden="true">
     <div class="loading-card">
       <strong>正在載入原始主文</strong>
-      <p class="muted">會從原始網址往下抓全文，完成後寫進閱讀資料庫，並在畫面展開「原始主文」。</p>
+      <p class="muted">會從原始網址往下抓全文，完成後寫成 Markdown 閱讀版存進資料庫，並在畫面展開排版後主文。</p>
       <div class="loading-dots" aria-label="載入中"><span></span><span></span><span></span></div>
     </div>
   </div>
@@ -1168,7 +1327,8 @@ def page(title: str, body: str) -> bytes:
       const data = new URLSearchParams(new FormData(form));
       data.set("format", "json");
       try {{
-        const response = await fetch(form.action, {{
+        const targetUrl = form.getAttribute("action") || form.action;
+        const response = await fetch(targetUrl, {{
           method: "POST",
           headers: {{
             "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
@@ -1184,7 +1344,13 @@ def page(title: str, body: str) -> bytes:
           panel.hidden = false;
           const body = panel.querySelector("[data-fulltext-body]");
           const meta = panel.querySelector("[data-fulltext-meta]");
-          if (body) body.textContent = payload.article_text || "這次沒有抓到可顯示的主文。";
+          if (body) {{
+            if (payload.article_html) {{
+              body.innerHTML = payload.article_html;
+            }} else {{
+              body.textContent = payload.article_text || "這次沒有抓到可顯示的主文。";
+            }}
+          }}
           if (meta) meta.textContent = payload.message || "";
           panel.scrollIntoView({{ behavior: "smooth", block: "start" }});
         }} else if (payload.redirect) {{
@@ -1376,7 +1542,7 @@ class Handler(BaseHTTPRequestHandler):
     <p class="muted">這裡是已經收進 database/items.jsonl、狀態還是 inbox 的資料。</p>
     <p>{badge("建議收 " + str(inbox_counts.get("suggest-keep", 0)), "suggest-keep")} {badge("建議不要看 " + str(inbox_counts.get("suggest-skip", 0)), "suggest-skip")}</p>
     <p><a class="button" href="/items">打開待整理清單</a></p>
-    <p class="help">你剛剛看到的 696 / 44 就是在這裡。</p>
+    <p class="help">這裡是人工分流入口：確認收會進候選清單，不收會記錄原因，純小消息可直接標記送 PR。</p>
   </div>
   <div class="card">
     <h3>候選清單</h3>
@@ -1704,8 +1870,10 @@ async function submitWithoutLeaving(form, submitter, idsToRemove) {{
   const fields = Array.from(form.querySelectorAll("button, input, select, textarea"));
   fields.forEach((field) => {{ field.disabled = true; }});
   try {{
-    const response = await fetch(form.action, {{
-      method: form.method || "POST",
+    const targetUrl = form.getAttribute("action") || form.action;
+    const method = form.getAttribute("method") || form.method || "POST";
+    const response = await fetch(targetUrl, {{
+      method,
       body,
       credentials: "same-origin",
       redirect: "follow",
@@ -2006,7 +2174,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
       <div class="section-kicker">原始主文</div>
       <h3>剛載入的全文</h3>
       <p class="help" data-fulltext-meta></p>
-      <div class="article-text" data-fulltext-body></div>
+      <div class="article-text article-markdown" data-fulltext-body></div>
     </section>
   </div>
 </article>
@@ -2109,12 +2277,14 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
             else f"<div class='item-image'>{h(track_meta(item.get('track', 'unclassified'))['short'])}</div>"
         )
         article_text = item_article_text(item)
+        article_markdown = item_article_markdown(item)
+        article_html = markdown_to_html(article_markdown) if article_markdown else ""
         article_meta = item_reading_metadata(item)
-        fulltext_hidden = "" if article_text else " hidden"
+        fulltext_hidden = "" if article_markdown or article_text else " hidden"
         fulltext_message = (
-            f"已載入原始主文，約 {article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_text_method', 'metadata')}。"
-            if article_text
-            else "按「閱讀更多」後會從原始網址往下抓全文，載入完成後顯示在這裡。"
+            f"已載入 Markdown 閱讀版，約 {article_meta.get('article_markdown_chars', len(article_markdown)) or article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_markdown_method') or article_meta.get('article_text_method', 'metadata')}。"
+            if article_markdown or article_text
+            else "按「閱讀更多」後會從原始網址往下抓全文，載入完成後以 Markdown 閱讀版顯示在這裡。"
         )
         note = personal_note_text(item)
         note_updated = ""
@@ -2181,9 +2351,9 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
 
 <section class="card fulltext-panel source-card source-card--source" id="fulltext-panel"{fulltext_hidden}>
   <div class="section-kicker">原始主文</div>
-  <h2>閱讀更多載入的全文</h2>
+  <h2>閱讀更多載入的 Markdown 閱讀版</h2>
   <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
-  <div class="article-text" data-fulltext-body>{h(article_text)}</div>
+  <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
 </section>
 
 <div class="two-column">
@@ -2593,8 +2763,9 @@ document.querySelectorAll("#rss-candidate-filter-form input[type='checkbox']").f
                 continue
             found = True
             updated, did_change, error = enrich_item_metadata(item)
+            updated, markdown_changed = ensure_article_markdown(updated)
             updated_items.append(updated)
-            changed = did_change
+            changed = did_change or markdown_changed
             response_item = updated
         if not found:
             if wants_json:
@@ -2607,24 +2778,33 @@ document.querySelectorAll("#rss-candidate-filter-form input[type='checkbox']").f
         if wants_json:
             metadata = item_reading_metadata(response_item or {})
             article_text = clean_text(metadata.get("article_text"))
-            message = (
-                f"已載入原始主文，約 {metadata.get('article_text_chars', len(article_text))} 字；"
-                f"抽取方式：{metadata.get('article_text_method', 'metadata')}。"
+            article_markdown = clean_text(metadata.get("article_markdown")) or (
+                text_to_markdown(article_text, title=metadata.get("title") or (response_item or {}).get("title") or "")
                 if article_text
+                else ""
+            )
+            article_html = markdown_to_html(article_markdown) if article_markdown else ""
+            message = (
+                f"已載入 Markdown 閱讀版，約 {metadata.get('article_markdown_chars', len(article_markdown)) or metadata.get('article_text_chars', len(article_text))} 字；"
+                f"抽取方式：{metadata.get('article_markdown_method') or metadata.get('article_text_method', 'metadata')}。"
+                if article_markdown or article_text
                 else "已嘗試讀取原始網址，但這次沒有抓到可顯示的主文。"
             )
             self.send_json(
                 {
-                    "ok": not bool(error) or bool(article_text),
+                    "ok": not bool(error) or bool(article_text) or bool(article_markdown),
                     "changed": changed,
                     "error": error,
                     "message": message,
                     "article_text": article_text,
+                    "article_markdown": article_markdown,
+                    "article_html": article_html,
                     "article_text_status": metadata.get("article_text_status", ""),
+                    "article_markdown_status": metadata.get("article_markdown_status", ""),
                     "image_url": metadata.get("image_url", ""),
                     "redirect": redirect_to,
                 },
-                HTTPStatus.OK if (not error or article_text) else HTTPStatus.BAD_GATEWAY,
+                HTTPStatus.OK if (not error or article_text or article_markdown) else HTTPStatus.BAD_GATEWAY,
             )
             return
         if changed:

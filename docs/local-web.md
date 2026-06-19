@@ -73,7 +73,7 @@ RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 - 我的關鍵紀錄：寫下你自己的判斷、疑問、想補的台灣/OCF 脈絡或後續角度，會存進 `personal_notes`。
 - 用我的觀點重新送 skill：把文章狀態放回 `triaged`，並在 `skill_requests` 與 `review-events.jsonl` 留下紀錄。後續跑撰稿 skill 時，應該把 `personal_notes` 當成新的檢視角度。
-- 閱讀更多：連到原始網址抓 `og:image`、標題、描述、canonical URL、段落摘錄與 `article_text` 原始主文，寫進 `reading_metadata`。如果抓到封面圖，閱讀卡片會使用它；如果抓到主文，單篇頁會顯示「原始主文」。
+- 閱讀更多：連到原始網址抓 `og:image`、標題、描述、canonical URL、段落摘錄、`article_text` 原始主文與 `article_markdown` Markdown 閱讀版，寫進 `reading_metadata`。如果抓到封面圖，閱讀卡片會使用它；如果抓到主文，單篇頁會以 Markdown 排版顯示成比較好讀的文章版。
 
 閱讀區不會自動開 PR，也不會自動發布。它是「看完覺得更值得處理」時，把資料送回整理流程的入口。
 
