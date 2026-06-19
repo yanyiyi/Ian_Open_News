@@ -48,7 +48,9 @@ def main() -> None:
                     source.get("notes", ""),
                 ),
             )
+        active_item_ids: set[str] = set()
         for item in load_jsonl(DATABASE / "items.jsonl"):
+            active_item_ids.add(item["id"])
             connection.execute(
                 """
                 INSERT INTO items
@@ -81,6 +83,8 @@ def main() -> None:
             )
         for review in load_jsonl(DATABASE / "review-events.jsonl"):
             if review.get("item_id") == "manual-seed":
+                continue
+            if review.get("item_id") not in active_item_ids:
                 continue
             connection.execute(
                 """

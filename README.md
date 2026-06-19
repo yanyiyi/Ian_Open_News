@@ -82,6 +82,8 @@ python3 scripts/export_sqlite.py --output .cache/knowledge.sqlite
 
 `.cache/rss-candidates.jsonl` 仍是背景緩衝，不算正式資料庫；本機網頁會把它和 `database/items.jsonl` 的 `inbox` 合併顯示在「RSS 待整理」。你在同一頁按確認收或直接送 PR 時，系統會先把 RSS 新進寫入 `database/items.jsonl`，再套用決定。
 
+已不收的資料會移出 `database/items.jsonl`，寫入 `database/rejected-items.jsonl` 作為之後分析拒收原因與本機規則學習的資料，不再參與主要介面統計。
+
 ## GitHub 工作流是第二階段
 
 GitHub 不再是 RSS 抓取的第一站，而是「本機已經覺得值得追」之後的審查管理區。

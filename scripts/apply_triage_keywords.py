@@ -12,6 +12,7 @@ from fetch_rss import DEFAULT_CANDIDATES, TRIAGE_KEYWORDS, evaluate_triage, load
 ROOT = Path(__file__).resolve().parents[1]
 DATABASE = ROOT / "database"
 ITEMS = DATABASE / "items.jsonl"
+REJECTED_ITEMS = DATABASE / "rejected-items.jsonl"
 
 
 def write_jsonl(path: Path, records: list[dict]) -> None:
@@ -66,6 +67,7 @@ def apply_to_records(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Re-run triage keyword matching for local candidates and inbox items.")
     parser.add_argument("--items", type=Path, default=ITEMS)
+    parser.add_argument("--rejected-items", type=Path, default=REJECTED_ITEMS)
     parser.add_argument("--candidates", type=Path, default=DEFAULT_CANDIDATES)
     parser.add_argument("--triage-keywords", type=Path, default=TRIAGE_KEYWORDS)
     parser.add_argument("--skip-items", action="store_true", help="Do not update database/items.jsonl.")
@@ -78,7 +80,8 @@ def main() -> None:
     item_statuses = None if args.all_item_statuses else {"inbox"}
     summary: list[str] = []
     items = load_jsonl(args.items)
-    editorial_context = build_editorial_context(items, keyword_config)
+    rejected_items = load_jsonl(args.rejected_items)
+    editorial_context = build_editorial_context([*items, *rejected_items], keyword_config)
 
     if not args.skip_candidates:
         candidates = load_jsonl(args.candidates)

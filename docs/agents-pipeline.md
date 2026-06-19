@@ -111,7 +111,7 @@ RSS 自動抓 ──► .cache/rss-candidates.jsonl ──► 本機網頁 /item
                                                       │
        ┌──────────────────────────────────────────────┼────────────────────────────┐
    「不收原因」                           「確認收，準備跑 skill」        「直接送 PR（小消息）」
- 寫進 dismissed 或 archived              寫進 items.jsonl + triaged       寫進 items.jsonl + ready
+ 寫進 rejected-items + dismissed         寫進 items.jsonl + triaged       寫進 items.jsonl + ready
                                               │
                                               ▼
                                 /candidates 候選清單待跑 skill
@@ -129,7 +129,7 @@ RSS 自動抓 ──► .cache/rss-candidates.jsonl ──► 本機網頁 /item
 1. `python3 scripts/local_web.py` 開本機網頁（預設 `http://127.0.0.1:8765`）。
 2. 進「RSS 待整理」`/items`，看 RSS 抓到的新資料與既有 inbox。系統用 [`database/triage-keywords.json`](../database/triage-keywords.json) 標「建議收」或「建議不要看」。
 3. 真的值得追的按「**確認收，準備跑 skill**」（RSS 新進會先寫進 `database/items.jsonl`，再改成 `triaged`）。
-4. 純小消息按「**直接送 PR（小消息）**」；不值得的按不收原因，RSS 新進會寫進 `.cache/rss-dismissed.jsonl`，下次不再出現。
+4. 純小消息按「**直接送 PR（小消息）**」；不值得的按不收原因，資料會寫進 `database/rejected-items.jsonl`，RSS 新進也會寫進 `.cache/rss-dismissed.jsonl`，下次不再出現。
 
 關鍵字本身不夠用時，直接編 `database/triage-keywords.json` 的 `keep_keywords` / `skip_keywords`，再回 RSS 待整理重看一輪。
 

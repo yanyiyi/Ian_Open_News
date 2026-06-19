@@ -7,7 +7,8 @@
 - `taxonomy.json`：兩大主線、狀態、優先順序、來源類型。
 - `triage-keywords.json`：本機 RSS 候選清單使用的保留/排除關鍵字。
 - `sources.jsonl`：來源資料庫，由 Inoreader OPML 與其他來源匯入。
-- `items.jsonl`：知識項目資料庫，由 Inoreader starred、Excel、人工收下的 RSS 候選與人工 PR 更新。
+- `items.jsonl`：活躍知識項目資料庫，由 Inoreader starred、Excel、人工收下的 RSS 候選與人工 PR 更新；已不收的資料不留在這裡。
+- `rejected-items.jsonl`：不收學習檔，存放從 `items.jsonl` 移出的拒收資料與 RSS 新進拒收資料，供後續分析拒收原因、去重與本機規則初篩使用。
 - `review-events.jsonl`：審稿與查核事件，可人工追加。
 - `schema.sql`：SQLite 輸出 schema。
 
@@ -15,7 +16,7 @@
 
 - `id`：穩定 ID，由 URL 或來源資訊產生。
 - `track`：`digital-humanities-local-knowledge`、`open-tech-open-industry` 或 `unclassified`。
-- `status`：`inbox`、`triaged`、`researching`、`drafting`、`reviewing`、`fact-checking`、`ready`、`published`、`archived`。
+- `status`：`inbox`、`triaged`、`researching`、`drafting`、`reviewing`、`fact-checking`、`ready`、`published`、`archived`。一般 UI 不應把已不收資料留在 `items.jsonl`；拒收資料會移到 `rejected-items.jsonl`。
 - `priority`：`low`、`normal`、`high`、`urgent`。
 - `title`：資料標題。
 - `url`：原始網址。

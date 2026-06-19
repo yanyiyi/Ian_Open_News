@@ -56,7 +56,7 @@ http://127.0.0.1:8765
 
 - 確認收，準備跑 skill：RSS 新進會先寫進 `database/items.jsonl`，再改成 `triaged`，移到候選清單的「待跑 skill」。
 - 直接送 PR（小消息）：RSS 新進會先寫進 `database/items.jsonl`，再改成 `ready`，不跑 skill。
-- 不收原因：已入庫項目會改成 `archived`；RSS 新進會從緩衝清單移除並寫入 `.cache/rss-dismissed.jsonl`，下一次抓取不會重複出現。
+- 不收原因：已入庫項目會移出 `database/items.jsonl`，寫入 `database/rejected-items.jsonl`；RSS 新進會從緩衝清單移除，並同時寫入 `database/rejected-items.jsonl` 與 `.cache/rss-dismissed.jsonl`，下一次抓取不會重複出現。
 
 RSS 待整理會依 `database/triage-keywords.json` 標示：
 
@@ -93,7 +93,7 @@ RSS 待整理會依 `database/triage-keywords.json` 標示：
 
 - 確認收，準備跑 skill：把已入庫項目從 `inbox` 改成 `triaged`；RSS 新進會先入庫再改成 `triaged`。處理後會從 RSS 待整理消失，移到候選清單的「已確認收，待跑 skill」。
 - 直接送 PR（小消息）：把純事實、很短的小消息改成 `ready`，留下「直接送 PR」紀錄，不進候選清單，也不跑 skill。
-- 不收原因小按鈕：在同一張卡片上直接按預設原因。已入庫項目會改成 `archived`；RSS 新進會進入 `.cache/rss-dismissed.jsonl`。
+- 不收原因小按鈕：在同一張卡片上直接按預設原因。已入庫項目會移出主資料庫並進入 `database/rejected-items.jsonl`；RSS 新進也會寫進這份學習檔，並進入 `.cache/rss-dismissed.jsonl` 做抓取去重。
 - 其他原因：展開「其他原因」，寫一句原因後送出。
 
 篩選區不用按套用。改主線、系統建議，或勾選關鍵字後，下面列表會自動更新。
@@ -119,6 +119,8 @@ RSS 待整理上方也有批次處理：
 - 文章像「純事實新聞 / 小消息」還是「值得收錄的精選文章」。
 
 如果 `editorial_triage.recommendation` 是 `suggest-collect` 或 `suggest-review`，畫面會列出「為什麼建議看」三個理由。如果是 `suggest-skip`，畫面只列出不要看的主要線索，避免花時間替明顯不收的文章寫理由。
+
+`database/rejected-items.jsonl` 不會出現在 RSS 待整理統計、候選清單、閱讀區或 SQLite 的主要 `items` 表；它只作為後續分析「為什麼不收」的學習資料，也會被 RSS 抓取與本機規則初篩拿來去重和判斷相似低價值資料。
 
 ## 關鍵字設定
 

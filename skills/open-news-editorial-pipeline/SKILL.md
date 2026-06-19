@@ -7,7 +7,7 @@ description: Triage and edit Ian Open News knowledge items across RSS intake, lo
 
 ## Core Rule
 
-Treat the local database as the editorial source of truth. Do not skip the local human decision layer: RSS candidates appear in the same RSS 待整理 flow as inbox items, then become small-news PR material, featured-article skill candidates, or archived/dismissed rejects only after a local decision.
+Treat `database/items.jsonl` as the active editorial source of truth. Do not skip the local human decision layer: RSS candidates appear in the same RSS 待整理 flow as inbox items, then become small-news PR material, featured-article skill candidates, or rejected learning records only after a local decision.
 
 ## Daily Workflow
 
@@ -18,8 +18,9 @@ Treat the local database as the editorial source of truth. Do not skip the local
 3. Review RSS candidates and inbox items together in the local RSS 待整理 flow.
    - Pure factual news: mark as `ready` with `local_decision.action: direct-pr-small-news`.
    - Worth collecting as a selected article: mark as `triaged` with `local_decision.action: accepted-for-editing`.
-   - Not useful: mark existing inbox items as `archived` with `local_decision.action: rejected`, or dismiss RSS candidates into `.cache/rss-dismissed.jsonl`, always with a short reason when available.
+   - Not useful: move existing inbox items out of `database/items.jsonl` into `database/rejected-items.jsonl` with `local_decision.action: rejected`, or dismiss RSS candidates into both `database/rejected-items.jsonl` and `.cache/rss-dismissed.jsonl`, always with a short reason when available.
    - When acting on an RSS candidate, let the local web flow write it into `database/items.jsonl` only if the decision is confirm-for-skill or direct PR.
+   - Use `database/rejected-items.jsonl` for learning rejection patterns and dedupe, not for active UI statistics.
 4. Keep `/candidates` for already-confirmed selected articles that are waiting for writing/review skills.
 5. For small news, prepare one PR containing a list of items, fact-check notes, and minimal database/brief updates.
 6. For selected articles, run angle, source research, structure, line, target reader, then fact-check. Open a PR only after the local skill pass produces useful material.

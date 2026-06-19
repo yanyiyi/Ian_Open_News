@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATABASE = ROOT / "database"
 SOURCES = DATABASE / "sources.jsonl"
 ITEMS = DATABASE / "items.jsonl"
+REJECTED_ITEMS = DATABASE / "rejected-items.jsonl"
 REVIEW_EVENTS = DATABASE / "review-events.jsonl"
 TRIAGE_KEYWORDS = DATABASE / "triage-keywords.json"
 CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
@@ -249,6 +250,25 @@ def append_jsonl(path: Path, record: dict) -> None:
         if needs_newline:
             handle.write("\n")
         handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def upsert_jsonl(path: Path, record: dict) -> None:
+    record_id = record.get("id")
+    if not record_id:
+        append_jsonl(path, record)
+        return
+    records = load_jsonl(path)
+    updated = []
+    replaced = False
+    for existing in records:
+        if existing.get("id") == record_id:
+            updated.append(record)
+            replaced = True
+        else:
+            updated.append(existing)
+    if not replaced:
+        updated.append(record)
+    write_jsonl(path, updated)
 
 
 def now_iso() -> str:
@@ -749,15 +769,48 @@ def append_review_note(review: dict, note: str) -> dict:
     return updated
 
 
+def local_decision_action(record: dict) -> str:
+    decision = record.get("local_decision")
+    if not isinstance(decision, dict):
+        return ""
+    return clean_text(decision.get("action"))
+
+
+def rejected_archive_record(record: dict, decided_at: str, reason: str = "", moved_from: str = "database/items.jsonl") -> dict:
+    item = remove_local_candidate_fields(record)
+    item["status"] = "archived"
+    item["priority"] = "low"
+    decision = item.get("local_decision") if isinstance(item.get("local_decision"), dict) else {}
+    item["local_decision"] = {
+        **decision,
+        "action": "rejected",
+        "decided_at": decision.get("decided_at") or decided_at,
+        "reason": decision.get("reason") or reason,
+        "source": decision.get("source") or "local_web",
+    }
+    archive_meta = item.get("archive") if isinstance(item.get("archive"), dict) else {}
+    item["archive"] = {
+        **archive_meta,
+        "moved_from": moved_from,
+        "moved_to": "database/rejected-items.jsonl",
+        "moved_at": decided_at,
+        "purpose": "learning-rejection-patterns",
+    }
+    return item
+
+
 def rejection_reason_options(items: list[dict]) -> list[str]:
     counts: Counter[str] = Counter()
-    for item in items:
+    for item in [*items, *load_jsonl(REJECTED_ITEMS), *load_jsonl(DISMISSED)]:
         decision = item.get("local_decision") or {}
-        if decision.get("action") == "rejected" and decision.get("reason"):
-            reason = clean_text(decision["reason"], 90)
-            reason = re.sub(r"\s+", " ", reason).strip()
-            if reason:
-                counts[reason] += 1
+        reason = ""
+        if isinstance(decision, dict) and decision.get("action") == "rejected":
+            reason = clean_text(decision.get("reason"), 90)
+        if not reason:
+            reason = clean_text(item.get("reason"), 90)
+        reason = re.sub(r"\s+", " ", reason).strip()
+        if reason:
+            counts[reason] += 1
     options = [reason for reason, _ in counts.most_common(8)]
     for reason, _ in counts.most_common(8):
         if reason and reason not in options:
@@ -1541,7 +1594,7 @@ class Handler(BaseHTTPRequestHandler):
     <p class="muted">每天 RSS 新進與已入庫 inbox 都在這裡分流。</p>
     <p>{badge("全部 " + str(len(pending_review_items)), "neutral")} {badge("建議收 " + str(pending_counts.get("suggest-keep", 0)), "suggest-keep")} {badge("建議不要看 " + str(pending_counts.get("suggest-skip", 0)), "suggest-skip")}</p>
     <p><a class="button" href="/items">打開 RSS 待整理</a></p>
-    <p class="help">確認收會直接進候選清單，不收會記錄原因或略過，純小消息可直接標記送 PR。</p>
+    <p class="help">確認收會直接進候選清單，不收會移出主資料庫並保留到學習檔，純小消息可直接標記送 PR。</p>
   </div>
   <div class="card">
     <h3>候選清單</h3>
@@ -1633,7 +1686,7 @@ class Handler(BaseHTTPRequestHandler):
             notice = f'<div class="notice">已確認收下 {count} 筆。處理過的項目已離開 RSS 待整理，現在可到候選清單的「待跑 skill」區接著編修。</div>'
         elif (query.get("saved") or [""])[0] == "rejected":
             count = h((query.get("count") or ["1"])[0])
-            notice = f'<div class="notice">已標記不收 {count} 筆，項目已離開 RSS 待整理，原因也已寫進資料庫與 review event。</div>'
+            notice = f'<div class="notice">已標記不收 {count} 筆，項目已離開 RSS 待整理，原因也已寫進不收學習檔與 review event。</div>'
         elif (query.get("error") or [""])[0] == "empty-selection":
             notice = '<div class="notice">請先勾選至少一則，再做批次處理。</div>'
         elif (query.get("error") or [""])[0] == "reason":
@@ -1685,7 +1738,7 @@ class Handler(BaseHTTPRequestHandler):
         <button type="submit" class="secondary">直接送 PR（小消息）</button>
       </form>
     </div>
-    <p class="help">這則還在 RSS 新進。確認收或直接送 PR 時，系統會先寫進 database/items.jsonl，再套用你的決定；不收會寫入略過清單。</p>
+    <p class="help">這則還在 RSS 新進。確認收或直接送 PR 時，系統會先寫進 database/items.jsonl，再套用你的決定；不收會寫入不收學習檔與略過清單。</p>
     <p class="help">不收原因</p>
     <div class="reason-presets">{inline_reject_buttons(item_id, reason_options, action="/candidates/dismiss")}</div>
     <details class="inline-reason">
@@ -1846,7 +1899,7 @@ class Handler(BaseHTTPRequestHandler):
     </details>
   </form>
   <p class="help">批次處理只會處理你勾選的項目；處理完會從 RSS 待整理消失。</p>
-  <p class="help">批次選到 RSS 新進時，系統會先寫進 database/items.jsonl，再套用確認收或直接送 PR；批次不收會寫入略過清單。</p>
+  <p class="help">批次選到 RSS 新進時，系統會先寫進 database/items.jsonl，再套用確認收或直接送 PR；批次不收會寫入不收學習檔，RSS 新進也會寫入略過清單。</p>
 </div>
 <h2>RSS 待整理項目</h2>
 <p class="muted">符合條件：{len(filtered)} 筆。{'' if show_all else f'目前先顯示 {len(visible)} 筆。'}</p>
@@ -2006,7 +2059,7 @@ document.getElementById("items-batch-form").addEventListener("submit", (event) =
         triage = item.get("triage") or {}
         body = f"""
 <h1>不收原因</h1>
-<p class="lede">這一步會把項目從 inbox 封存，但保留原因。這些原因之後會出現在快捷按鈕裡，幫你更快整理不要看的資料。</p>
+<p class="lede">這一步會把項目移出 items 主資料庫，存到 rejected-items 學習檔並保留原因。這些原因之後會出現在快捷按鈕裡，幫你更快整理不要看的資料。</p>
 {error}
 <article class="card candidate-card candidate-card--{h(candidate_recommendation(item))}">
   <div>
@@ -2025,7 +2078,7 @@ document.getElementById("items-batch-form").addEventListener("submit", (event) =
   <p class="help">點一個原因會先放進文字框；你可以再補自己的判斷。</p>
   <label>這次不收的原因</label>
   <textarea id="reject-reason" name="reason" required></textarea>
-  <p class="help">例：和主線關聯太弱、重複、只是活動公告、缺少可查證來源。這會寫進項目紀錄和 review event。</p>
+  <p class="help">例：和主線關聯太弱、重複、只是活動公告、缺少可查證來源。這會寫進不收學習檔和 review event。</p>
   <div class="button-row">
     <button type="submit" class="danger">確認不收並記錄原因</button>
     <a class="button secondary" href="/items">先不要決定</a>
@@ -2487,9 +2540,20 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
         candidate = self.pop_candidate(candidate_id)
         if candidate is None:
             return False
+        decided_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
         notes = "RSS 待整理按鈕標記不收。"
         if reason:
             notes = f"{notes}原因：{reason}"
+        archived_candidate = rejected_archive_record(
+            {
+                **candidate,
+                "review": append_review_note(candidate.get("review") or {}, f"{decided_at} {notes}"),
+            },
+            decided_at,
+            reason,
+            ".cache/rss-candidates.jsonl",
+        )
+        upsert_jsonl(REJECTED_ITEMS, archived_candidate)
         dismissed = {
             "id": candidate.get("id"),
             "track": candidate.get("track"),
@@ -2499,7 +2563,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
             "source_name": candidate.get("source_name"),
             "reference": candidate.get("reference", {}),
             "triage": candidate.get("triage", {}),
-            "dismissed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "dismissed_at": decided_at,
             "notes": notes,
         }
         if reason:
@@ -2582,7 +2646,10 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
                 updated_items.append(item)
                 continue
             updated_item["review"] = append_review_note(updated_item.get("review") or {}, f"{decided_at} {note}")
-            updated_items.append(updated_item)
+            if action == "reject":
+                upsert_jsonl(REJECTED_ITEMS, rejected_archive_record(updated_item, decided_at, reason))
+            else:
+                updated_items.append(updated_item)
             events.append(review_event(updated_item, event_status, note))
             changed += 1
 

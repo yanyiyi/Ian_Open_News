@@ -23,6 +23,7 @@ DATABASE = ROOT / "database"
 TRIAGE_KEYWORDS = DATABASE / "triage-keywords.json"
 DEFAULT_CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
 DEFAULT_DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
+DEFAULT_REJECTED_ITEMS = DATABASE / "rejected-items.jsonl"
 DEFAULT_SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast"]
 
 
@@ -388,6 +389,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch active RSS/Atom feeds into database/items.jsonl")
     parser.add_argument("--sources", type=Path, default=DATABASE / "sources.jsonl")
     parser.add_argument("--items", type=Path, default=DATABASE / "items.jsonl")
+    parser.add_argument("--rejected-items", type=Path, default=DEFAULT_REJECTED_ITEMS)
     parser.add_argument("--source-type", action="append", choices=["rss", "google-alert", "youtube", "podcast", "facebook", "inoreader-monitor"], default=[])
     parser.add_argument("--track", action="append", default=[])
     parser.add_argument("--include-unclassified", action="store_true")
@@ -420,14 +422,18 @@ def main() -> None:
 
     sources = load_jsonl(args.sources)
     existing_items = load_jsonl(args.items)
+    rejected_items = load_jsonl(args.rejected_items)
     existing_candidates = load_jsonl(args.candidate_output) if args.candidate_output else []
     dismissed_candidates = load_jsonl(args.dismissed) if args.candidate_output else []
     keyword_config = load_json(args.triage_keywords)
-    editorial_context = build_editorial_context(existing_items, keyword_config)
+    history_items = [*existing_items, *rejected_items]
+    editorial_context = build_editorial_context(history_items, keyword_config)
     seen_ids = {item.get("id") for item in existing_items}
+    seen_ids.update(item.get("id") for item in rejected_items)
     seen_ids.update(candidate.get("id") for candidate in existing_candidates)
     seen_ids.update(candidate.get("id") for candidate in dismissed_candidates)
     seen_urls = {item.get("url") for item in existing_items if item.get("url")}
+    seen_urls.update(item.get("url") for item in rejected_items if item.get("url"))
     seen_urls.update(candidate.get("url") for candidate in existing_candidates if candidate.get("url"))
     seen_urls.update(candidate.get("url") for candidate in dismissed_candidates if candidate.get("url"))
     seen_guids = {
@@ -435,6 +441,11 @@ def main() -> None:
         for item in existing_items
         if isinstance(item.get("reference"), dict) and (item.get("reference") or {}).get("guid")
     }
+    seen_guids.update(
+        (item.get("reference") or {}).get("guid")
+        for item in rejected_items
+        if isinstance(item.get("reference"), dict) and (item.get("reference") or {}).get("guid")
+    )
     seen_guids.update(
         (candidate.get("reference") or {}).get("guid")
         for candidate in existing_candidates
