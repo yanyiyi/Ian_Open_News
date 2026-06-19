@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open News Editorial Pipeline"
+  short_description: "整理 Ian Open News 的收件、分流、撰稿與審查流程"
+  default_prompt: "Use $open-news-editorial-pipeline to triage Ian Open News items and prepare the next editorial step."

@@ -5,6 +5,7 @@ import argparse
 import json
 from pathlib import Path
 
+from editorial_triage import build_editorial_context, evaluate_editorial_triage
 from fetch_rss import DEFAULT_CANDIDATES, TRIAGE_KEYWORDS, evaluate_triage, load_json, load_jsonl
 
 
@@ -19,8 +20,22 @@ def write_jsonl(path: Path, records: list[dict]) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def apply_to_records(records: list[dict], keyword_config: dict, statuses: set[str] | None) -> tuple[list[dict], int, int, int]:
+def comparable_editorial_triage(record: dict | None) -> dict:
+    if not isinstance(record, dict):
+        return {}
+    comparable = dict(record)
+    comparable.pop("generated_at", None)
+    return comparable
+
+
+def apply_to_records(
+    records: list[dict],
+    keyword_config: dict,
+    editorial_context: dict,
+    statuses: set[str] | None,
+) -> tuple[list[dict], int, int, int, int]:
     changed = 0
+    editorial_changed = 0
     keep = 0
     skip = 0
     output = []
@@ -33,12 +48,19 @@ def apply_to_records(records: list[dict], keyword_config: dict, statuses: set[st
         if updated.get("triage") != triage:
             changed += 1
         updated["triage"] = triage
+        editorial_triage = evaluate_editorial_triage(updated, keyword_config, editorial_context)
+        existing_editorial = updated.get("editorial_triage") if isinstance(updated.get("editorial_triage"), dict) else {}
+        if comparable_editorial_triage(existing_editorial) == comparable_editorial_triage(editorial_triage):
+            editorial_triage["generated_at"] = existing_editorial.get("generated_at", editorial_triage["generated_at"])
+        if existing_editorial != editorial_triage:
+            editorial_changed += 1
+        updated["editorial_triage"] = editorial_triage
         if triage["recommendation"] == "suggest-keep":
             keep += 1
         elif triage["recommendation"] == "suggest-skip":
             skip += 1
         output.append(updated)
-    return output, changed, keep, skip
+    return output, changed, editorial_changed, keep, skip
 
 
 def main() -> None:
@@ -55,21 +77,28 @@ def main() -> None:
     keyword_config = load_json(args.triage_keywords)
     item_statuses = None if args.all_item_statuses else {"inbox"}
     summary: list[str] = []
+    items = load_jsonl(args.items)
+    editorial_context = build_editorial_context(items, keyword_config)
 
     if not args.skip_candidates:
         candidates = load_jsonl(args.candidates)
-        updated_candidates, changed, keep, skip = apply_to_records(candidates, keyword_config, None)
+        updated_candidates, changed, editorial_changed, keep, skip = apply_to_records(candidates, keyword_config, editorial_context, None)
         if not args.dry_run:
             write_jsonl(args.candidates, updated_candidates)
-        summary.append(f"candidates: {len(candidates)} checked, {changed} changed, {keep} suggest-keep, {skip} suggest-skip")
+        summary.append(
+            f"candidates: {len(candidates)} checked, {changed} triage changed, "
+            f"{editorial_changed} editorial changed, {keep} suggest-keep, {skip} suggest-skip"
+        )
 
     if not args.skip_items:
-        items = load_jsonl(args.items)
-        updated_items, changed, keep, skip = apply_to_records(items, keyword_config, item_statuses)
+        updated_items, changed, editorial_changed, keep, skip = apply_to_records(items, keyword_config, editorial_context, item_statuses)
         checked = len(items) if item_statuses is None else sum(1 for item in items if item.get("status") in item_statuses)
         if not args.dry_run:
             write_jsonl(args.items, updated_items)
-        summary.append(f"items: {checked} checked, {changed} changed, {keep} suggest-keep, {skip} suggest-skip")
+        summary.append(
+            f"items: {checked} checked, {changed} triage changed, "
+            f"{editorial_changed} editorial changed, {keep} suggest-keep, {skip} suggest-skip"
+        )
 
     print("\n".join(summary))
 

@@ -6,6 +6,7 @@
 - 看到不錯的 RSS/Atom 時，加入或編輯 `database/sources.jsonl`。
 - 依「開放科技與開放產業發展」和「數位人文與在地知識建構」兩條主線查看待整理項目與來源。
 - 先審 RSS 暫存，真的值得追再收進資料庫的待整理清單。
+- 在閱讀區看已確認收下的文章/小消息，並留下「我的關鍵紀錄」。
 
 啟動：
 
@@ -64,6 +65,17 @@ RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 候選清單是下一站：跑 skill 做摘要、切角與文章編修，整理好後再送 GitHub PR。
 
+## 閱讀區
+
+打開 `http://127.0.0.1:8765/reader`，可以閱讀已確認收下的精選文章與小消息。閱讀區會盡量使用資料中的 `image`、`image_url`、`thumbnail`、`og_image` 或摘要內圖片 URL 來產生文章卡片；沒有圖片時會用主線色塊。
+
+每篇文章點進單篇頁後可以做兩件事：
+
+- 我的關鍵紀錄：寫下你自己的判斷、疑問、想補的台灣/OCF 脈絡或後續角度，會存進 `personal_notes`。
+- 用我的觀點重新送 skill：把文章狀態放回 `triaged`，並在 `skill_requests` 與 `review-events.jsonl` 留下紀錄。後續跑撰稿 skill 時，應該把 `personal_notes` 當成新的檢視角度。
+
+閱讀區不會自動開 PR，也不會自動發布。它是「看完覺得更值得處理」時，把資料送回整理流程的入口。
+
 ## 待整理清單
 
 打開 `http://127.0.0.1:8765/items`，可以查看已經收進 `database/items.jsonl`、狀態仍是 `inbox` 的資料。這裡會顯示「建議收」「建議不要看」「未判斷」的數量，也可以依主線、系統建議與關鍵字篩選。
@@ -88,6 +100,19 @@ RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 在待整理清單送出單筆或批次處理後，頁面會留在原本的篩選條件，只讓處理完成的卡片淡出消失。
 
+卡片上的標題會進入本機單篇整理頁；「開原文」才會打開外部網站。單篇頁會顯示完整摘要、關鍵字判斷、AI/規則初篩、個人紀錄與重送 skill 按鈕。
+
+## AI/規則初篩
+
+`triage` 是第一層關鍵字判斷；`editorial_triage` 是更接近你日常判斷的欄位。它會綜合：
+
+- 關鍵字匹配程度。
+- 過去不收文章的來源、標籤、原因與低價值訊號。
+- 過去已收錄、舊新聞表或已確認項目的來源與標籤。
+- 文章像「純事實新聞 / 小消息」還是「值得收錄的精選文章」。
+
+如果 `editorial_triage.recommendation` 是 `suggest-collect` 或 `suggest-review`，畫面會列出「為什麼建議看」三個理由。如果是 `suggest-skip`，畫面只列出不要看的主要線索，避免花時間替明顯不收的文章寫理由。
+
 ## 關鍵字設定
 
 打開 `http://127.0.0.1:8765/keywords`，可以分別設定兩條主線的：
@@ -97,7 +122,7 @@ RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 一行一個關鍵字。儲存後會寫進 `database/triage-keywords.json`，下一次抓 RSS 候選時套用。
 
-如果想立刻套用到目前 RSS 暫存與 `database/items.jsonl` 裡的 `inbox` 項目，關鍵字頁下方有「重新跑關鍵字判斷」按鈕。
+如果想立刻套用到目前 RSS 暫存與 `database/items.jsonl` 裡的 `inbox` 項目，關鍵字頁下方有「重新跑 AI/關鍵字初篩」按鈕。
 
 ## 加 RSS 與管理來源
 
@@ -155,7 +180,7 @@ python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --di
 首頁的「本機指令」區塊目前有這些 allowlist 按鈕，每個按鈕旁都有白話說明：
 
 - 立刻抓 RSS 候選：`python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl`
-- 重新跑關鍵字判斷：`python3 scripts/apply_triage_keywords.py`
+- 重新跑 AI/關鍵字初篩：`python3 scripts/apply_triage_keywords.py`
 - 驗證資料庫：`python3 scripts/validate_database.py`
 - 匯出 SQLite：`python3 scripts/export_sqlite.py --output .cache/knowledge.sqlite`
 - 查看檔案變更：`git status --short`

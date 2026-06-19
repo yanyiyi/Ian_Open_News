@@ -29,6 +29,9 @@
 - `origin`：`inoreader-starred`、`rss-fetch`、`manual-web`、`xlsx:<sheet>` 或 `manual`。
 - `reference`：原始檔案、原始 record id、舊欄位等。
 - `review`：審查狀態、切角、查核與備註。
+- `triage`：關鍵字第一層判斷，標示建議收、建議不要看、命中與排除關鍵字。
+- `editorial_triage`：本機 AI/規則初篩欄位，綜合關鍵字、過去不收紀錄、過去收錄類型，產生「為什麼建議看」與下一步建議。
+- `personal_notes`：閱讀區的「我的關鍵紀錄」，用來讓重送 skill 時依個人觀點重新檢視文章。
 
 ## Source 欄位
 
