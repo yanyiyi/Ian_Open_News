@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATABASE = ROOT / "database"
 SOURCES = DATABASE / "sources.jsonl"
 ITEMS = DATABASE / "items.jsonl"
+REVIEW_EVENTS = DATABASE / "review-events.jsonl"
 TRIAGE_KEYWORDS = DATABASE / "triage-keywords.json"
 CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
 DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
@@ -81,6 +82,13 @@ SOURCE_STATUS_LABELS = {
     "paused": "暫停",
     "archived": "封存",
 }
+DEFAULT_REJECTION_REASONS = [
+    "和兩條主線關聯太弱。",
+    "內容偏活動公告或宣傳，暫不整理。",
+    "來源重複，已由其他資料涵蓋。",
+    "資訊過舊或缺少可查證來源。",
+    "只是短訊或碎片，不足以形成文章。",
+]
 
 COMMANDS = {
     "fetch_rss": {
@@ -198,6 +206,10 @@ def append_jsonl(path: Path, record: dict) -> None:
         handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
 
 
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
 def default_review(notes: str = "") -> dict:
     return {
         "angle": "",
@@ -301,6 +313,91 @@ def remove_local_candidate_fields(record: dict) -> dict:
 
 def candidate_recommendation(candidate: dict) -> str:
     return (candidate.get("triage") or {}).get("recommendation", "unknown")
+
+
+def is_skill_candidate(item: dict) -> bool:
+    decision = item.get("local_decision") or {}
+    return item.get("status") == "triaged" and (
+        decision.get("action") == "accepted-for-editing"
+        or decision.get("next_step") == "run-writing-skill-before-pr"
+    )
+
+
+def is_direct_pr_item(item: dict) -> bool:
+    decision = item.get("local_decision") or {}
+    return item.get("status") == "ready" and decision.get("action") == "direct-pr-small-news"
+
+
+def item_triage_keywords(item: dict) -> set[str]:
+    triage = item.get("triage") or {}
+    keywords = set(triage.get("matched_keywords") or [])
+    keywords.update(triage.get("skip_keywords") or [])
+    return {str(keyword) for keyword in keywords if str(keyword).strip()}
+
+
+def recommendation_label(recommendation: str) -> str:
+    if recommendation == "suggest-keep":
+        return "建議收"
+    if recommendation == "suggest-skip":
+        return "建議不要看"
+    return "未判斷"
+
+
+def append_review_note(review: dict, note: str) -> dict:
+    updated = dict(review or default_review())
+    current_notes = clean_text(updated.get("notes"))
+    updated["notes"] = f"{current_notes}\n{note}".strip() if current_notes else note
+    return updated
+
+
+def rejection_reason_options(items: list[dict]) -> list[str]:
+    counts: Counter[str] = Counter()
+    for item in items:
+        decision = item.get("local_decision") or {}
+        if decision.get("action") == "rejected" and decision.get("reason"):
+            counts[clean_text(decision["reason"], 90)] += 1
+    options = list(DEFAULT_REJECTION_REASONS)
+    for reason, _ in counts.most_common(8):
+        if reason and reason not in options:
+            options.append(reason)
+    return options
+
+
+def review_event(item: dict, status: str, notes: str) -> dict:
+    created_at = now_iso()
+    return {
+        "id": stable_id("review", item.get("id"), status, created_at),
+        "item_id": item.get("id"),
+        "track": item.get("track", "unclassified"),
+        "step": "news-scout",
+        "status": status,
+        "reviewer": "local-web",
+        "created_at": created_at,
+        "notes": notes,
+        "evidence": [{"type": "url", "url": item.get("url", "")}],
+    }
+
+
+def inline_reject_buttons(item_id: str, reasons: list[str], limit: int = 5) -> str:
+    buttons = []
+    for reason in reasons[:limit]:
+        buttons.append(
+            f"""
+<form class="chip-form" method="post" action="/items/reject" data-decision-form>
+  <input type="hidden" name="id" value="{h(item_id)}">
+  <input type="hidden" name="reason" value="{h(reason)}">
+  <button type="submit" class="reason-chip reason-chip--danger">{h(reason)}</button>
+</form>
+"""
+        )
+    return "\n".join(buttons)
+
+
+def batch_reason_buttons(reasons: list[str], limit: int = 5) -> str:
+    return "\n".join(
+        f'<button type="submit" name="action" value="reject" class="reason-chip reason-chip--danger" data-batch-reason="{h(reason)}">{h(reason)}</button>'
+        for reason in reasons[:limit]
+    )
 
 
 def candidate_issue_body(item: dict) -> str:
@@ -491,6 +588,7 @@ def page(title: str, body: str) -> bytes:
     .button-humanities {{ background: var(--humanities); }}
     .secondary {{ background: var(--ocf-cyan); }}
     .quiet {{ background: var(--ocf-dark); }}
+    input[type="checkbox"] {{ width: auto; }}
     table {{ width: 100%; border-collapse: collapse; overflow: hidden; table-layout: fixed; }}
     th, td {{ text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }}
     th {{ background: var(--soft); color: var(--muted); font-size: 13px; }}
@@ -533,6 +631,63 @@ def page(title: str, body: str) -> bytes:
     .list-item--humanities {{ border-left-color: var(--humanities); }}
     .candidate-card {{ display: grid; gap: 10px; }}
     .candidate-card--suggest-skip {{ border-color: #f1bfd3; }}
+    .candidate-card.is-removing {{
+      pointer-events: none;
+      overflow: hidden;
+      animation: item-remove 180ms ease forwards;
+    }}
+    @keyframes item-remove {{
+      from {{ opacity: 1; transform: translateY(0); max-height: 900px; }}
+      to {{ opacity: 0; transform: translateY(-4px); max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; border-width: 0; }}
+    }}
+    .decision-panel {{ border-top: 1px solid var(--line); padding-top: 10px; }}
+    .reason-presets {{ display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }}
+    .reason-presets button {{ margin-top: 0; }}
+    .batch-panel {{ border-left: 4px solid var(--ocf-cyan); }}
+    .keyword-filters {{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }}
+    .keyword-option {{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ocf-dark);
+      font-size: 12px;
+      font-weight: 750;
+    }}
+    .select-item {{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+      margin: 0 0 4px;
+    }}
+    .chip-form {{ display: inline-flex; margin: 0; }}
+    .reason-chip {{
+      margin-top: 0;
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ocf-dark);
+      font-size: 12px;
+      font-weight: 800;
+    }}
+    .reason-chip--danger {{
+      border-color: #f1bfd3;
+      background: #fff0f6;
+      color: var(--ocf-magenda);
+    }}
+    .inline-reason summary {{
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+    }}
+    .inline-reason .button-row {{ margin-top: 8px; }}
     .danger {{ background: var(--ocf-magenda); }}
     .command-card form {{ margin-top: 8px; }}
     .command-output {{ margin-top: 16px; }}
@@ -552,7 +707,9 @@ def page(title: str, body: str) -> bytes:
       <a href="/">共通入口</a>
       <a href="/track/open-tech-open-industry">開放科技</a>
       <a href="/track/digital-humanities-local-knowledge">人文知識</a>
+      <a href="/items">待整理</a>
       <a href="/candidates">候選清單</a>
+      <a href="/rss-candidates">RSS 暫存</a>
       <a href="/keywords">關鍵字</a>
       <a href="/sources">RSS 來源</a>
       <a href="/items/new">加收藏</a>
@@ -581,6 +738,13 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Location", path)
         self.end_headers()
 
+    def is_async_request(self) -> bool:
+        return self.headers.get("X-Requested-With") == "local-web-fetch"
+
+    def send_no_content(self, status: HTTPStatus = HTTPStatus.NO_CONTENT) -> None:
+        self.send_response(status)
+        self.end_headers()
+
     def read_form(self) -> dict[str, list[str]]:
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length).decode("utf-8")
@@ -595,8 +759,14 @@ class Handler(BaseHTTPRequestHandler):
             self.show_track(parsed.path.removeprefix("/track/"))
         elif parsed.path == "/candidates":
             self.show_candidates(query)
+        elif parsed.path == "/rss-candidates":
+            self.show_rss_candidates(query)
         elif parsed.path == "/keywords":
             self.show_keywords()
+        elif parsed.path == "/items":
+            self.show_items(query)
+        elif parsed.path == "/items/reject":
+            self.show_item_reject_form(query)
         elif parsed.path == "/items/new":
             self.show_item_form(query)
         elif parsed.path == "/sources":
@@ -612,6 +782,14 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/items":
             self.save_item(self.read_form())
+        elif parsed.path == "/items/accept":
+            self.accept_item(self.read_form())
+        elif parsed.path == "/items/direct-pr":
+            self.direct_pr_item(self.read_form())
+        elif parsed.path == "/items/reject":
+            self.reject_item(self.read_form())
+        elif parsed.path == "/items/batch":
+            self.batch_items(self.read_form())
         elif parsed.path == "/candidates/accept":
             self.accept_candidate(self.read_form())
         elif parsed.path == "/candidates/dismiss":
@@ -629,6 +807,10 @@ class Handler(BaseHTTPRequestHandler):
         items = load_jsonl(ITEMS)
         sources = load_jsonl(SOURCES)
         candidates = load_jsonl(CANDIDATES)
+        inbox_items = [item for item in items if item.get("status") == "inbox"]
+        skill_candidates = [item for item in items if is_skill_candidate(item)]
+        direct_pr_items = [item for item in items if is_direct_pr_item(item)]
+        inbox_counts = Counter(candidate_recommendation(item) for item in inbox_items)
         keep_candidates = [candidate for candidate in candidates if candidate_recommendation(candidate) == "suggest-keep"]
         skip_candidates = [candidate for candidate in candidates if candidate_recommendation(candidate) == "suggest-skip"]
         notice = ""
@@ -685,11 +867,25 @@ class Handler(BaseHTTPRequestHandler):
     <p class="help">這不會直接發布內容，只是先放進待整理 inbox。</p>
   </div>
   <div class="card">
-    <h3>RSS 候選清單</h3>
-    <p class="muted">RSS 自動抓完會先放這裡。先看系統建議，真的值得追再按「收下」。</p>
-    <p>{badge("建議收 " + str(len(keep_candidates)), "suggest-keep")} {badge("建議不要看 " + str(len(skip_candidates)), "suggest-skip")}</p>
+    <h3>待整理清單</h3>
+    <p class="muted">這裡是已經收進 database/items.jsonl、狀態還是 inbox 的資料。</p>
+    <p>{badge("建議收 " + str(inbox_counts.get("suggest-keep", 0)), "suggest-keep")} {badge("建議不要看 " + str(inbox_counts.get("suggest-skip", 0)), "suggest-skip")}</p>
+    <p><a class="button" href="/items">打開待整理清單</a></p>
+    <p class="help">你剛剛看到的 696 / 44 就是在這裡。</p>
+  </div>
+  <div class="card">
+    <h3>候選清單</h3>
+    <p class="muted">只放你已確認收下、準備跑 skill 編修的文章。</p>
+    <p>{badge("待跑 skill " + str(len(skill_candidates)), "neutral")} {badge("直接送 PR " + str(len(direct_pr_items)), "suggest-keep")}</p>
     <p><a class="button" href="/candidates">打開候選清單</a></p>
-    <p class="help">這一步還沒進 GitHub issue，也還沒進正式資料庫。</p>
+    <p class="help">RSS 新資料請先在待整理清單處理；純小消息可在待整理頁直接標記送 PR。</p>
+  </div>
+  <div class="card">
+    <h3>RSS 暫存</h3>
+    <p class="muted">每天抓到但還沒收進資料庫的新 RSS 文章。</p>
+    <p>{badge("建議收 " + str(len(keep_candidates)), "suggest-keep")} {badge("建議不要看 " + str(len(skip_candidates)), "suggest-skip")}</p>
+    <p><a class="button secondary" href="/rss-candidates">看 RSS 暫存</a></p>
+    <p class="help">如果每日抓取仍使用暫存模式，就從這裡先收進待整理。</p>
   </div>
   <div class="card">
     <h3>新增 RSS 來源</h3>
@@ -716,7 +912,466 @@ class Handler(BaseHTTPRequestHandler):
 """
         self.send_html("總覽", body)
 
+    def show_items(self, query: dict[str, list[str]]) -> None:
+        items = load_jsonl(ITEMS)
+        inbox_items = [item for item in items if item.get("status") == "inbox"]
+        track_filter = (query.get("track") or ["all"])[0]
+        recommendation_filter = (query.get("recommendation") or ["all"])[0]
+        selected_keywords = {keyword for keyword in (query.get("keyword") or []) if keyword}
+        show_all = (query.get("show") or [""])[0] == "all"
+
+        def matches_basic(item: dict) -> bool:
+            if track_filter != "all" and item.get("track") != track_filter:
+                return False
+            if recommendation_filter != "all" and candidate_recommendation(item) != recommendation_filter:
+                return False
+            return True
+
+        def matches(item: dict) -> bool:
+            if not matches_basic(item):
+                return False
+            if selected_keywords and not (item_triage_keywords(item) & selected_keywords):
+                return False
+            return True
+
+        keyword_source_items = [item for item in inbox_items if matches_basic(item)]
+        keyword_counts = Counter(keyword for item in keyword_source_items for keyword in item_triage_keywords(item))
+        keyword_options = [keyword for keyword, _ in keyword_counts.most_common(40)]
+        for keyword in sorted(selected_keywords):
+            if keyword not in keyword_options:
+                keyword_options.insert(0, keyword)
+
+        filtered = [item for item in inbox_items if matches(item)]
+        filtered.sort(
+            key=lambda item: (item.get("captured_at", ""), item.get("published_at", ""), item.get("title", "")),
+            reverse=True,
+        )
+        visible = filtered if show_all else filtered[:150]
+        counts = Counter(candidate_recommendation(item) for item in inbox_items)
+        track_counts = Counter(item.get("track", "unclassified") for item in inbox_items)
+        reason_options = rejection_reason_options(items)
+        notice = ""
+        if (query.get("saved") or [""])[0] == "accepted":
+            count = h((query.get("count") or ["1"])[0])
+            notice = f'<div class="notice">已確認收下 {count} 筆。處理過的項目已離開待整理清單，現在可到候選清單的「待跑 skill」區接著編修。</div>'
+        elif (query.get("saved") or [""])[0] == "rejected":
+            count = h((query.get("count") or ["1"])[0])
+            notice = f'<div class="notice">已標記不收 {count} 筆，項目已離開待整理清單，原因也已寫進資料庫與 review event。</div>'
+        elif (query.get("error") or [""])[0] == "empty-selection":
+            notice = '<div class="notice">請先勾選至少一則，再做批次處理。</div>'
+        elif (query.get("error") or [""])[0] == "reason":
+            notice = '<div class="notice">批次不收或自訂不收時，請先填原因。</div>'
+        elif (query.get("saved") or [""])[0] == "direct_pr":
+            count = h((query.get("count") or ["1"])[0])
+            notice = f'<div class="notice">已標記 {count} 筆直接送 PR 小消息。它們已離開待整理清單，並留下紀錄。</div>'
+        rows = []
+        for item in visible:
+            triage = item.get("triage") or {}
+            recommendation = triage.get("recommendation", "unknown")
+            matched = "、".join(triage.get("matched_keywords") or []) or "無"
+            skipped = "、".join(triage.get("skip_keywords") or []) or "無"
+            css_class = track_class(item.get("track", "unclassified"))
+            item_id = str(item.get("id") or "")
+            rows.append(
+                f"""
+<article class="card candidate-card candidate-card--{h(recommendation)}" data-item-id="{h(item_id)}">
+  <label class="select-item">
+    <input type="checkbox" class="item-select" value="{h(item_id)}">
+    選取這則做批次處理
+  </label>
+  <div>
+    {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
+    {badge(recommendation_label(recommendation), recommendation)}
+    <strong><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('title'))}</a></strong>
+  </div>
+  <p class="muted break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · {h(item.get('url'))}</p>
+  <p>{h(clean_text(item.get('summary'), 320))}</p>
+  <p class="help">判斷理由：{h(triage.get('reason', '未標示'))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
+  <div class="decision-panel">
+    <div class="button-row">
+      <form method="post" action="/items/accept" data-decision-form>
+        <input type="hidden" name="id" value="{h(item_id)}">
+        <button type="submit">確認收，準備跑 skill</button>
+      </form>
+      <form method="post" action="/items/direct-pr" data-decision-form>
+        <input type="hidden" name="id" value="{h(item_id)}">
+        <button type="submit" class="secondary">直接送 PR（小消息）</button>
+      </form>
+    </div>
+    <p class="help">確認收會移到候選清單待跑 skill；純事實小消息可直接記錄為送 PR，不跑 skill。</p>
+    <p class="help">不收原因</p>
+    <div class="reason-presets">{inline_reject_buttons(item_id, reason_options)}</div>
+    <details class="inline-reason">
+      <summary>其他原因</summary>
+      <form method="post" action="/items/reject" data-decision-form data-require-reason>
+        <input type="hidden" name="id" value="{h(item_id)}">
+        <div class="button-row">
+          <input name="reason" placeholder="寫一句不收原因">
+          <button type="submit" class="reason-chip reason-chip--danger">記錄不收</button>
+        </div>
+      </form>
+    </details>
+  </div>
+</article>
+"""
+            )
+        if not rows:
+            rows.append('<div class="card"><strong>目前沒有符合條件的待整理項目</strong><p class="muted">換一個篩選條件，或先重新跑關鍵字判斷。</p></div>')
+
+        more_link = ""
+        if not show_all and len(filtered) > len(visible):
+            parts = []
+            if track_filter != "all":
+                parts.append(f"track={quote(track_filter)}")
+            if recommendation_filter != "all":
+                parts.append(f"recommendation={quote(recommendation_filter)}")
+            for keyword in sorted(selected_keywords):
+                parts.append(f"keyword={quote(keyword)}")
+            parts.append("show=all")
+            more_link = f'<p><a class="button secondary" href="/items?{"&".join(parts)}">顯示全部 {len(filtered)} 筆</a></p>'
+
+        track_options = [("all", "全部主線")] + [(track, TRACK_META[track]["label"]) for track in TRACK_ORDER]
+        recommendation_options = [
+            ("all", "全部建議"),
+            ("suggest-keep", "只看建議收"),
+            ("suggest-skip", "只看建議不要看"),
+            ("unknown", "只看未判斷"),
+        ]
+        keyword_filters = []
+        for keyword in keyword_options:
+            checked = " checked" if keyword in selected_keywords else ""
+            count = keyword_counts.get(keyword, 0)
+            keyword_filters.append(
+                f"""
+<label class="keyword-option">
+  <input type="checkbox" name="keyword" value="{h(keyword)}"{checked}>
+  {h(keyword)} <span class="muted">({count})</span>
+</label>
+"""
+            )
+        keyword_filter_html = "".join(keyword_filters) if keyword_filters else '<p class="help">目前篩選條件下沒有可用關鍵字。</p>'
+        batch_buttons = batch_reason_buttons(reason_options)
+        body = f"""
+<h1>待整理清單</h1>
+<p class="lede">這裡是本機人工篩選台。資料已在 database/items.jsonl，但狀態仍是 inbox；處理過的項目會立刻離開這裡。確認收後會移到候選清單的「待跑 skill」區，整理好才進 GitHub PR。</p>
+{notice}
+<div class="grid">
+  <div class="card"><div class="metric">{len(inbox_items)}</div><div class="metric-label">全部 inbox</div></div>
+  <div class="card"><div class="metric">{counts.get("suggest-keep", 0)}</div><div class="metric-label">建議收</div><p><a href="/items?recommendation=suggest-keep">只看建議收</a></p></div>
+  <div class="card"><div class="metric">{counts.get("suggest-skip", 0)}</div><div class="metric-label">建議不要看</div><p><a href="/items?recommendation=suggest-skip">只看建議不要看</a></p></div>
+  <div class="card"><div class="metric">{counts.get("unknown", 0)}</div><div class="metric-label">未判斷</div></div>
+</div>
+<h2>篩選待整理</h2>
+<form class="filter-panel" method="get" action="/items" id="items-filter-form">
+  {'<input type="hidden" name="show" value="all">' if show_all else ''}
+  <div class="form-grid">
+    <div>
+      <label>主線</label>
+      <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
+      <p class="help">選完會自動更新。開放科技 {track_counts.get('open-tech-open-industry', 0)}、人文 {track_counts.get('digital-humanities-local-knowledge', 0)}、未分類 {track_counts.get('unclassified', 0)}。</p>
+    </div>
+    <div>
+      <label>系統建議</label>
+      <select name="recommendation" class="auto-filter">{option_list(recommendation_options, recommendation_filter)}</select>
+      <p class="help">這裡的建議來自目前的關鍵字設定。改完關鍵字後可到關鍵字頁重新跑。</p>
+    </div>
+  </div>
+  <label>關鍵字</label>
+  <div class="keyword-filters">{keyword_filter_html}</div>
+  <div class="button-row">
+    <a class="button secondary" href="/items">清除篩選</a>
+    <a class="button quiet" href="/keywords">調整或重跑關鍵字</a>
+  </div>
+  <p class="help">勾選關鍵字後會自動更新；多個關鍵字是「任一命中」就顯示。</p>
+</form>
+<h2>批次處理</h2>
+<div class="card batch-panel">
+  <p><strong id="selected-count">已選取 0 則</strong></p>
+  <div class="button-row">
+    <button type="button" class="secondary" id="select-visible">全選目前顯示</button>
+    <button type="button" class="quiet" id="clear-selection">清除選取</button>
+  </div>
+  <form id="items-batch-form" method="post" action="/items/batch" data-batch-form>
+    <input type="hidden" id="batch-ids" name="ids">
+    <input type="hidden" id="batch-reason" name="reason">
+    <div class="button-row">
+      <button type="submit" name="action" value="accept">批次確認收，準備跑 skill</button>
+      <button type="submit" name="action" value="direct_pr" class="secondary">批次直接送 PR（小消息）</button>
+    </div>
+    <p class="help">批次不收原因</p>
+    <div class="reason-presets">{batch_buttons}</div>
+    <details class="inline-reason">
+      <summary>批次其他原因</summary>
+      <div class="button-row">
+        <input id="batch-custom-reason" name="custom_reason" placeholder="寫一句批次不收原因">
+        <button type="submit" name="action" value="reject" class="reason-chip reason-chip--danger" data-custom-reason="1">用這個原因批次不收</button>
+      </div>
+    </details>
+  </form>
+  <p class="help">批次處理只會處理你勾選的項目；處理完會從待整理清單消失。</p>
+</div>
+<h2>項目列表</h2>
+<p class="muted">符合條件：{len(filtered)} 筆。{'' if show_all else f'目前先顯示 {len(visible)} 筆。'}</p>
+{more_link}
+<div class="list">{''.join(rows)}</div>
+{more_link}
+<script>
+const itemCheckboxes = Array.from(document.querySelectorAll(".item-select"));
+const batchIds = document.getElementById("batch-ids");
+const batchReason = document.getElementById("batch-reason");
+const selectedCount = document.getElementById("selected-count");
+const customReason = document.getElementById("batch-custom-reason");
+
+function liveCheckboxes() {{
+  return itemCheckboxes.filter((box) => box.isConnected);
+}}
+
+function syncSelection() {{
+  const ids = liveCheckboxes().filter((box) => box.checked).map((box) => box.value);
+  batchIds.value = ids.join(",");
+  selectedCount.textContent = `已選取 ${{ids.length}} 則`;
+  return ids;
+}}
+
+itemCheckboxes.forEach((box) => box.addEventListener("change", syncSelection));
+document.querySelectorAll("#items-filter-form .auto-filter, #items-filter-form input[type='checkbox']").forEach((field) => {{
+  field.addEventListener("change", () => document.getElementById("items-filter-form").submit());
+}});
+document.getElementById("select-visible").addEventListener("click", () => {{
+  liveCheckboxes().forEach((box) => {{ box.checked = true; }});
+  syncSelection();
+}});
+document.getElementById("clear-selection").addEventListener("click", () => {{
+  liveCheckboxes().forEach((box) => {{ box.checked = false; }});
+  syncSelection();
+}});
+
+function buildRequestBody(form, submitter) {{
+  let data;
+  try {{
+    data = new FormData(form, submitter);
+  }} catch (error) {{
+    data = new FormData(form);
+    if (submitter?.name) {{
+      data.append(submitter.name, submitter.value);
+    }}
+  }}
+  const params = new URLSearchParams();
+  data.forEach((value, key) => {{
+    params.append(key, value);
+  }});
+  return params;
+}}
+
+function findItemCard(id) {{
+  return Array.from(document.querySelectorAll(".candidate-card[data-item-id]")).find((card) => card.dataset.itemId === id);
+}}
+
+function removeCards(ids) {{
+  ids.forEach((id) => {{
+    const card = findItemCard(id);
+    if (!card || card.classList.contains("is-removing")) {{
+      return;
+    }}
+    card.classList.add("is-removing");
+    const remove = () => {{
+      if (card.isConnected) {{
+        card.remove();
+        syncSelection();
+      }}
+    }};
+    card.addEventListener("animationend", remove, {{ once: true }});
+    window.setTimeout(remove, 260);
+  }});
+}}
+
+async function submitWithoutLeaving(form, submitter, idsToRemove) {{
+  const body = buildRequestBody(form, submitter);
+  const fields = Array.from(form.querySelectorAll("button, input, select, textarea"));
+  fields.forEach((field) => {{ field.disabled = true; }});
+  try {{
+    const response = await fetch(form.action, {{
+      method: form.method || "POST",
+      body,
+      credentials: "same-origin",
+      redirect: "follow",
+      headers: {{ "X-Requested-With": "local-web-fetch" }},
+    }});
+    if (!response.ok) {{
+      throw new Error(`HTTP ${{response.status}}`);
+    }}
+    removeCards(idsToRemove);
+  }} catch (error) {{
+    fields.forEach((field) => {{ field.disabled = false; }});
+    alert("剛剛沒有送成功，畫面先保留。可以再按一次。");
+  }}
+}}
+
+document.querySelectorAll("form[data-decision-form]").forEach((form) => {{
+  form.addEventListener("submit", (event) => {{
+    event.preventDefault();
+    const reasonInput = form.querySelector("[name='reason']");
+    if (form.dataset.requireReason !== undefined && !reasonInput?.value.trim()) {{
+      alert("請先寫一句不收原因。");
+      reasonInput?.focus();
+      return;
+    }}
+    const itemId = form.querySelector("[name='id']")?.value;
+    if (!itemId) {{
+      return;
+    }}
+    submitWithoutLeaving(form, event.submitter, [itemId]);
+  }});
+}});
+
+document.getElementById("items-batch-form").addEventListener("submit", (event) => {{
+  event.preventDefault();
+  const ids = syncSelection();
+  const submitter = event.submitter;
+  if (submitter?.dataset.batchReason) {{
+    batchReason.value = submitter.dataset.batchReason;
+  }} else if (submitter?.dataset.customReason) {{
+    batchReason.value = customReason.value.trim();
+  }}
+  if (!ids.length) {{
+    alert("請先勾選要處理的項目。");
+    return;
+  }}
+  if (submitter?.value === "reject" && !batchReason.value.trim()) {{
+    alert("請先選一個不收原因，或填寫其他原因。");
+    customReason?.focus();
+    return;
+  }}
+  submitWithoutLeaving(event.currentTarget, submitter, ids);
+}});
+</script>
+"""
+        self.send_html("待整理清單", body)
+
+    def show_item_reject_form(self, query: dict[str, list[str]]) -> None:
+        item_id = form_value(query, "id")
+        items = load_jsonl(ITEMS)
+        item = next((row for row in items if row.get("id") == item_id), None)
+        if not item:
+            self.send_html("找不到項目", "<h1>找不到待整理項目</h1><p><a class='button' href='/items'>回待整理清單</a></p>", HTTPStatus.NOT_FOUND)
+            return
+
+        error = ""
+        if (query.get("error") or [""])[0] == "reason":
+            error = '<div class="notice">請先寫一點原因，再標記不收。</div>'
+        reason_buttons = "\n".join(
+            f'<button type="button" class="secondary reason-preset" data-reason="{h(reason)}">{h(reason)}</button>'
+            for reason in rejection_reason_options(items)
+        )
+        triage = item.get("triage") or {}
+        body = f"""
+<h1>不收原因</h1>
+<p class="lede">這一步會把項目從 inbox 封存，但保留原因。這些原因之後會出現在快捷按鈕裡，幫你更快整理不要看的資料。</p>
+{error}
+<article class="card candidate-card candidate-card--{h(candidate_recommendation(item))}">
+  <div>
+    {badge(track_meta(item.get("track", "unclassified"))["short"], track_class(item.get("track", "unclassified")))}
+    {badge(recommendation_label(candidate_recommendation(item)), candidate_recommendation(item))}
+    <strong><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('title'))}</a></strong>
+  </div>
+  <p class="muted break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · {h(item.get('url'))}</p>
+  <p>{h(clean_text(item.get('summary'), 420))}</p>
+  <p class="help">系統判斷：{h(triage.get('reason', '未標示'))}</p>
+</article>
+<form class="form-panel" method="post" action="/items/reject">
+  <input type="hidden" name="id" value="{h(item_id)}">
+  <label>常用原因</label>
+  <div class="reason-presets">{reason_buttons}</div>
+  <p class="help">點一個原因會先放進文字框；你可以再補自己的判斷。</p>
+  <label>這次不收的原因</label>
+  <textarea id="reject-reason" name="reason" required></textarea>
+  <p class="help">例：和主線關聯太弱、重複、只是活動公告、缺少可查證來源。這會寫進項目紀錄和 review event。</p>
+  <div class="button-row">
+    <button type="submit" class="danger">確認不收並記錄原因</button>
+    <a class="button secondary" href="/items">先不要決定</a>
+  </div>
+</form>
+<script>
+document.querySelectorAll(".reason-preset").forEach((button) => {{
+  button.addEventListener("click", () => {{
+    const target = document.getElementById("reject-reason");
+    target.value = button.dataset.reason;
+    target.focus();
+  }});
+}});
+</script>
+"""
+        self.send_html("不收原因", body)
+
     def show_candidates(self, query: dict[str, list[str]]) -> None:
+        items = load_jsonl(ITEMS)
+        skill_candidates = [item for item in items if is_skill_candidate(item)]
+        track_filter = (query.get("track") or ["all"])[0]
+
+        def matches(item: dict) -> bool:
+            return track_filter == "all" or item.get("track") == track_filter
+
+        filtered_skill = [item for item in skill_candidates if matches(item)]
+        filtered_skill.sort(
+            key=lambda item: ((item.get("local_decision") or {}).get("decided_at", ""), item.get("captured_at", "")),
+            reverse=True,
+        )
+        track_counts = Counter(item.get("track", "unclassified") for item in skill_candidates)
+        skill_rows = []
+        for item in filtered_skill:
+            triage = item.get("triage") or {}
+            recommendation = candidate_recommendation(item)
+            css_class = track_class(item.get("track", "unclassified"))
+            decided_at = (item.get("local_decision") or {}).get("decided_at", "未標示時間")
+            skill_rows.append(
+                f"""
+<article class="card candidate-card">
+  <div>
+    {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
+    {badge("待跑 skill", "neutral")}
+    {badge(recommendation_label(recommendation), recommendation)}
+    <strong><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('title'))}</a></strong>
+  </div>
+  <p class="muted break-anywhere">{h(item.get('source_name'))} · 確認收：{h(decided_at)} · {h(item.get('url'))}</p>
+  <p>{h(clean_text(item.get('summary'), 320))}</p>
+  <p class="help">下一步：跑 skill 做摘要、切角與文章編修；整理好後再送 GitHub PR。<br>系統原判斷：{h(triage.get('reason', '未標示'))}</p>
+</article>
+"""
+            )
+        if not skill_rows:
+            skill_rows.append('<div class="card"><strong>目前沒有待跑 skill 的項目</strong><p class="muted">在待整理清單按「確認收」後，會移到這裡。</p></div>')
+
+        track_options = [("all", "全部主線")] + [(track, TRACK_META[track]["label"]) for track in TRACK_ORDER]
+        body = f"""
+<h1>候選清單</h1>
+<p class="lede">這裡只放你已確認收下、準備跑 skill 編修的資料。RSS 剛抓到的新文章已移到「RSS 暫存」。</p>
+<div class="grid">
+  <div class="card"><div class="metric">{len(skill_candidates)}</div><div class="metric-label">待跑 skill</div></div>
+  <div class="card"><div class="metric">{track_counts.get("open-tech-open-industry", 0)}</div><div class="metric-label">開放科技</div></div>
+  <div class="card"><div class="metric">{track_counts.get("digital-humanities-local-knowledge", 0)}</div><div class="metric-label">人文知識</div></div>
+  <div class="card"><div class="metric">{track_counts.get("unclassified", 0)}</div><div class="metric-label">未分類</div></div>
+</div>
+<h2>篩選候選</h2>
+<form class="filter-panel" method="get" action="/candidates" id="candidate-filter-form">
+  <label>主線</label>
+  <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
+  <p class="help">選完會自動更新。處理完 skill 後，再把內容整理成 PR。</p>
+  <div class="button-row">
+    <a class="button secondary" href="/items">回待整理清單</a>
+    <a class="button quiet" href="/rss-candidates">看 RSS 暫存</a>
+  </div>
+</form>
+<h2>已確認收，待跑 skill</h2>
+<div class="list">{''.join(skill_rows)}</div>
+<script>
+document.querySelectorAll("#candidate-filter-form .auto-filter").forEach((field) => {{
+  field.addEventListener("change", () => document.getElementById("candidate-filter-form").submit());
+}});
+</script>
+"""
+        self.send_html("候選清單", body)
+
+    def show_rss_candidates(self, query: dict[str, list[str]]) -> None:
         candidates = load_jsonl(CANDIDATES)
         track_filter = (query.get("track") or ["all"])[0]
         recommendation_filter = (query.get("recommendation") or ["all"])[0]
@@ -739,7 +1394,6 @@ class Handler(BaseHTTPRequestHandler):
         for candidate in filtered:
             triage = candidate.get("triage") or {}
             recommendation = triage.get("recommendation", "unknown")
-            recommendation_label = "建議收" if recommendation == "suggest-keep" else "建議不要看"
             matched = "、".join(triage.get("matched_keywords") or []) or "無"
             skipped = "、".join(triage.get("skip_keywords") or []) or "無"
             css_class = track_class(candidate.get("track", "unclassified"))
@@ -748,7 +1402,7 @@ class Handler(BaseHTTPRequestHandler):
 <article class="card candidate-card candidate-card--{h(recommendation)}">
   <div>
     {badge(track_meta(candidate.get("track", "unclassified"))["short"], css_class)}
-    {badge(recommendation_label, recommendation)}
+    {badge(recommendation_label(recommendation), recommendation)}
     <strong><a href="{h(candidate.get('url'))}" target="_blank" rel="noreferrer">{h(candidate.get('title'))}</a></strong>
   </div>
   <p class="muted break-anywhere">{h(candidate.get('source_name'))} · {h(candidate.get('published_at') or candidate.get('captured_at'))} · {h(candidate.get('url'))}</p>
@@ -757,23 +1411,19 @@ class Handler(BaseHTTPRequestHandler):
   <div class="button-row">
     <form method="post" action="/candidates/accept">
       <input type="hidden" name="id" value="{h(candidate.get('id'))}">
-      <button type="submit" name="mode" value="accept">收下到資料庫</button>
-    </form>
-    <form method="post" action="/candidates/accept">
-      <input type="hidden" name="id" value="{h(candidate.get('id'))}">
-      <button type="submit" class="secondary" name="mode" value="accept_issue">收下並開 GitHub issue</button>
+      <button type="submit" name="mode" value="accept">收進待整理</button>
     </form>
     <form method="post" action="/candidates/dismiss">
       <input type="hidden" name="id" value="{h(candidate.get('id'))}">
       <button type="submit" class="danger">不要看，以後略過</button>
     </form>
   </div>
-  <p class="help">收下才會寫進 database/items.jsonl；不要看只會寫進 .cache/rss-dismissed.jsonl，不會進正式資料庫。</p>
+  <p class="help">收進待整理後，會寫進 database/items.jsonl 的 inbox，再到待整理頁做最後決定。</p>
 </article>
 """
             )
         if not rows:
-            rows.append('<div class="card"><strong>目前沒有符合條件的候選項目</strong><p class="muted">可以回首頁按「抓到候選清單」，或放寬篩選條件。</p></div>')
+            rows.append('<div class="card"><strong>目前沒有符合條件的 RSS 暫存</strong><p class="muted">可以回首頁按「抓到候選清單」，或放寬篩選條件。</p></div>')
 
         track_options = [("all", "全部主線")] + [(track, TRACK_META[track]["label"]) for track in TRACK_ORDER]
         recommendation_options = [
@@ -782,36 +1432,191 @@ class Handler(BaseHTTPRequestHandler):
             ("suggest-skip", "只看建議不要看"),
         ]
         body = f"""
-<h1>RSS 候選清單</h1>
-<p class="lede">這裡是每天開始的第一站。RSS 抓到的新文章先留在本機，系統用關鍵字標出「建議收」或「建議不要看」；你按收下後才進正式資料庫與 GitHub 審查。</p>
+<h1>RSS 暫存</h1>
+<p class="lede">這裡只放每日 RSS 抓到但還沒收進 database/items.jsonl 的文章。真的要看再收進待整理；不要看的就略過。</p>
 <div class="grid">
-  <div class="card"><div class="metric">{len(candidates)}</div><div class="metric-label">本機候選</div></div>
-  <div class="card"><div class="metric">{counts.get("suggest-keep", 0)}</div><div class="metric-label">建議收</div></div>
-  <div class="card"><div class="metric">{counts.get("suggest-skip", 0)}</div><div class="metric-label">建議不要看</div></div>
+  <div class="card"><div class="metric">{len(candidates)}</div><div class="metric-label">RSS 新候選</div></div>
+  <div class="card"><div class="metric">{counts.get("suggest-keep", 0)}</div><div class="metric-label">RSS 建議收</div></div>
+  <div class="card"><div class="metric">{counts.get("suggest-skip", 0)}</div><div class="metric-label">RSS 建議不要看</div></div>
 </div>
-<h2>篩選候選</h2>
-<form class="filter-panel" method="get" action="/candidates">
+<h2>篩選 RSS 暫存</h2>
+<form class="filter-panel" method="get" action="/rss-candidates" id="rss-candidate-filter-form">
   <div class="form-grid">
     <div>
       <label>主線</label>
-      <select name="track">{option_list(track_options, track_filter)}</select>
-      <p class="help">目前候選：開放科技 {track_counts.get('open-tech-open-industry', 0)}、人文 {track_counts.get('digital-humanities-local-knowledge', 0)}、未分類 {track_counts.get('unclassified', 0)}。</p>
+      <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
+      <p class="help">目前暫存：開放科技 {track_counts.get('open-tech-open-industry', 0)}、人文 {track_counts.get('digital-humanities-local-knowledge', 0)}、未分類 {track_counts.get('unclassified', 0)}。</p>
     </div>
     <div>
       <label>系統建議</label>
-      <select name="recommendation">{option_list(recommendation_options, recommendation_filter)}</select>
+      <select name="recommendation" class="auto-filter">{option_list(recommendation_options, recommendation_filter)}</select>
       <p class="help">建議只是第一層篩選，你仍然可以收下建議不要看的項目。</p>
     </div>
   </div>
   <div class="button-row">
-    <button type="submit">套用篩選</button>
     <a class="button secondary" href="/keywords">調整關鍵字</a>
+    <a class="button quiet" href="/items">回待整理清單</a>
   </div>
 </form>
-<h2>候選項目</h2>
+<h2>RSS 新候選</h2>
+<p class="help">這一段還沒進 database/items.jsonl。按「收下到資料庫」後會進待整理清單，再由你決定是否確認收。</p>
 <div class="list">{''.join(rows)}</div>
+<script>
+document.querySelectorAll("#rss-candidate-filter-form .auto-filter").forEach((field) => {{
+  field.addEventListener("change", () => document.getElementById("rss-candidate-filter-form").submit());
+}});
+</script>
 """
-        self.send_html("RSS 候選清單", body)
+        self.send_html("RSS 暫存", body)
+
+    def update_item_decisions(self, item_ids: list[str], action: str, reason: str = "") -> int:
+        selected_ids = {item_id for item_id in item_ids if item_id}
+        if not selected_ids:
+            return 0
+
+        items = load_jsonl(ITEMS)
+        updated_items = []
+        decided_at = now_iso()
+        events = []
+        changed = 0
+        for item in items:
+            if item.get("id") not in selected_ids or item.get("status") != "inbox":
+                updated_items.append(item)
+                continue
+            updated_item = dict(item)
+            if action == "accept":
+                note = "本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。"
+                event_status = "accepted-for-editing"
+                updated_item["status"] = "triaged"
+                updated_item["local_decision"] = {
+                    "action": "accepted-for-editing",
+                    "decided_at": decided_at,
+                    "reason": "人工確認值得收，準備進入 skill 編修。",
+                    "source": "local_web",
+                    "next_step": "run-writing-skill-before-pr",
+                }
+            elif action == "direct_pr":
+                note = "本機標記直接送 PR（小消息）；純事實項目，不跑 skill。"
+                event_status = "direct-pr-small-news"
+                updated_item["status"] = "ready"
+                updated_item["local_decision"] = {
+                    "action": "direct-pr-small-news",
+                    "decided_at": decided_at,
+                    "reason": "純事實小消息，直接送 PR。",
+                    "source": "local_web",
+                    "next_step": "direct-pr",
+                }
+            elif action == "reject":
+                note = f"本機標記不收。原因：{reason}"
+                event_status = "rejected"
+                updated_item["status"] = "archived"
+                updated_item["priority"] = "low"
+                updated_item["local_decision"] = {
+                    "action": "rejected",
+                    "decided_at": decided_at,
+                    "reason": reason,
+                    "source": "local_web",
+                }
+            else:
+                updated_items.append(item)
+                continue
+            updated_item["review"] = append_review_note(updated_item.get("review") or {}, f"{decided_at} {note}")
+            updated_items.append(updated_item)
+            events.append(review_event(updated_item, event_status, note))
+            changed += 1
+
+        if changed:
+            write_jsonl(ITEMS, updated_items)
+            for event in events:
+                append_jsonl(REVIEW_EVENTS, event)
+        return changed
+
+    def accept_item(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        items = load_jsonl(ITEMS)
+        if not any(item.get("id") == item_id for item in items):
+            self.send_html("找不到項目", "<h1>找不到待整理項目</h1><p><a class='button' href='/items'>回待整理清單</a></p>", HTTPStatus.NOT_FOUND)
+            return
+
+        count = self.update_item_decisions([item_id], "accept")
+        if self.is_async_request():
+            self.send_no_content()
+            return
+        self.redirect(f"/items?saved=accepted&count={count}")
+
+    def direct_pr_item(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        items = load_jsonl(ITEMS)
+        if not any(item.get("id") == item_id for item in items):
+            self.send_html("找不到項目", "<h1>找不到待整理項目</h1><p><a class='button' href='/items'>回待整理清單</a></p>", HTTPStatus.NOT_FOUND)
+            return
+
+        count = self.update_item_decisions([item_id], "direct_pr")
+        if self.is_async_request():
+            self.send_no_content()
+            return
+        self.redirect(f"/items?saved=direct_pr&count={count}")
+
+    def reject_item(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        reason = form_value(data, "reason")
+        if not reason:
+            if self.is_async_request():
+                self.send_no_content(HTTPStatus.BAD_REQUEST)
+                return
+            self.redirect("/items?error=reason")
+            return
+
+        items = load_jsonl(ITEMS)
+        if not any(item.get("id") == item_id for item in items):
+            self.send_html("找不到項目", "<h1>找不到待整理項目</h1><p><a class='button' href='/items'>回待整理清單</a></p>", HTTPStatus.NOT_FOUND)
+            return
+
+        count = self.update_item_decisions([item_id], "reject", reason)
+        if self.is_async_request():
+            self.send_no_content()
+            return
+        self.redirect(f"/items?saved=rejected&count={count}")
+
+    def batch_items(self, data: dict[str, list[str]]) -> None:
+        action = form_value(data, "action")
+        raw_ids = ",".join(data.get("ids") or [])
+        item_ids = [item_id.strip() for item_id in raw_ids.split(",") if item_id.strip()]
+        if not item_ids:
+            if self.is_async_request():
+                self.send_no_content(HTTPStatus.BAD_REQUEST)
+                return
+            self.redirect("/items?error=empty-selection")
+            return
+        if action == "accept":
+            count = self.update_item_decisions(item_ids, "accept")
+            if self.is_async_request():
+                self.send_no_content()
+                return
+            self.redirect(f"/items?saved=accepted&count={count}")
+            return
+        if action == "direct_pr":
+            count = self.update_item_decisions(item_ids, "direct_pr")
+            if self.is_async_request():
+                self.send_no_content()
+                return
+            self.redirect(f"/items?saved=direct_pr&count={count}")
+            return
+        if action == "reject":
+            reason = form_value(data, "reason") or form_value(data, "custom_reason")
+            if not reason:
+                if self.is_async_request():
+                    self.send_no_content(HTTPStatus.BAD_REQUEST)
+                    return
+                self.redirect("/items?error=reason")
+                return
+            count = self.update_item_decisions(item_ids, "reject", reason)
+            if self.is_async_request():
+                self.send_no_content()
+                return
+            self.redirect(f"/items?saved=rejected&count={count}")
+            return
+        self.redirect("/items")
 
     def accept_candidate(self, data: dict[str, list[str]]) -> None:
         candidate_id = form_value(data, "id")
@@ -819,7 +1624,7 @@ class Handler(BaseHTTPRequestHandler):
         candidates = load_jsonl(CANDIDATES)
         candidate = next((row for row in candidates if row.get("id") == candidate_id), None)
         if not candidate:
-            self.send_html("找不到候選項目", "<h1>找不到候選項目</h1><p><a href='/candidates'>回候選清單</a></p>", HTTPStatus.NOT_FOUND)
+            self.send_html("找不到候選項目", "<h1>找不到候選項目</h1><p><a href='/rss-candidates'>回 RSS 暫存</a></p>", HTTPStatus.NOT_FOUND)
             return
 
         item = remove_local_candidate_fields(candidate)
@@ -837,19 +1642,19 @@ class Handler(BaseHTTPRequestHandler):
 <p class="muted">資料庫：{'原本已存在，已從候選清單移除。' if already_exists else '已寫進 database/items.jsonl。'}</p>
 <p class="muted">GitHub issue exit code: {returncode}</p>
 <pre>{h(output)}</pre>
-<p><a class="button" href="/candidates">回候選清單</a></p>
+<p><a class="button" href="/rss-candidates">回 RSS 暫存</a></p>
 """
             self.send_html("已收下候選項目", body)
             return
 
-        self.redirect("/candidates?saved=accepted")
+        self.redirect("/rss-candidates?saved=accepted")
 
     def dismiss_candidate(self, data: dict[str, list[str]]) -> None:
         candidate_id = form_value(data, "id")
         candidates = load_jsonl(CANDIDATES)
         candidate = next((row for row in candidates if row.get("id") == candidate_id), None)
         if not candidate:
-            self.send_html("找不到候選項目", "<h1>找不到候選項目</h1><p><a href='/candidates'>回候選清單</a></p>", HTTPStatus.NOT_FOUND)
+            self.send_html("找不到候選項目", "<h1>找不到候選項目</h1><p><a href='/rss-candidates'>回 RSS 暫存</a></p>", HTTPStatus.NOT_FOUND)
             return
         candidates = [row for row in candidates if row.get("id") != candidate_id]
         write_jsonl(CANDIDATES, candidates)
@@ -866,7 +1671,7 @@ class Handler(BaseHTTPRequestHandler):
             "notes": "本機候選清單按鈕標記不要看。",
         }
         append_jsonl(DISMISSED, dismissed)
-        self.redirect("/candidates?saved=dismissed")
+        self.redirect("/rss-candidates?saved=dismissed")
 
     def show_keywords(self) -> None:
         config = load_json(TRIAGE_KEYWORDS)
