@@ -569,7 +569,7 @@ def main() -> None:
             skipped.append((source, reason))
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=args.since_days)
-    captured_at = datetime.now(timezone.utc).date().isoformat()
+    captured_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     failures: list[tuple[dict, str]] = []
     new_items: list[dict] = []
     fetched_sources = 0

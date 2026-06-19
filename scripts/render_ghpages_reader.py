@@ -13,9 +13,11 @@ from local_web import (
     clean_text,
     content_kind_label,
     h,
+    item_display_time,
     is_reader_item,
     item_display_kind,
     item_image_url,
+    item_sort_time,
     item_zh_summary,
     load_jsonl,
     markdown_to_html,
@@ -76,7 +78,15 @@ def article_href(item: dict, from_article: bool = False) -> str:
 
 
 def item_date(item: dict) -> str:
-    return clean_text(item.get("published_at") or item.get("captured_at"))
+    return item_display_time(item, "published_at", "captured_at")
+
+
+def reader_image_url(item: dict, depth: int = 0) -> str:
+    url = item_image_url(item)
+    if url.startswith("/reader/"):
+        prefix = "../" if depth else ""
+        return prefix + url.removeprefix("/reader/").lstrip("/")
+    return url
 
 
 def item_body_markdown(item: dict) -> str:
@@ -101,7 +111,7 @@ def item_is_public_reader(item: dict) -> bool:
 def kind_order(item: dict) -> tuple[int, str, str, str]:
     kind = item_display_kind(item)
     order = {"featured-article": 0, "opinion-article": 1, "small-news": 2}.get(kind, 9)
-    return (order, item_date(item), clean_text(item.get("captured_at")), clean_text(item.get("title")))
+    return (order, item_sort_time(item), clean_text(item.get("title")), clean_text(item.get("id")))
 
 
 def note_pr_url(item: dict, repo_url: str, branch: str) -> str:
@@ -134,6 +144,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0) ->
       --cyan: #0091da;
       --magenta: #ce0058;
       --soft: #eef1fb;
+      --link: #193f8f;
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -150,7 +161,8 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0) ->
     h2 {{ margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }}
     h3 {{ margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }}
     p {{ margin: 8px 0; }}
-    a {{ color: var(--accent); overflow-wrap: anywhere; }}
+    a {{ color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }}
+    a:hover {{ color: var(--accent); }}
     nav {{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }}
     nav a, .button, button {{
       border: 0;
@@ -203,14 +215,25 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0) ->
     .story-body {{ padding: 14px; }}
     .summary {{ white-space: pre-wrap; }}
     .actions {{ display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }}
+    .story-card .actions {{ gap: 6px; margin-top: 8px; }}
+    .story-card .actions .button {{
+      padding: 6px 8px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.25;
+    }}
     .news-list {{ display: grid; gap: 10px; margin-top: 12px; }}
     .news-item {{
       background: #fff;
       border: 1px solid var(--line);
-      border-left: 4px solid var(--cyan);
+      border-left: 4px solid var(--link);
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 16px 18px;
     }}
+    .news-item h3 {{ margin: 8px 0 10px; font-size: 19px; }}
+    .news-item h3 a {{ color: #4f3ed2; font-weight: 850; }}
+    .news-item .summary {{ margin: 0; font-size: 16px; line-height: 1.68; }}
     .article-layout {{ display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }}
     .article-panel, .side-panel {{
       background: #fff;
@@ -254,7 +277,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0) ->
 
 def item_card(item: dict) -> str:
     kind = item_display_kind(item)
-    image = item_image_url(item)
+    image = reader_image_url(item)
     image_html = f'<img src="{h(image)}" alt="">' if image else f"<span>{h(track_meta(item.get('track', ''))['short'])}</span>"
     summary = item_zh_summary(item, 440)
     has_body = bool(item_body_markdown(item))

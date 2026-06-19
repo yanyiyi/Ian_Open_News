@@ -5,6 +5,7 @@ import argparse
 import errno
 import html
 import json
+import mimetypes
 import re
 import subprocess
 import sys
@@ -685,6 +686,38 @@ def latest_record_date(records: list[dict]) -> str:
     return max(dates).date().isoformat()
 
 
+def item_datetime(item: dict, *keys: str) -> datetime | None:
+    for key in keys or ("published_at", "captured_at", "dismissed_at"):
+        parsed = parse_loose_date(item.get(key))
+        if parsed:
+            return parsed
+    return None
+
+
+def format_datetime(value: object, fallback: str = "未標示時間") -> str:
+    parsed = parse_loose_date(value)
+    if not parsed:
+        text = clean_text(value)
+        return text or fallback
+    local = parsed.astimezone()
+    if local.hour == 0 and local.minute == 0 and local.second == 0:
+        return local.strftime("%Y-%m-%d")
+    return local.strftime("%Y-%m-%d %H:%M")
+
+
+def item_display_time(item: dict, *keys: str) -> str:
+    for key in keys or ("published_at", "captured_at", "dismissed_at"):
+        text = clean_text(item.get(key))
+        if text:
+            return format_datetime(text)
+    return "未標示時間"
+
+
+def item_sort_time(item: dict) -> str:
+    parsed = item_datetime(item, "published_at", "captured_at", "dismissed_at")
+    return parsed.isoformat() if parsed else ""
+
+
 def source_health_summary(source: dict, items: list[dict], rejected: list[dict], candidates: list[dict], dismissed: list[dict]) -> dict:
     source_id = source.get("id")
     source_items = [item for item in items if item.get("source_id") == source_id]
@@ -912,25 +945,47 @@ def personal_note_text(item: dict) -> str:
     return clean_text(notes)
 
 
+def looks_like_triage_placeholder(text: str) -> bool:
+    normalized = clean_text(text, 1200)
+    if not normalized:
+        return False
+    if "中文標題：" in normalized and "中文摘要：" in normalized:
+        return True
+    if normalized.startswith("這是一篇英文資料，主題可能和"):
+        return True
+    return False
+
+
+def item_original_summary(item: dict, limit: int = 420) -> str:
+    metadata = item_reading_metadata(item)
+    candidates = [
+        item.get("summary"),
+        metadata.get("description"),
+        metadata.get("excerpt"),
+        metadata.get("og_description"),
+        metadata.get("twitter_description"),
+    ]
+    for candidate in candidates:
+        text = clean_text(candidate, limit)
+        if text and not looks_like_triage_placeholder(text):
+            return text
+    editorial = item.get("editorial_triage") or {}
+    if isinstance(editorial, dict):
+        text = clean_text(editorial.get("zh_summary"), limit)
+        if text and not looks_like_triage_placeholder(text):
+            return text
+    return ""
+
+
 def item_zh_summary(item: dict, limit: int = 420) -> str:
     editorial = item.get("editorial_triage") or {}
     if isinstance(editorial, dict):
         codex_review = editorial.get("codex_review")
         if isinstance(codex_review, dict):
-            text = "\n\n".join(
-                part
-                for part in [
-                    clean_text(codex_review.get("one_line_recommendation")),
-                    clean_text(codex_review.get("summary")),
-                ]
-                if part
-            )
+            text = clean_text(codex_review.get("summary")) or clean_text(codex_review.get("one_line_recommendation"))
             if text:
                 return clean_text(text, limit)
-        text = clean_text(editorial.get("zh_summary"), limit)
-        if text:
-            return text
-    return clean_text(item.get("summary"), limit)
+    return item_original_summary(item, limit)
 
 
 def item_codex_review(item: dict) -> dict:
@@ -1067,7 +1122,25 @@ def ensure_article_markdown(item: dict) -> tuple[dict, bool]:
     return updated, True
 
 
+def item_cached_image_url(item: dict) -> str:
+    metadata = item_reading_metadata(item)
+    cache = metadata.get("image_cache")
+    if not isinstance(cache, dict):
+        return ""
+    local_path = clean_text(cache.get("path"))
+    reader_url = clean_text(cache.get("reader_url"))
+    if local_path and (ROOT / local_path).exists():
+        if reader_url:
+            return "/" + reader_url.lstrip("/")
+        if local_path.startswith("docs/reader/"):
+            return "/" + local_path.removeprefix("docs/").lstrip("/")
+    return ""
+
+
 def item_image_url(item: dict) -> str:
+    cached = item_cached_image_url(item)
+    if cached:
+        return cached
     candidates = [
         item.get("image"),
         item.get("image_url"),
@@ -1110,6 +1183,38 @@ def item_image_url(item: dict) -> str:
         if value.startswith(("http://", "https://")):
             return value
     return ""
+
+
+LAYOUT_MODES = ["card", "list", "compact"]
+
+
+def layout_icon(mode: str) -> str:
+    icons = {
+        "card": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>',
+        "list": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="5" rx="1.5"></rect><rect x="4" y="14" width="16" height="5" rx="1.5"></rect></svg>',
+        "compact": '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="8" y1="6" x2="20" y2="6"></line><line x1="8" y1="12" x2="20" y2="12"></line><line x1="8" y1="18" x2="20" y2="18"></line><circle cx="4" cy="6" r="1.5"></circle><circle cx="4" cy="12" r="1.5"></circle><circle cx="4" cy="18" r="1.5"></circle></svg>',
+    }
+    return icons.get(mode, icons["list"])
+
+
+def layout_label(mode: str) -> str:
+    return {"card": "卡片", "list": "列表", "compact": "清單"}.get(mode, "列表")
+
+
+def layout_toggle(section_id: str, current: str = "list") -> str:
+    current = current if current in LAYOUT_MODES else "list"
+    buttons = []
+    for mode in LAYOUT_MODES:
+        active = " is-active" if mode == current else ""
+        buttons.append(
+            f"""
+<button type="button" class="layout-toggle-button{active}" data-layout-target="{h(section_id)}" data-layout-mode="{h(mode)}" aria-pressed="{str(mode == current).lower()}" title="{h(layout_label(mode))}">
+  {layout_icon(mode)}
+  <span>{h(layout_label(mode))}</span>
+</button>
+"""
+        )
+    return f'<div class="layout-toggle" role="group" aria-label="顯示模式">{"".join(buttons)}</div>'
 
 
 def is_reader_item(item: dict) -> bool:
@@ -1446,6 +1551,7 @@ def page(title: str, body: str) -> bytes:
       --ocf-white: #ffffff;
       --ocf-cyan: #0091da;
       --ocf-magenda: #ce0058;
+      --link: #193f8f;
       --bg: #f5f6fb;
       --ink: var(--ocf-dark);
       --muted: #5f6877;
@@ -1512,6 +1618,8 @@ def page(title: str, body: str) -> bytes:
     h2 {{ font-size: 20px; margin: 30px 0 12px; }}
     h3 {{ font-size: 16px; margin: 0 0 8px; }}
     p {{ margin: 8px 0; }}
+    a {{ color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }}
+    a:hover {{ color: var(--ocf-primary); }}
     a, code, .url-cell, .url, .break-anywhere {{ overflow-wrap: anywhere; word-break: break-word; }}
     .brand {{ font-weight: 850; color: var(--ocf-primary); text-decoration: none; }}
     .brand:hover {{ color: var(--ocf-dark); }}
@@ -1771,14 +1879,94 @@ def page(title: str, body: str) -> bytes:
     }}
     .reason-list {{ margin: 8px 0 0 20px; padding: 0; color: var(--ink); }}
     .reason-list li {{ margin: 4px 0; }}
+    .layout-bar {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 8px 0 12px; }}
+    .layout-toggle {{
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }}
+    .layout-toggle-button {{
+      margin: 0;
+      padding: 7px 9px;
+      background: transparent;
+      color: var(--ocf-dark);
+      border-radius: 6px;
+      box-shadow: none;
+      gap: 6px;
+      font-size: 13px;
+    }}
+    .layout-toggle-button:hover {{ background: var(--soft); box-shadow: none; transform: none; }}
+    .layout-toggle-button.is-active {{ background: #eef1fb; color: var(--link); }}
+    .layout-toggle-button svg {{
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }}
     .reader-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }}
     .reader-list {{ display: grid; gap: 10px; }}
-    .reader-list-item {{
-      border-left: 4px solid var(--ocf-cyan);
-      display: grid;
-      gap: 7px;
+    .reader-list-card {{
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      background: #fff;
+      padding: 16px 18px;
+      box-shadow: 0 1px 2px rgba(15,25,35,.04);
     }}
-    .reader-list-item h3 {{ margin-bottom: 0; }}
+    .reader-list-card h3 {{
+      margin: 8px 0 10px;
+      font-size: 19px;
+      line-height: 1.34;
+    }}
+    .reader-list-card h3 a {{ color: #4f3ed2; font-weight: 850; }}
+    .reader-list-card .zh-summary {{
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.68;
+      font-weight: 550;
+    }}
+    .reader-list-meta {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }}
+    .reader-inbox-row {{
+      display: grid;
+      grid-template-columns: 11px minmax(140px, 220px) minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }}
+    .reader-inbox-row:last-child {{ border-bottom: 0; }}
+    .reader-inbox-row:hover {{ background: #fafbff; }}
+    .reader-dot {{ width: 9px; height: 9px; border-radius: 50%; background: var(--link); }}
+    .reader-row-source {{ min-width: 0; color: var(--muted); font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+    .reader-row-main {{ min-width: 0; display: flex; gap: 8px; align-items: baseline; }}
+    .reader-row-main h3 {{ flex: 0 1 auto; min-width: 28%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }}
+    .reader-row-summary {{ flex: 1 1 auto; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+    .reader-row-time {{ color: var(--muted); white-space: nowrap; font-weight: 750; }}
+    .reader-compact-list {{ display: grid; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }}
+    .reader-compact-row {{
+      display: grid;
+      grid-template-columns: 11px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--line);
+    }}
+    .reader-compact-row:last-child {{ border-bottom: 0; }}
+    .reader-compact-row h3 {{ margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }}
+    .reader-layout-section[data-layout="card"] .reader-list,
+    .reader-layout-section[data-layout="card"] .reader-compact-list {{ display: none; }}
+    .reader-layout-section[data-layout="list"] .reader-grid,
+    .reader-layout-section[data-layout="list"] .reader-compact-list {{ display: none; }}
+    .reader-layout-section[data-layout="compact"] .reader-grid,
+    .reader-layout-section[data-layout="compact"] .reader-list {{ display: none; }}
     .reader-card {{
       display: grid;
       grid-template-rows: 160px auto;
@@ -1804,6 +1992,16 @@ def page(title: str, body: str) -> bytes:
     }}
     .reader-body {{ padding: 16px; display: grid; gap: 8px; }}
     .reader-card h3 {{ line-height: 1.35; }}
+    .reader-card-actions {{ gap: 6px; margin-top: 2px; }}
+    .reader-card-actions .button,
+    .reader-card-actions button {{
+      padding: 6px 8px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.25;
+    }}
+    .reader-card-actions form {{ display: inline-flex; }}
     .item-hero {{
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
@@ -1943,6 +2141,12 @@ def page(title: str, body: str) -> bytes:
       .two-column {{ grid-template-columns: 1fr; }}
       .item-hero {{ grid-template-columns: 1fr; }}
       .metric-row {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+      .layout-toggle {{ width: 100%; justify-content: space-between; }}
+      .layout-toggle-button {{ flex: 1 1 0; }}
+      .reader-inbox-row {{ grid-template-columns: 9px minmax(0, 1fr) auto; gap: 9px; }}
+      .reader-row-source {{ display: none; }}
+      .reader-row-main {{ display: block; }}
+      .reader-row-main h3, .reader-row-summary {{ display: block; min-width: 0; }}
       th:nth-child(3), td:nth-child(3), th:nth-child(4), td:nth-child(4) {{ display: none; }}
     }}
   </style>
@@ -2015,6 +2219,19 @@ def page(title: str, body: str) -> bytes:
       if (!menu.open) return;
       document.querySelectorAll(".nav-menu").forEach((other) => {{
         if (other !== menu) other.open = false;
+      }});
+    }});
+  }});
+
+  document.querySelectorAll(".layout-toggle-button").forEach((button) => {{
+    button.addEventListener("click", () => {{
+      const target = document.getElementById(button.dataset.layoutTarget);
+      if (!target) return;
+      target.dataset.layout = button.dataset.layoutMode;
+      document.querySelectorAll(`.layout-toggle-button[data-layout-target="${{button.dataset.layoutTarget}}"]`).forEach((peer) => {{
+        const active = peer === button;
+        peer.classList.toggle("is-active", active);
+        peer.setAttribute("aria-pressed", active ? "true" : "false");
       }});
     }});
   }});
@@ -2325,6 +2542,27 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
+    def send_reader_asset(self, path: str) -> None:
+        relative = path.removeprefix("/reader/assets/").lstrip("/")
+        asset_root = ROOT / "docs" / "reader" / "assets"
+        target = (asset_root / relative).resolve()
+        try:
+            target.relative_to(asset_root.resolve())
+        except ValueError:
+            self.send_html("找不到", "<h1>找不到檔案</h1>", HTTPStatus.NOT_FOUND)
+            return
+        if not target.is_file():
+            self.send_html("找不到", "<h1>找不到檔案</h1>", HTTPStatus.NOT_FOUND)
+            return
+        content = target.read_bytes()
+        content_type = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Cache-Control", "public, max-age=86400")
+        self.end_headers()
+        self.wfile.write(content)
+
     def redirect(self, path: str) -> None:
         self.send_response(HTTPStatus.SEE_OTHER)
         self.send_header("Location", path)
@@ -2347,6 +2585,8 @@ class Handler(BaseHTTPRequestHandler):
         query = parse_qs(parsed.query)
         if parsed.path == "/":
             self.show_home(query)
+        elif parsed.path.startswith("/reader/assets/"):
+            self.send_reader_asset(parsed.path)
         elif parsed.path.startswith("/track/"):
             self.show_track(parsed.path.removeprefix("/track/"))
         elif parsed.path == "/candidates":
@@ -2465,7 +2705,7 @@ class Handler(BaseHTTPRequestHandler):
       <div><div class="metric">{source_count}</div><div class="metric-label">來源</div></div>
       <div><div class="metric">{fetchable_count}</div><div class="metric-label">會自動抓</div></div>
     </div>
-    <div class="button-row">
+    <div class="button-row reader-card-actions">
       <a class="button {h(button_class)}" href="/track/{quote(track)}">{h(meta["entry"])}</a>
       <a class="button secondary" href="/sources?track={quote(track)}">看這類 RSS 來源</a>
     </div>
@@ -2621,7 +2861,7 @@ class Handler(BaseHTTPRequestHandler):
     {badge(recommendation_label(recommendation), recommendation)}
     <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   <p class="help">判斷理由：{h(triage.get('reason', '未標示'))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
   <div class="decision-panel">
@@ -2670,7 +2910,7 @@ class Handler(BaseHTTPRequestHandler):
     {badge(recommendation_label(recommendation), recommendation)}
     <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   <p class="help">判斷理由：{h(triage.get('reason', '未標示'))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
   <div class="decision-panel">
@@ -2964,7 +3204,7 @@ document.getElementById("items-batch-form").addEventListener("submit", (event) =
     {badge(recommendation_label(candidate_recommendation(item)), candidate_recommendation(item))}
     <strong><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('title'))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))} · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 420))}</p>
   <p class="help">系統判斷：{h(triage.get('reason', '未標示'))}</p>
 </article>
@@ -3100,7 +3340,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
         track_filter = (query.get("track") or ["all"])[0]
         kind_filter = (query.get("kind") or ["all"])[0]
         view_mode = (query.get("view") or ["auto"])[0]
-        if view_mode not in {"auto", "card", "list"}:
+        if view_mode not in {"auto", "card", "list", "compact"}:
             view_mode = "auto"
         selected_keywords = {keyword for keyword in (query.get("keyword") or []) if keyword}
 
@@ -3127,7 +3367,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
                 keyword_options.insert(0, keyword)
         filtered = [item for item in items if matches(item)]
         filtered.sort(
-            key=lambda item: (item.get("published_at", ""), item.get("captured_at", ""), item.get("title", "")),
+            key=lambda item: (item_sort_time(item), clean_text(item.get("title"))),
             reverse=True,
         )
         if kind_filter == "all":
@@ -3150,9 +3390,8 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
         for keyword in sorted(selected_keywords):
             redirect_parts.append(f"keyword={quote(keyword)}")
         reader_redirect = "/reader" + (f"?{'&'.join(redirect_parts)}" if redirect_parts else "")
-        cards = []
-        list_rows = []
-        for item in filtered[:180]:
+
+        def reader_card(item: dict, suffix: str = "card") -> str:
             css_class = track_class(item.get("track", "unclassified"))
             kind = item_display_kind(item)
             image = item_image_url(item)
@@ -3163,7 +3402,8 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
             )
             note = personal_note_text(item)
             note_html = f"<p class='note-box'>{h(clean_text(note, 160))}</p>" if note else ""
-            card_html = f"""
+            fulltext_id = f"fulltext-{suffix}-{h(item.get('id'))}"
+            return f"""
 <article class="card reader-card">
   {thumb}
   <div class="reader-body">
@@ -3173,19 +3413,19 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
       {badge(content_kind_label(kind), "neutral")}
     </div>
     <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
-    <p class="muted break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))}</p>
+    <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
     <p class="zh-summary">{h(item_zh_summary(item, 260))}</p>
     {note_html}
     <div class="button-row">
       <a class="button" href="{h(item_detail_href(item))}">閱讀 / 記錄</a>
-      <form method="post" action="/items/read-more" data-read-more-form data-target="#fulltext-{h(item.get('id'))}">
+      <form method="post" action="/items/read-more" data-read-more-form data-target="#{fulltext_id}">
         <input type="hidden" name="id" value="{h(item.get('id'))}">
         <input type="hidden" name="redirect" value="{h(reader_redirect)}">
         <button type="submit" class="secondary">展開全文</button>
       </form>
       <a class="button secondary" href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a>
     </div>
-    <section class="fulltext-panel source-card source-card--source" id="fulltext-{h(item.get('id'))}" hidden>
+    <section class="fulltext-panel source-card source-card--source" id="{fulltext_id}" hidden>
       <div class="section-kicker">原始主文</div>
       <h3>剛載入的全文</h3>
       <p class="help" data-fulltext-meta></p>
@@ -3194,55 +3434,65 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
   </div>
 </article>
 """
-            row_html = f"""
-<article class="card reader-list-item">
-  <div>
-    {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
-    {badge(status_label(item.get("status", "")), "neutral")}
+
+        def reader_list_row(item: dict) -> str:
+            kind = item_display_kind(item)
+            return f"""
+<article class="reader-list-card">
+  <div class="reader-list-meta">
     {badge(content_kind_label(kind), "neutral")}
+    {badge(item_display_time(item, 'published_at', 'captured_at'), "neutral")}
   </div>
   <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
-  <p class="muted break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a></p>
-  <p class="zh-summary">{h(item_zh_summary(item, 220))}</p>
-  {note_html}
-  <div class="button-row">
-    <a class="button" href="{h(item_detail_href(item))}">閱讀 / 記錄</a>
-    <form method="post" action="/items/read-more" data-read-more-form data-target="#fulltext-list-{h(item.get('id'))}">
-      <input type="hidden" name="id" value="{h(item.get('id'))}">
-      <input type="hidden" name="redirect" value="{h(reader_redirect)}">
-      <button type="submit" class="secondary">展開全文</button>
-    </form>
-  </div>
-  <section class="fulltext-panel source-card source-card--source" id="fulltext-list-{h(item.get('id'))}" hidden>
-    <div class="section-kicker">原始主文</div>
-    <h3>剛載入的全文</h3>
-    <p class="help" data-fulltext-meta></p>
-    <div class="article-text article-markdown" data-fulltext-body></div>
-  </section>
+  <p class="zh-summary">{h(item_zh_summary(item, 360))}</p>
 </article>
 """
-            cards.append(card_html)
-            list_rows.append(row_html)
-        if not cards:
+
+        def reader_compact_row(item: dict) -> str:
+            return f"""
+<article class="reader-compact-row">
+  <span class="reader-dot" aria-hidden="true"></span>
+  <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
+  <div class="reader-row-time">{h(item_display_time(item, 'published_at', 'captured_at'))}</div>
+</article>
+"""
+
+        def reader_section(section_id: str, title: str, description: str, section_items: list[dict], default_layout: str) -> str:
+            cards_html = "".join(reader_card(item, f"{section_id}-card") for item in section_items)
+            list_html = "".join(reader_list_row(item) for item in section_items)
+            compact_html = "".join(reader_compact_row(item) for item in section_items)
+            empty = '<div class="card"><p class="muted">目前沒有符合這個區塊的文章。</p></div>'
+            return f"""
+<section class="reader-layout-section" id="{h(section_id)}" data-layout="{h(default_layout)}">
+  <div class="layout-bar">
+    <div>
+      <h3>{h(title)}</h3>
+      <p class="muted">{h(description)}</p>
+    </div>
+    {layout_toggle(section_id, default_layout)}
+  </div>
+  <div class="reader-grid">{cards_html or empty}</div>
+  <div class="reader-list">{list_html or empty}</div>
+  <div class="reader-compact-list">{compact_html or empty}</div>
+</section>
+"""
+
+        visible_items = filtered[:180]
+        if not visible_items:
             reader_content = '<div class="card"><strong>目前沒有符合條件的閱讀項目</strong><p class="muted">在 RSS 待整理按「確認收」或「直接送 PR（小消息）」後，會出現在這裡。</p></div>'
         else:
-            visible_items = filtered[:180]
-            auto_card_items = [card for item, card in zip(visible_items, cards) if item_display_kind(item) != "small-news"]
-            auto_list_items = [row for item, row in zip(visible_items, list_rows) if item_display_kind(item) == "small-news"]
-            if view_mode == "card":
-                reader_content = f"<div class='reader-grid'>{''.join(cards)}</div>"
-            elif view_mode == "list":
-                reader_content = f"<div class='reader-list'>{''.join(list_rows)}</div>"
+            if view_mode != "auto":
+                reader_content = reader_section("reader-results", "文章", "目前篩選結果。", visible_items, view_mode)
             elif kind_filter == "small-news":
-                reader_content = f"<div class='reader-list'>{''.join(list_rows)}</div>"
+                reader_content = reader_section("reader-small-news", "小消息列表", "純新聞消息預設用列表快速掃讀，也可以切成卡片或清單。", visible_items, "list")
             elif kind_filter in {"featured-article", "opinion-article"}:
-                reader_content = f"<div class='reader-grid'>{''.join(cards)}</div>"
+                reader_content = reader_section("reader-primary", "精選文章與觀點文章", "需要細讀、可能延伸撰稿或觀點整理的內容。", visible_items, "card")
             else:
-                empty_primary = '<div class="card"><p class="muted">目前沒有精選或觀點文章。</p></div>'
-                empty_news = '<div class="card"><p class="muted">目前沒有小消息。</p></div>'
+                primary_items = [item for item in visible_items if item_display_kind(item) != "small-news"]
+                news_items = [item for item in visible_items if item_display_kind(item) == "small-news"]
                 reader_content = (
-                    f"<h3>精選文章與觀點文章</h3><div class='reader-grid'>{''.join(auto_card_items) or empty_primary}</div>"
-                    f"<h3>小消息列表</h3><div class='reader-list'>{''.join(auto_list_items) or empty_news}</div>"
+                    reader_section("reader-primary", "精選文章與觀點文章", "需要細讀、可能延伸撰稿或觀點整理的內容。", primary_items, "card")
+                    + reader_section("reader-small-news", "小消息列表", "純新聞消息預設用列表快速掃讀，也可以切成卡片或清單。", news_items, "list")
                 )
 
         track_options = [("all", "全部主線")] + [(track, TRACK_META[track]["label"]) for track in TRACK_ORDER]
@@ -3253,7 +3503,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
             ("opinion-article", "觀點文章"),
             ("needs-review", "人工判斷"),
         ]
-        view_options = [("auto", "自動：精選卡片、小消息列表"), ("card", "卡片格式"), ("list", "列表格式")]
+        view_options = [("auto", "自動：分區預設"), ("card", "卡片"), ("list", "列表"), ("compact", "清單")]
         keyword_filters = []
         for keyword in keyword_options:
             checked = " checked" if keyword in selected_keywords else ""
@@ -3443,7 +3693,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
         status_badge = badge("RSS 新進", "neutral") if is_rss_candidate else badge(status_label(item.get("status", "")), "neutral")
         body = f"""
 <h1>{h(item.get('title'))}</h1>
-<p class="lede break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))} · {h(item.get('url'))}</p>
+<p class="lede break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · {h(item.get('url'))}</p>
 {notice}
 <div class="item-hero">
   <section class="card">
@@ -4181,7 +4431,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
         source_groups = Counter(source.get("source_group", "未標示群組") for source in track_sources)
         recent_items = sorted(
             pending_items,
-            key=lambda item: (item.get("captured_at", ""), item.get("published_at", ""), item.get("title", "")),
+            key=lambda item: (item_sort_time(item), clean_text(item.get("title"))),
             reverse=True,
         )[:12]
 
@@ -4189,7 +4439,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
         for item in recent_items:
             title = item.get("title") or item.get("url") or "未命名項目"
             source_name = item.get("source_name") or item.get("author") or "未標示來源"
-            captured = item.get("captured_at") or item.get("published_at") or "未標示日期"
+            captured = item_display_time(item, "captured_at", "published_at")
             detail_href = item_detail_href(item)
             item_rows.append(
                 f"""
@@ -4338,7 +4588,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
             "source_name": source_name,
             "author": source_name,
             "published_at": form_value(data, "published_at"),
-            "captured_at": datetime.now(timezone.utc).date().isoformat(),
+            "captured_at": now_iso(),
             "summary": form_value(data, "summary"),
             "tags": tags,
             "origin": "manual-web",
@@ -4518,35 +4768,46 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
         def sort_items(records: list[dict]) -> list[dict]:
             return sorted(
                 records,
-                key=lambda item: (clean_text(item.get("published_at") or item.get("captured_at") or item.get("dismissed_at")), clean_text(item.get("title"))),
+                key=lambda item: (item_sort_time(item), clean_text(item.get("title"))),
                 reverse=True,
             )
 
-        def source_record_row(item: dict, can_open: bool = True, archived: bool = False) -> str:
+        def source_summary(item: dict, archived: bool = False, limit: int = 260) -> str:
+            if archived:
+                decision = item.get("local_decision") if isinstance(item.get("local_decision"), dict) else {}
+                return clean_text(item.get("reason") or decision.get("reason") or item.get("notes"), limit)
+            return item_zh_summary(item, limit)
+
+        def source_list_row(item: dict, can_open: bool = True, archived: bool = False) -> str:
             kind = item_display_kind(item)
             item_url = clean_text(item.get("url"))
             title = clean_text(item.get("title")) or item_url or "未命名項目"
             title_html = f'<a href="{h(item_detail_href(item))}">{h(title)}</a>' if can_open else h(title)
-            reason = ""
-            if archived:
-                decision = item.get("local_decision") if isinstance(item.get("local_decision"), dict) else {}
-                reason = clean_text(item.get("reason") or decision.get("reason") or item.get("notes"), 240)
-            else:
-                reason = item_zh_summary(item, 260)
+            summary = source_summary(item, archived, 240)
             return f"""
-<article class="card reader-list-item">
-  <div>
-    {badge(track_meta(item.get("track", source.get("track", "unclassified")))["short"], track_class(item.get("track", source.get("track", "unclassified"))))}
-    {badge(status_label(item.get("status", "RSS 新進" if can_open else "封存")), "neutral")}
-    {badge(content_kind_label(kind), "neutral") if not archived else badge("不收紀錄", "suggest-skip")}
+<article class="reader-list-card">
+  <div class="reader-list-meta">
+    {badge("不收紀錄", "suggest-skip") if archived else badge(content_kind_label(kind), "neutral")}
+    {badge(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'), "neutral")}
   </div>
   <h3>{title_html}</h3>
-  <p class="muted break-anywhere">{h(item.get('published_at') or item.get('captured_at') or item.get('dismissed_at') or '未標示時間')} · {f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">原始連結</a>' if item_url else '沒有原始連結'}</p>
-  <p class="zh-summary">{h(reason)}</p>
+  <p class="zh-summary">{h(summary)}</p>
 </article>
 """
 
-        def source_card(item: dict) -> str:
+        def source_compact_row(item: dict, can_open: bool = True) -> str:
+            item_url = clean_text(item.get("url"))
+            title = clean_text(item.get("title")) or item_url or "未命名項目"
+            title_html = f'<a href="{h(item_detail_href(item))}">{h(title)}</a>' if can_open else h(title)
+            return f"""
+<article class="reader-compact-row">
+  <span class="reader-dot" aria-hidden="true"></span>
+  <h3>{title_html}</h3>
+  <div class="reader-row-time">{h(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'))}</div>
+</article>
+"""
+
+        def source_card(item: dict, can_open: bool = True, archived: bool = False) -> str:
             image = item_image_url(item)
             css_class = track_class(item.get("track", source.get("track", "unclassified")))
             thumb = (
@@ -4555,6 +4816,9 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
                 else f"<div class='reader-thumb reader-thumb--{h(css_class)}'><span>{h(track_meta(item.get('track', source.get('track', 'unclassified')))['short'])}</span></div>"
             )
             kind = item_display_kind(item)
+            item_url = clean_text(item.get("url"))
+            title = clean_text(item.get("title")) or item_url or "未命名項目"
+            title_html = f'<a href="{h(item_detail_href(item))}">{h(title)}</a>' if can_open else h(title)
             return f"""
 <article class="card reader-card">
   {thumb}
@@ -4562,15 +4826,12 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
     <div>
       {badge(track_meta(item.get("track", source.get("track", "unclassified")))["short"], css_class)}
       {badge(status_label(item.get("status", "")), "neutral")}
-      {badge(content_kind_label(kind), "neutral")}
+      {badge(content_kind_label(kind), "neutral") if not archived else badge("不收紀錄", "suggest-skip")}
     </div>
-    <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
-    <p class="muted break-anywhere">{h(item.get('published_at') or item.get('captured_at'))}</p>
-    <p class="zh-summary">{h(item_zh_summary(item, 260))}</p>
-    <div class="button-row">
-      <a class="button" href="{h(item_detail_href(item))}">閱讀 / 記錄</a>
-      <a class="button secondary" href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a>
-    </div>
+    <h3>{title_html}</h3>
+    <p class="muted break-anywhere">{h(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'))}</p>
+    <p class="zh-summary">{h(source_summary(item, archived, 260))}</p>
+    {f'<div class="button-row reader-card-actions"><a class="button" href="{h(item_detail_href(item))}">閱讀 / 記錄</a><a class="button secondary" href="{h(item_url)}" target="_blank" rel="noreferrer">原始連結</a></div>' if can_open and item_url else ''}
   </div>
 </article>
 """
@@ -4582,12 +4843,32 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
         other_items = sort_items([item for item in items if item not in featured and item not in small_news and item not in inbox])
         rejected_records = sort_items([*rejected, *dismissed])
 
-        def section(title: str, description: str, html_rows: str, empty: str, class_name: str = "reader-list") -> str:
+        def section(
+            section_id: str,
+            title: str,
+            description: str,
+            records: list[dict],
+            empty: str,
+            default_layout: str = "list",
+            can_open: bool = True,
+            archived: bool = False,
+        ) -> str:
+            cards_html = "".join(source_card(item, can_open=can_open, archived=archived) for item in records)
+            list_html = "".join(source_list_row(item, can_open=can_open, archived=archived) for item in records)
+            compact_html = "".join(source_compact_row(item, can_open=can_open) for item in records)
+            empty_html = f'<div class="card"><p class="muted">{h(empty)}</p></div>'
             return f"""
-<section>
-  <h2>{h(title)}</h2>
-  <p class="muted">{h(description)}</p>
-  <div class="{h(class_name)}">{html_rows or f'<div class="card"><p class="muted">{h(empty)}</p></div>'}</div>
+<section class="reader-layout-section" id="{h(section_id)}" data-layout="{h(default_layout)}">
+  <div class="layout-bar">
+    <div>
+      <h2>{h(title)}</h2>
+      <p class="muted">{h(description)}</p>
+    </div>
+    {layout_toggle(section_id, default_layout)}
+  </div>
+  <div class="reader-grid">{cards_html or empty_html}</div>
+  <div class="reader-list">{list_html or empty_html}</div>
+  <div class="reader-compact-list">{compact_html or empty_html}</div>
 </section>
 """
 
@@ -4617,11 +4898,11 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
     <a class="button quiet" href="/sources?track={quote(source.get('track', 'unclassified'))}">回 RSS 來源</a>
   </div>
 </section>
-{section("精選文章與觀點文章", "已確認值得細讀、可能後續撰稿或觀點整理的內容。", ''.join(source_card(item) for item in featured), "這個來源目前沒有精選文章或觀點文章。", "reader-grid")}
-{section("純新聞 / 小消息", "可以快速掃過、查核後短訊處理的內容。", ''.join(source_record_row(item) for item in small_news), "這個來源目前沒有小消息。")}
-{section("待整理 / RSS 新進", "還沒完成收或不收判斷的內容，包含已入庫 inbox 和 RSS 新進。", ''.join(source_record_row(item) for item in [*inbox, *pending]), "這個來源目前沒有待整理項目。")}
-{section("其他已收項目", "已收但尚未歸入精選、觀點或小消息的內容。", ''.join(source_record_row(item) for item in other_items), "這個來源目前沒有其他已收項目。")}
-{section("不收紀錄", "已被標記不收或從 RSS 待整理移出的內容，方便判斷這個 RSS 是否該調整或暫停。", ''.join(source_record_row(item, can_open=False, archived=True) for item in rejected_records), "這個來源目前沒有不收紀錄。")}
+{section("source-featured", "精選文章與觀點文章", "已確認值得細讀、可能後續撰稿或觀點整理的內容。", featured, "這個來源目前沒有精選文章或觀點文章。", "card")}
+{section("source-small-news", "純新聞 / 小消息", "可以快速掃過、查核後短訊處理的內容。", small_news, "這個來源目前沒有小消息。", "list")}
+{section("source-inbox", "待整理 / RSS 新進", "還沒完成收或不收判斷的內容，包含已入庫 inbox 和 RSS 新進。", [*inbox, *pending], "這個來源目前沒有待整理項目。", "list")}
+{section("source-other", "其他已收項目", "已收但尚未歸入精選、觀點或小消息的內容。", other_items, "這個來源目前沒有其他已收項目。", "list")}
+{section("source-rejected", "不收紀錄", "已被標記不收或從 RSS 待整理移出的內容，方便判斷這個 RSS 是否該調整或暫停。", rejected_records, "這個來源目前沒有不收紀錄。", "compact", can_open=False, archived=True)}
 """
         self.send_html(str(source.get("name") or "來源內容"), body)
 
