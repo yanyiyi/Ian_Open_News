@@ -4,8 +4,8 @@
 
 - 看到不錯的網頁時，加入 `database/items.jsonl` 的 `inbox`。
 - 看到不錯的 RSS/Atom 時，加入或編輯 `database/sources.jsonl`。
-- 依「開放科技與開放產業發展」和「數位人文與在地知識建構」兩條主線查看待整理項目與來源。
-- 先審 RSS 暫存，真的值得追再收進資料庫的待整理清單。
+- 依「開放科技與開放產業發展」和「數位人文與在地知識建構」兩條主線查看 RSS 待整理項目與來源。
+- 在同一個「RSS 待整理」入口處理 RSS 新進與已入庫 inbox。
 - 在閱讀區看已確認收下的文章/小消息，並留下「我的關鍵紀錄」。
 
 啟動：
@@ -39,7 +39,7 @@ http://127.0.0.1:8765
 
 從主線入口按「幫這條主線加收藏」時，表單會自動預選該主線。
 
-## RSS 暫存
+## RSS 待整理
 
 日常 RSS 抓取會先寫到：
 
@@ -47,12 +47,18 @@ http://127.0.0.1:8765
 .cache/rss-candidates.jsonl
 ```
 
-這不是正式資料庫。打開 `http://127.0.0.1:8765/rss-candidates` 後，會看到 RSS 剛抓到的新候選。你可以做兩件事：
+這不是正式資料庫，而是背景緩衝。打開 `http://127.0.0.1:8765/items` 後，會在同一個「RSS 待整理」頁看到兩種卡片：
 
-- 收進待整理：把這筆候選寫進 `database/items.jsonl` 的 `inbox`。
-- 不要看，以後略過：從候選清單移除，並寫入 `.cache/rss-dismissed.jsonl`，下一次抓取不會重複出現。
+- `RSS 新進`：還在 `.cache/rss-candidates.jsonl`，尚未入庫。
+- `已入庫待分流`：已經在 `database/items.jsonl`，狀態仍是 `inbox`。
 
-RSS 暫存會依 `database/triage-keywords.json` 標示：
+每張卡片都可以直接做三種決定：
+
+- 確認收，準備跑 skill：RSS 新進會先寫進 `database/items.jsonl`，再改成 `triaged`，移到候選清單的「待跑 skill」。
+- 直接送 PR（小消息）：RSS 新進會先寫進 `database/items.jsonl`，再改成 `ready`，不跑 skill。
+- 不收原因：已入庫項目會改成 `archived`；RSS 新進會從緩衝清單移除並寫入 `.cache/rss-dismissed.jsonl`，下一次抓取不會重複出現。
+
+RSS 待整理會依 `database/triage-keywords.json` 標示：
 
 - 建議收：命中該主線的保留關鍵字。
 - 建議不要看：命中排除關鍵字，或沒有命中任何保留關鍵字。
@@ -61,7 +67,7 @@ RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 ## 候選清單
 
-打開 `http://127.0.0.1:8765/candidates`，只會看到已經在待整理清單按過「確認收，準備跑 skill」的資料。這裡不再混入 RSS 新候選。
+打開 `http://127.0.0.1:8765/candidates`，只會看到已經在 RSS 待整理按過「確認收，準備跑 skill」的資料。這裡不再混入 RSS 新進。
 
 候選清單是下一站：跑 skill 做摘要、切角與文章編修，整理好後再送 GitHub PR。
 
@@ -77,29 +83,29 @@ RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 閱讀區不會自動開 PR，也不會自動發布。它是「看完覺得更值得處理」時，把資料送回整理流程的入口。
 
-## 待整理清單
+## RSS 待整理的篩選與批次
 
-打開 `http://127.0.0.1:8765/items`，可以查看已經收進 `database/items.jsonl`、狀態仍是 `inbox` 的資料。這裡會顯示「建議收」「建議不要看」「未判斷」的數量，也可以依主線、系統建議與關鍵字篩選。
+打開 `http://127.0.0.1:8765/items`，可以同時查看 RSS 新進與已經收進 `database/items.jsonl`、狀態仍是 `inbox` 的資料。這裡會顯示「RSS 新進」「已入庫待分流」「建議收」「建議不要看」「未判斷」的數量，也可以依主線、系統建議與關鍵字篩選。
 
 例如重新跑關鍵字後看到的 `696` 筆建議收與 `44` 筆建議不要看，就是在這個頁面查看。
 
 每筆待整理項目都有人工決定按鈕：
 
-- 確認收，準備跑 skill：把項目從 `inbox` 改成 `triaged`，代表它值得追，但還不會自動開 issue、送 PR 或發布。處理後會從待整理清單消失，移到候選清單的「已確認收，待跑 skill」。
-- 直接送 PR（小消息）：把純事實、很短的小消息從 `inbox` 改成 `ready`，留下「直接送 PR」紀錄，不進候選清單，也不跑 skill。
-- 不收原因小按鈕：在同一張卡片上直接按預設原因，就會把項目改成 `archived`。原因會留在項目紀錄和 `database/review-events.jsonl`。
+- 確認收，準備跑 skill：把已入庫項目從 `inbox` 改成 `triaged`；RSS 新進會先入庫再改成 `triaged`。處理後會從 RSS 待整理消失，移到候選清單的「已確認收，待跑 skill」。
+- 直接送 PR（小消息）：把純事實、很短的小消息改成 `ready`，留下「直接送 PR」紀錄，不進候選清單，也不跑 skill。
+- 不收原因小按鈕：在同一張卡片上直接按預設原因。已入庫項目會改成 `archived`；RSS 新進會進入 `.cache/rss-dismissed.jsonl`。
 - 其他原因：展開「其他原因」，寫一句原因後送出。
 
 篩選區不用按套用。改主線、系統建議，或勾選關鍵字後，下面列表會自動更新。
 
-待整理清單上方也有批次處理：
+RSS 待整理上方也有批次處理：
 
 - 勾選多則後，可以按「批次確認收，準備跑 skill」。
 - 勾選多則後，可以批次直接送 PR，或按其中一個批次不收原因。
 
-不管單筆或批次，處理過的項目都會離開待整理清單，避免代辦永遠清不完。
+不管單筆或批次，處理過的項目都會離開 RSS 待整理，避免代辦永遠清不完。
 
-在待整理清單送出單筆或批次處理後，頁面會留在原本的篩選條件，只讓處理完成的卡片淡出消失。
+在 RSS 待整理送出單筆或批次處理後，頁面會留在原本的篩選條件，只讓處理完成的卡片淡出消失。
 
 卡片上的標題會進入本機單篇整理頁；「開原文」才會打開外部網站。單篇頁會分開顯示 Codex 生成閱讀建議、原始主文、本機規則判斷、個人紀錄與重送 skill 按鈕。
 
@@ -123,7 +129,7 @@ RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 一行一個關鍵字。儲存後會寫進 `database/triage-keywords.json`，下一次抓 RSS 候選時套用。
 
-如果想立刻套用到目前 RSS 暫存與 `database/items.jsonl` 裡的 `inbox` 項目，關鍵字頁下方有「重新跑本機規則/關鍵字初篩」按鈕。
+如果想立刻套用到目前 RSS 新進與 `database/items.jsonl` 裡的 `inbox` 項目，關鍵字頁下方有「重新跑本機規則/關鍵字初篩」按鈕。
 
 ## 加 RSS 與管理來源
 
@@ -168,13 +174,13 @@ RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 ## 手動抓 RSS
 
-首頁有「抓到候選清單」按鈕，會執行：
+首頁有「抓到 RSS 待整理」按鈕，會執行：
 
 ```bash
 python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --dismissed .cache/rss-dismissed.jsonl --report .cache/rss-fetch-report.md
 ```
 
-抓到的新資料會先 append 到 `.cache/rss-candidates.jsonl`。只有你在 RSS 暫存按「收進待整理」後，才會進 `database/items.jsonl`。
+抓到的新資料會先 append 到 `.cache/rss-candidates.jsonl`，並顯示在「RSS 待整理」的 `RSS 新進` 卡片。你按確認收或直接送 PR 時，系統才會把它寫進 `database/items.jsonl` 並套用決定。
 
 ## 本機指令按鈕
 

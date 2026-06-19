@@ -54,7 +54,7 @@
 python3 scripts/import_reference_data.py
 ```
 
-每日/手動抓 RSS 到本機候選清單：
+每日/手動抓 RSS 到 RSS 待整理：
 
 ```bash
 python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --dismissed .cache/rss-dismissed.jsonl --report .cache/rss-fetch-report.md
@@ -72,7 +72,7 @@ python3 scripts/local_rss_daily.py
 python3 scripts/codex_enrich_reviews.py --target both --workflow-scope --limit 18
 ```
 
-候選清單不是正式資料庫。請在本機網頁 `/candidates` 按「收下」後，才寫入 `items.jsonl`。
+`.cache/rss-candidates.jsonl` 不是正式資料庫。請在本機網頁 `/items` 的「RSS 待整理」按確認收或直接送 PR 後，才寫入 `items.jsonl` 並套用決定。
 
 直接抓 RSS 到正式資料庫：
 

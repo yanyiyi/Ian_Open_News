@@ -105,17 +105,19 @@ subagent **不會互相對話**。不是幾個 agent 開會辯論出結論。
 這條把本機 triage 接到 GitHub PR。詳細的單一指令是 `/new-brief-pr`，下面是它背後的全貌。
 
 ```
-RSS 自動抓 ──► .cache/rss-candidates.jsonl ──► 本機網頁 /candidates 看
+RSS 自動抓 ──► .cache/rss-candidates.jsonl ──► 本機網頁 /items「RSS 待整理」
                                                       │
                             triage-keywords.json 標「建議收 / 建議不要看」
                                                       │
-                   ┌──────────────────────────────────┼─────────────────────┐
-              「不要看」                          「收下到資料庫」      「收下並開 issue」
-            寫進 dismissed                    寫進 items.jsonl         + gh issue create
-                                                                            │
-                                                          ┌─────────────────┘
-                                                          ▼
-   /new-brief-pr ─► 開 branch ─► 切角 ─► 備料 ─► 起草 ─► 三審 ─► 查核 ─► 更新 items.jsonl ─► gh pr create (Closes #issue)
+       ┌──────────────────────────────────────────────┼────────────────────────────┐
+   「不收原因」                           「確認收，準備跑 skill」        「直接送 PR（小消息）」
+ 寫進 dismissed 或 archived              寫進 items.jsonl + triaged       寫進 items.jsonl + ready
+                                              │
+                                              ▼
+                                /candidates 候選清單待跑 skill
+                                              │
+                                              ▼
+   /new-brief-pr ─► 開 branch ─► 切角 ─► 備料 ─► 起草 ─► 三審 ─► 查核 ─► 更新 items.jsonl ─► gh pr create
                                                           │
                                               PR 內逐行 review、跑審查鏈
                                                           │
@@ -125,11 +127,11 @@ RSS 自動抓 ──► .cache/rss-candidates.jsonl ──► 本機網頁 /cand
 ### 第一階段：本機篩關鍵字（你已經會的部分）
 
 1. `python3 scripts/local_web.py` 開本機網頁（預設 `http://127.0.0.1:8765`）。
-2. 進「候選清單」`/candidates`，看 RSS 抓到的新資料。系統用 [`database/triage-keywords.json`](../database/triage-keywords.json) 標「建議收」或「建議不要看」。
-3. 真的值得追的按「**收下到資料庫**」（寫進 `database/items.jsonl`）。要進線上審查就按「**收下並開 GitHub issue**」。
-4. 不值得的按「**不要看，以後略過**」（寫進 `.cache/rss-dismissed.jsonl`，下次不再出現）。
+2. 進「RSS 待整理」`/items`，看 RSS 抓到的新資料與既有 inbox。系統用 [`database/triage-keywords.json`](../database/triage-keywords.json) 標「建議收」或「建議不要看」。
+3. 真的值得追的按「**確認收，準備跑 skill**」（RSS 新進會先寫進 `database/items.jsonl`，再改成 `triaged`）。
+4. 純小消息按「**直接送 PR（小消息）**」；不值得的按不收原因，RSS 新進會寫進 `.cache/rss-dismissed.jsonl`，下次不再出現。
 
-關鍵字本身不夠用時，直接編 `database/triage-keywords.json` 的 `keep_keywords` / `skip_keywords`，再回候選清單重看一輪。
+關鍵字本身不夠用時，直接編 `database/triage-keywords.json` 的 `keep_keywords` / `skip_keywords`，再回 RSS 待整理重看一輪。
 
 ### 第二階段：開 PR（新的部分）
 

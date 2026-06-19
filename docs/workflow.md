@@ -4,16 +4,16 @@
 
 把舊流程中的「RSS / Facebook / Google 快訊 / Inoreader 收藏 -> Make 摘要 -> Airtable 紀錄 -> LINE 通知」改成 GitHub 上可審核的流程：
 
-1. RSS 新資料先進本機 `.cache/rss-candidates.jsonl`。
-2. 本機候選清單依 `database/triage-keywords.json` 標示建議收或建議不要看。
-3. 人工收下後才進 `database/items.jsonl`。
+1. RSS 新資料先進本機 `.cache/rss-candidates.jsonl`，並顯示在「RSS 待整理」。
+2. RSS 待整理依 `database/triage-keywords.json` 標示建議收或建議不要看。
+3. 人工確認收、直接送 PR 或不收時，才寫進 `database/items.jsonl` 或略過清單。
 4. 值得線上整理的項目再開 GitHub Issue。
 5. 摘要、研究札記、對外文章或內部 brief 走 PR。
 6. 審查鏈與查核結果留在 GitHub。
 
-每日抓 RSS 的第一站改成本機候選清單。`launchd` 會在台灣時間 12:00、18:00、23:00 讀取 `database/sources.jsonl`，把新資料放進 `.cache/rss-candidates.jsonl`。抓到資料時會先跑一輪 `triage` 與 `editorial_triage`：前者是關鍵字第一層判斷，後者會補上「為什麼建議看」三個理由、是否建議收錄、與過去不收/收錄類型的相似度。RSS 抓完後，`scripts/local_rss_daily.py` 會再呼叫 `scripts/codex_enrich_reviews.py`，把缺少 Codex review 的 RSS 候選補上「給 Ian 的一句話推薦」、中文標題、三個閱讀理由與中文摘要。
+每日抓 RSS 的第一站改成「RSS 待整理」。`launchd` 會在台灣時間 12:00、18:00、23:00 讀取 `database/sources.jsonl`，把新資料放進 `.cache/rss-candidates.jsonl`，本機網頁則把這些 RSS 新進和 `database/items.jsonl` 裡的 `inbox` 合併顯示。抓到資料時會先跑一輪 `triage` 與 `editorial_triage`：前者是關鍵字第一層判斷，後者會補上「為什麼建議看」三個理由、是否建議收錄、與過去不收/收錄類型的相似度。RSS 抓完後，`scripts/local_rss_daily.py` 會再呼叫 `scripts/codex_enrich_reviews.py`，把缺少 Codex review 的 RSS 候選補上「給 Ian 的一句話推薦」、中文標題、三個閱讀理由與中文摘要。
 
-你在本機網頁看過後，按「收進待整理」才會新增到 `database/items.jsonl`。進入 `database/items.jsonl` 後，仍先留在 `inbox`，由你在「待整理」人工分流。
+你在本機網頁看過後，可以直接按「確認收，準備跑 skill」「直接送 PR（小消息）」或不收原因。RSS 新進會在按確認收或直接送 PR 時先新增到 `database/items.jsonl`，再套用決定；不收則寫入 `.cache/rss-dismissed.jsonl`。
 
 `.github/workflows/daily-rss-fetch.yml` 只保留手動執行，用來在 GitHub 上產生候選 artifact 或 SQLite 查詢檔，不再每天自動開 PR。
 
@@ -65,13 +65,13 @@
 
 1. 固定時間或手動抓 RSS。
    - 12:00、18:00、23:00 的本機自動流程會抓 RSS 到 `.cache/rss-candidates.jsonl`，並在抓完後補 Codex 建議與摘要。
-   - 手動時可在本機網頁首頁按「抓到候選清單」；這顆按鈕和排程跑同一條流程。
+   - 手動時可在本機網頁首頁按「抓到 RSS 待整理」；這顆按鈕和排程跑同一條流程。
 2. 抓完後先跑初篩。
    - RSS 抓取會自動產生 `triage` 與 `editorial_triage`。
    - 若更新過關鍵字，可在首頁或關鍵字頁按「重新跑本機規則/關鍵字初篩」。
    - 如果你想重新補模型版摘要，本機網頁首頁按「補 Codex 建議」。
    - `editorial_triage` 會呈現：為什麼建議看的三個理由、本機規則初步是否建議收錄、關鍵字匹配、過去刪除類型特徵、過去已收錄/新聞表類型特徵；`codex_review` 則呈現 Codex 生成的閱讀建議與摘要。
-3. 人工查看「待整理」。
+3. 人工查看「RSS 待整理」。
    - 純屬新聞或短訊：按「直接送 PR（小消息）」，後續只做事實查核、摘要、標題、網址等必要資訊。
    - 值得收錄的精選文章：按「確認收，準備跑 skill」，進入候選清單，再跑撰稿與審查 skill。
    - 不值得看：按不收原因，保留原因，未來會變成更快的不收按鈕與判斷線索。
@@ -89,14 +89,15 @@
 
 ## 依 agents-writing-pipeline.html 改寫的鏈條
 
-### 0. 本機先篩選：候選清單
+### 0. 本機先篩選：RSS 待整理
 
 - RSS 自動抓取只寫進 `.cache/rss-candidates.jsonl`。
+- 本機網頁 `/items` 會把 RSS 新進與 `database/items.jsonl` 的 `inbox` 合併顯示。
 - 命中主線保留關鍵字會標成「建議收」。
 - 命中排除關鍵字，或沒有命中主線關鍵字，會標成「建議不要看」。
-- 按「不要看，以後略過」會寫進 `.cache/rss-dismissed.jsonl`，避免下次重複出現。
-- 按「收下到資料庫」才會寫進 `database/items.jsonl`。
-- 按「收下並開 GitHub issue」才開始線上整理。
+- 按不收原因會讓 RSS 新進寫進 `.cache/rss-dismissed.jsonl`，避免下次重複出現。
+- 按「確認收，準備跑 skill」或「直接送 PR（小消息）」時，RSS 新進才會寫進 `database/items.jsonl` 並套用決定。
+- 確認收後才進候選清單或線上整理。
 
 ### 1. 動筆前：找題與備料
 

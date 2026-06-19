@@ -396,7 +396,7 @@ def main() -> None:
 
     totals: list[tuple[str, int, int]] = []
     if args.target in {"candidates", "both"}:
-        totals.append(("RSS 暫存", *process_file(args.candidates, "candidates", args)))
+        totals.append(("RSS 新進", *process_file(args.candidates, "candidates", args)))
     if args.target in {"items", "both"}:
         totals.append(("資料庫項目", *process_file(args.items, "items", args)))
 
