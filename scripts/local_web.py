@@ -1666,7 +1666,6 @@ class Handler(BaseHTTPRequestHandler):
   <p class="muted break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">開原文</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   <p class="help">判斷理由：{h(triage.get('reason', '未標示'))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
-  {editorial_triage_html(item)}
   <div class="decision-panel">
     <div class="button-row">
       <form method="post" action="/items/accept" data-decision-form>
@@ -1692,6 +1691,7 @@ class Handler(BaseHTTPRequestHandler):
       </form>
     </details>
   </div>
+  {editorial_triage_html(item)}
 </article>
 """
             )
@@ -2297,7 +2297,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
             inbox_actions = f"""
 <div class="card">
   <h2>待整理決定</h2>
-  <p class="muted">這則還在待整理。你可以在這裡先看完整資訊，再回列表或直接分流。</p>
+  <p class="muted">這則還在待整理。可先直接分流；下方仍保留 Codex、來源與關鍵字判斷供比較。</p>
   <div class="button-row">
     <form method="post" action="/items/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
@@ -2359,12 +2359,12 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
 <div class="two-column">
   <section>
     <h2>閱讀建議與判斷來源</h2>
+    {inbox_actions}
     {editorial_triage_html(item)}
     <div class="card">
       <h2>關鍵字第一層判斷</h2>
       <p class="help">建議：{h(recommendation_label(candidate_recommendation(item)))}<br>理由：{h(triage.get('reason', '未標示'))}<br>命中：{h('、'.join(triage.get('matched_keywords') or []) or '無')}<br>排除：{h('、'.join(triage.get('skip_keywords') or []) or '無')}</p>
     </div>
-    {inbox_actions}
     {skill_rows}
   </section>
   <aside>
@@ -2443,7 +2443,6 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
   <p class="muted break-anywhere">{h(candidate.get('source_name'))} · {h(candidate.get('published_at') or candidate.get('captured_at'))} · {h(candidate.get('url'))}</p>
   <p>{h(clean_text(candidate.get('summary'), 360))}</p>
   <p class="help">判斷理由：{h(triage.get('reason', '未標示'))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
-  {editorial_triage_html(candidate, compact=True)}
   <div class="button-row">
     <form method="post" action="/candidates/accept">
       <input type="hidden" name="id" value="{h(candidate.get('id'))}">
@@ -2455,6 +2454,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
     </form>
   </div>
   <p class="help">收進待整理後，會寫進 database/items.jsonl 的 inbox，再到待整理頁做最後決定。</p>
+  {editorial_triage_html(candidate, compact=True)}
 </article>
 """
             )
