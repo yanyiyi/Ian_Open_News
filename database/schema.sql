@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS items (
   review_json TEXT NOT NULL,
   editorial_triage_json TEXT NOT NULL,
   personal_notes_json TEXT NOT NULL,
+  reading_metadata_json TEXT NOT NULL,
   FOREIGN KEY (source_id) REFERENCES sources(id)
 );
 

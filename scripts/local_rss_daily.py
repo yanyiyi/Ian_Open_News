@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -43,10 +44,43 @@ def main() -> None:
         str(REPORT),
     ]
     result = subprocess.run(command, cwd=ROOT, text=True)
+
+    codex_message = ""
+    if os.environ.get("IAN_OPEN_NEWS_AUTO_CODEX", "1") != "0":
+        codex_command = [
+            sys.executable,
+            str(ROOT / "scripts" / "codex_enrich_reviews.py"),
+            "--target",
+            "candidates",
+            "--limit",
+            "24",
+            "--batch-size",
+            "6",
+        ]
+        try:
+            codex_result = subprocess.run(
+                codex_command,
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                timeout=1800,
+            )
+            if codex_result.returncode == 0:
+                codex_message = "Codex 建議與摘要已補上。"
+            else:
+                codex_message = "Codex 補寫失敗，請打開本機網頁手動按鈕補跑。"
+                print(codex_result.stdout)
+                print(codex_result.stderr, file=sys.stderr)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            codex_message = "Codex 補寫逾時或無法啟動，請打開本機網頁手動補跑。"
+            print(f"Codex enrichment failed: {exc}", file=sys.stderr)
+    else:
+        codex_message = "已略過 Codex 自動補寫。"
+
     candidates = load_jsonl(CANDIDATES)
     keep_count = sum(1 for item in candidates if (item.get("triage") or {}).get("recommendation") == "suggest-keep")
     skip_count = sum(1 for item in candidates if (item.get("triage") or {}).get("recommendation") == "suggest-skip")
-    message = f"候選 {len(candidates)} 筆；建議收 {keep_count}，建議不要看 {skip_count}。請打開本機網頁候選清單。"
+    message = f"候選 {len(candidates)} 筆；建議收 {keep_count}，建議不要看 {skip_count}。{codex_message}"
     print(message)
     notify("Ian Open News RSS 已抓完", message)
     raise SystemExit(result.returncode)

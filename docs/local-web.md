@@ -73,6 +73,7 @@ RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 - 我的關鍵紀錄：寫下你自己的判斷、疑問、想補的台灣/OCF 脈絡或後續角度，會存進 `personal_notes`。
 - 用我的觀點重新送 skill：把文章狀態放回 `triaged`，並在 `skill_requests` 與 `review-events.jsonl` 留下紀錄。後續跑撰稿 skill 時，應該把 `personal_notes` 當成新的檢視角度。
+- 閱讀更多：連到原始網址抓 `og:image`、標題、描述、canonical URL、段落摘錄與 `article_text` 原始主文，寫進 `reading_metadata`。如果抓到封面圖，閱讀卡片會使用它；如果抓到主文，單篇頁會顯示「原始主文」。
 
 閱讀區不會自動開 PR，也不會自動發布。它是「看完覺得更值得處理」時，把資料送回整理流程的入口。
 
@@ -100,9 +101,9 @@ RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 在待整理清單送出單筆或批次處理後，頁面會留在原本的篩選條件，只讓處理完成的卡片淡出消失。
 
-卡片上的標題會進入本機單篇整理頁；「開原文」才會打開外部網站。單篇頁會顯示完整摘要、關鍵字判斷、AI/規則初篩、個人紀錄與重送 skill 按鈕。
+卡片上的標題會進入本機單篇整理頁；「開原文」才會打開外部網站。單篇頁會分開顯示 Codex 生成閱讀建議、原始主文、本機規則判斷、個人紀錄與重送 skill 按鈕。
 
-## AI/規則初篩
+## Codex 生成與本機規則初篩
 
 `triage` 是第一層關鍵字判斷；`editorial_triage` 是更接近你日常判斷的欄位。它會綜合：
 
@@ -122,7 +123,7 @@ RSS 暫存會依 `database/triage-keywords.json` 標示：
 
 一行一個關鍵字。儲存後會寫進 `database/triage-keywords.json`，下一次抓 RSS 候選時套用。
 
-如果想立刻套用到目前 RSS 暫存與 `database/items.jsonl` 裡的 `inbox` 項目，關鍵字頁下方有「重新跑 AI/關鍵字初篩」按鈕。
+如果想立刻套用到目前 RSS 暫存與 `database/items.jsonl` 裡的 `inbox` 項目，關鍵字頁下方有「重新跑本機規則/關鍵字初篩」按鈕。
 
 ## 加 RSS 與管理來源
 
@@ -180,9 +181,10 @@ python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --di
 首頁的「本機指令」區塊目前有這些 allowlist 按鈕，每個按鈕旁都有白話說明：
 
 - 立刻抓 RSS 候選：`python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl`
-- 重新跑 AI/關鍵字初篩：`python3 scripts/apply_triage_keywords.py`
+- 重新跑本機規則/關鍵字初篩：`python3 scripts/apply_triage_keywords.py`
 - 驗證資料庫：`python3 scripts/validate_database.py`
 - 匯出 SQLite：`python3 scripts/export_sqlite.py --output .cache/knowledge.sqlite`
+- 補閱讀卡圖片、描述與主文：`python3 scripts/enrich_reading_metadata.py --reader-only --only-missing-image --limit 40`
 - 查看檔案變更：`git status --short`
 - 查看變更摘要：`git diff --stat`
 

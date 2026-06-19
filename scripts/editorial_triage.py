@@ -65,6 +65,30 @@ LOW_VALUE_CUES = [
     "名額",
 ]
 
+ENGLISH_TITLE_HINTS = {
+    "open source": "開源",
+    "open data": "開放資料",
+    "data": "資料",
+    "ai": "AI",
+    "governance": "治理",
+    "privacy": "隱私",
+    "security": "資安",
+    "standard": "標準",
+    "standards": "標準",
+    "license": "授權",
+    "licensing": "授權",
+    "government": "政府",
+    "public": "公共",
+    "digital": "數位",
+    "infrastructure": "基礎建設",
+    "culture": "文化",
+    "heritage": "文化資產",
+    "archive": "檔案",
+    "museum": "博物館",
+    "community": "社群",
+    "local": "在地",
+}
+
 
 def clean_text(value: object, limit: int | None = None) -> str:
     if value is None:
@@ -79,6 +103,19 @@ def clean_text(value: object, limit: int | None = None) -> str:
 
 def normalized(value: object) -> str:
     return clean_text(value).casefold()
+
+
+def has_cjk(value: object) -> bool:
+    return bool(re.search(r"[\u4e00-\u9fff]", str(value or "")))
+
+
+def mostly_english(value: object) -> bool:
+    text = clean_text(value)
+    if not text:
+        return False
+    letters = len(re.findall(r"[A-Za-z]", text))
+    cjk = len(re.findall(r"[\u4e00-\u9fff]", text))
+    return letters >= 8 and letters > cjk * 2
 
 
 def record_text(record: dict[str, Any]) -> str:
@@ -194,6 +231,11 @@ def overlap_signals(values: list[str], counter: Counter[str], label: str, limit:
 
 
 def content_kind(record: dict[str, Any]) -> str:
+    action = local_decision_action(record)
+    if action == "direct-pr-small-news":
+        return "small-news"
+    if action in {"accepted-for-editing", "revisit-with-personal-notes"}:
+        return "featured-article"
     text = record_text(record)
     featured = cue_matches(text, FEATURED_CUES)
     news = cue_matches(text, SMALL_NEWS_CUES)
@@ -221,6 +263,60 @@ def recommendation_label(recommendation: str) -> str:
     if recommendation == "suggest-skip":
         return "建議不要看"
     return "未判斷"
+
+
+def sentence_parts(text: str) -> list[str]:
+    text = clean_text(text)
+    if not text:
+        return []
+    parts = re.split(r"(?<=[。！？!?])\s+|(?<=[。！？!?])|(?<=\.)\s+", text)
+    return [clean_text(part) for part in parts if clean_text(part)]
+
+
+def keyword_topic(record: dict[str, Any], triage: dict[str, Any]) -> str:
+    matched = [clean_text(keyword) for keyword in triage.get("matched_keywords", []) if clean_text(keyword)]
+    if matched:
+        return "、".join(matched[:4])
+    tags = tags_for(record)
+    if tags:
+        return "、".join(tags[:3])
+    return TRACK_LABELS.get(record.get("track", "unclassified"), "這條主線")
+
+
+def zh_title_for(record: dict[str, Any], triage: dict[str, Any]) -> str:
+    title = clean_text(record.get("title"), 180)
+    if not title:
+        return "未命名資料"
+    if has_cjk(title):
+        return title
+    lower = normalized(title)
+    hints = [zh for en, zh in ENGLISH_TITLE_HINTS.items() if en in lower]
+    hint_text = "、".join(list(dict.fromkeys(hints))[:3]) or keyword_topic(record, triage)
+    return f"關於{hint_text}的英文資料：{title}"
+
+
+def zh_summary_for(record: dict[str, Any], triage: dict[str, Any], kind: str, zh_title: str) -> str:
+    summary = clean_text(record.get("summary"), 900)
+    title = clean_text(record.get("title"), 180)
+    topic = keyword_topic(record, triage)
+    kind_text = content_kind_label(kind)
+    if has_cjk(summary):
+        sentences = sentence_parts(summary)
+        body = "".join(sentences[:2]) or summary
+        return clean_text(f"中文標題：{zh_title}\n中文摘要：{body}", 620)
+    if has_cjk(title):
+        return clean_text(
+            f"中文標題：{zh_title}\n中文摘要：這則資料和「{topic}」有關，初步類型是「{kind_text}」。"
+            "原文摘要偏英文或不足，後續若要送 PR，請先補完整中文摘要與查核重點。",
+            620,
+        )
+    english_sentences = sentence_parts(summary)
+    evidence = english_sentences[0] if english_sentences else title
+    return clean_text(
+        f"中文標題：{zh_title}\n中文摘要：這是一篇英文資料，主題可能和「{topic}」有關，初步類型是「{kind_text}」。"
+        f"原文重點線索：{evidence}。後續若要整理，請用 skill 補完整中文摘要、台灣/OCF 關聯與查核結果。",
+        620,
+    )
 
 
 def evaluate_editorial_triage(
@@ -310,6 +406,9 @@ def evaluate_editorial_triage(
         view_reasons = reasons[:3]
         summary_reason = "符合主線或既有收錄線索，可人工判斷是否進精選流程。"
 
+    zh_title = zh_title_for(record, triage)
+    zh_summary = zh_summary_for(record, triage, kind, zh_title)
+
     return {
         "version": 1,
         "generated_at": context["generated_at"],
@@ -319,6 +418,8 @@ def evaluate_editorial_triage(
         "confidence": confidence,
         "content_kind": kind,
         "content_kind_label": content_kind_label(kind),
+        "zh_title": zh_title,
+        "zh_summary": zh_summary,
         "view_reasons": view_reasons,
         "summary_reason": summary_reason,
         "keyword_fit": {
