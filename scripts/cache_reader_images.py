@@ -16,6 +16,7 @@ from urllib.parse import quote, urlparse, urlsplit, urlunsplit
 ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "database" / "items.jsonl"
 DEFAULT_OUTPUT = ROOT / "docs" / "reader" / "assets" / "images"
+SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".png", ".webp", ".gif", ".avif"}
 
 
 def clean_text(value: object, limit: int | None = None) -> str:
@@ -54,7 +55,7 @@ def image_candidates(item: dict) -> list[str]:
         candidates.extend([raw_columns.get("image"), raw_columns.get("Image"), raw_columns.get("圖片"), raw_columns.get("封面")])
     summary = str(item.get("summary") or "")
     candidates.extend(re.findall(r"""<img[^>]+src=["']([^"']+)["']""", summary, flags=re.I))
-    candidates.extend(re.findall(r"""https?://[^\s"'<>]+?\.(?:png|jpe?g|webp)(?:\?[^\s"'<>]*)?""", summary, flags=re.I))
+    candidates.extend(re.findall(r"""https?://[^\s"'<>]+?\.(?:png|jpe?g|webp|gif|avif)(?:\?[^\s"'<>]*)?""", summary, flags=re.I))
     output = []
     seen = set()
     for candidate in candidates:
@@ -66,12 +67,28 @@ def image_candidates(item: dict) -> list[str]:
     return output
 
 
-def extension_for(url: str, content_type: str) -> str:
+def detect_image_extension(raw: bytes) -> str | None:
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png"
+    if raw.startswith(b"\xff\xd8\xff"):
+        return ".jpg"
+    if raw.startswith((b"GIF87a", b"GIF89a")):
+        return ".gif"
+    if len(raw) >= 12 and raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return ".webp"
+    if len(raw) >= 12 and raw[4:8] == b"ftyp" and raw[8:12] in {b"avif", b"avis"}:
+        return ".avif"
+    return None
+
+
+def extension_for(url: str, content_type: str, detected_ext: str) -> str:
+    if detected_ext in SUPPORTED_IMAGE_EXTENSIONS:
+        return detected_ext
     parsed_ext = Path(urlparse(url).path).suffix.lower()
-    if parsed_ext in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+    if parsed_ext in SUPPORTED_IMAGE_EXTENSIONS | {".jpeg"}:
         return ".jpg" if parsed_ext == ".jpeg" else parsed_ext
     guessed = mimetypes.guess_extension(content_type.split(";", 1)[0].strip())
-    if guessed in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+    if guessed in SUPPORTED_IMAGE_EXTENSIONS | {".jpeg"}:
         return ".jpg" if guessed == ".jpeg" else guessed
     return ".jpg"
 
@@ -97,11 +114,14 @@ def cache_image(item: dict, image_url: str, output_dir: Path, timeout: int, max_
         raw = response.read(max_bytes + 1)
     if len(raw) > max_bytes:
         return item, "too large"
-    if "image" not in content_type.casefold() and not re.search(r"\.(png|jpe?g|webp|gif)(?:\?|$)", image_url, flags=re.I):
+    if "image" not in content_type.casefold() and not re.search(r"\.(png|jpe?g|webp|gif|avif)(?:\?|$)", image_url, flags=re.I):
         return item, f"not image: {content_type or 'unknown'}"
+    detected_ext = detect_image_extension(raw)
+    if not detected_ext:
+        return item, f"not supported image payload: {content_type or 'unknown'}"
     digest = hashlib.sha1(image_url.encode("utf-8")).hexdigest()[:12]
     item_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(item.get("id")) or "item").strip("-")
-    ext = extension_for(image_url, content_type)
+    ext = extension_for(image_url, content_type, detected_ext)
     filename = f"{item_id}-{digest}{ext}"
     output_dir.mkdir(parents=True, exist_ok=True)
     target = output_dir / filename
@@ -123,11 +143,35 @@ def cache_image(item: dict, image_url: str, output_dir: Path, timeout: int, max_
     return updated, "cached"
 
 
-def has_valid_cache(item: dict) -> bool:
+def cache_status(item: dict) -> tuple[bool, Path | None, str]:
     metadata = item.get("reading_metadata") if isinstance(item.get("reading_metadata"), dict) else {}
     cache = metadata.get("image_cache") if isinstance(metadata.get("image_cache"), dict) else {}
     path = clean_text(cache.get("path"))
-    return bool(path and (ROOT / path).exists())
+    if not path:
+        return False, None, "missing metadata"
+    cache_path = ROOT / path
+    if not cache_path.exists():
+        return False, cache_path, "missing file"
+    try:
+        detected_ext = detect_image_extension(cache_path.read_bytes()[:32])
+    except OSError as exc:
+        return False, cache_path, str(exc)
+    if not detected_ext:
+        return False, cache_path, "not supported image payload"
+    if cache_path.suffix.lower() != detected_ext:
+        return False, cache_path, f"extension mismatch: expected {detected_ext}"
+    return True, cache_path, "ok"
+
+
+def clear_image_cache(item: dict) -> dict:
+    metadata = item.get("reading_metadata") if isinstance(item.get("reading_metadata"), dict) else {}
+    if "image_cache" not in metadata:
+        return item
+    updated = dict(item)
+    cleaned_metadata = dict(metadata)
+    cleaned_metadata.pop("image_cache", None)
+    updated["reading_metadata"] = cleaned_metadata
+    return updated
 
 
 def main() -> None:
@@ -146,23 +190,29 @@ def main() -> None:
     skipped_cached = 0
     failed = 0
     for item in items:
-        if has_valid_cache(item):
+        is_cached, cache_path, cache_reason = cache_status(item)
+        if is_cached:
             skipped_cached += 1
             updated_items.append(item)
             continue
+        current = clear_image_cache(item)
+        if cache_path and cache_path.exists():
+            try:
+                cache_path.unlink()
+            except OSError as exc:
+                print(f"warning: cannot remove stale cache {cache_path}: {exc}")
         candidates = image_candidates(item)
         if not candidates:
-            updated_items.append(item)
+            updated_items.append(current)
             continue
         if args.limit and attempted >= args.limit:
-            updated_items.append(item)
+            updated_items.append(current)
             continue
         attempted += 1
-        current = item
-        result = "failed"
+        result = cache_reason
         for image_url in candidates[:3]:
             try:
-                current, result = cache_image(item, image_url, args.output_dir, args.timeout, args.max_bytes)
+                current, result = cache_image(current, image_url, args.output_dir, args.timeout, args.max_bytes)
             except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
                 result = str(exc)
                 continue
