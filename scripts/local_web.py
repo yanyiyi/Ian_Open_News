@@ -1361,8 +1361,8 @@ def page(title: str, body: str) -> bytes:
   <main>{body}</main>
   <div class="loading-overlay" id="read-more-loading" aria-live="polite" aria-hidden="true">
     <div class="loading-card">
-      <strong>正在載入原始主文</strong>
-      <p class="muted">會從原始網址往下抓全文，完成後寫成 Markdown 閱讀版存進資料庫，並在畫面展開排版後主文。</p>
+      <strong>正在展開全文</strong>
+      <p class="muted">會從原始連結往下抓全文，完成後寫成 Markdown 閱讀版存進資料庫，並在畫面展開排版後主文。</p>
       <div class="loading-dots" aria-label="載入中"><span></span><span></span><span></span></div>
     </div>
   </div>
@@ -1709,6 +1709,7 @@ class Handler(BaseHTTPRequestHandler):
             css_class = track_class(item.get("track", "unclassified"))
             item_id = str(item.get("id") or "")
             if entry_type == "rss":
+                detail_href = item_detail_href(item)
                 rows.append(
                     f"""
 <article class="card candidate-card candidate-card--{h(recommendation)}" data-item-id="{h(item_id)}">
@@ -1720,9 +1721,9 @@ class Handler(BaseHTTPRequestHandler):
     {badge("RSS 新進", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
-    <strong><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('title'))}</a></strong>
+    <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   <p class="help">判斷理由：{h(triage.get('reason', '未標示'))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
   <div class="decision-panel">
@@ -1771,7 +1772,7 @@ class Handler(BaseHTTPRequestHandler):
     {badge(recommendation_label(recommendation), recommendation)}
     <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">開原文</a> · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   <p class="help">判斷理由：{h(triage.get('reason', '未標示'))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
   <div class="decision-panel">
@@ -1823,7 +1824,6 @@ class Handler(BaseHTTPRequestHandler):
             ("all", "全部建議"),
             ("suggest-keep", "只看建議收"),
             ("suggest-skip", "只看建議不要看"),
-            ("unknown", "只看未判斷"),
         ]
         keyword_filters = []
         for keyword in keyword_options:
@@ -1845,11 +1845,8 @@ class Handler(BaseHTTPRequestHandler):
 {notice}
 <div class="grid">
   <div class="card"><div class="metric">{len(pending_entries)}</div><div class="metric-label">全部待整理</div></div>
-  <div class="card"><div class="metric">{len(candidates)}</div><div class="metric-label">RSS 新進</div></div>
-  <div class="card"><div class="metric">{len(inbox_items)}</div><div class="metric-label">已入庫待分流</div></div>
   <div class="card"><div class="metric">{counts.get("suggest-keep", 0)}</div><div class="metric-label">建議收</div><p><a href="/items?recommendation=suggest-keep">只看建議收</a></p></div>
   <div class="card"><div class="metric">{counts.get("suggest-skip", 0)}</div><div class="metric-label">建議不要看</div><p><a href="/items?recommendation=suggest-skip">只看建議不要看</a></p></div>
-  <div class="card"><div class="metric">{counts.get("unknown", 0)}</div><div class="metric-label">未判斷</div></div>
 </div>
 <h2>篩選 RSS 待整理</h2>
 <form class="filter-panel" method="get" action="/items" id="items-filter-form">
@@ -1959,21 +1956,23 @@ function findItemCard(id) {{
 }}
 
 function removeCards(ids) {{
-  ids.forEach((id) => {{
-    const card = findItemCard(id);
-    if (!card || card.classList.contains("is-removing")) {{
-      return;
-    }}
+  const cards = ids
+    .map((id) => findItemCard(id))
+    .filter((card) => card && !card.classList.contains("is-removing"));
+  if (!cards.length) {{
+    return;
+  }}
+  cards.forEach((card) => {{
     card.classList.add("is-removing");
-    const remove = () => {{
+  }});
+  window.setTimeout(() => {{
+    cards.forEach((card) => {{
       if (card.isConnected) {{
         card.remove();
-        syncSelection();
       }}
-    }};
-    card.addEventListener("animationend", remove, {{ once: true }});
-    window.setTimeout(remove, 260);
-  }});
+    }});
+    syncSelection();
+  }}, 260);
 }}
 
 async function submitWithoutLeaving(form, submitter, idsToRemove) {{
@@ -2140,7 +2139,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
     {badge(recommendation_label(recommendation), recommendation)}
     <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{h(item.get('source_name'))} · 確認收：{h(decided_at)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">開原文</a> · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{h(item.get('source_name'))} · 確認收：{h(decided_at)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   {editorial_triage_html(item, compact=True)}
   <p class="help">下一步：跑 skill 做摘要、切角與文章編修；整理好後再送 GitHub PR。<br>系統原判斷：{h(triage.get('reason', '未標示'))}</p>
@@ -2276,9 +2275,9 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
       <form method="post" action="/items/read-more" data-read-more-form data-target="#fulltext-{h(item.get('id'))}">
         <input type="hidden" name="id" value="{h(item.get('id'))}">
         <input type="hidden" name="redirect" value="{h(reader_redirect)}">
-        <button type="submit" class="secondary">閱讀更多</button>
+        <button type="submit" class="secondary">展開全文</button>
       </form>
-      <a class="button secondary" href="{h(item.get('url'))}" target="_blank" rel="noreferrer">開原文</a>
+      <a class="button secondary" href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a>
     </div>
     <section class="fulltext-panel source-card source-card--source" id="fulltext-{h(item.get('id'))}" hidden>
       <div class="section-kicker">原始主文</div>
@@ -2362,9 +2361,13 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
     def show_item_detail(self, query: dict[str, list[str]]) -> None:
         item_id = form_value(query, "id")
         item = next((row for row in load_jsonl(ITEMS) if row.get("id") == item_id), None)
+        is_rss_candidate = False
         if not item:
-            self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
-            return
+            item = next((row for row in load_jsonl(CANDIDATES) if row.get("id") == item_id), None)
+            is_rss_candidate = bool(item)
+            if not item:
+                self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
+                return
 
         saved = (query.get("saved") or [""])[0]
         notice = ""
@@ -2394,7 +2397,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
         fulltext_message = (
             f"已載入 Markdown 閱讀版，約 {article_meta.get('article_markdown_chars', len(article_markdown)) or article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_markdown_method') or article_meta.get('article_text_method', 'metadata')}。"
             if article_markdown or article_text
-            else "按「閱讀更多」後會從原始網址往下抓全文，載入完成後以 Markdown 閱讀版顯示在這裡。"
+            else "按「展開全文」後會從原始連結往下抓全文，載入完成後以 Markdown 閱讀版顯示在這裡。"
         )
         note = personal_note_text(item)
         note_updated = ""
@@ -2403,7 +2406,38 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
             note_updated = f"<p class='help'>上次更新：{h(personal_notes.get('updated_at'))}</p>"
 
         inbox_actions = ""
-        if item.get("status") == "inbox":
+        if is_rss_candidate:
+            reason_options = rejection_reason_options(load_jsonl(ITEMS))
+            inbox_actions = f"""
+<div class="card">
+  <h2>RSS 新進決定</h2>
+  <p class="muted">這則還在 RSS 新進。確認收或直接送 PR 時，系統會先寫進 database/items.jsonl，再套用你的決定；不收會寫入不收學習檔與略過清單。</p>
+  <div class="button-row">
+    <form method="post" action="/candidates/accept">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <input type="hidden" name="decision" value="accept">
+      <button type="submit">確認收，準備跑 skill</button>
+    </form>
+    <form method="post" action="/candidates/accept">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <input type="hidden" name="decision" value="direct_pr">
+      <button type="submit" class="secondary">直接送 PR（小消息）</button>
+    </form>
+  </div>
+  <p class="help">不收原因</p>
+  <div class="reason-presets">{inline_reject_buttons(item_id, reason_options, action="/candidates/dismiss")}</div>
+  <details class="inline-reason">
+    <summary>其他原因</summary>
+    <form method="post" action="/candidates/dismiss">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <label>這次不收的原因</label>
+      <textarea name="reason" required></textarea>
+      <button type="submit" class="danger">確認不收並記錄原因</button>
+    </form>
+  </details>
+</div>
+"""
+        elif item.get("status") == "inbox":
             inbox_actions = f"""
 <div class="card">
   <h2>待整理決定</h2>
@@ -2431,6 +2465,14 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
                 rows.append(f"<li>{h(request.get('requested_at', ''))}：{h(clean_text(request.get('personal_notes'), 160))}</li>")
             skill_rows = f"<div class='card'><h2>重送 skill 紀錄</h2><ul>{''.join(rows)}</ul></div>"
 
+        read_more_actions = f"""
+      <form method="post" action="/items/read-more" data-read-more-form data-target="#fulltext-panel">
+        <input type="hidden" name="id" value="{h(item_id)}">
+        <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+        <button type="submit">展開全文</button>
+      </form>
+"""
+        status_badge = badge("RSS 新進", "neutral") if is_rss_candidate else badge(status_label(item.get("status", "")), "neutral")
         body = f"""
 <h1>{h(item.get('title'))}</h1>
 <p class="lede break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · {h(item.get('url'))}</p>
@@ -2439,19 +2481,15 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
   <section class="card">
     <div>
       {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
-      {badge(status_label(item.get("status", "")), "neutral")}
+      {status_badge}
       {badge(content_kind_label(kind), "neutral")}
       {badge(recommendation_label(candidate_recommendation(item)), candidate_recommendation(item))}
     </div>
     <p class="zh-summary">{h(item_zh_summary(item, 780))}</p>
     <p>{h(clean_text(item.get('summary'), 1800))}</p>
     <div class="button-row">
-      <form method="post" action="/items/read-more" data-read-more-form data-target="#fulltext-panel">
-        <input type="hidden" name="id" value="{h(item_id)}">
-        <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
-        <button type="submit">閱讀更多</button>
-      </form>
-      <a class="button secondary" href="{h(item.get('url'))}" target="_blank" rel="noreferrer">開原文</a>
+      {read_more_actions}
+      <a class="button secondary" href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a>
       <a class="button quiet" href="/items">回 RSS 待整理</a>
       <a class="button quiet" href="/reader">回閱讀區</a>
     </div>
@@ -2461,7 +2499,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
 
 <section class="card fulltext-panel source-card source-card--source" id="fulltext-panel"{fulltext_hidden}>
   <div class="section-kicker">原始主文</div>
-  <h2>閱讀更多載入的 Markdown 閱讀版</h2>
+  <h2>展開全文載入的 Markdown 閱讀版</h2>
   <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
   <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
 </section>
@@ -2478,6 +2516,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
     {skill_rows}
   </section>
   <aside>
+    {'' if is_rss_candidate else f'''
     <div class="card">
       <h2>我的關鍵紀錄</h2>
       <p class="muted">寫你自己的判斷、疑問或想補的觀點。之後按重新送 skill 時，agent 要用這段重新檢視文章。</p>
@@ -2497,6 +2536,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
       </form>
       <p class="help">這不會自動發 PR，只會留下「重送 skill」紀錄並把狀態放回待跑 skill。</p>
     </div>
+    '''}
   </aside>
 </div>
 """
@@ -2818,36 +2858,42 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
         )
         self.redirect(f"/items/view?id={quote(item_id)}&saved=requeue")
 
+    def update_read_more_record(self, path: Path, item_id: str) -> tuple[bool, bool, dict | None, str]:
+        records = load_jsonl(path)
+        changed = False
+        found = False
+        response_item: dict | None = None
+        updated_records = []
+        error = ""
+        for item in records:
+            if item.get("id") != item_id:
+                updated_records.append(item)
+                continue
+            found = True
+            updated, did_change, error = enrich_item_metadata(item)
+            updated, markdown_changed = ensure_article_markdown(updated)
+            updated_records.append(updated)
+            changed = did_change or markdown_changed
+            response_item = updated
+        if found and changed:
+            write_jsonl(path, updated_records)
+        return found, changed, response_item, error
+
     def read_more_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         redirect_to = form_value(data, "redirect", f"/items/view?id={quote(item_id)}")
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
         if not redirect_to.startswith("/") or redirect_to.startswith("//"):
             redirect_to = f"/items/view?id={quote(item_id)}"
-        items = load_jsonl(ITEMS)
-        changed = False
-        found = False
-        response_item: dict | None = None
-        updated_items = []
-        error = ""
-        for item in items:
-            if item.get("id") != item_id:
-                updated_items.append(item)
-                continue
-            found = True
-            updated, did_change, error = enrich_item_metadata(item)
-            updated, markdown_changed = ensure_article_markdown(updated)
-            updated_items.append(updated)
-            changed = did_change or markdown_changed
-            response_item = updated
+        found, changed, response_item, error = self.update_read_more_record(ITEMS, item_id)
+        if not found:
+            found, changed, response_item, error = self.update_read_more_record(CANDIDATES, item_id)
         if not found:
             if wants_json:
                 self.send_json({"ok": False, "error": "找不到項目"}, HTTPStatus.NOT_FOUND)
                 return
             self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/reader'>回閱讀區</a></p>", HTTPStatus.NOT_FOUND)
             return
-        if changed:
-            write_jsonl(ITEMS, updated_items)
         if wants_json:
             metadata = item_reading_metadata(response_item or {})
             article_text = clean_text(metadata.get("article_text"))
@@ -3030,7 +3076,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
                 f"""
 <div class="list-item list-item--{h(css_class)}">
   <strong><a href="{h(detail_href)}">{h(title)}</a></strong>
-  <p class="muted">{h(source_name)} · {h(captured)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">開原文</a></p>
+  <p class="muted">{h(source_name)} · {h(captured)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a></p>
   <p class="break-anywhere">{h(clean_text(item.get('summary'), 180))}</p>
 </div>
 """
