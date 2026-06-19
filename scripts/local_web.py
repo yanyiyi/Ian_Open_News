@@ -116,6 +116,9 @@ DEFAULT_REJECTION_REASONS = [
     "已經是建議不要看",
     "和兩條主線關聯太弱。",
     "內容偏活動公告或宣傳，暫不整理。",
+    "記憶庫純紀錄型資料",
+    "和 OCF 關心的開放科技議題發展關係不大",
+    "社群內部消息，無關",
     "來源重複，已由其他資料涵蓋。",
     "資訊過舊或缺少可查證來源。",
     "只是短訊或碎片，不足以形成文章。",
@@ -1887,8 +1890,19 @@ def page(title: str, body: str) -> bytes:
       font-size: 12px;
       font-weight: 800;
     }}
-    .reason-chip:hover {{ box-shadow: 0 4px 10px rgba(15,25,35,.12); }}
+    .reason-chip:hover {{
+      background: #fff;
+      color: var(--ocf-dark);
+      box-shadow: 0 4px 10px rgba(15,25,35,.12);
+      transform: none;
+      filter: none;
+    }}
     .reason-chip--danger {{
+      border-color: #f1bfd3;
+      background: #fff0f6;
+      color: var(--ocf-magenda);
+    }}
+    .reason-chip--danger:hover {{
       border-color: #f1bfd3;
       background: #fff0f6;
       color: var(--ocf-magenda);
