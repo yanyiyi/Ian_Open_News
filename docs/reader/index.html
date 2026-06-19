@@ -88,12 +88,36 @@
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
     .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions .button {
-      padding: 6px 8px;
-      border-radius: 5px;
-      font-size: 12px;
-      font-weight: 750;
-      line-height: 1.25;
+    .story-card .actions { justify-content: flex-end; }
+    .story-card .actions .reader-action-button {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
+    }
+    .story-card .actions svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .reader-action-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -137,7 +161,7 @@
     <div class="masthead">
       <h1>開放科技閱讀版</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-19T19:39:30+00:00</p>
+      <p class="generated">產生時間：2026-06-19T19:47:42+00:00</p>
 
 <nav>
   <a class="is-active" href="index.html">精選與觀點</a>
@@ -152,19 +176,19 @@
   <p class="lede">這裡優先呈現需要細讀、可能延伸撰稿或觀點整理的內容。</p>
   <div class="card-grid">
 <article class="story-card">
-  <div class="thumb"><span>開放科技</span></div>
+  <div class="thumb"><img src="https://img.technews.tw/wp-content/themes/twentytwelve/library/images/logo.gif" alt=""></div>
   <div class="story-body">
     <div>
       <span class="badge">開放科技</span>
       <span class="badge">精選文章 / 待跑 skill</span>
-
+      <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-19 08:00</span>
     </div>
     <h2><a href="articles/item-c1fbbe231b873fd1.html">加拿大新法對全球電商演算法定價策略有何衝擊？ - TechNews 科技新報</a></h2>
-    <p class="summary">... 再只是技術工具，而是企業在複雜地緣政治下主導金流向的戰略核心。未來，誰能透過 數據治理 實現更細緻的成本拆解與價格推升，誰就能在洗牌後的電商市場中生存。</p>
+    <p class="summary">加拿大推動的《數位服務稅法案》（DST）與《線上新聞法》正引發全球電商定價策略的連鎖反應。DST 針對大型科技公司在加國境內營收徵收 3% 稅率，加上美國終止小額商品免稅政策，使得亞馬遜等平台上的跨境賣家面臨沉重的成本壓力。為了應對稅負與關稅波動，電商巨頭已開始調整演算法，將原本統一的定價模型拆解為針對不同區域的差異化方案。目前已有品牌因應新制將售價調漲 20% 以上，顯示過往依賴免稅紅利的低價競爭模式已難以為繼，全球電商正進入高成本、高波動的新常態。這一波法規衝擊迫使企業從被動吸收成本轉向主動的「定價治理」。電商平台與賣家不再追求一次到位的統一調價，而是利用 AI 演算法建立滾動式的動態定價機制，精準估算各客群對漲價的敏感度。這種策略轉變的核心動機在於維護利潤率，同時避免因大幅漲價導致市場份額流失。隨著各國數位主權意識抬頭，全球貿易正演變為區域化的「友岸外包」格局，演算法定價將不再只是技術工具，而是企業在複雜地緣政治下主導金流向的戰略核心。未來，誰能透過數據治理實現...</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-c1fbbe231b873fd1.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://technews.tw/ai-agent/canada-user-personal-data-prices/15366/&amp;ct=ga&amp;cd=CAIyIDZkMmZmZDQ1NGY2OTc2Zjg6Y29tLnR3OnpoLVRXOlRX&amp;usg=AOvVaw3RbeBkgqbWcxznZRbpXIFs" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-c1fbbe231b873fd1.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://technews.tw/ai-agent/canada-user-personal-data-prices/15366/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -183,8 +207,8 @@
     <p class="summary">Vercel has open-sourced its internal AI agent framework, eve, giving developers a foundation for building and scaling agents as AI-generated commits surpass half of all activity on its platform. Vercel has open-sourced eve, its internal framework for building, running, evaluating and scaling AI agents, as demand for agentic software development continues to accelerate. Described by […]
 The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-fcb5656d83c9163a.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.opensourceforu.com/2026/06/vercel-open-sources-eve-amid-agentic-ai-boom/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-fcb5656d83c9163a.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.opensourceforu.com/2026/06/vercel-open-sources-eve-amid-agentic-ai-boom/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -202,8 +226,8 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <h2><a href="articles/item-c36dc7ca795301a6.html">Recommended resources: Explore issues at the core of WSIS 2026</a></h2>
     <p class="summary">APC 為 2026 年 7 月 5 至 9 日在日內瓦舉行的 WSIS Forum 2026 整理一份會前閱讀資源。這份清單聚焦 APC 及其網絡在 WSIS 場域會推動的議題，包括社群中心連網、社群網路監管、數位落差融資、農村與原住民族 ICT 培訓、WSIS+20 審查、公民社會與全球南方觀點、多方利害關係人參與，以及 AI 治理中的性別與人權議題。它比較像政策背景資料入口，不是事件深度報導。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-c36dc7ca795301a6.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.apc.org/en/news/recommended-resources-explore-issues-core-wsis-2026" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-c36dc7ca795301a6.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.apc.org/en/news/recommended-resources-explore-issues-core-wsis-2026" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -221,8 +245,8 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <h2><a href="articles/item-6db0119b893bcd4d.html">Baseten Hits $13 Billion Bet on Open Source AI Inference</a></h2>
     <p class="summary">Baseten 正在完成一輪 15 億美元募資，估值最高可達 130 億美元。文章指出，投資人看好的不是 Baseten 自己訓練基礎模型，而是它押注企業採用成熟開源模型後，會更需要低成本、高效率的推論與部署基礎設施。Baseten 透過整合約 20 家雲端供應商的算力，提供模型部署、推論軟體與微調能力，讓企業能在自有資料上使用 AI 模型。文章也提到，部分客戶因轉向開源模型而降低成本，顯示開源模型在某些企業任務上已能替代較昂貴的專有模型。整體來看，這篇報導把 Baseten 的高估值放在開源 AI 採用、AI 推論成本下降與基礎設施價值轉移的脈絡中。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-6db0119b893bcd4d.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.opensourceforu.com/2026/06/baseten-hits-13-billion-bet-on-open-source-ai-inference/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-6db0119b893bcd4d.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.opensourceforu.com/2026/06/baseten-hits-13-billion-bet-on-open-source-ai-inference/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -240,8 +264,8 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <h2><a href="articles/item-8cf762c31e26f1a7.html">Attackers Exploit JetBrains Plugins To Steal AI Provider Keys</a></h2>
     <p class="summary">Aikido Security 研究人員發現 JetBrains Marketplace 上至少有 15 個惡意 AI coding 外掛，偽裝成 DeepSeek 或其他大型語言模型相關的程式助理，表面上提供聊天、code review、bug 偵測、commit message 與單元測試生成等功能，但會暗中把使用者輸入的 AI provider API key 傳到攻擊者控制的伺服器。報導指出這波活動至少自 2025 年 10 月底開始，直到 2026 年 6 月仍有新外掛發布，其中部分外掛下載數超過 25,000 次，但研究者也提醒下載數可能被灌水。這則新聞凸顯 AI 開發工具正在成為攻擊者切入開發者環境與軟體供應鏈的新入口。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-8cf762c31e26f1a7.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.opensourceforu.com/2026/06/attackers-exploit-jetbrains-plugins-to-steal-ai-provider-keys/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-8cf762c31e26f1a7.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.opensourceforu.com/2026/06/attackers-exploit-jetbrains-plugins-to-steal-ai-provider-keys/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -259,8 +283,8 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <h2><a href="articles/item-40509ec18f292e29.html">全球首創：愛沙尼亞預計啟動AI 代理人專屬數位身分，能終結「借用人類帳號」 治理 難題？</a></h2>
     <p class="summary">標題指向愛沙尼亞可能為 AI 代理人建立專屬數位身分，用來處理 AI 借用人類帳號的治理問題；但提供的摘要內容轉向智慧醫療與護理人力缺口，沒有支撐標題所稱的制度設計。因此這筆需要先開全文人工判斷，不宜只依摘要採用。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-40509ec18f292e29.html">閱讀單篇</a>
-      <a class="button quiet" href="https://techorange.com/2026/06/18/estonia-ai-agents-personal-id-numbers/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-40509ec18f292e29.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://techorange.com/2026/06/18/estonia-ai-agents-personal-id-numbers/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -278,8 +302,8 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <h2><a href="articles/item-f5eeb7d194af515a.html">【DEAT 專欄】城市 治理 的新拼圖：數位平台正在成為 治理 夥伴</a></h2>
     <p class="summary">摘要指出研究團隊觀察到台灣中央與地方之間仍缺乏部分分層數據，地方資料也存在零碎化問題；同時，社會信任等較軟性的治理指標仍待建立量化方法。這些問題不只影響研究，也反映城市治理在導入數位平台時仍有資料基礎與信任衡量的挑戰。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-f5eeb7d194af515a.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://techorange.com/2026/06/18/deat-urban-governance/&amp;ct=ga&amp;cd=CAIyIDZkMmZmZDQ1NGY2OTc2Zjg6Y29tLnR3OnpoLVRXOlRX&amp;usg=AOvVaw1J5YcdhAXLugXAJeB3afLJ" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-f5eeb7d194af515a.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://techorange.com/2026/06/18/deat-urban-governance/&amp;ct=ga&amp;cd=CAIyIDZkMmZmZDQ1NGY2OTc2Zjg6Y29tLnR3OnpoLVRXOlRX&amp;usg=AOvVaw1J5YcdhAXLugXAJeB3afLJ" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -297,8 +321,8 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <h2><a href="articles/item-20d84fe2a6e07343.html">Why Decentralised Identity is the Security Bedrock for Agentic AI</a></h2>
     <p class="summary">文章討論企業開始讓 AI agent 代表高階主管處理合約、資金等行動時，如何驗證這些 agent 的身分與授權。摘要中的主張是以開源的去中心化識別符作為 AI agent 的身分憑證，讓自主行動能被加密簽署並確認授權。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-20d84fe2a6e07343.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.opensourceforu.com/2026/06/why-decentralised-identity-is-the-security-bedrock-for-agentic-ai/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-20d84fe2a6e07343.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.opensourceforu.com/2026/06/why-decentralised-identity-is-the-security-bedrock-for-agentic-ai/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -316,8 +340,8 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <h2><a href="articles/item-da9da0021fe160db.html">This Bluetooth tracker uses LoRa mesh networks to find things - and I couldn&#x27;t believe the accuracy</a></h2>
     <p class="summary">Seeed Studio&#x27;s SenseCAP T1000-E tracker card also doesn&#x27;t use cell towers or Wi-Fi. Here&#x27;s how it works in the real world.</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-da9da0021fe160db.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.zdnet.com/article/sensecap-t1000-e-tracker-card-airtag-alternative-review/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-da9da0021fe160db.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.zdnet.com/article/sensecap-t1000-e-tracker-card-airtag-alternative-review/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -335,8 +359,8 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <h2><a href="articles/item-d2ca09aa911dc794.html">Roundtable Recap: How to digitise a physical archive to work strategically with AI?</a></h2>
     <p class="summary">Open Knowledge Foundation 的圓桌回顧聚焦實體檔案數位化與 AI 應用，提到世界各地的倡議如何用開放與非開放技術讓舊檔案重新被使用。從摘要可看出，它可能提供開放文化機構面對 AI 時的實務案例與治理思考。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-d2ca09aa911dc794.html">閱讀單篇</a>
-      <a class="button quiet" href="https://blog.okfn.org/2026/06/18/roundtable-recap-how-to-digitise-a-physical-archive-to-work-strategically-with-ai/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-d2ca09aa911dc794.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://blog.okfn.org/2026/06/18/roundtable-recap-how-to-digitise-a-physical-archive-to-work-strategically-with-ai/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -354,8 +378,8 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <h2><a href="articles/item-a88fa42dad9dc0b4.html">New Commons Incubator Launches to Support Indigenous-Led Language and Cultural Data Commons in the Age of AI</a></h2>
     <p class="summary">這則新聞稿介紹一個新的 Commons Incubator，目標是支援原住民主導的語言與文化資料 commons。摘要指出，AI 越來越依賴語言與文化資料，原住民社群既可能參與塑造更包容的數位未來，也面臨資料被蒐集、治理、使用與分享時缺乏影響力的風險。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-a88fa42dad9dc0b4.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thelivinglib.org/new-commons-incubator-launches-to-support-indigenous-led-language-and-cultural-data-commons-in-the-age-of-ai/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-a88fa42dad9dc0b4.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thelivinglib.org/new-commons-incubator-launches-to-support-indigenous-led-language-and-cultural-data-commons-in-the-age-of-ai/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -373,8 +397,8 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <h2><a href="articles/item-d71b8325b75ce033.html">I programmed a $7 ESP32-S3 board to block all computer&#x27;s web ads - and it took just minutes</a></h2>
     <p class="summary">文章介紹作者用便宜的 ESP32-S3 開發板做出廣告阻擋方案，透過 DNS sinkhole 在內容下載前攔掉廣告。作者也把它放在 Raspberry Pi 等替代方案脈絡下，強調許多任務其實不需要用到較完整、較昂貴的單板電腦。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-d71b8325b75ce033.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.zdnet.com/article/how-i-block-ads-with-cheap-raspberry-pi-alternative/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-d71b8325b75ce033.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.zdnet.com/article/how-i-block-ads-with-cheap-raspberry-pi-alternative/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -393,8 +417,8 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
     <p class="summary">On Friday, June 12, the United States government ordered Anthropic to suspend Claude Fable 5 and Mythos 5 for all
 The post Fable 5 ban: 4 open models responded before Anthropic could restore access appeared first on The New Stack .</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-1a1c2ef30d132c50.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thenewstack.io/fable-ban-open-weights/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-1a1c2ef30d132c50.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thenewstack.io/fable-ban-open-weights/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -412,8 +436,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-2775f9f0fb484bf4.html">Companies are profiling you from your smartphone use - how to stop them</a></h2>
     <p class="summary">這篇說明企業與行銷廣告機構如何透過智慧型手機與網路活動建立使用者輪廓。文章指出，瀏覽網站、搜尋、接受 cookie、購物、社群互動、造訪地點與使用 App 都可能留下訊號；這些訊號可和 IP、email、社群帳號或裝置識別碼連結，形成包含位置、購買紀錄、收入區間、興趣、工作與健康紀錄等資訊的影子檔案。文章的價值在於把資料剖析拆成日常手機使用情境，讓讀者理解看似零散的行為如何被聚合成可用於定向廣告與行為影響的資料資產。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-2775f9f0fb484bf4.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.zdnet.com/article/companies-profiling-you-smartphone-how-stop-them/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-2775f9f0fb484bf4.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.zdnet.com/article/companies-profiling-you-smartphone-how-stop-them/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -431,8 +455,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-73307537d64c05c7.html">10 signs that someone is monitoring or accessing your accounts - how to stop them</a></h2>
     <p class="summary">Learn how to spot the signs of account monitoring and compromise - and take back control.</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-73307537d64c05c7.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.zdnet.com/article/10-signs-online-accounts-monitored-compromised-guide/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-73307537d64c05c7.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.zdnet.com/article/10-signs-online-accounts-monitored-compromised-guide/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -450,8 +474,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-ea5729b5bb85c51f.html">當健康被量化：親子運動正在走向一場 數據治理 實驗 - PChome news</a></h2>
     <p class="summary">這則同樣以親子運動與健康量化為主題，但摘錄比另一則更明確指出數據化的雙面性：科技讓健康狀態更可見，也可能讓焦慮更精準、讓管理更方便，甚至削弱人對身體直覺的感受。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-ea5729b5bb85c51f.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://news.pchome.com.tw/society/pronews/20260618/index-78171335180032353002.html&amp;ct=ga&amp;cd=CAIyIDZkMmZmZDQ1NGY2OTc2Zjg6Y29tLnR3OnpoLVRXOlRX&amp;usg=AOvVaw1e0xvFB553Zwafu4BieQxJ" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-ea5729b5bb85c51f.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://news.pchome.com.tw/society/pronews/20260618/index-78171335180032353002.html&amp;ct=ga&amp;cd=CAIyIDZkMmZmZDQ1NGY2OTc2Zjg6Y29tLnR3OnpoLVRXOlRX&amp;usg=AOvVaw1e0xvFB553Zwafu4BieQxJ" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -469,8 +493,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-3cdbd3cd1b925156.html">“Agents need boring infrastructure around them”: Why we need to take an interest in ‘invisible’ AI</a></h2>
     <p class="summary">摘要描述企業裡的 AI 已經相當普遍，但早期採用狀態混亂且缺乏系統化管理。文章看起來會把焦點從顯眼的 AI 應用轉向背後的基礎設施，討論 agents 在企業環境中需要哪些穩定、低調但關鍵的支撐。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-3cdbd3cd1b925156.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thenewstack.io/tailscale-aperture-ai-agent-infrastructure/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-3cdbd3cd1b925156.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thenewstack.io/tailscale-aperture-ai-agent-infrastructure/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -488,8 +512,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-7c9b8ff73de68096.html">Your AI isn’t broken. Your data is.</a></h2>
     <p class="summary">Clario 以企業資料 ROT，也就是 redundant、obsolete、trivial data，解釋許多企業 AI 專案成效不佳的原因。它主張企業檔案庫裡大量重複、過時或無用資料不只增加儲存成本，也會污染內部 agent 與 RAG 系統的資料基礎。這家公司連接 Google Drive、SharePoint、OneDrive、Box、Confluence 等系統，先用 metadata、checksum、命名模式、存取時間與格式支援狀態判斷可疑檔案，再透過 Slack 或 Teams 要內容擁有者決定保留、封存或刪除。文章的亮點在於呈現 AI 基礎建設從模型轉向資料品質治理的產業敘事，但許多數字與案例來自公司說法，需保留查核空間。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-7c9b8ff73de68096.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thenewstack.io/clario-data-enterprise-ai-rot/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-7c9b8ff73de68096.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thenewstack.io/clario-data-enterprise-ai-rot/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -507,8 +531,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-19f58898f7c60774.html">Why Blockchain Development Rides on Open Source</a></h2>
     <p class="summary">區塊鏈之所以能快速發展並跨出加密貨幣領域，關鍵在於開源軟體所提供的協作、透明度與可重用性。開源讓全球開發者共同檢視程式碼、加速功能迭代、降低開發成本，並使不同規模的組織都能使用及調整既有平台；Ethereum 與 Hyperledger 是文中列舉的代表案例。文章也以入門方式介紹區塊鏈的基本構造，包括雜湊鏈結、節點驗證、共識機制，以及公有鏈、私有鏈、聯盟鏈和混合鏈等類型。應用場景則從金融延伸至供應鏈與醫療資料共享。作者認為區塊鏈可提升紀錄的可追溯性、透明度與跨組織信任，但同時面臨擴充性、建置成本、技術複雜度與法規不確定性等障礙。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-19f58898f7c60774.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.opensourceforu.com/2026/06/why-blockchain-development-rides-on-open-source/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-19f58898f7c60774.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.opensourceforu.com/2026/06/why-blockchain-development-rides-on-open-source/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -526,8 +550,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-e00a2f1ac7371135.html">What’s the Question? Deciding What You Really Want to Know</a></h2>
     <p class="summary">這是 David Hand 書籍的介紹，主旨是統計與資料科學在使用工具前，必須先清楚界定想知道什麼或想達成什麼。摘要強調，模糊的目標會導致錯誤結論與錯誤行動，書中探討如何提出清楚問題。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-e00a2f1ac7371135.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thelivinglib.org/whats-the-question-deciding-what-you-really-want-to-know/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-e00a2f1ac7371135.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thelivinglib.org/whats-the-question-deciding-what-you-really-want-to-know/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -545,8 +569,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-c650cdaed9a2c7dc.html">What we learned making a standards complaint</a></h2>
     <p class="summary">摘要說明，英國國會議員與貴族可以透過書面質詢向政府部門索取資訊與文件；在這個過程中，如果問題和自身財務利益有關，理應揭露相關利益。這種揭露提供了不完整但重要的透明度，讓外界能看見公共利益名義下取得的政府資訊，是否也和個人或外部利益交會。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-c650cdaed9a2c7dc.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.mysociety.org/2026/06/17/what-we-learned-making-a-standards-complaint/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-c650cdaed9a2c7dc.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.mysociety.org/2026/06/17/what-we-learned-making-a-standards-complaint/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -564,8 +588,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-5575dbc6a851acc1.html">Vietnam Businesses Turn To Open Source After Piracy Crackdown</a></h2>
     <p class="summary">越南首起涉及未授權使用受著作權保護電腦軟體的全國性刑事案件，正在促使技術人員與企業放棄未授權的 Windows、Office 安裝，轉向開源軟體作為合法替代方案。這則消息的重點在於法遵壓力如何加速開源軟體採用。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-5575dbc6a851acc1.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.opensourceforu.com/2026/06/vietnam-businesses-turn-to-open-source-after-piracy-crackdown/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-5575dbc6a851acc1.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.opensourceforu.com/2026/06/vietnam-businesses-turn-to-open-source-after-piracy-crackdown/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -583,8 +607,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-c0d9a905a9565944.html">Vercel launches eve, an open-source framework that treats agents as directories</a></h2>
     <p class="summary">摘要只指出 Vercel 發布名為 eve 的開源 AI agent 框架，核心概念是把每個 agent 視為一個目錄來建置與管理。現有資訊不足以判斷它的架構、使用情境、社群策略或與既有工具的差異。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-c0d9a905a9565944.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thenewstack.io/vercel-launches-eve-an-open-source-framework-that-treats-agents-as-directories/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-c0d9a905a9565944.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thenewstack.io/vercel-launches-eve-an-open-source-framework-that-treats-agents-as-directories/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -602,8 +626,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-4b287a358fe83cc8.html">Vaquita: Researchers digitally preserve the world’s most endangered marine mammal</a></h2>
     <p class="summary">佛羅里達大西洋大學研究者建立了小頭鼠海豚的高細節數位檔案。小頭鼠海豚被描述為世界上最小且最瀕危的海洋哺乳動物；目前摘要只看得出數位保存成果，還不能判斷其開放性。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-4b287a358fe83cc8.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.openaccessgovernment.org/vaquita-researchers-digitally-preserve-the-worlds-most-endangered-marine-mammal/210618/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-4b287a358fe83cc8.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.openaccessgovernment.org/vaquita-researchers-digitally-preserve-the-worlds-most-endangered-marine-mammal/210618/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -621,8 +645,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-6e5f8eec755499f6.html">UK launches National Quantum Standards Network to strengthen future tech leadership</a></h2>
     <p class="summary">英國政府建立新的國家量子標準網絡，目標是影響量子科技的開發、測試與可信任化流程。摘要顯示這不只是單一研究消息，而是把前沿技術推向標準化與產業信任機制的政策動作。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-6e5f8eec755499f6.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.openaccessgovernment.org/uk-launches-national-quantum-standards-network-to-strengthen-future-tech-leadership/210642/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-6e5f8eec755499f6.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.openaccessgovernment.org/uk-launches-national-quantum-standards-network-to-strengthen-future-tech-leadership/210642/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -640,8 +664,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-f7946983023b7f7c.html">The future of enterprise architecture and AI in the NHS</a></h2>
     <p class="summary">Atos 的 Dan Conner 與 Ian de la Mare 探討 NHS 如何透過基礎設施、數位計畫與智慧系統改善病患結果。就摘要而言，主題落在公共醫療數位轉型與 AI 應用，但目前還無法看出具體案例或治理重點。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-f7946983023b7f7c.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.openaccessgovernment.org/the-future-of-enterprise-architecture-and-ai-in-the-nhs/210578/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-f7946983023b7f7c.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.openaccessgovernment.org/the-future-of-enterprise-architecture-and-ai-in-the-nhs/210578/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -659,8 +683,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-efcbf5b1dec52454.html">The case for a right to truth</a></h2>
     <p class="summary">文章主張，在充滿謊言、扭曲與錯假資訊的環境中，應該重新思考人民是否擁有被告知真相，或至少不被欺騙的權利。摘要特別把問題指向政府發布統計、報告或警示時，是否應有權利保障其依據可靠。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-efcbf5b1dec52454.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thelivinglib.org/the-case-for-a-right-to-truth/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-efcbf5b1dec52454.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thelivinglib.org/the-case-for-a-right-to-truth/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -678,8 +702,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-bdefa169eb733b46.html">The OSI 2025 Annual Report Is Now Available</a></h2>
     <p class="summary">Open Source Initiative 發布 2025 年度報告，內容記錄開源在 AI、網路安全、永續與公共政策等重大辯論中的角色。這則項目本身是報告發布消息，但背後的報告可能有助於整理開源治理與政策討論的年度脈絡。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-bdefa169eb733b46.html">閱讀單篇</a>
-      <a class="button quiet" href="https://opensource.org/blog/the-osi-2025-annual-report-is-now-available" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-bdefa169eb733b46.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://opensource.org/blog/the-osi-2025-annual-report-is-now-available" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -697,8 +721,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-544a7f5234f13fa0.html">The Despair of the Professor in the Age of A.I.</a></h2>
     <p class="summary">文章從教授在 AI 進入課堂後的處境談起，認為學院中由熱愛知識的人啟發學生的傳遞關係，正受到 AI 使用的阻隔。摘要只呈現文章的情緒與核心問題，尚未看出具體案例、研究資料或可行解方。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-544a7f5234f13fa0.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thelivinglib.org/the-despair-of-the-professor-in-the-age-of-a-i/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-544a7f5234f13fa0.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thelivinglib.org/the-despair-of-the-professor-in-the-age-of-a-i/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -716,8 +740,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-de2f559b17d46707.html">Techsprint : lancement du démonstrateur du Data Space Bâtiment</a></h2>
     <p class="summary">這筆法文來源提到歐洲 Data Governance Act，並指向建築產業資料空間示範案的啟動。摘要殘缺，只能保守判斷它可能與產業資料共享或資料治理試驗有關。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-de2f559b17d46707.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://www.caissedesdepots.fr/eclairage/actualites/techsprint-lancement-du-demonstrateur-du-data-space-batiment&amp;ct=ga&amp;cd=CAIyIjVmZGEwZWY0ODAwN2Y2MmU6Y29tLnR3OnpoLVRXOlRXOkw&amp;usg=AOvVaw3XMvJQP-s3K-7xQ0RfmaYH" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-de2f559b17d46707.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://www.caissedesdepots.fr/eclairage/actualites/techsprint-lancement-du-demonstrateur-du-data-space-batiment&amp;ct=ga&amp;cd=CAIyIjVmZGEwZWY0ODAwN2Y2MmU6Y29tLnR3OnpoLVRXOlRXOkw&amp;usg=AOvVaw3XMvJQP-s3K-7xQ0RfmaYH" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -735,8 +759,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-3a1a0678d05723f0.html">SUSE 攜手NVIDIA 推出SUSE AI Factory - 網管人</a></h2>
     <p class="summary">這則摘要指出，企業導入 AI 的速度加快，帶動受監管工作負載對資料掌控與治理能力的基礎架構需求。SUSE 與 NVIDIA 的合作被放在這個脈絡下，但摘要尚未說明 SUSE AI Factory 的技術內容、授權模式或治理功能細節。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-3a1a0678d05723f0.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://www.netadmin.com.tw/netadmin/zh-tw/snapshot/302FB068E74C4B8197D1D4F054B7C9C0&amp;ct=ga&amp;cd=CAIyIDZkMmZmZDQ1NGY2OTc2Zjg6Y29tLnR3OnpoLVRXOlRX&amp;usg=AOvVaw3oBAFZfXJpSWiyBi8tyw9G" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-3a1a0678d05723f0.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://www.netadmin.com.tw/netadmin/zh-tw/snapshot/302FB068E74C4B8197D1D4F054B7C9C0&amp;ct=ga&amp;cd=CAIyIDZkMmZmZDQ1NGY2OTc2Zjg6Y29tLnR3OnpoLVRXOlRX&amp;usg=AOvVaw3oBAFZfXJpSWiyBi8tyw9G" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -754,8 +778,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-8042230b04e5dc0e.html">Latvia pilots citizen engagement in research grant evaluations</a></h2>
     <p class="summary">拉脫維亞在國家資助研究補助的評估中加入公民參與元素，希望拉近科學與社會的距離，也改善評估品質。摘要指出，這個做法放在歐洲研究資助機構嘗試改良評選流程的脈絡下，但沒有交代公民如何參與、權重多高或目前試辦結果。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-8042230b04e5dc0e.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thelivinglib.org/latvia-pilots-citizen-engagement-in-research-grant-evaluations/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-8042230b04e5dc0e.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thelivinglib.org/latvia-pilots-citizen-engagement-in-research-grant-evaluations/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -773,8 +797,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-3fb594430e66b25b.html">Joint statement: AI-accelerated warfare must stop</a></h2>
     <p class="summary">摘要指出，嵌入軍事殺傷鏈的 AI 系統正在加快軍事攻擊的速度與規模，並為衝突中的究責帶來重大新風險。由於目前只看到開頭片段，能保守判斷這是一份反對 AI 加速戰爭的公民社會聲明，但不能確認它提出哪些政策要求或證據。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-3fb594430e66b25b.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.apc.org/en/pubs/joint-statement-ai-accelerated-warfare-must-stop" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-3fb594430e66b25b.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.apc.org/en/pubs/joint-statement-ai-accelerated-warfare-must-stop" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -792,8 +816,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-8d85b5e41061165c.html">Indian Startups Reassess Foreign AI Dependence After Fable 5</a></h2>
     <p class="summary">摘要指出，Anthropic 因美國政府指令撤回 Fable 5 對外國籍使用者的提供，讓依賴海外大型語言模型的印度 AI 新創感到不安。文章的核心訊息是：關鍵 AI 基礎設施若掌握在海外平台與政策手中，企業服務可能被外部決策打斷，因此印度產業內部開始更強烈呼籲開源 AI 模型與本地 AI 基礎設施。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-8d85b5e41061165c.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.opensourceforu.com/2026/06/indian-startups-reassess-foreign-ai-dependence-after-fable-5/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-8d85b5e41061165c.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.opensourceforu.com/2026/06/indian-startups-reassess-foreign-ai-dependence-after-fable-5/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -811,8 +835,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-1b355597234c0134.html">IIT Roorkee Launches Open Source LLM Programme For Digital Commerce</a></h2>
     <p class="summary">IIT Roorkee 與 TeamLease EdTech 合作推出六個月的高階主管課程，主打讓專業工作者學習開源 AI、LLM 與數位商務技術，目標產業是快速成長的電商與 quick-commerce。從摘要來看，這是一則偏教育訓練與產業人才培育的消息，而不是開源專案或政策本身。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-1b355597234c0134.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.opensourceforu.com/2026/06/iit-roorkee-launches-open-source-llm-programme-for-digital-commerce/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-1b355597234c0134.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.opensourceforu.com/2026/06/iit-roorkee-launches-open-source-llm-programme-for-digital-commerce/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -830,8 +854,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-e2a159953924ec88.html">Governing The Future</a></h2>
     <p class="summary">這是一份由愛丁堡大學相關單位提出的報告介紹，主題是如何讓 AI 的開發與使用建立信任並帶來實際利益。摘要指出，報告彙整給蘇格蘭與英國政府的 AI 治理建議，但沒有列出具體政策內容。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-e2a159953924ec88.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thelivinglib.org/governing-the-future/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-e2a159953924ec88.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thelivinglib.org/governing-the-future/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -849,8 +873,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-50a53dc8e02ff7ec.html">Google, Microsoft, and OpenAI join forces to help create AI’s missing trust layer</a></h2>
     <p class="summary">摘要只透露 Linux Foundation 已不只扮演 Linux kernel 的管理角色，而標題顯示 Google、Microsoft 與 OpenAI 參與建立 AI 缺少的信任層。現有資訊不足以說明這個信任層的形式、技術內容或治理安排。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-50a53dc8e02ff7ec.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thenewstack.io/google-microsoft-and-openai-join-forces-to-help-create-ais-missing-trust-layer/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-50a53dc8e02ff7ec.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thenewstack.io/google-microsoft-and-openai-join-forces-to-help-create-ais-missing-trust-layer/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -868,8 +892,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-eea5db8d6bafa93d.html">Federal Data: Congressional Action Needed to Improve Interoperability of Award and Payment Eligibility Data</a></h2>
     <p class="summary">美國政府問責署報告指出，聯邦機關可使用超過 100 個資料來源，或組合多個資料來源，確認受款者是否符合聯邦計畫資格。這些檢核可發生在補助生命週期中的預先篩選、事後監測與付款驗證等階段；截至 2025 年 9 月，摘要提到其中包含多項資料來源，但細節未完整呈現。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-eea5db8d6bafa93d.html">閱讀單篇</a>
-      <a class="button quiet" href="https://thelivinglib.org/federal-data-congressional-action-needed-to-improve-interoperability-of-award-and-payment-eligibility-data/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-eea5db8d6bafa93d.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thelivinglib.org/federal-data-congressional-action-needed-to-improve-interoperability-of-award-and-payment-eligibility-data/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -887,8 +911,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-a4a4c27caa471ac4.html">Every way your phone tracks your location - and how to stop it</a></h2>
     <p class="summary">這筆內容提醒智慧手機可能在使用者不清楚的情況下持續揭露位置，並承諾說明定位追蹤如何發生，以及如何讓位置資訊不被暴露。從摘要看，它偏向實用隱私指南，可能比一般消費科技新聞更值得檢查。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-a4a4c27caa471ac4.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.zdnet.com/article/a-guide-to-location-tracking-on-your-phone-how-it-works-and-how-to-stop-it/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-a4a4c27caa471ac4.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.zdnet.com/article/a-guide-to-location-tracking-on-your-phone-how-it-works-and-how-to-stop-it/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -906,8 +930,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-b7370d1fced3c4d3.html">EU space operations agree on unified civilian and military Space Traffic Management requirements</a></h2>
     <p class="summary">歐盟的民用與軍用太空營運者已完成一套共享的太空交通管理需求。從摘要看，重點在於把不同用途的太空操作需求整合到同一套管理框架，但細節仍需看全文確認。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-b7370d1fced3c4d3.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.openaccessgovernment.org/eu-space-operations-agree-on-unified-civilian-and-military-space-traffic-management-requirements/210677/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-b7370d1fced3c4d3.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.openaccessgovernment.org/eu-space-operations-agree-on-unified-civilian-and-military-space-traffic-management-requirements/210677/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -925,8 +949,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-4b9658a344b7aafa.html">Alex Stamos on Why the US Should Lift Its Fable and Mythos Export Ban</a></h2>
     <p class="summary">摘要描述 Anthropic 在 6 月 12 日收到美國商務部通知，被要求暫停 Fable 5 與 Mythos 5 對所有外國國民的存取，無論對方人在美國境內或境外，甚至包含 Anthropic 自己的外國籍員工。公司因此停用兩個模型對客戶的存取。這項作法引發專家困惑，也讓其他國家擔心美國 AI 服務可能以個案方式被突然撤回。背景之下，Alex Stamos 召集一批資安領袖發出公開信，要求政府改變方向。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-4b9658a344b7aafa.html">閱讀單篇</a>
-      <a class="button quiet" href="https://techpolicy.press/alex-stamos-on-why-the-us-should-lift-its-fable-and-mythos-export-ban" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-4b9658a344b7aafa.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://techpolicy.press/alex-stamos-on-why-the-us-should-lift-its-fable-and-mythos-export-ban" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -944,8 +968,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-7a60a586156495f7.html">[Webinar] Traceable AI for Public Data: An Open Model for Latin America</a></h2>
     <p class="summary">OKFN 與 UN Big Data Regional Hub 將舉辦線上講座，介紹他們把 AI 整合進公共開放資料入口的實驗。從摘要看，重點在於如何讓公共資料系統中的 AI 使用更可追溯，並以拉丁美洲為案例場域。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-7a60a586156495f7.html">閱讀單篇</a>
-      <a class="button quiet" href="https://blog.okfn.org/2026/06/16/webinar-traceable-ai-for-public-data-an-open-model-for-latin-america/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-7a60a586156495f7.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://blog.okfn.org/2026/06/16/webinar-traceable-ai-for-public-data-an-open-model-for-latin-america/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -963,8 +987,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-f53e3830fbb704ba.html">Yale Researchers Propose Open Source Rules For Generative AI</a></h2>
     <p class="summary">耶魯大學 Digital Ethics Center 的研究者提出新的 copyleft 授權框架，希望要求使用開源程式碼開發 AI 的開發者揭露模型架構與訓練資料，讓建立在開源程式碼上的生成式 AI 模型維持開放與透明。摘要顯示，文章重點是把傳統開源授權精神延伸到 AI 模型與訓練流程。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-f53e3830fbb704ba.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.opensourceforu.com/2026/06/yale-researchers-propose-open-source-rules-for-generative-ai/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-f53e3830fbb704ba.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.opensourceforu.com/2026/06/yale-researchers-propose-open-source-rules-for-generative-ai/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -982,8 +1006,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-52b54638592b0224.html">What’s in the SOSS? Podcast #63 – S3E15 Big Thoughts, Open Sources: Driving Enterprise Security and Career Growth Through Open Source with Jamie Thomas (IBM)</a></h2>
     <p class="summary">這集 podcast 由主持人訪問 IBM 的 Jamie Thomas，談企業開源工程、開源採用演進、從開源核心走向商業價值，以及職涯成長等議題。摘要顯示它偏訪談型內容，可能有開源安全與企業採用的經驗談，但目前可讀到的資訊不足以確認亮點。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-52b54638592b0224.html">閱讀單篇</a>
-      <a class="button quiet" href="https://openssf.org/podcast/2026/06/16/whats-in-the-soss-podcast-63-s3e15-big-thoughts-open-sources-driving-enterprise-security-and-career-growth-through-open-source-with-jamie-thomas-ibm/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-52b54638592b0224.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://openssf.org/podcast/2026/06/16/whats-in-the-soss-podcast-63-s3e15-big-thoughts-open-sources-driving-enterprise-security-and-career-growth-through-open-source-with-jamie-thomas-ibm/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1001,8 +1025,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-78f2d34dd48a0cb7.html">NLnet Foundation temporarily pauses open technologies funding submissions to take stock and prepare for transition</a></h2>
     <p class="summary">摘要表示，NLnet Foundation 在將近 10 年連續推動一波接一波的徵件後，暫時停止開放技術資助申請。其理由是需要盤點 NGI Zero 並準備面對新的挑戰。就目前片段來看，這可能是開放技術資助生態的重要變化，但仍無法確認暫停的具體範圍、時間與轉型方向。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-78f2d34dd48a0cb7.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.apc.org/en/news/nlnet-foundation-temporarily-pauses-open-technologies-funding-submissions-take-stock-and" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-78f2d34dd48a0cb7.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.apc.org/en/news/nlnet-foundation-temporarily-pauses-open-technologies-funding-submissions-take-stock-and" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1020,8 +1044,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-cd8cd427af79ab79.html">Improving FOI and Parliamentary Questions</a></h2>
     <p class="summary">作者表示自己曾在英國國會程序委員會關於書面質詢的調查中作證，主題聚焦書面質詢與資訊自由請求之間的重疊。摘要提到讀者可以看影片、書面證據與口頭證詞逐字稿，而這篇部落格將進一步整理相關觀點。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-cd8cd427af79ab79.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.mysociety.org/2026/06/16/improving-foi-and-parliamentary-questions/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-cd8cd427af79ab79.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.mysociety.org/2026/06/16/improving-foi-and-parliamentary-questions/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1039,8 +1063,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-62003f4190765e00.html">How Kenyan communities are shaping connectivity for environmental resilience</a></h2>
     <p class="summary">摘要顯示，肯亞部分社群正在把連線能力用於環境韌性工作；其中 Digital Rurals 在易受洪水影響的地區開發 AI 預測與警報平台，Kijiji Yeetu 則服務受影響程度較高的社群。不過 RSS 摘要在關鍵做法、成效與治理模式上都被截斷，需要全文才能判斷深度。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-62003f4190765e00.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.apc.org/en/blog/how-kenyan-communities-are-shaping-connectivity-environmental-resilience" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-62003f4190765e00.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.apc.org/en/blog/how-kenyan-communities-are-shaping-connectivity-environmental-resilience" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1058,8 +1082,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-bc6892d9341d30d9.html">TPG 週刊 Issue 222 - 當 AI 成了廣告房東，你的點擊又去哪了？</a></h2>
     <p class="summary">這期週刊討論 AI 平台與內容方之間的收入分配問題。摘要指出，OpenAI 在 WAN-IFRA 大會上表示目前不分享廣告營收，既有授權合約也不包含廣告分潤；相較之下，其他 AI 搜尋或內容服務至少曾把分潤模式放上檯面。文章也提到多數 Google 搜尋沒有產生點擊，AI Overviews 進一步讓使用者在平台頁面內取得答案，使內容方失去可放廣告的頁面與流量。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-bc6892d9341d30d9.html">閱讀單篇</a>
-      <a class="button quiet" href="https://publishergroup.tw/tpg-weekly-issue-222/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-bc6892d9341d30d9.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://publishergroup.tw/tpg-weekly-issue-222/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1077,8 +1101,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-5a15c556acb6620f.html">Unpacking the Great American Artificial Intelligence Act of 2026</a></h2>
     <p class="summary">這則摘要介紹美國眾議員 Jay Obernolte 與 Lori Trahan 在 6 月 4 日提出 269 頁的《Great American Artificial Intelligence Act of 2026》跨黨派討論草案，並在 Bloomberg Law 發文徵求社會各界回饋。草案被描述為一場全國性討論的起點，而不是最終版本。Podcast 訪問了 Trahan，討論草案內容以及公民社會團體提出的初步批評。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-5a15c556acb6620f.html">閱讀單篇</a>
-      <a class="button quiet" href="https://techpolicy.press/unpacking-the-great-american-artificial-intelligence-act-of-2026" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-5a15c556acb6620f.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://techpolicy.press/unpacking-the-great-american-artificial-intelligence-act-of-2026" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1096,8 +1120,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-eee66b505e99ed5a.html">[達人專欄] 久違的 COSCUP 半日遊 - mystica的創作 - 巴哈姆特</a></h2>
     <p class="summary">作者回顧自己多年未參加 COSCUP 後，在 2023 年只待半天的現場遊記。文中記錄台科大場地配置、TR 研揚大樓報到與議程樓層、40 多個社群分布、英日語貼紙、攤位周邊，以及桌遊、黑客松、按摩、形象照、瑜珈與冥想等活動。整體不是正式報導，而是參與者對 COSCUP 現場規模、社群多樣性與活動氣氛的觀察。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-eee66b505e99ed5a.html">閱讀單篇</a>
-      <a class="button quiet" href="https://home.gamer.com.tw/artwork.php?sn=5764653" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-eee66b505e99ed5a.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://home.gamer.com.tw/artwork.php?sn=5764653" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1115,8 +1139,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-928d1ad0e95fadae.html">Open source must boldly go where no software has gone before</a></h2>
     <p class="summary">目前可保守判斷，這篇文章談開源運動的新任務，並提到 Bruce Perens 共同撰寫 Open Source Definition，以及開源授權如何界定原則與目的。摘錄還暗示開源授權本身不再能完全設定遊戲規則，但缺少上下文，無法判斷文章真正主張。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-928d1ad0e95fadae.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.theregister.com/2024/01/08/open_sources_new_mission/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-928d1ad0e95fadae.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.theregister.com/2024/01/08/open_sources_new_mission/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1134,8 +1158,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-234bcbbcdb2858ad.html">立委質疑中國計畫性侵權 蕭宗煌：只要打「台北故宮」都是假的 - Rti央廣</a></h2>
     <p class="summary">立委質疑中國廈門業者以「中國台北故宮文化館」名義展出並販售文創商品，使用故宮 Open Data 圖檔，且宣傳「台北故宮 IP」與近似標誌，可能侵害故宮權益並製造合作印象。故宮院長蕭宗煌回應，對方邀請退休人員參與是在營造故宮同意的假象，並提醒只要不是「國立故宮博物院」而是打「台北故宮」名號，都不是故宮授權。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-234bcbbcdb2858ad.html">閱讀單篇</a>
-      <a class="button quiet" href="https://www.rti.org.tw/news/view/id/2184635" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-234bcbbcdb2858ad.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://www.rti.org.tw/news/view/id/2184635" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1153,8 +1177,8 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
     <h2><a href="articles/item-6bcf7a23a8cf2d2b.html">專論》充滿數位傲慢、毫不尊重智慧財產權 數發部淪為「天龍部」？ | 科技</a></h2>
     <p class="summary">目前可見內容是一篇批評數發部的專論，開頭提到行政院對數發部寄予高度資源與彈性，接著批評某項 NGO 輔導計畫要求申請者先提出組織痛點報告，經評選、面試後才能進入輔導流程。從摘要看，文章可能在質疑數發部政策設計與執行態度，但關鍵論據尚未出現。</p>
     <div class="actions">
-      <a class="button secondary" href="articles/item-6bcf7a23a8cf2d2b.html">閱讀單篇</a>
-      <a class="button quiet" href="https://newtalk.tw/news/view/2023-08-25/885581" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="articles/item-6bcf7a23a8cf2d2b.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://newtalk.tw/news/view/2023-08-25/885581" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>

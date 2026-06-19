@@ -1201,6 +1201,19 @@ def layout_label(mode: str) -> str:
     return {"card": "卡片", "list": "列表", "compact": "清單"}.get(mode, "列表")
 
 
+def action_icon(action: str) -> str:
+    icons = {
+        "read": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg>',
+        "expand": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5"></path><path d="M3 3l7 7"></path><path d="M16 21h5v-5"></path><path d="M21 21l-7-7"></path></svg>',
+        "external": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg>',
+    }
+    return icons.get(action, icons["read"])
+
+
+def action_label(label: str) -> str:
+    return f'<span class="reader-action-label">{h(label)}</span>'
+
+
 def layout_toggle(section_id: str, current: str = "list") -> str:
     current = current if current in LAYOUT_MODES else "list"
     buttons = []
@@ -1996,16 +2009,43 @@ def page(title: str, body: str) -> bytes:
     }}
     .reader-body {{ padding: 16px; display: grid; gap: 8px; }}
     .reader-card h3 {{ line-height: 1.35; }}
-    .reader-card-actions {{ gap: 6px; margin-top: 2px; }}
-    .reader-card-actions .button,
-    .reader-card-actions button {{
-      padding: 6px 8px;
-      border-radius: 5px;
-      font-size: 12px;
-      font-weight: 750;
-      line-height: 1.25;
+    .reader-card-actions {{
+      gap: 5px;
+      margin-top: 0;
+      justify-content: flex-end;
+      align-items: center;
+    }}
+    .reader-card-actions .reader-action-button {{
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
     }}
     .reader-card-actions form {{ display: inline-flex; }}
+    .reader-card-actions svg {{
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }}
+    .reader-action-label {{
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }}
     .item-hero {{
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
@@ -3420,14 +3460,14 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
     <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
     <p class="zh-summary">{h(item_zh_summary(item, 260))}</p>
     {note_html}
-    <div class="button-row">
-      <a class="button" href="{h(item_detail_href(item))}">閱讀 / 記錄</a>
+    <div class="button-row reader-card-actions" aria-label="文章操作">
+      <a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{action_icon("read")}{action_label("閱讀 / 記錄")}</a>
       <form method="post" action="/items/read-more" data-read-more-form data-target="#{fulltext_id}">
         <input type="hidden" name="id" value="{h(item.get('id'))}">
         <input type="hidden" name="redirect" value="{h(reader_redirect)}">
-        <button type="submit" class="secondary">展開全文</button>
+        <button type="submit" class="secondary reader-action-button" aria-label="展開全文" title="展開全文">{action_icon("expand")}{action_label("展開全文")}</button>
       </form>
-      <a class="button secondary" href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary reader-action-button" href="{h(item.get('url'))}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{action_icon("external")}{action_label("原始連結")}</a>
     </div>
     <section class="fulltext-panel source-card source-card--source" id="{fulltext_id}" hidden>
       <div class="section-kicker">原始主文</div>
@@ -4858,7 +4898,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
     <h3>{title_html}</h3>
     <p class="muted break-anywhere">{h(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'))}</p>
     <p class="zh-summary">{h(source_summary(item, archived, 260))}</p>
-    {f'<div class="button-row reader-card-actions"><a class="button" href="{h(item_detail_href(item))}">閱讀 / 記錄</a><a class="button secondary" href="{h(item_url)}" target="_blank" rel="noreferrer">原始連結</a></div>' if can_open and item_url else ''}
+    {f'<div class="button-row reader-card-actions" aria-label="文章操作"><a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{action_icon("read")}{action_label("閱讀 / 記錄")}</a><a class="button secondary reader-action-button" href="{h(item_url)}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{action_icon("external")}{action_label("原始連結")}</a></div>' if can_open and item_url else ''}
   </div>
 </article>
 """

@@ -10,6 +10,8 @@ from pathlib import Path
 
 from local_web import (
     ITEMS,
+    action_icon,
+    action_label,
     clean_text,
     content_kind_label,
     h,
@@ -217,12 +219,36 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0) ->
     .summary {{ white-space: pre-wrap; }}
     .actions {{ display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }}
     .story-card .actions {{ gap: 6px; margin-top: 8px; }}
-    .story-card .actions .button {{
-      padding: 6px 8px;
-      border-radius: 5px;
-      font-size: 12px;
-      font-weight: 750;
-      line-height: 1.25;
+    .story-card .actions {{ justify-content: flex-end; }}
+    .story-card .actions .reader-action-button {{
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
+    }}
+    .story-card .actions svg {{
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }}
+    .reader-action-label {{
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
     }}
     .news-list {{ display: grid; gap: 10px; margin-top: 12px; }}
     .news-item {{
@@ -295,8 +321,8 @@ def item_card(item: dict) -> str:
     <h2><a href="{h(article_href(item))}">{h(item.get('title'))}</a></h2>
     <p class="summary">{h(summary)}</p>
     <div class="actions">
-      <a class="button secondary" href="{h(article_href(item))}">閱讀單篇</a>
-      {f'<a class="button quiet" href="{h(clean_text(item.get("url")))}" target="_blank" rel="noreferrer">原始連結</a>' if clean_text(item.get("url")) else ''}
+      <a class="button secondary reader-action-button" href="{h(article_href(item))}" aria-label="閱讀單篇" title="閱讀單篇">{action_icon("read")}{action_label("閱讀單篇")}</a>
+      {f'<a class="button quiet reader-action-button" href="{h(clean_text(item.get("url")))}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{action_icon("external")}{action_label("原始連結")}</a>' if clean_text(item.get("url")) else ''}
     </div>
   </div>
 </article>
