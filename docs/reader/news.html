@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>開放科技小消息 - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--accent); overflow-wrap: anywhere; }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--cyan);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>開放科技小消息</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-19T18:19:27+00:00</p>
+
+<nav>
+  <a class="" href="index.html">精選與觀點</a>
+  <a class="is-active" href="news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<section>
+  <h2>小消息列表</h2>
+  <p class="lede">純新聞消息用列表呈現，保留快速掃讀與點進單篇的入口。</p>
+  <div class="news-list">
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-19</span>
+  </div>
+  <h3><a href="articles/item-05688e145d20fa87.html">中國要求銀行保險機構將AI風險納入全面風險管理體系</a></h3>
+  <p class="summary">Ian 可以列入小消息查核，重點是中國金融監管把 AI 風險、數據治理與算力建設納入正式風控框架。
+摘要指出，中國針對銀行保險機構發布人工智慧安全開發應用相關指導意見，要求把 AI 風險納入全面風險管理體系。內容涵蓋治理架構、開發應用、數據治理、算力建設與風險管理等面向，適合當作金融業 AI 監管動向的小消息追蹤。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-19</span>
+  </div>
+  <h3><a href="articles/item-00e937f8c2196408.html">42dot Achieves Conformance with ISO/IEC 5230</a></h3>
+  <p class="summary">中文標題：關於開源、COSCUP、5230的英文資料：42dot Achieves Conformance with ISO/IEC 5230
+中文摘要：這是一篇英文資料，主題可能和「開源、COSCUP、5230」有關，初步類型是「純事實新聞 / 小消息」。原文重點線索：42dot Achieves Conformance with ISO/IEC 5230。後續若要整理，請用 skill 補完整中文摘要、台灣/OCF 關聯與查核結果。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-18</span>
+  </div>
+  <h3><a href="articles/item-783ce60cba43dfe7.html">Request: Merging Two Accounts</a></h3>
+  <p class="summary">Ian 建議跳過，這是 Ubuntu 社群站務個案，除非後續牽涉會員資格政策才有追蹤價值。
+使用者要求將兩個 Ubuntu Discourse 帳號合併，並希望舊帳號從 Ubuntu Members 群組移除，理由是自己已長期不活躍。摘要沒有顯示更廣泛的社群政策討論。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-18</span>
+  </div>
+  <h3><a href="articles/item-e9453fadadef3f10.html">KPMG：科技放大投資效益- 日報- 工商時報</a></h3>
+  <p class="summary">Ian 可低優先收集，若要用，角度應放在製造業把 AI、數據治理與資安視為供應鏈重組下的基礎能力。
+摘要顯示，在地緣政治風險常態化與全球供應鏈重組下，製造業正加速數位轉型，並把 AI、數據治理與資安能力視為核心基礎。這筆可作為產業側資料治理趨勢的小消息，但目前缺乏調查方法、樣本與完整結論。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-18</span>
+  </div>
+  <h3><a href="articles/item-5c598bd28de7c551.html">AMQP reconnect storm</a></h3>
+  <p class="summary">Ian 可以先收下但不必優先精讀，價值在於 Ubuntu Landscape、RabbitMQ 與舊 AMQP 協定相容性造成維運事故的具體案例。
+這則回報描述 Ubuntu 26.04 上的 Landscape Server 26.04.0.1 在執行安全資料庫更新流程時，透過 txAMQP 載入舊版 AMQP 規格與 RabbitMQ 4.0.5 溝通，疑似因協定版本不合而進入快速重新連線循環。回報者附上 strace 與 Rabb...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-18</span>
+  </div>
+  <h3><a href="articles/item-39a70c46347efbc8.html">Suggestions for Mouse Medium (Scroll)</a></h3>
+  <p class="summary">Ian 可以跳過；它是使用者介面小建議，和 COSCUP 或開源治理的關聯看起來只是關鍵字誤中。
+這則 Ubuntu 社群貼文建議，當滑鼠游標停在下拉選單上時，滾動滑鼠中鍵不應直接改變下拉選單的內容，因為使用者通常只是想捲動頁面。發文者認為應該只有在使用者先點選某個選項後，再使用滾輪時，才改變下拉選單值。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-18</span>
+  </div>
+  <h3><a href="articles/item-635d811fa3d9c9fb.html">New Irish bill to supervise EU AI Act gets greenlit</a></h3>
+  <p class="summary">Ian 值得列入人工複查，重點看它如何把 EU AI Act 落地成國內監管架構。
+標題顯示，愛爾蘭一項用來監督或執行歐盟 AI 法案的新法案已獲准推進。這可能涉及 AI 監管機關、執法流程或國內配套制度，但細節仍需全文確認。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-18</span>
+  </div>
+  <h3><a href="articles/item-fda50d7640e707b3.html">I started avoiding these 5 Android Auto mistakes, and it&#x27;s drastically improved my drives</a></h3>
+  <p class="summary">Ian 可跳過，這是 Android Auto 使用技巧文，除非要做純服務型小消息，否則不值得進一步讀。
+這篇內容看起來整理 Android Auto 使用者常犯的幾個錯誤，並說明這些錯誤可能造成技術問題或讓使用者錯過功能。作者從自己幾個月使用 Android Auto 的經驗出發，觀察其他駕駛也會犯類似錯誤。以目前摘要來看，重點是使用者設定與操作習慣，而不是開放科技或產業面議題。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-18</span>
+  </div>
+  <h3><a href="articles/item-40881df888f40b7c.html">How to turn your old Android phone into a streaming stick for free - in 6 easy steps</a></h3>
+  <p class="summary">Ian 可跳過，這比較像消費者 DIY 教學，和開放科技或產業判讀的連結很弱。
+這篇看起來是在教讀者用閒置 Android 手機、支援投放或螢幕鏡像的電視、充電器、launcher 及可能的 casting app，把手機當成類似 Roku 或 Fire TV 的串流裝置或控制中心。現有內容偏向個人設備再利用與操作步驟，沒有呈現開放原始碼、平台治理或產業趨勢的明確價值。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-a4476b121ee6f9c8.html">Upcoming updates to the Ubuntu image retention policy on Azure</a></h3>
+  <p class="summary">Ian 值得先看，這是雲端部署會實際受影響的開源基礎設施政策變更，重點在舊映像 pinning 與長期維運風險。
+Ubuntu 計畫自 2026 年 8 月下旬起調整 Azure 映像保留政策，從目前每個 plan 或 SKU 保留最近 90 個 release images，改為保留最近 20 個版本且至少涵蓋六個月。既有 VM 不會受影響，但新建部署可用的六個月以前映像會減少，釘選到很舊映像的 VMSS 也可能受影響。公告同時提醒長...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-8add6bdfcd009581.html">Triage of changes on 2026-06-16</a></h3>
+  <p class="summary">Ian 可先不收，除非要追 Ubuntu 伺服器套件維護；最有價值的是 qemu 寫入遺失與 postfix hardening 這兩條風險線索。
+這則 Ubuntu triage 摘要列出多個 Launchpad 議題：chrony 未透過 networkd-dispatcher 處理 DHCP 提供的 NTP server，作者傾向需要上游討論；qemu 有多個相關合併請求但仍缺 reviewer；另有 virt-manager 無...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-1ecf075956b8967e.html">Triage of changes on 2026-06-15</a></h3>
+  <p class="summary">Ian 不必優先看，除非你要收集 Ubuntu 伺服器套件安全硬化的線索；可注意 nginx systemd hardening 是否值得後續查核。
+這則 triage 記錄提到 netplan set 失敗未回傳非零錯誤碼的問題已在上游修正，未來可評估 SRU 到多個 Ubuntu 版本。舊項目則提到 nginx systemd 服務安全設定可能需要在後續版本加入強化，但目前仍停留在待評估階段。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-6122de839f780f63.html">Triage of changes on 2026-06-11</a></h3>
+  <p class="summary">Ian 可以先略過，除非你正在追 Ubuntu SRU／autopkgtest 基礎設施，最有價值的是它揭露測試環境變動如何讓回歸風險變得不容易被抓到。
+這則 Ubuntu triage 摘要整理多個 Launchpad 議題，包括 docker.io 在已停止支援版本上的處理、multipath-tools SRU 驗證與 noble autopkgtest 環境變動造成的測試覆蓋流失，以及 chrony NTS 相關問題的後續討論。...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-840b09952d0423cd.html">Kiro goes mobile: AWS brings agentic coding supervision to the iPhone</a></h3>
+  <p class="summary">Ian 可當小消息處理；它顯示 agentic coding 工具往行動端延伸，但目前看起來不像深度題材。
+AWS 為其 AI 開發環境 Kiro 推出原生 iOS app，讓開發者可以在手機上監控或引導 agentic coding 工作。從摘要看，這比較像產品功能發布，價值在於觀察 AI coding 工具是否走向跨裝置、持續監督的使用模式。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-166ed2bb4d79416f.html">Introducing Myna: Speech to Text for Ubuntu Desktop</a></h3>
+  <p class="summary">Ian 值得優先看，這則有明確產品方向與開源桌面意義，角度是 Ubuntu 把本機端、重視隱私的語音輸入納入桌面體驗。
+Ubuntu Desktop 介紹 Project Myna，目標是把語音轉文字聽寫做成桌面上的一等功能。初期方向是讓使用者按下快捷鍵後直接說話，文字就輸入到正在使用的應用程式，並提供清楚的聽寫狀態回饋。Myna 的語音辨識模型會在本機執行，初版預計聚焦 Ubuntu 26.10、Wayland 與 GNOME 驗證環...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-03aeeb13f09b82df.html">I was jealous of these 4 iOS 27 features - then I realized my Android phone already has them</a></h3>
+  <p class="summary">Ian 可先跳過，除非你要比較行動作業系統功能循環，否則它偏輕量產品觀察。
+這筆內容比較即將推出的 iPhone 功能與 Android 既有能力，指出 Android 使用者已經能使用一些類似功能。從摘要看，它偏向行動作業系統功能比較與使用經驗評論，尚未顯示更深的產業或公共議題。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-a930a3336c8b8b9c.html">I am looking for capable individuals to fork and maintain a branch</a></h3>
+  <p class="summary">Ian 可先跳過，除非正在追 1Panel 社群分歧；它比較像個人徵求 fork 維護者，不像成熟的開源產業新聞。
+這則 Ubuntu Community Hub 貼文提到 1Panel 這個開源 VPS 控制面板，發文者希望有人 fork 並維護一個分支，原因是官方團隊不願支援建立網站時的自訂路徑，導致 PHP 開發環境路徑過長。就摘要來看，這比較像單一使用者對專案功能路線的不滿與徵人請求，尚未看到明確的 fork 成果或更大規模社群...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-40e4256786f8b983.html">Help us design the next GitHub Actions for Rockcraft</a></h3>
+  <p class="summary">Ian 可以略過或只作社群小訊，價值在 Canonical 想把 Rockcraft 的 CI/CD 打包流程做得更順。
+Rockcraft 所屬團隊表示正在改善 Rock 的製作體驗，當前重點放在自動化與 CI/CD。公告邀請使用者填寫問卷，分享目前如何使用 GitHub Actions，以及哪些地方能讓 Rockcraft 的製作流程更自動化、更順暢。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-31590f50d3542590.html">Hello from the new Ubuntu-MATE maintainers team</a></h3>
+  <p class="summary">Ian 值得先看，這是 Ubuntu MATE 專案交接與復甦訊號，適合從開源社群維護與志工治理角度追蹤。
+新的 Ubuntu MATE Reboot 成員在社群發文說明，他們是在 Martin Wimpress 退出 Ubuntu MATE 之後自願協助專案復甦的一群人。摘要列出多位成員背景，包括 upstream MATE 開發者、Ubuntu Unity 維護者與熱心使用者，也提到他們正在獲得其他 Ubuntu flavors 與...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-ddb9a7788fcd799f.html">Fox 220 億美金買 Roku，是要買一億家戶的身分證</a></h3>
+  <p class="summary">Ian 值得收，這篇的重點不是併購本身，而是 CTV、第一方資料與 AI 自動化廣告交易的權力重組。
+文章主張 Fox 併購 Roku 表面上是補齊串流與連網電視入口，實際價值在於 Roku 掌握的全球串流家戶、Roku OS、The Roku Channel、Roku Exchange，以及家戶帳號層級的第一方資料。摘要也把這件事和 Publicis 併購 LiveRamp 相比，指出即使 AI Agent 讓交易更自動化，真正稀缺的...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-948ccd26e1e5e48e.html">Digital Government Outlook 2026</a></h3>
+  <p class="summary">Ian 值得複查全文，這可能是可收藏的數位政府基準資料，但 RSS 摘要還不足以直接跑深度整理。
+這份 OECD 報告把數位技術與資料視為政府回應公共需求、政策挑戰與服務交付壓力的核心基礎建設。摘要指出，民眾期待政府快速行動、適應變化並有效回應，因此公共機構必須跟上；但主要結果與建議仍未在摘錄中呈現。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-773bc8bde264c6b1.html">Chainguard Agent Skills matures</a></h3>
+  <p class="summary">Ian 可以先略過或低優先查核；除非全文說清楚公開 registry 的安全模型，否則目前像產品進展消息。
+摘要指出 Chainguard 正在擴大對 AI coding agents 安全性的投入，並提到新的公開 registry。現有資訊不足以判斷 registry 的設計、審核方式或對開源供應鏈安全的實際意義。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-225dc0eb4bdc2dd1.html">Can Digital Humanitarianism and Local Action Fight the Ebola Epidemic in DRC?</a></h3>
+  <p class="summary">Ian 可保留作小消息查核，亮點是 HOT 與無國界醫生如何用遠端資料和開放地圖支援公共衛生應變。
+文章討論在剛果民主共和國伊波拉疫情中，全球數位人道工作者與遠端資料提供者如何回應「用資訊對抗伊波拉」的需求。疫情宣布後，Humanitarian OpenStreetMap Team 與無國界醫生合作啟動任務，動員全球志工支援相關資訊工作；但摘要未說明後續成果。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2026-06-17</span>
+  </div>
+  <h3><a href="articles/item-6c59e720c506620f.html">Anbox Cloud 1.30.0 is released</a></h3>
+  <p class="summary">Ian 可以先看，重點是 Anbox Cloud 從容器化 Android 擴到 Cuttlefish 虛擬機，對 Android 雲端測試與系統映像工作流有實務意義。
+Anbox Cloud 1.30.0 的主要變化是支援在 LXD instance 內透過 Cuttlefish VM 執行虛擬化 Android，同時維持既有容器化 Android 環境。這讓使用者可以依需求選擇高效率、高密度的容器化應用工作負載，或用虛擬化 Andr...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-16</span>
+  </div>
+  <h3><a href="articles/item-4a0a385a33461fc4.html">OpenChain Newsletter #87</a></h3>
+  <p class="summary">Ian 可暫時保留但不要優先跑深讀，標題本身不足以判斷是否有 COSCUP 或開源供應鏈亮點。
+目前只知道這是 OpenChain 第 87 期電子報，無法從提供內容判斷其中是否包含特定活動、政策、工具或社群更新。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-16</span>
+  </div>
+  <h3><a href="articles/item-fd8764aa58c138e2.html">EXANTE Launches €1M Open Source Infrastructure Fund To Strengthen Critical Financial Technologies</a></h3>
+  <p class="summary">Ian 可以收作小新聞，價值在金融業把開源永續、安全與韌性視為基礎設施投資問題。
+EXANTE 宣布設立 100 萬歐元基金，支持支撐金融系統的關鍵開源專案。摘要指出，這筆基金回應的是軟體永續性、資安與系統韌性的壓力，屬於企業投入開源基礎設施維護的資金消息。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-16</span>
+  </div>
+  <h3><a href="articles/item-9f31062871a6e4b2.html">Databricks wants to merge the two databases every company runs</a></h3>
+  <p class="summary">Ian 先不要投入太多，摘要只看得出它可能談 AI agent 時代的資料堆疊整合，需全文才能判斷價值。
+目前可保守判斷，這則內容可能在談 Databricks 想縮短企業營運資料庫與分析系統之間的距離，並把這個方向連到 AI agent 所需的資料基礎。但 source_text 只有 RSS 摘要，缺少具體做法、產品脈絡、受訪說法與技術細節，無法進一步判斷是否值得收錄。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-16</span>
+  </div>
+  <h3><a href="articles/item-199d7e9ddb7dcb38.html">COSCUP 2026 BoF / Hacking Corners 參與辦法及使用規則 Participation Guidelines and Usage Rules</a></h3>
+  <p class="summary">Ian 值得收，這是台灣開源社群活動的實用公告，最有價值的是 BoF 與 hacking room 的參與入口。
+COSCUP 2026 開放社群登記 BoF 聚會與 hacking room 活動，時間為 8 月 8 日、9 日 10:00 至 16:00，地點在 TR310-2。公告鼓勵開源、社群與開放文化相關主題的社群使用這個空間，每場次可預約一小時，也可讓參與者查找現場或場外正在發生的聚會。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2026-06-15</span>
+  </div>
+  <h3><a href="articles/item-5f040682ac9e4f2d.html">Governing Global Emotions: Technology and The New Science of Feeling</a></h3>
+  <p class="summary">中文標題：關於civic tech的英文資料：Governing Global Emotions: Technology and The New Science of Feeling
+中文摘要：這篇英文資料的主題和「civic tech」有關。以下是從原文正文抽出的重點線索：Governing Global Emotions: Technology and The New Science of Feeling But what if t...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-d1abca4bc637d529.html">開源星手村COSCUP領航導覽系列活動</a></h3>
+  <p class="summary">Ian 值得收作 OCF 與 FNF 推廣開源入門活動的案例，適合當小消息或活動紀錄處理。
+這筆資料介紹 OCF 與 FNF 圍繞 COSCUP 2023 規劃的「開源星手村」導覽系列活動。活動把開源人分成開發者、使用者與傳播者三種角色，透過線上講座、現場導覽與桌遊工作坊，協助第一次參與 COSCUP 的人理解議程、找到社群，也用桌遊體驗開源專案的發起與協作。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-892ff99ce5428c3d.html">開源人年會 COSCUP 2023 | 站長開講 (更新: 影片/簡報上傳)</a></h3>
+  <p class="summary">Ian 值得列入候選收藏，最有價值的是它把 COSCUP 參與紀錄、技術議程與生成式簡報工具實作經驗放在同一篇脈絡裡。
+這篇文章先介紹 COSCUP 的定位：連結開源開發者、使用者與推廣者，推動自由及開放原始碼軟體。作者接著記錄自己在 COSCUP 2023 的兩個議程，一個談 Google Cloud GKE 容器平台，另一個分享 Infrastructure Architect 的技能與職涯養成。文中也提到兩份簡報嘗試使用 Gamm...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-4e6cb5b0a570af9c.html">跨越两岸，开源人遇见 COSCUP</a></h3>
+  <p class="summary">Ian 可以先看，價值在於它從中國開源社群視角記錄 COSCUP，也補到跨境參與、遠端分享與簽證限制這些社群交流脈絡。
+這篇文章介紹 COSCUP 作為台灣自由與開放原始碼社群年度研討會的背景，並從開源社參與者角度描述 2023 年活動規模與交流情況。摘要中特別提到 COSCUP 聚集開發者、使用者與推廣者，也記錄開源社因簽證問題部分講者改以遠端參與，但仍透過即時問答與台下觀眾互動。整體看起來是帶有社群觀察與活動紀錄性質的文章。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-70ca92c2e5b0a3f3.html">跨越两岸，开源人遇见 COSCUP</a></h3>
+  <p class="summary">Ian 可以把它當作前一則同文轉載來源來比對，不必單獨優先處理；有用的是 CSDN 摘要補了文章瀏覽與概述資訊。
+這則資料看起來是同一篇〈跨越兩岸，開源人遇見 COSCUP〉在 CSDN 的版本，內容介紹 COSCUP 的開源社群背景、開發者與使用者直接交流的重要性，以及開源社參與 COSCUP 2023 的情況。摘要補充指出文章聚焦台灣 COSCUP 年度研討會、全球開源社群交流，以及開源透明協作如何支撐軟體品質。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-af4a019ed7052bbb.html">臺東縣延平鄉公所</a></h3>
+  <p class="summary">Ian 可以略過深讀，這比較像公所公告轉知，適合只作 COSCUP 傳播足跡的小型查核。
+這則公告轉知 2023 年 COSCUP 活動資訊，說明開源人年會是台灣開放原始碼社群的重要年度大會，活動於 112 年 7 月 29、30 日在國立臺灣科技大學舉行，並提到開放文化基金會與弗里德里西諾曼自由基金會推出線上講座、現場導覽與工作坊等配套活動。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-86a8fa5cc5822415.html">【轉知】數位發展部開放原始碼（Open Source）推廣活動歡迎參加~</a></h3>
+  <p class="summary">Ian 可以先低優先收下，價值在於補 COSCUP 2023 周邊推廣與政府部門轉知的脈絡，不像是需要深讀的主文。
+這則轉知說明 COSCUP 是台灣開放原始碼社群共同推動的年度大會，也是自由軟體運動的重要場域；數位發展部為鼓勵民眾參與 2023 年 7 月底的 COSCUP，並支持開放原始碼運動，提到 OCF 與弗里德里西諾曼自由基金會自 7 月中起辦理線上講座、現場導覽與工作坊等活動。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-461b91000c01eada.html">【COSCUP】Ruby track | Ruby Taiwan</a></h3>
+  <p class="summary">Ian 可略過深讀，這是社群活動提醒，若要補 COSCUP 社群動態再做小消息即可。
+Ruby Taiwan 宣布 2023 年 7 月 COSCUP 即將到來，Ruby 社群照往例會有專屬議程與攤位，邀請大家參與，並請讀者到 COSCUP 官網或追蹤 Ruby Taiwan 社群帳號取得後續資訊。內容偏活動預告與社群宣傳。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-970de3180dcaca80.html">https://www.cs.nycu.edu.tw/announcements/detail/10364</a></h3>
+  <p class="summary">Ian 先不要花時間收，這筆目前只有網址，至少要補到公告標題或內文後才值得判斷。
+目前只能看出這是一筆位於陽明交通大學資工系網站的公告連結，source_text 沒有提供公告標題、正文或任何可判讀的內容。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-27a55237909aff29.html">https://blogs.oracle.com/mysql/post/aiougyatra-tour-india-osc-kyoto-and-coscup-with-mysql</a></h3>
+  <p class="summary">Ian 暫時不用先看，只有網址標題，最多先當 COSCUP 媒體提及線索保留。
+目前提供的 source_text 只有 Oracle MySQL 部落格網址，網址字串顯示可能是 MySQL 參與印度、OSC Kyoto 與 COSCUP 的活動紀錄。除此之外無法確認文章重點、觀點或與台灣開放科技的關聯程度。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-008ae00a84e76956.html">coscup</a></h3>
+  <p class="summary">Ian 可以先把它當成 COSCUP 線索保留，但目前摘要太短，不值得直接採用，最有價值的是後續確認全文是否有具體社群觀點。
+目前能讀到的內容只有「拆解整合的旅人」這個短句，資訊量不足，無法判斷它是否提供 COSCUP 相關新聞、會後整理、個人觀察或只是網站標籤頁。建議先不要直接收錄為內容，需看全文後再決定。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-09d299032d970a5e.html">[情報] 開放原始碼盛會 COSCUP 硬體相關議程</a></h3>
+  <p class="summary">Ian 值得先看，這篇雖是 PTT 情報文，但對開源硬體、RISC-V、開源 PDK 與半導體社群議程的整理密度很高。
+這篇 PTT 情報文介紹 COSCUP 2023 中 Open Source Inspired Hardware 議程軌的多場硬體相關分享。摘要提到 RISC-V GPGPU、CUDA runtime 移植、德國 IHP 開源 PDK SG13G2、OpenROAD 工具鏈、可運行 Linux 的 RISC-V IP...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-2283013dbcf50121.html">Wikidata Taiwan 臺灣維基數據社群 (@wikidatatw@liker.social)</a></h3>
+  <p class="summary">Ian 先不要投入時間，除非要補 COSCUP 社群貼文索引，因為目前只有帳號標題無法判斷內容。
+目前只能確認這筆資料指向 Wikidata Taiwan 臺灣維基數據社群在 liker.social 上的項目或貼文標題。由於沒有貼文內容，不能可靠判斷它與 COSCUP 的關係或新聞價值。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-0d7d2f2ec7d55c51.html">Ubuntu Weekly Newsletter Issue 797 [Archive]</a></h3>
+  <p class="summary">Ian 可以先跳過，摘要裡幾乎看不到 COSCUP 的實質內容，匹配關鍵字可能只是活動列表或外部連結。
+這是 Ubuntu Weekly Newsletter 第 797 期的封存頁，涵蓋 2023 年 7 月 16 至 22 日期間的 Ubuntu 社群消息。摘要可見主題包括 Ubuntu Studio 22.10 終止支援、Ubuntu 統計、LoCo 活動、Mir 2.14.0、LXD 5.16、Netplan、HPC commu...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-f8d01d3c87d3fd12.html">Neutrino&#x27;s Blog</a></h3>
+  <p class="summary">Ian 可以先收，但不用急著跑完整精讀；它最有價值的是補上台灣開源社群如何承接國際 Rust 社群交流的脈絡。
+這篇是 Rust Taiwan 成員對 COSCUP 中「Everything in Rust」議程的回顧。摘要描述 COSCUP 作為亞洲大型開源年會，由多個社群各自主辦議程，也提到 Rust Taiwan 邀集來自多地的講者，讓現場大量參與者接觸 Rust 語言與社群。它的價值比較像社群經驗與活動史料，而不是即時新聞。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-f4ccef6a760fcc48.html">Instagram</a></h3>
+  <p class="summary">Ian 先不要投入時間，這筆只有平台名稱，除非後續能抓到貼文內容再判斷。
+目前無法從提供內容判斷這則 Instagram 貼文的實際主題，只能知道它被系統歸到 COSCUP 相關線索。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-76b73fde0ee08d57.html">COSCUP, Conference for Open Source Coders, Users and Promoters</a></h3>
+  <p class="summary">Ian 可以跳過或只當索引，因為目前只有組織名稱，沒有可讀內容。
+目前只知道這筆資料指向 COSCUP 的組織名稱，全名是 Conference for Open Source Coders, Users and Promoters。除此之外，沒有提供活動、人物、議題或時間脈絡。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-48f6f0ffdbc6011a.html">COSCUP 開源人年會走向長青 今年邁向第13年</a></h3>
+  <p class="summary">Ian 可以暫時跳過這筆抽取結果，因為正文大多是無關新聞，只剩最後一小段提到 COSCUP。
+可辨識的相關內容是：COSCUP 自 2006 年起舉辦，邁入第 13 年，並提到該年將與 GNOME.Asia、openSUSE.Asia 等亞洲開源社群活動產生連結。但目前摘要大部分不是 COSCUP 內容，不能可靠判斷文章重點。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-4e1da2960a1f9c61.html">COSCUP 行政組整地期招募 2024 籌備前預備培訓</a></h3>
+  <p class="summary">Ian 可作小消息處理，價值在於看 COSCUP 志工行政組如何制度化招募、交接與專案管理。
+這筆是 COSCUP 行政組在 2024 籌備前的整地期招募說明。內容回顧行政組在 2023 年承擔的多項活動與支援工作，並說明整地期將進行文件歸檔、協作平台調整、業務介紹、社群志工計畫與 2024 年提案，同時招募少量成員接受預備培訓，後續可直接成為 2024 組員。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-93e05c428e7104b8.html">COSCUP Booth Team Journey | Hong Kong Open Source Conference 2023</a></h3>
+  <p class="summary">Ian 可以先低成本掃過，重點不是技術，而是 COSCUP 如何把對外攤位經營變成社群拓展機制。
+這是一場 HKOSCon 2023 的英文短講摘要，主軸是 COSCUP 今年新成立的 Booth Team。講者預計說明為什麼要成立專責攤位團隊、成立後做了哪些對外設攤活動，以及這些行動對 COSCUP 帶來的影響。從目前文字看，價值偏社群營運與活動推廣經驗，而非開源技術或政策分析。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-12a17d5df7d6b683.html">COSCUP 2023 : Conference for Open Source Coders, Users and Promoters (COSCUP) 2023 Call for Proposals</a></h3>
+  <p class="summary">Ian 可作為小消息或資料庫補條目，不必優先精讀；它的價值主要是保存 COSCUP 2023 徵稿主題與活動定位。
+這則資料是 COSCUP 2023 的 Call for Proposals 資訊，列出活動時間為 2023 年 7 月 29 至 30 日、地點在台北，並說明 COSCUP 是由台灣開源社群自 2006 年起舉辦的年度會議，目標是連結開源開發者、使用者與推廣者，推動 FLOSS。摘要也提到活動形式包含演講、贊助與社群攤位...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-0f670a832c3d0802.html">COSCUP 2023 - 開源工具加速前端開發</a></h3>
+  <p class="summary">Ian 可以收，這篇的價值在開發者實務經驗，能把 COSCUP 報導從活動資訊延伸到開源工具如何進入日常工作流程。
+這篇文章是作者在 COSCUP 2023 分享「開源工具加速前端開發」後的整理與心得。內容從前端開發常見痛點出發，包括 ESLint、Prettier、VSCode 設定、表單驗證、型別檢查、API 串接、response 型別不明、等待後端完成等問題，並主張用一份 API 文件搭配多種開源工具來改善流程。文章也強調這套方...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-666edade975339d4.html">COSCUP 2023 - Open-Source Firmware Track</a></h3>
+  <p class="summary">Ian 可以收，但不用優先深讀；它的價值主要是補 COSCUP 2023 首次開源韌體議程的事件紀錄。
+這則資料說明 Open-Source Firmware Foundation 在台北 COSCUP 2023 主持開源韌體議程，並指出這是 COSCUP 第一次設立 open-source firmware track。摘要也簡要介紹 COSCUP 是台北開源社群年度會議，以及 OSFF 是推動開源韌體的非營利組織。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-8ef90ff5fcd41019.html">Blog - LINE ENGINEERING</a></h3>
+  <p class="summary">Ian 可以低優先收作 COSCUP 社群素材，最有價值的是企業技術團隊如何把 side project 經驗帶進開源社群交流。
+這筆內容來自 LINE Engineering 的 COSCUP 標籤頁，摘要混合了多篇文章。主要可見 Nijia Lin 在 COSCUP 2023 分享 side project 經驗，包括用 LINE Bot 作為操作介面、整理寶可夢相關資訊、用 Flex Message 呈現互動流程，以及另一篇談如何...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-03bfbffa318941fe.html">- Archilife Research Foundation</a></h3>
+  <p class="summary">Ian 可以保留作為小型背景資料，最有價值的是補足 OCF、COSCUP、SITCON、g0v Summit 與企業／基金會贊助關係的歷史脈絡。
+這則資料描述雅砌研究院因看重資訊科技與數位化對未來生活的影響，自 2011 年起贊助台灣大型開源論壇，並自 2017 年起與開放文化基金會合作，以聯合統籌贊助方式投入資訊領域。摘要中特別提到 2020 年度統籌贊助 COSCUP、SITCON 與 g0v Summit，也持續支持在高雄舉辦的...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-246c4a1c05d253c5.html">- Archilife Research Foundation</a></h3>
+  <p class="summary">Ian 可低優先收藏，這比較像贊助紀錄，價值在補 OCF、COSCUP、SITCON 資源支持脈絡。
+潤泰創新國際基金會說明其因看重資訊科技與數位化對未來生活的影響，自 2011 年起贊助台灣大型開源論壇，並自 2017 年與開放文化基金會合作，以聯合統籌贊助方式支持資訊領域活動。摘要中特別提到 2021 年受疫情影響轉為線上的 COSCUP 與 SITCON，以及 OCF 推動開源軟體、開放資料與開放政府的角色。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-281eaa6319281f6b.html">- Archilife Research Foundation</a></h3>
+  <p class="summary">Ian 值得簡短複核，重點在 OCF 將「開放科技」納入核心目標，並擴及網路自由與數位人權。
+潤泰創新國際基金會延續與開放文化基金會的合作，說明 2022 年支持 COSCUP、SITCON 恢復實體舉辦，也提到 OCF 在 2022 年把「開放科技」納入核心推動目標，並將網路自由與數位人權列入關注議題。摘要後段另提及 MOPCON 恢復實體舉辦與議題方向，但內容被截斷。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-95091a69677cd9f2.html">- Archilife Research Foundation</a></h3>
+  <p class="summary">Ian 值得收藏作為 OCF 與台灣開源活動資助史料，但它比較像背景材料，不像即時新聞。
+這篇基金會頁面說明潤泰建築生活基金會因看重資訊科技與數位化對未來生活的影響，自 2011 年起贊助台灣大型開源論壇。文中列舉 COSCUP、OSDC.tw、SITCON、g0v Summit 等活動，並提到當年度持續年度贊助開放文化基金會與 MOPCON，希望支持開源軟體、開放資料、開放政府，以及南台灣行動科技社群的發展。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-b144ed3157fb5547.html">- Archilife Research Foundation</a></h3>
+  <p class="summary">Ian 不必優先看，除非正在整理 COSCUP 贊助與歷史資料，否則它的新聞價值偏低。
+摘錄介紹 COSCUP 從 ICOS 社群議程發展為台灣大型開源研討會的背景，並回顧 2016 年活動在中央研究院舉辦，主題聚焦傳承、扎根與跨界，議程涵蓋商業、教育、法律等開源延伸議題，也包含親子工作坊與 BoF 等活動形式。整體看起來是一則贊助或支持 COSCUP 2016 的介紹頁。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2024-01-15</span>
+  </div>
+  <h3><a href="articles/item-d67e094d63492fe0.html">- Archilife Research Foundation</a></h3>
+  <p class="summary">Ian 可以收作台灣開源活動贊助脈絡資料，價值在資助者如何理解 OCF、COSCUP、SITCON 與 MOPCON 的角色。
+建築生活研究基金會說明，自 2011 年起因看重資訊科技與數位化對未來生活的影響，開始贊助台灣大型開源論壇。過去支持的活動包括 COSCUP、SITCON、PyCon 與 g0v summit，並在 2019 年持續年度贊助 OCF，同時支持固定於高雄舉辦的 MOPCON，希望促進知識分享、人才培育，也平衡台灣...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-11-15</span>
+  </div>
+  <h3><a href="articles/item-a525d752592c15c7.html">你被CC了嗎？--痛解國家文化記憶庫於公眾授權機制的應用錯誤和謬論</a></h3>
+  <p class="summary">Ian 值得人工補看，題目看起來有授權治理價值，但 source_text 只有 COSCUP 連結，不能直接判斷內容。
+可見資訊僅包含 COSCUP 2023 官網與議程連結；題名顯示內容可能討論國家文化記憶庫在 Creative Commons 或公眾授權機制上的應用問題，但 source_text 沒有提供實際論點。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-10-27</span>
+  </div>
+  <h3><a href="articles/item-7a09a65cd699dbdb.html">Open Design Workshop at COSCUP 2023: Understanding Internet Shutdowns and How Design Can Improve Tools – Superbloom</a></h3>
+  <p class="summary">Ian 值得先看，這篇把 COSCUP、開源設計與人權科技連在一起，比一般活動紀錄更有專題延伸價值。
+Superbloom 在 COSCUP 2023 舉辦「The Design We Open - Network Disruption Hackathon」工作坊，討論設計者與技術工具配置者如何理解台灣民眾對網路中斷的經驗與需求，以及在部分或全面斷網時哪些事項最重要。摘要也提到工作坊產出的 Miro 資源、HackMD 筆記與議程資訊可...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-09-12</span>
+  </div>
+  <h3><a href="articles/item-8d60970f051a6540.html">桃園市政府資料開放平台</a></h3>
+  <p class="summary">Ian 可先保留待人工判斷，價值在地方政府如何引用 ODC 六原則與承諾落實開放資料政策。
+桃園市政府資料開放平台介紹 Open Data Charter 的來源與六大原則，包括預設開放、即時詳盡、易取得可運用、可比較與互通、改善治理與公民參與，以及促進發展與創新。文字並說明桃園市政府於 2018 年 7 月參與簽署宣示，承諾依循這些原則逐步落實政府資料開放政策，另要求公開資料集外部連結需維持有效。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-09-12</span>
+  </div>
+  <h3><a href="articles/item-29248cd29efdb0bd.html">推動數據公益 數位部公告2草案</a></h3>
+  <p class="summary">Ian 可以先看，這是資料治理、個資保護與公共參與交會的政策節點，值得進一步追草案內容。
+數位部公告「數據公益運作指引」與「隱私強化技術應用指引」草案，主軸是在個資保護與隱私保障前提下，讓資料能促進公益與多元創新。數位部將「數據公益運作指引」放上公共政策網路參與平台，並導入 Polis 協助不同立場者找到共識；「隱私強化技術應用指引」則透過 HackMD 共筆開放民眾留言協作。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-09-12</span>
+  </div>
+  <h3><a href="articles/item-13c7da226b4e13b4.html">Open Data Charter Measurement Guide</a></h3>
+  <p class="summary">Ian 值得留著待查，因為它看起來可能是評估開放資料原則與工具的實用參考，但目前文字太少不能下定論。
+目前可保守判斷，這是一份與 Open Data Charter 相關的衡量指南，可能介紹五種開放資料評量工具，並討論如何衡量開放資料憲章原則。由於提供的文字過短，尚無法確認內容深度或實際可用性。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-09-11</span>
+  </div>
+  <h3><a href="articles/item-48a04f28a2bfc31f.html">數位部常務次長 法制藍圖操盤手 葉寧發揚+1精神</a></h3>
+  <p class="summary">Ian 可以先看，價值在於它把數位部早期法制藍圖、開放資料與產業化敘事放在同一個政策框架裡。
+這段內容聚焦數位部常務次長葉寧主導的「法制藍圖」。文章摘要指出，數位部希望不再只是遇到問題才補修法，而是把法律、指引、預算與政策路徑整合成較可依循的制度架構；其中開放資料被放在數位轉型、資料應用與數位產業化的核心位置。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-08-22</span>
+  </div>
+  <h3><a href="articles/item-14cf8fcc6db1d40c.html">COSCUP unveiled - Voices of Open Source</a></h3>
+  <p class="summary">Ian 值得優先看，這篇的價值在於把 COSCUP 放進全球開源 25 年與跨區域社群反思的脈絡裡。
+這篇是 Paloma Oliveira 在受 OSI 邀請到 COSCUP 分享「開源 25 年」後的反思。她以自身來自南美與歐洲、首次到亞洲參與 COSCUP 的經驗，討論開源在全球與地方脈絡中的意義，也強調回顧歷史不只是慶祝成就，更包含辨識失敗、重新理解開源運動如何前進。文章同時描寫 COSCUP 作為亞洲開源社群交流場域的特色。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2023-08-21</span>
+  </div>
+  <h3><a href="articles/item-4c4833ddfb108ce8.html">Celebrating 25 Years of Open Source at the COSCUP Conference in Taiwan</a></h3>
+  <p class="summary">Ian 可以收，最有價值的是它從國際講者視角回看 COSCUP 與開源 25 年，而不只是活動報導。
+作者受 OSI 邀請，在台灣 COSCUP 回顧開源 25 年，並以自身在南美與歐洲的經驗進入亞洲開源社群現場。摘要顯示文章不只是活動心得，也試圖用批判角度檢視開源歷史中的不足，並說明 COSCUP 作為亞洲開源社群交會點，帶給作者新的全球與在地視野。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-08-03</span>
+  </div>
+  <h3><a href="articles/item-9080722a7ed99c14.html">Celebrating 25 years of Open Source at Campus Party</a></h3>
+  <p class="summary">Ian 值得收作國際脈絡小消息，角度是 OSI 把 COSCUP 放進全球開源 25 週年巡迴活動版圖。
+OSI 在開源 25 週年期間於多個國際科技會議推廣開源，包括 Portland 的 FOSSY、日內瓦的 Open Source Congress、台北的 COSCUP，以及聖保羅的 Campus Party。摘要重點放在 Campus Party Brazil 的規模與 OSI 代表的演講，內容回顧自由軟體與開源運動的歷史，並討...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-07-27</span>
+  </div>
+  <h3><a href="articles/item-12e134d3ec3faf89.html">COSCUP 2023: Where am I?</a></h3>
+  <p class="summary">Ian 可以先快速看過，最有價值的是它把 COSCUP 2023 的社群氣味和幾個開放文化相關議程串成一張現場導覽圖。
+作者以個人行程與推薦清單的形式，整理自己在 COSCUP 2023 期間可能參與或主持的場次。內容涵蓋手語詞典、ActivityPub、OCF 的開源星手村桌遊工作坊、產品人午餐聚、開源教育、開源設計，以及偏向社群文化討論的開源議程。整體更像現場參與者的社群觀察與議程導讀，而不是完整活動報導。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2023-07-05</span>
+  </div>
+  <h3><a href="articles/item-e643b92e4c963de4.html">2023年「COSCUP開源人年會領航導覽與桌遊體驗工作坊」</a></h3>
+  <p class="summary">Ian 暫時不用優先看，除非要補 COSCUP 2023 活動索引；目前只有標題，資訊不足。
+目前只能保守判斷，這應是 2023 年 COSCUP 開源人年會的領航導覽與桌遊體驗工作坊相關活動頁，可能與新手導覽或開源星手村桌遊體驗有關。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-04-30</span>
+  </div>
+  <h3><a href="articles/item-18430c6bd5373ad5.html">COSCUP 2023: Ubuntu Taiwan LoCo + UbuCon Asia booth</a></h3>
+  <p class="summary">Ian 可低成本收下當 COSCUP 社群活動小消息，重點是 Ubuntu Taiwan 與 UbuCon Asia 的現場串連。
+這則貼文是在說明作者計畫於 COSCUP 2023 設置 Ubuntu Taiwan LoCo 與 UbuCon Asia 的聯合攤位，用來推廣台灣 Ubuntu 社群與當年的 UbuCon Asia。從片段來看，它主要是活動籌備或參展公告。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-04-17</span>
+  </div>
+  <h3><a href="articles/item-9f32b4568752c435.html">FOSSASIA Summit 2023 Quick recap</a></h3>
+  <p class="summary">Ian 先略過或低優先，摘要太短，目前只看得出是韓國社群聯合攤位回顧。
+目前摘要只顯示作者提到 FOSSASIA Summit 2023 中有韓國多個社群共同設置攤位，包括 Ubuntu Korea Community、C++ Korea、Women Who Code 等。除此之外，沒有足夠內容判斷文章的完整觀點或新聞價值。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-02-09</span>
+  </div>
+  <h3><a href="articles/item-952a9aa840e49a13.html">Official Teenage Mutant Ninja Turtles Leonardo CosCup</a></h3>
+  <p class="summary">Ian 可以跳過，這是商品頁把 CosCup 當成角色杯品名，不是 COSCUP 年會或開源社群內容。
+這是一個 Numskull 的官方忍者龜 Leonardo 造型杯商品介紹，內容描述杯子材質、容量、角色設計與收藏系列。文中的 CosCup 指的是 cosplaying cup 產品命名，與 COSCUP 開源人年會沒有關聯。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2023-02-08</span>
+  </div>
+  <h3><a href="articles/item-99029d2f2e61e949.html">FOSDEM 2023 歐洲開源年會</a></h3>
+  <p class="summary">Ian 可以收，但比較像社群觀察稿；最有價值的是拿來看大型開源年會如何連結公共服務、交通與 Public Money Public Code。
+文章記錄作者參加 FOSDEM 2023 的經驗，從 GNOME 相關會議、會場動線、開幕與 keynote，到不同 devroom 的觀察。摘要中特別提到作者近年更關注開放科技的實踐與應用，例如公共交通資訊系統 OpenTripPlanner，以及公共資金與公共程式碼相關議題。整體看起來是兼具...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2022-09-17</span>
+  </div>
+  <h3><a href="articles/item-a5946e7ebb2a2f00.html">【COSCUP演講】IOTA的帳本結構與共識創新</a></h3>
+  <p class="summary">Ian 可以先列入人工複讀，價值在於它不是活動消息，而是用 COSCUP 脈絡拆解 DLT 帳本與共識設計。
+這篇文章整理作者在 COSCUP 2022 的 IOTA 演講，從「無領導者 DAG」與「Reality-based UTXO Ledger」兩個研究方向切入，說明分散式帳本為何需要重新思考帳本資料結構與共識機制。摘錄中也比較 Account 與 UTXO 模型在智慧合約、並行處理、帳本體積與雙重支付檢查上的差異，並帶到 IOT...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">2021-07-29</span>
+  </div>
+  <h3><a href="articles/item-96defc7cc2db83e5.html">COSCUP 開源人年會Ｘ客家公共傳播與語言數位溝通</a></h3>
+  <p class="summary">Ian 值得優先看，這筆把開源社群、語言保存、公共傳播與資料開放接在一起，角度很少見。
+這篇文章介紹客家公共傳播相關單位參與 COSCUP 2021 的安排，主軸是客家語言如何面對數位化、公共傳播與資料開放。文中提到講客廣播電臺累積大量客語節目音檔，正在思考如何把客家聲音資料以公共財形式釋出；也描述客庄夥伴整理地方文史資料、上傳維基平台，以及客語字形、拼音與跨平台輸入法面臨的技術挑戰。</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2020-08-03</span>
+  </div>
+  <h3><a href="articles/item-96280d7fc3fd61ea.html">在 COSCUP 2020 分享的「模糊也是一種美 - 從 BlurHash 探討前後端上傳圖片架構」</a></h3>
+  <p class="summary">Ian 若要收技術實作案例可以看，最有價值的是它把 COSCUP 議程延伸成真實產品架構取捨。
+這篇 Funliday 技術文章延伸作者在 COSCUP 2020 的 BlurHash 分享，說明團隊如何把 BlurHash 實作到 Web 與 Android，並回答會後常見問題。內容談到 signed URL 如何讓沒有 access key 的端點處理 S3 檔案、用 UUID 避免檔名衝突、BlurHash decode 可能造成...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2020-07-31</span>
+  </div>
+  <h3><a href="articles/item-c55aade06e2c2892.html">OpenChain Sponsors COSCUP Again – Local Team Doing Awesome Talk As Well</a></h3>
+  <p class="summary">Ian 可以先收下當作 COSCUP 與開源供應鏈合規的脈絡資料，但不必優先長文處理。
+OpenChain Project 宣布再度贊助台灣 COSCUP，並介紹 OpenChain Taiwan Work Group 的林上智與林誠夏將在 2020 年 8 月 1 日分享開源合規業界標準。摘要說明 OpenChain 作為企業供應鏈使用開源軟體時的合規流程，特別關注授權義務、上下游交付依循，以及它即將成為 ISO/IEC 國際標準的背...</p>
+</article>
+
+
+<article class="news-item">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2020-05-06</span>
+  </div>
+  <h3><a href="articles/item-b1bb21d1050cbd8d.html">COSCUP 2020 : Call for Proposals</a></h3>
+  <p class="summary">Ian 可以保留複讀，最有價值的是它把開放文化從工具理性拉到人文、藝術與技術哲學。
+這則 COSCUP 2020 徵稿資料以「技術」作為理解開放文化的核心，引用海德格對技術本質的思考，主張開放文化不應只被理解成科技工具或自由軟體實作，也需要納入人文科學、藝術與跨領域理論。摘錄也列出議程徵求方向、投稿期限、活動日期，並說明演講錄影將以 CC 姓名標示-相同方式分享 4.0 釋出，入選議程也需提供英文版資訊。</p>
+</article>
+</div>
+</section>
+</main>
+</body>
+</html>

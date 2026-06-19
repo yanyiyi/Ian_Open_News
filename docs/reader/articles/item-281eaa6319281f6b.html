@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>- Archilife Research Foundation - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--accent); overflow-wrap: anywhere; }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--cyan);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>- Archilife Research Foundation</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-19T18:19:27+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">純新聞 / 小消息</span>
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2024-01-15</span>
+    </div>
+    <h2>- Archilife Research Foundation</h2>
+    <p class="lede">Ian 值得簡短複核，重點在 OCF 將「開放科技」納入核心目標，並擴及網路自由與數位人權。
+潤泰創新國際基金會延續與開放文化基金會的合作，說明 2022 年支持 COSCUP、SITCON 恢復實體舉辦，也提到 OCF 在 2022 年把「開放科技」納入核心推動目標，並將網路自由與數位人權列入關注議題。摘要後段另提及 MOPCON 恢復實體舉辦與議題方向，但內容被截斷。</p>
+    <div class="actions">
+      <a class="button secondary" href="../index.html">回精選與觀點</a>
+      <a class="button secondary" href="../news.html">看小消息</a>
+      <a class="button quiet" href="https://en.archilife.org/modules/wfsection/article.php?articleid=1089" target="_blank" rel="noreferrer">原始連結</a>
+    </div>
+    <section class="article-body"><h1>- Archilife Research Foundation</h1>
+<ul>
+<li><a href="https://en.archilife.org" target="_blank" rel="noreferrer">Home</a></li>
+<li><a href="https://en.archilife.org/modules/wfsection" target="_blank" rel="noreferrer">News Reports</a></li>
+<li><a href="https://en.archilife.org/modules/publisher" target="_blank" rel="noreferrer">Sustainable Thinking</a></li>
+<li><a href="https://en.archilife.org/modules/green" target="_blank" rel="noreferrer">Green Paradise</a></li>
+<li><a href="https://www.archilife.org/" target="_blank" rel="noreferrer">中文</a></li>
+<li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1089#" target="_blank" rel="noreferrer">GO</a></li>
+</ul>
+<h3>Recent Reports</h3>
+<ul>
+<li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1228" target="_blank" rel="noreferrer">Sketch of Public Policy Communion, April 2026</a></li>
+<li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1225" target="_blank" rel="noreferrer">Sketch of Public Policy Communion, March 2026</a></li>
+<li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1227" target="_blank" rel="noreferrer">Sheet of Wormhole Bookish Assembly, February 2026</a></li>
+<li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1219" target="_blank" rel="noreferrer">Sketch of Public Policy Communion, February 2026</a></li>
+<li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1226" target="_blank" rel="noreferrer">Sheet of Wormhole Bookish Assembly, January 2026</a></li>
+</ul>
+<h3>WF-Section Spotlight</h3>
+<h3>WF-Section Random Articles</h3>
+<ul>
+<li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1081" target="_blank" rel="noreferrer">Sheet of Wormhole Bookish Assembly, October 2022</a> (676)</li>
+<li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=924" target="_blank" rel="noreferrer">Sketch of Public Policy Communion, April 2018</a> (1350)</li>
+<li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=851" target="_blank" rel="noreferrer">Sketch of Archilife Study Tour, August 2016</a> (1151)</li>
+</ul>
+<h3>Other Categories</h3>
+<ul>
+<li><a href="https://en.archilife.org/modules/wfsection/viewarticles.php?category=3" target="_blank" rel="noreferrer">Activity</a></li>
+<li><a href="https://en.archilife.org/modules/wfsection/viewarticles.php?category=2" target="_blank" rel="noreferrer">Exchanges</a></li>
+<li><a href="https://en.archilife.org/modules/wfsection/viewarticles.php?category=9" target="_blank" rel="noreferrer">SB Series of International Conferences</a></li>
+<li><a href="https://en.archilife.org/modules/wfsection/viewarticles.php?category=1" target="_blank" rel="noreferrer">Special Team Conferences</a></li>
+<li><a href="https://en.archilife.org/modules/wfsection/viewarticles.php?category=4" target="_blank" rel="noreferrer">Sponsorships</a></li>
+<li><a href="https://en.archilife.org/modules/wfsection/viewarticles.php?category=6" target="_blank" rel="noreferrer">Wormhole Bookish Assembly</a></li>
+<li><a href="https://en.archilife.org/modules/about/item.php?itemid=1" target="_blank" rel="noreferrer">About Us</a> |</li>
+<li><a href="https://en.archilife.org/modules/about/item.php?itemid=2" target="_blank" rel="noreferrer">Chronicle</a> |</li>
+<li><a href="https://en.archilife.org/modules/contact/" target="_blank" rel="noreferrer">Contact Us</a> |</li>
+<li>+886-2-25676220</li>
+<li>Powered by XOOPS</li>
+</ul></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/codex-update-optimize-rss-manager/reader-notes?filename=item-281eaa6319281f6b.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：direct-pr-small-news / 2026-06-18T13:08:46+00:00</li><li>審稿備註：2026-06-18T13:08:46+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-281eaa6319281f6b";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+</body>
+</html>

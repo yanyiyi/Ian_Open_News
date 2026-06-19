@@ -1,0 +1,434 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+
+from local_web import (
+    ITEMS,
+    clean_text,
+    content_kind_label,
+    h,
+    is_reader_item,
+    item_display_kind,
+    item_image_url,
+    item_zh_summary,
+    load_jsonl,
+    markdown_to_html,
+    track_meta,
+)
+from page_metadata import text_to_markdown
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_OUTPUT = ROOT / "docs" / "reader" / "index.html"
+PUBLIC_KINDS = {"featured-article", "small-news", "opinion-article"}
+PRIMARY_KINDS = {"featured-article", "opinion-article"}
+
+
+def repo_web_url() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return "https://github.com/yanyiyi/Ian_Open_News"
+    remote = result.stdout.strip()
+    if remote.startswith("git@github.com:"):
+        return "https://github.com/" + remote.removeprefix("git@github.com:").removesuffix(".git")
+    if remote.startswith("https://github.com/"):
+        return remote.removesuffix(".git")
+    return "https://github.com/yanyiyi/Ian_Open_News"
+
+
+def branch_name() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return "main"
+    return result.stdout.strip() or "main"
+
+
+def article_filename(item: dict) -> str:
+    item_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(item.get("id")) or "item").strip("-")
+    return f"{item_id}.html"
+
+
+def article_href(item: dict, from_article: bool = False) -> str:
+    prefix = "" if from_article else "articles/"
+    return prefix + article_filename(item)
+
+
+def item_date(item: dict) -> str:
+    return clean_text(item.get("published_at") or item.get("captured_at"))
+
+
+def item_body_markdown(item: dict) -> str:
+    metadata = item.get("reading_metadata") if isinstance(item.get("reading_metadata"), dict) else {}
+    markdown = clean_text(metadata.get("article_markdown"))
+    if markdown:
+        return markdown
+    article_text = clean_text(metadata.get("article_text"))
+    if article_text:
+        return text_to_markdown(article_text, title=metadata.get("title") or item.get("title") or "")
+    return ""
+
+
+def item_is_public_reader(item: dict) -> bool:
+    if item.get("track") != "open-tech-open-industry":
+        return False
+    if not is_reader_item(item):
+        return False
+    return item_display_kind(item) in PUBLIC_KINDS
+
+
+def kind_order(item: dict) -> tuple[int, str, str, str]:
+    kind = item_display_kind(item)
+    order = {"featured-article": 0, "opinion-article": 1, "small-news": 2}.get(kind, 9)
+    return (order, item_date(item), clean_text(item.get("captured_at")), clean_text(item.get("title")))
+
+
+def note_pr_url(item: dict, repo_url: str, branch: str) -> str:
+    return f"{repo_url}/new/{branch}/reader-notes?filename={clean_text(item.get('id')) or 'item'}.md"
+
+
+def page_shell(title: str, body: str, current: str = "index", depth: int = 0) -> str:
+    generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    root_prefix = "../" if depth else ""
+    nav = f"""
+<nav>
+  <a class="{h('is-active' if current == 'index' else '')}" href="{root_prefix}index.html">精選與觀點</a>
+  <a class="{h('is-active' if current == 'news' else '')}" href="{root_prefix}news.html">小消息</a>
+</nav>
+"""
+    return f"""<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{h(title)} - Ian Open News</title>
+  <style>
+    :root {{
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+    }}
+    * {{ box-sizing: border-box; }}
+    body {{
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }}
+    header {{ background: #fff; border-bottom: 1px solid var(--line); }}
+    .masthead {{ max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }}
+    main {{ max-width: 1120px; margin: 0 auto; padding: 22px; }}
+    h1 {{ margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }}
+    h2 {{ margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }}
+    h3 {{ margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }}
+    p {{ margin: 8px 0; }}
+    a {{ color: var(--accent); overflow-wrap: anywhere; }}
+    nav {{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }}
+    nav a, .button, button {{
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }}
+    nav a:not(.is-active), .button.secondary {{ background: var(--cyan); }}
+    .button.quiet, button.quiet {{ background: #273244; }}
+    .lede {{ max-width: 820px; color: var(--muted); }}
+    .generated {{ color: var(--muted); font-size: 13px; }}
+    .badge {{
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }}
+    .card-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }}
+    .story-card {{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }}
+    .thumb {{
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }}
+    .thumb img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
+    .story-body {{ padding: 14px; }}
+    .summary {{ white-space: pre-wrap; }}
+    .actions {{ display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }}
+    .news-list {{ display: grid; gap: 10px; margin-top: 12px; }}
+    .news-item {{
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--cyan);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }}
+    .article-layout {{ display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }}
+    .article-panel, .side-panel {{
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }}
+    .article-body {{ max-width: 760px; }}
+    .article-body img {{ max-width: 100%; height: auto; }}
+    .article-body pre {{ white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }}
+    .article-body blockquote {{ border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }}
+    textarea {{
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }}
+    .empty {{ background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }}
+    @media (max-width: 820px) {{
+      main, .masthead {{ padding-left: 16px; padding-right: 16px; }}
+      .article-layout {{ grid-template-columns: 1fr; }}
+    }}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>{h(title)}</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：{h(generated_at)}</p>
+      {nav}
+    </div>
+  </header>
+  <main>{body}</main>
+</body>
+</html>
+"""
+
+
+def item_card(item: dict) -> str:
+    kind = item_display_kind(item)
+    image = item_image_url(item)
+    image_html = f'<img src="{h(image)}" alt="">' if image else f"<span>{h(track_meta(item.get('track', ''))['short'])}</span>"
+    summary = item_zh_summary(item, 440)
+    has_body = bool(item_body_markdown(item))
+    return f"""
+<article class="story-card">
+  <div class="thumb">{image_html}</div>
+  <div class="story-body">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">{h(content_kind_label(kind))}</span>
+      {'<span class="badge">已載入本機全文</span>' if has_body else ''}
+      <span class="badge">{h(item_date(item))}</span>
+    </div>
+    <h2><a href="{h(article_href(item))}">{h(item.get('title'))}</a></h2>
+    <p class="summary">{h(summary)}</p>
+    <div class="actions">
+      <a class="button secondary" href="{h(article_href(item))}">閱讀單篇</a>
+      {f'<a class="button quiet" href="{h(clean_text(item.get("url")))}" target="_blank" rel="noreferrer">原始連結</a>' if clean_text(item.get("url")) else ''}
+    </div>
+  </div>
+</article>
+"""
+
+
+def news_row(item: dict, depth: int = 0) -> str:
+    prefix = "../" if depth else ""
+    summary = item_zh_summary(item, 220)
+    has_body = bool(item_body_markdown(item))
+    return f"""
+<article class="news-item">
+  <div>
+    <span class="badge">{h(content_kind_label(item_display_kind(item)))}</span>
+    {'<span class="badge">已載入本機全文</span>' if has_body else ''}
+    <span class="badge">{h(item_date(item))}</span>
+  </div>
+  <h3><a href="{h(prefix + article_href(item))}">{h(item.get('title'))}</a></h3>
+  <p class="summary">{h(summary)}</p>
+</article>
+"""
+
+
+def edit_record_html(item: dict) -> str:
+    lines = []
+    local_decision = item.get("local_decision") if isinstance(item.get("local_decision"), dict) else {}
+    if local_decision:
+        lines.append(f"本機決定：{clean_text(local_decision.get('action'))} / {clean_text(local_decision.get('decided_at'))}")
+    review = item.get("review") if isinstance(item.get("review"), dict) else {}
+    if clean_text(review.get("notes")):
+        lines.append("審稿備註：" + clean_text(review.get("notes"), 600))
+    notes = item.get("personal_notes")
+    if isinstance(notes, dict) and clean_text(notes.get("body")):
+        lines.append("我的關鍵紀錄：" + clean_text(notes.get("body"), 600))
+    requests = item.get("skill_requests") if isinstance(item.get("skill_requests"), list) else []
+    for request in requests[-3:]:
+        lines.append(f"重送 skill：{clean_text(request.get('requested_at'))} / {clean_text(request.get('personal_notes'), 240)}")
+    if not lines:
+        return "<p class='lede'>目前沒有本機編輯紀錄。</p>"
+    return "<ul>" + "".join(f"<li>{h(line)}</li>" for line in lines) + "</ul>"
+
+
+def article_page(item: dict, repo_url: str, branch: str) -> str:
+    kind = item_display_kind(item)
+    body_markdown = item_body_markdown(item)
+    article_html = markdown_to_html(body_markdown) if body_markdown else "<p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p>"
+    note_key = h(clean_text(item.get("id")))
+    source_url = clean_text(item.get("url"))
+    side = f"""
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="{h(note_pr_url(item, repo_url, branch))}" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  {edit_record_html(item)}
+</aside>
+<script>
+const noteKey = "ian-open-news-note:{note_key}";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {{
+  localStorage.setItem(noteKey, noteBody.value);
+}});
+</script>
+"""
+    body = f"""
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">{h(content_kind_label(kind))}</span>
+      {'<span class="badge">已載入本機全文</span>' if body_markdown else '<span class="badge">尚未載入全文</span>'}
+      <span class="badge">{h(item_date(item))}</span>
+    </div>
+    <h2>{h(item.get('title'))}</h2>
+    <p class="lede">{h(item_zh_summary(item, 520))}</p>
+    <div class="actions">
+      <a class="button secondary" href="../index.html">回精選與觀點</a>
+      <a class="button secondary" href="../news.html">看小消息</a>
+      {f'<a class="button quiet" href="{h(source_url)}" target="_blank" rel="noreferrer">原始連結</a>' if source_url else ''}
+    </div>
+    <section class="article-body">{article_html}</section>
+  </article>
+  {side}
+</div>
+"""
+    return page_shell(clean_text(item.get("title")) or "單篇文章", body, current="article", depth=1)
+
+
+def index_page(items: list[dict]) -> str:
+    primary = [item for item in items if item_display_kind(item) in PRIMARY_KINDS]
+    small_news = [item for item in items if item_display_kind(item) == "small-news"]
+    cards = "\n".join(item_card(item) for item in primary[:120]) or "<p class='empty'>目前沒有精選文章或觀點文章。</p>"
+    news_preview = "\n".join(news_row(item) for item in small_news[:8]) or "<p class='empty'>目前沒有小消息。</p>"
+    body = f"""
+<section>
+  <h2>精選文章與觀點文章</h2>
+  <p class="lede">這裡優先呈現需要細讀、可能延伸撰稿或觀點整理的內容。</p>
+  <div class="card-grid">{cards}</div>
+</section>
+<section>
+  <h2>最新小消息</h2>
+  <p class="lede">小消息改成列表，適合快速掃過；完整列表在下一頁。</p>
+  <div class="news-list">{news_preview}</div>
+  <div class="actions"><a class="button secondary" href="news.html">看全部小消息</a></div>
+</section>
+"""
+    return page_shell("開放科技閱讀版", body, current="index")
+
+
+def news_page(items: list[dict]) -> str:
+    small_news = [item for item in items if item_display_kind(item) == "small-news"]
+    rows = "\n".join(news_row(item) for item in small_news) or "<p class='empty'>目前沒有小消息。</p>"
+    body = f"""
+<section>
+  <h2>小消息列表</h2>
+  <p class="lede">純新聞消息用列表呈現，保留快速掃讀與點進單篇的入口。</p>
+  <div class="news-list">{rows}</div>
+</section>
+"""
+    return page_shell("開放科技小消息", body, current="news")
+
+
+def write_clean(path: Path, html: str) -> None:
+    html = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", html)
+    html = "\n".join(line.rstrip() for line in html.splitlines()) + "\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(html, encoding="utf-8")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Render GitHub Pages reader pages for open-tech items.")
+    parser.add_argument("--items", type=Path, default=ITEMS)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    args = parser.parse_args()
+
+    output_dir = args.output.parent
+    articles_dir = output_dir / "articles"
+    items = [item for item in load_jsonl(args.items) if item_is_public_reader(item)]
+    items.sort(key=kind_order, reverse=True)
+    items.sort(key=lambda item: {"featured-article": 0, "opinion-article": 1, "small-news": 2}.get(item_display_kind(item), 9))
+
+    repo_url = repo_web_url()
+    branch = branch_name()
+    write_clean(args.output, index_page(items))
+    write_clean(output_dir / "news.html", news_page(items))
+    articles_dir.mkdir(parents=True, exist_ok=True)
+    for stale in articles_dir.glob("*.html"):
+        stale.unlink()
+    for item in items:
+        write_clean(articles_dir / article_filename(item), article_page(item, repo_url, branch))
+    print(f"wrote {output_dir} ({len(items)} items, {len(items)} article pages)")
+
+
+if __name__ == "__main__":
+    main()
