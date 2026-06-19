@@ -8,15 +8,18 @@ import json
 import re
 import subprocess
 import sys
+import urllib.error
+import urllib.request
+import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, quote, unquote, urlparse
+from urllib.parse import parse_qs, quote, urlencode, unquote, urljoin, urlparse
 import hashlib
 
-from page_metadata import enrich_item_metadata, text_to_markdown
+from page_metadata import attrs_from_tag, enrich_item_metadata, fetch_page_metadata, text_to_markdown, unwrap_google_alert_url
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,6 +63,7 @@ TRACK_META = {
 TRACK_ORDER = ["open-tech-open-industry", "digital-humanities-local-knowledge", "unclassified"]
 SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast", "facebook", "inoreader-monitor", "spreadsheet", "manual"]
 SOURCE_STATUSES = ["active", "paused", "archived"]
+FETCH_FREQUENCIES = ["daily", "weekly", "monthly", "paused"]
 SOURCE_TYPE_LABELS = {
     "rss": "RSS / 網站",
     "google-alert": "Google 快訊",
@@ -84,6 +88,25 @@ SOURCE_STATUS_LABELS = {
     "active": "啟用",
     "paused": "暫停",
     "archived": "封存",
+}
+FETCH_FREQUENCY_LABELS = {
+    "daily": "每天抓",
+    "weekly": "每週抓",
+    "monthly": "每月抓",
+    "paused": "暫停抓取",
+}
+COMMAND_ICONS = {
+    "fetch_rss": "R",
+    "validate": "V",
+    "apply_triage_keywords": "#",
+    "analyze_source_health": "H",
+    "export_sqlite": "D",
+    "render_ghpages_reader": "P",
+    "enrich_reader_metadata": "T",
+    "enrich_article_summaries": "S",
+    "codex_enrich_reviews": "C",
+    "git_status": "G",
+    "git_diff_stat": "Δ",
 }
 DEFAULT_REJECTION_REASONS = [
     "資料太舊",
@@ -118,6 +141,12 @@ COMMANDS = {
         "button": "更新初篩建議",
         "command": [sys.executable, str(ROOT / "scripts" / "apply_triage_keywords.py")],
     },
+    "analyze_source_health": {
+        "label": "更新 RSS 來源健康評估",
+        "description": "彙整近期收下、不收、候選與 RSS 抓取結果，替每個來源建議抓取頻率、是否暫停或重設個別關鍵字。適合兩週跑一次。",
+        "button": "更新來源健康評估",
+        "command": [sys.executable, str(ROOT / "scripts" / "analyze_source_health.py")],
+    },
     "export_sqlite": {
         "label": "匯出 SQLite",
         "description": "把 JSONL 正本轉成 .cache/knowledge.sqlite，方便用資料庫工具查詢。",
@@ -128,6 +157,12 @@ COMMANDS = {
             "--output",
             str(ROOT / ".cache" / "knowledge.sqlite"),
         ],
+    },
+    "render_ghpages_reader": {
+        "label": "產生 GitHub Pages 閱讀版",
+        "description": "輸出 docs/reader/index.html，只顯示開放科技主線的精選文章、小消息與觀點文章，可交給 GitHub Pages 發布。",
+        "button": "更新線上閱讀版",
+        "command": [sys.executable, str(ROOT / "scripts" / "render_ghpages_reader.py")],
     },
     "enrich_reader_metadata": {
         "label": "補閱讀卡圖片、描述與主文",
@@ -200,6 +235,7 @@ def clean_text(value: object, limit: int | None = None) -> str:
     if value is None:
         return ""
     text = html.unescape(str(value))
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", text)
     text = re.sub(r"(?is)<(script|style).*?</\1>", " ", text)
     text = re.sub(r"(?i)<br\s*/?>", "\n", text)
     text = re.sub(r"(?i)</p>", "\n", text)
@@ -216,10 +252,239 @@ def h(value: object) -> str:
     return html.escape(str(value or ""), quote=True)
 
 
+def local_name(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1].casefold() if "}" in tag else tag.casefold()
+
+
+def fetchable_http_url(value: object) -> str:
+    url = clean_text(value)
+    return url if url.startswith(("http://", "https://")) else ""
+
+
+def host_label(url: str) -> str:
+    parsed = urlparse(url)
+    host = parsed.netloc.removeprefix("www.")
+    return host or url
+
+
+def source_add_href(feed_url: str, track: str, name: str = "", site_url: str = "") -> str:
+    params = {
+        "track": track if track in TRACK_META else "digital-humanities-local-knowledge",
+        "source_type": "rss",
+        "source_group": "Manual RSS",
+        "feed_url": feed_url,
+        "site_url": site_url,
+        "name": name or host_label(feed_url),
+    }
+    return "/sources/new?" + urlencode(params)
+
+
+def read_preview_document(url: str, timeout: int = 8, max_bytes: int = 900_000) -> tuple[str, str, bytes]:
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "IanOpenNewsBot/1.0 preview (+local web form)",
+            "Accept": "text/html,application/xhtml+xml,application/xml,application/rss+xml,application/atom+xml;q=0.9,*/*;q=0.8",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        final_url = response.geturl()
+        content_type = response.headers.get("content-type", "")
+        raw = response.read(max_bytes)
+    return final_url, content_type, raw
+
+
+def decode_preview_text(raw: bytes, content_type: str) -> str:
+    charset_match = re.search(r"charset=([\w.-]+)", content_type, flags=re.I)
+    charset = charset_match.group(1) if charset_match else "utf-8"
+    return raw.decode(charset, errors="replace")
+
+
+def feed_metadata_from_xml(raw: bytes, final_url: str) -> dict:
+    try:
+        root = ET.fromstring(raw)
+    except ET.ParseError:
+        return {}
+    root_name = local_name(root.tag)
+    if root_name == "rss":
+        channel = next((child for child in list(root) if local_name(child.tag) == "channel"), None)
+        if channel is None:
+            return {}
+        title = clean_text(next((child.text for child in list(channel) if local_name(child.tag) == "title"), ""), 220)
+        site_url = clean_text(next((child.text for child in list(channel) if local_name(child.tag) == "link"), ""))
+        description = clean_text(next((child.text for child in list(channel) if local_name(child.tag) == "description"), ""), 500)
+        entry_count = sum(1 for child in list(channel) if local_name(child.tag) == "item")
+        return {
+            "is_feed": True,
+            "feed_type": "RSS",
+            "feed_title": title,
+            "site_url": site_url,
+            "description": description,
+            "entry_count": entry_count,
+            "final_url": final_url,
+        }
+    if root_name == "feed":
+        title = clean_text(next((child.text for child in list(root) if local_name(child.tag) == "title"), ""), 220)
+        site_url = ""
+        for child in list(root):
+            if local_name(child.tag) != "link":
+                continue
+            attrs = {str(key).casefold(): str(value) for key, value in child.attrib.items()}
+            rel = attrs.get("rel", "alternate").casefold()
+            if rel == "alternate" and attrs.get("href"):
+                site_url = urljoin(final_url, attrs["href"])
+                break
+        entry_count = sum(1 for child in list(root) if local_name(child.tag) == "entry")
+        return {
+            "is_feed": True,
+            "feed_type": "Atom",
+            "feed_title": title,
+            "site_url": site_url,
+            "description": "",
+            "entry_count": entry_count,
+            "final_url": final_url,
+        }
+    return {}
+
+
+def discover_feed_links(html_text: str, final_url: str) -> list[dict]:
+    feeds: list[dict] = []
+    seen: set[str] = set()
+
+    def add_feed(href: str, title: str, source: str, feed_type: str = "") -> None:
+        feed_url = urljoin(final_url, html.unescape(href).strip())
+        if not feed_url.startswith(("http://", "https://")):
+            return
+        key = feed_url.rstrip("/")
+        if key in seen:
+            return
+        seen.add(key)
+        feeds.append(
+            {
+                "url": feed_url,
+                "title": clean_text(title, 160) or "RSS / Atom feed",
+                "type": clean_text(feed_type, 60) or "RSS / Atom",
+                "source": source,
+            }
+        )
+
+    for match in re.finditer(r"<link\b[^>]*>", html_text, flags=re.I | re.S):
+        attrs = attrs_from_tag(match.group(0))
+        rel = attrs.get("rel", "").casefold()
+        feed_type = attrs.get("type", "")
+        feed_type_lower = feed_type.casefold()
+        title = attrs.get("title") or attrs.get("href") or "RSS / Atom feed"
+        if "alternate" not in rel.split() or not attrs.get("href"):
+            continue
+        if any(token in feed_type_lower for token in ["rss", "atom", "xml"]) or re.search(r"\b(rss|atom|feed)\b", title, flags=re.I):
+            add_feed(attrs["href"], title, "page-link", feed_type)
+
+    for match in re.finditer(r"(?is)<a\b([^>]*)>(.*?)</a>", html_text):
+        attrs = attrs_from_tag(match.group(1))
+        href = attrs.get("href", "")
+        label = clean_text(match.group(2), 160)
+        if not href or not re.search(r"\b(rss|atom|feed)\b|訂閱|摘要", f"{href} {label}", flags=re.I):
+            continue
+        add_feed(href, label or href, "page-anchor")
+        if len(feeds) >= 8:
+            break
+    return feeds[:8]
+
+
+def build_url_preview(url: str, track: str) -> dict:
+    original_url = clean_text(url)
+    url = fetchable_http_url(unwrap_google_alert_url(original_url))
+    if not url:
+        return {"ok": False, "error": "請填入 http 或 https 開頭的網址。"}
+
+    sources = load_jsonl(SOURCES)
+    existing_feeds = {clean_text(source.get("feed_url")).rstrip("/") for source in sources if source.get("feed_url")}
+    metadata: dict = {}
+    metadata_error = ""
+    try:
+        metadata = fetch_page_metadata(url, timeout=8)
+    except (urllib.error.URLError, TimeoutError, OSError, UnicodeError, ValueError) as exc:
+        metadata_error = str(exc)
+
+    final_url = clean_text(metadata.get("final_url") or url)
+    content_type = ""
+    raw = b""
+    document_error = ""
+    try:
+        final_url, content_type, raw = read_preview_document(url, timeout=8)
+    except (urllib.error.URLError, TimeoutError, OSError, UnicodeError, ValueError) as exc:
+        document_error = str(exc)
+
+    feed_info = feed_metadata_from_xml(raw, final_url) if raw else {}
+    html_text = decode_preview_text(raw, content_type) if raw else ""
+    feed_suggestions = [] if feed_info else discover_feed_links(html_text, final_url)
+    if feed_info:
+        title = feed_info.get("feed_title") or metadata.get("title") or host_label(final_url)
+        feed_suggestions = [
+            {
+                "url": final_url,
+                "title": title,
+                "type": feed_info.get("feed_type") or "RSS / Atom",
+                "source": "current-url",
+            }
+        ]
+
+    enriched_feeds = []
+    for feed in feed_suggestions:
+        feed_url = clean_text(feed.get("url"))
+        key = feed_url.rstrip("/")
+        feed_title = clean_text(feed.get("title"), 160) or clean_text(metadata.get("title"), 160) or host_label(feed_url)
+        site_url = clean_text(feed_info.get("site_url") if feed_info else final_url)
+        enriched_feeds.append(
+            {
+                **feed,
+                "url": feed_url,
+                "title": feed_title,
+                "exists": key in existing_feeds,
+                "add_url": source_add_href(feed_url, track, feed_title, site_url),
+            }
+        )
+
+    title = clean_text(metadata.get("title") or feed_info.get("feed_title"), 300)
+    description = clean_text(metadata.get("description") or feed_info.get("description") or metadata.get("excerpt"), 900)
+    canonical = clean_text(metadata.get("canonical_url"))
+    site_url = clean_text(feed_info.get("site_url") or canonical or final_url)
+    return {
+        "ok": True,
+        "url": url,
+        "original_url": original_url,
+        "unwrapped_url": url if url != original_url else "",
+        "final_url": final_url,
+        "content_type": content_type or metadata.get("content_type", ""),
+        "title": title,
+        "description": description,
+        "excerpt": clean_text(metadata.get("excerpt"), 900),
+        "image_url": clean_text(metadata.get("image_url")),
+        "canonical_url": canonical,
+        "source_name": host_label(final_url),
+        "is_feed": bool(feed_info),
+        "feed_title": clean_text(feed_info.get("feed_title"), 220),
+        "feed_type": clean_text(feed_info.get("feed_type")),
+        "entry_count": feed_info.get("entry_count", 0),
+        "site_url": site_url,
+        "feed_suggestions": enriched_feeds,
+        "metadata_error": metadata_error,
+        "document_error": document_error,
+    }
+
+
 def load_jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+    records = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").split("\n"), start=1):
+        if not line.strip():
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            print(f"warning: skip invalid JSONL {path}:{line_number}: {exc}", file=sys.stderr)
+    return records
 
 
 def load_json(path: Path) -> dict:
@@ -331,9 +596,30 @@ def source_status_options(current: str) -> str:
     return option_list([(value, SOURCE_STATUS_LABELS.get(value, value)) for value in SOURCE_STATUSES], current)
 
 
+def source_frequency_label(frequency: str) -> str:
+    return FETCH_FREQUENCY_LABELS.get(frequency or "daily", frequency or "每天抓")
+
+
+def source_frequency_options(current: str) -> str:
+    return option_list([(value, FETCH_FREQUENCY_LABELS.get(value, value)) for value in FETCH_FREQUENCIES], current or "daily")
+
+
+def form_lines(value: object) -> list[str]:
+    if isinstance(value, list):
+        raw_lines = [str(line) for line in value]
+    else:
+        raw_lines = re.split(r"[\n,，]", str(value or ""))
+    return [line.strip() for line in raw_lines if line.strip()]
+
+
+def source_keywords_text(source: dict, key: str) -> str:
+    return "\n".join(form_lines(source.get(key)))
+
+
 def is_fetchable_source(source: dict) -> bool:
     return (
         source.get("status") == "active"
+        and source.get("fetch_frequency", "daily") != "paused"
         and source.get("track") in {"digital-humanities-local-knowledge", "open-tech-open-industry"}
         and source.get("source_type") in {"rss", "google-alert", "youtube", "podcast"}
     )
@@ -353,18 +639,143 @@ def count_sources(sources: list[dict], track: str, active_only: bool = False) ->
     )
 
 
+def source_name_link(item: dict) -> str:
+    name = h(item.get("source_name") or item.get("author") or "未標示來源")
+    source_id = clean_text(item.get("source_id"))
+    if not source_id:
+        return name
+    return f'<a href="/sources/view?id={quote(source_id)}">{name}</a>'
+
+
+def parse_loose_date(value: object) -> datetime | None:
+    text = clean_text(value)
+    if not text:
+        return None
+    if re.fullmatch(r"\d+(\.\d+)?", text):
+        number = float(text)
+        if 20000 <= number <= 60000:
+            return datetime.fromordinal((datetime(1899, 12, 30).toordinal() + int(number))).replace(tzinfo=timezone.utc)
+    normalized = text.replace("Z", "+00:00").replace("/", "-")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except ValueError:
+        pass
+    match = re.search(r"(\d{4})[-.](\d{1,2})[-.](\d{1,2})", normalized)
+    if match:
+        year, month, day = (int(part) for part in match.groups())
+        try:
+            return datetime(year, month, day, tzinfo=timezone.utc)
+        except ValueError:
+            return None
+    return None
+
+
+def latest_record_date(records: list[dict]) -> str:
+    dates = [
+        parsed
+        for record in records
+        for parsed in [parse_loose_date(record.get("dismissed_at") or record.get("captured_at") or record.get("published_at"))]
+        if parsed
+    ]
+    if not dates:
+        return ""
+    return max(dates).date().isoformat()
+
+
+def source_health_summary(source: dict, items: list[dict], rejected: list[dict], candidates: list[dict], dismissed: list[dict]) -> dict:
+    source_id = source.get("id")
+    source_items = [item for item in items if item.get("source_id") == source_id]
+    source_rejected = [item for item in rejected if item.get("source_id") == source_id]
+    source_candidates = [item for item in candidates if item.get("source_id") == source_id]
+    source_dismissed = [item for item in dismissed if item.get("source_id") == source_id]
+    accepted = sum(1 for item in source_items if is_reader_item(item) or item.get("status") in {"triaged", "ready", "published"})
+    inbox = sum(1 for item in source_items if item.get("status") == "inbox")
+    rejected_count = len(source_rejected) + len(source_dismissed)
+    candidate_count = len(source_candidates)
+    rss_health = source.get("rss_health") if isinstance(source.get("rss_health"), dict) else {}
+    saved_assessment = source.get("health_assessment") if isinstance(source.get("health_assessment"), dict) else {}
+    keyword_skips = int(rss_health.get("skipped_source_keywords") or 0)
+    duplicate_skips = int(rss_health.get("skipped_duplicate_recent") or 0)
+    last_status = clean_text(rss_health.get("last_fetch_status"))
+    recommendation = clean_text(saved_assessment.get("recommendation"))
+    if source.get("status") == "archived":
+        level = "archived"
+        label = "已封存"
+        reason = "這個來源目前不在日常追蹤清單。"
+    elif last_status == "failed":
+        level = "danger"
+        label = "抓取失敗"
+        reason = clean_text(rss_health.get("last_error"), 120) or "最近一次 RSS 抓取沒有成功。"
+    elif recommendation:
+        level = clean_text(saved_assessment.get("level")) or "watch"
+        label = recommendation
+        reason = clean_text(saved_assessment.get("reason"), 180)
+    elif rejected_count >= 5 and rejected_count >= max(accepted * 2, 3):
+        level = "danger"
+        label = "建議暫停或重設篩選"
+        reason = f"已不收 {rejected_count} 次，明顯高於收下 {accepted} 次。"
+    elif keyword_skips >= 10 and keyword_skips >= max(int(rss_health.get("new_items") or 0) * 3, 10):
+        level = "watch"
+        label = "個別關鍵字偏嚴"
+        reason = f"最近抓取有 {keyword_skips} 則被來源關鍵字擋下。"
+    elif duplicate_skips >= 10:
+        level = "watch"
+        label = "重複偏多"
+        reason = f"最近抓取有 {duplicate_skips} 則是近 7 天已看過的網址。"
+    elif accepted >= 3 and accepted >= rejected_count:
+        level = "healthy"
+        label = "健康"
+        reason = f"已收下 {accepted} 則，和目前不收比例相比仍值得追。"
+    elif accepted == 0 and rejected_count == 0 and candidate_count == 0 and inbox == 0:
+        level = "new"
+        label = "新來源 / 待觀察"
+        reason = "目前還沒有足夠的收錄或不收紀錄。"
+    else:
+        level = "watch"
+        label = "觀察中"
+        reason = f"收下 {accepted}，待整理 {inbox + candidate_count}，不收 {rejected_count}。"
+    return {
+        "level": level,
+        "label": label,
+        "reason": reason,
+        "accepted": accepted,
+        "inbox": inbox,
+        "candidates": candidate_count,
+        "rejected": rejected_count,
+        "keyword_skips": keyword_skips,
+        "duplicate_skips": duplicate_skips,
+        "last_seen": latest_record_date([*source_items, *source_rejected, *source_candidates, *source_dismissed]),
+        "last_checked_at": clean_text(rss_health.get("last_checked_at") or saved_assessment.get("generated_at")),
+    }
+
+
+def source_health_badge(summary: dict) -> str:
+    level_class = {
+        "healthy": "suggest-keep",
+        "watch": "neutral",
+        "new": "neutral",
+        "danger": "suggest-skip",
+        "archived": "archived",
+    }.get(summary.get("level"), "neutral")
+    return badge(summary.get("label") or "觀察中", level_class)
+
+
 def badge(label: str, class_name: str = "neutral") -> str:
     return f'<span class="badge badge--{h(class_name)}">{h(label)}</span>'
 
 
 def command_card(name: str, config: dict) -> str:
+    icon = COMMAND_ICONS.get(name, ">")
     return (
         "<div class='card command-card'>"
-        f"<strong>{h(config['label'])}</strong>"
+        f"<strong><span class='icon' aria-hidden='true'>{h(icon)}</span>{h(config['label'])}</strong>"
         f"<p class='muted'>{h(config['description'])}</p>"
-        "<form method='post' action='/commands/run'>"
+        "<form method='post' action='/commands/run' data-command-form>"
         f"<input type='hidden' name='command' value='{h(name)}'>"
-        f"<button type='submit' class='secondary'>{h(config['button'])}</button>"
+        f"<button type='submit' class='secondary'><span class='icon' aria-hidden='true'>{h(icon)}</span>{h(config['button'])}</button>"
         "</form>"
         "</div>"
     )
@@ -394,6 +805,11 @@ def is_direct_pr_item(item: dict) -> bool:
 
 
 def item_display_kind(item: dict) -> str:
+    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    explicit_kind = clean_text(item.get("content_kind") or editorial.get("content_kind"))
+    tags = {clean_text(tag) for tag in item.get("tags", []) if clean_text(tag)}
+    if explicit_kind in {"opinion", "opinion-article"} or "觀點文章" in tags:
+        return "opinion-article"
     if is_skill_candidate(item):
         return "featured-article"
     if is_direct_pr_item(item) or item.get("status") == "ready":
@@ -430,6 +846,8 @@ def editorial_recommendation_label(recommendation: str) -> str:
 
 
 def content_kind_label(kind: str) -> str:
+    if kind in {"opinion", "opinion-article"}:
+        return "觀點文章"
     if kind == "featured-article":
         return "精選文章 / 待跑 skill"
     if kind == "small-news":
@@ -464,6 +882,27 @@ def editorial_badge_class(recommendation: str) -> str:
 
 def item_detail_href(item: dict) -> str:
     return f"/items/view?id={quote(str(item.get('id', '')))}"
+
+
+def resolve_final_url(url: str, timeout: int = 12) -> tuple[str, str]:
+    url = unwrap_google_alert_url(clean_text(url))
+    if not url:
+        return "", "網址是空的。"
+    headers = {"User-Agent": "IanOpenNewsBot/1.0 (+https://github.com/)"}
+    for method in ["HEAD", "GET"]:
+        request = urllib.request.Request(url, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return response.geturl(), ""
+        except urllib.error.HTTPError as exc:
+            if method == "HEAD" and exc.code in {403, 405, 501}:
+                continue
+            return "", str(exc)
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            if method == "HEAD":
+                continue
+            return "", str(exc)
+    return "", "無法解析跳轉網址。"
 
 
 def personal_note_text(item: dict) -> str:
@@ -680,7 +1119,7 @@ def is_reader_item(item: dict) -> bool:
     return isinstance(decision, dict) and decision.get("action") in {"accepted-for-editing", "direct-pr-small-news"}
 
 
-def editorial_triage_html(item: dict, compact: bool = False) -> str:
+def editorial_triage_html(item: dict, compact: bool = False, reject_action: str = "/items/reject") -> str:
     editorial = item.get("editorial_triage") or {}
     if not isinstance(editorial, dict):
         editorial = {}
@@ -711,11 +1150,19 @@ def editorial_triage_html(item: dict, compact: bool = False) -> str:
             "</div>"
         )
     elif not compact:
+        has_article_text = bool(item_article_text(item))
+        button_label = "生成 Codex 建議" if has_article_text else "抓全文並生成 Codex 建議"
         codex_html = (
             "<div class='source-card source-card--model source-card--empty'>"
             "<div class='section-kicker'>Codex 生成</div>"
             "<h3>給 Ian 的閱讀建議</h3>"
-            "<p class='help'>這則還沒有 Codex 生成摘要。首頁的「用本機規則重抓待整理摘要」只會更新規則摘要；需要真正模型文字時可請 Codex 針對這則生成。</p>"
+            "<p class='help'>這則還沒有 Codex 生成摘要。可以直接在本頁補上；系統會先嘗試抓全文，再用目前可讀資料生成閱讀建議。</p>"
+            "<form method='post' action='/items/codex-review' data-codex-review-form>"
+            f"<input type='hidden' name='id' value='{h(item.get('id'))}'>"
+            f"<input type='hidden' name='redirect' value='{h(item_detail_href(item))}'>"
+            "<input type='hidden' name='with_fulltext' value='1'>"
+            f"<button type='submit' class='secondary'><span class='icon' aria-hidden='true'>C</span>{h(button_label)}</button>"
+            "</form>"
             "</div>"
         )
 
@@ -744,6 +1191,13 @@ def editorial_triage_html(item: dict, compact: bool = False) -> str:
     deletion_html = ""
     if recommendation == "suggest-skip" and deletion_signals and not compact:
         deletion_html = f"<p class='help'>不要看的線索：{h('；'.join(deletion_signals[:3]))}</p>"
+    reject_reason_html = ""
+    suggested_reasons = suggested_rejection_reasons(item)
+    if suggested_reasons and not compact:
+        reject_reason_html = (
+            "<p class='help'>建議不收分類</p>"
+            f"<div class='reason-presets'>{inline_reject_buttons(clean_text(item.get('id')), suggested_reasons, limit=4, action=reject_action)}</div>"
+        )
     zh_summary = clean_text(editorial.get("zh_summary"), 620)
     zh_summary_html = f"<p class='zh-summary'>{h(zh_summary)}</p>" if zh_summary and not compact and not codex_review else ""
     rule_html = (
@@ -756,7 +1210,7 @@ def editorial_triage_html(item: dict, compact: bool = False) -> str:
         f"{zh_summary_html}"
         f"<p class='help'>初步判斷：{h(editorial.get('summary_reason', '未標示'))}<br>"
         f"下一步：{h(editorial.get('next_step_hint', '人工判斷下一步。'))}</p>"
-        f"{reason_rows}{deletion_html}"
+        f"{reason_rows}{deletion_html}{reject_reason_html}"
         "</div>"
     )
     return f"<div class='source-stack'>{codex_html}{source_html}{rule_html}</div>"
@@ -819,6 +1273,69 @@ def rejection_reason_options(items: list[dict]) -> list[str]:
         if reason and reason not in options:
             options.append(reason)
     return options
+
+
+def unique_reasons(reasons: list[str], limit: int | None = None) -> list[str]:
+    output = []
+    for reason in reasons:
+        reason = clean_text(reason, 120)
+        if reason and reason not in output:
+            output.append(reason)
+        if limit and len(output) >= limit:
+            break
+    return output
+
+
+def suggested_rejection_reasons(item: dict) -> list[str]:
+    triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
+    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    text = " ".join(
+        clean_text(part)
+        for part in [
+            item.get("title"),
+            item.get("summary"),
+            item.get("source_name"),
+            item.get("url"),
+            editorial.get("summary_reason"),
+            " ".join(triage.get("skip_keywords") or []),
+        ]
+        if part
+    ).casefold()
+    reasons: list[str] = []
+    skip_keywords = [clean_text(keyword) for keyword in triage.get("skip_keywords") or [] if clean_text(keyword)]
+    matched_keywords = [clean_text(keyword) for keyword in triage.get("matched_keywords") or [] if clean_text(keyword)]
+    recommendation = candidate_recommendation(item)
+    if recommendation == "suggest-skip":
+        reasons.append("已經是建議不要看")
+    if skip_keywords:
+        reasons.append("和兩條主線關聯太弱。")
+    if not matched_keywords and recommendation == "suggest-skip":
+        reasons.append("和兩條主線關聯太弱。")
+
+    published = parse_loose_date(item.get("published_at") or item.get("captured_at"))
+    if published:
+        age_days = (datetime.now(timezone.utc) - published).days
+        if age_days >= 730:
+            reasons.append("資料太舊")
+    if re.search(r"活動|報名|徵件|徵稿|招生|研討會|講座|工作坊|webinar|conference|event|call for|cfp", text, flags=re.I):
+        reasons.append("內容偏活動公告或宣傳，暫不整理。")
+    if re.search(r"抽獎|優惠|折扣|促銷|廣告|sponsored|coupon|sale|discount|職缺|招聘|hiring|job", text, flags=re.I):
+        reasons.append("其他類型文章")
+    deletion = editorial.get("deletion_pattern_fit") if isinstance(editorial.get("deletion_pattern_fit"), dict) else {}
+    deletion_signals = " ".join(str(signal) for signal in deletion.get("signals") or [])
+    if re.search(r"重複|已收|涵蓋|duplicate|similar", deletion_signals, flags=re.I):
+        reasons.append("來源重複，已由其他資料涵蓋。")
+    if len(clean_text(item.get("summary"))) < 180 and not item_article_text(item):
+        reasons.append("只是短訊或碎片，不足以形成文章。")
+    if not fetchable_http_url(item.get("url")):
+        reasons.append("資訊過舊或缺少可查證來源。")
+    if recommendation == "suggest-skip":
+        reasons.extend(["其他類型文章", "資訊過舊或缺少可查證來源。"])
+    return unique_reasons(reasons, limit=5)
+
+
+def prioritized_rejection_reasons(item: dict, reasons: list[str], limit: int | None = None) -> list[str]:
+    return unique_reasons([*suggested_rejection_reasons(item), *reasons], limit=limit)
 
 
 def review_event(item: dict, status: str, notes: str) -> dict:
@@ -961,8 +1478,8 @@ def page(title: str, body: str) -> bytes:
       z-index: 10;
     }}
     main {{ max-width: 1180px; margin: 0 auto; padding: 28px; }}
-    nav {{ display: flex; flex-wrap: wrap; gap: 8px; }}
-    nav a {{
+    nav {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }}
+    nav a, .nav-menu summary {{
       color: var(--ocf-dark);
       text-decoration: none;
       font-weight: 750;
@@ -970,7 +1487,27 @@ def page(title: str, body: str) -> bytes:
       border-radius: 6px;
       transition: background .16s ease, color .16s ease, transform .16s ease;
     }}
-    nav a:hover {{ background: var(--soft); color: var(--ocf-primary); transform: translateY(-1px); }}
+    nav a:hover, .nav-menu summary:hover {{ background: var(--soft); color: var(--ocf-primary); transform: translateY(-1px); }}
+    .nav-menu {{ position: relative; }}
+    .nav-menu summary {{ list-style: none; cursor: pointer; }}
+    .nav-menu summary::-webkit-details-marker {{ display: none; }}
+    .nav-menu summary::after {{ content: " v"; font-size: 11px; color: var(--muted); }}
+    .nav-menu[open] summary {{ background: var(--soft); color: var(--ocf-primary); }}
+    .nav-menu-links {{
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      min-width: 210px;
+      display: grid;
+      gap: 4px;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 12px 30px rgba(15,25,35,.16);
+      z-index: 20;
+    }}
+    .nav-menu-links a {{ display: flex; align-items: center; gap: 8px; }}
     h1 {{ font-size: 28px; margin: 0 0 12px; }}
     h2 {{ font-size: 20px; margin: 30px 0 12px; }}
     h3 {{ font-size: 16px; margin: 0 0 8px; }}
@@ -1055,6 +1592,24 @@ def page(title: str, body: str) -> bytes:
     .button-humanities {{ background: var(--humanities); }}
     .secondary {{ background: var(--ocf-cyan); }}
     .quiet {{ background: var(--ocf-dark); }}
+    .icon {{
+      display: inline-grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      background: rgba(255,255,255,.24);
+      color: currentColor;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+      flex: 0 0 auto;
+    }}
+    .card > strong .icon, nav .icon {{
+      background: var(--soft);
+      color: var(--ocf-primary);
+      margin-right: 6px;
+    }}
     input[type="checkbox"] {{ width: auto; }}
     table {{ width: 100%; border-collapse: collapse; overflow: hidden; table-layout: fixed; }}
     th, td {{ text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }}
@@ -1159,6 +1714,25 @@ def page(title: str, body: str) -> bytes:
     .danger {{ background: var(--ocf-magenda); }}
     .command-card form {{ margin-top: 8px; }}
     .command-output {{ margin-top: 16px; }}
+    .preview-panel {{
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--ocf-cyan);
+      background: #f7fbfe;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 10px 0;
+    }}
+    .preview-status {{ color: var(--muted); font-size: 13px; font-weight: 750; }}
+    .preview-result {{ display: grid; gap: 8px; margin-top: 8px; }}
+    .preview-result h3 {{ font-size: 16px; margin: 0; }}
+    .feed-suggestions {{ display: grid; gap: 8px; margin-top: 6px; }}
+    .feed-suggestion {{
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 6px;
+      padding: 9px 10px;
+    }}
+    .feed-suggestion .button {{ margin-top: 6px; padding: 7px 10px; font-size: 13px; }}
     .ai-box, .source-card {{
       border: 1px solid var(--line);
       border-left: 4px solid var(--ocf-primary);
@@ -1198,6 +1772,13 @@ def page(title: str, body: str) -> bytes:
     .reason-list {{ margin: 8px 0 0 20px; padding: 0; color: var(--ink); }}
     .reason-list li {{ margin: 4px 0; }}
     .reader-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }}
+    .reader-list {{ display: grid; gap: 10px; }}
+    .reader-list-item {{
+      border-left: 4px solid var(--ocf-cyan);
+      display: grid;
+      gap: 7px;
+    }}
+    .reader-list-item h3 {{ margin-bottom: 0; }}
     .reader-card {{
       display: grid;
       grid-template-rows: 160px auto;
@@ -1332,9 +1913,33 @@ def page(title: str, body: str) -> bytes:
       0%, 80%, 100% {{ transform: translateY(0); opacity: .45; }}
       40% {{ transform: translateY(-5px); opacity: 1; }}
     }}
+    .command-window {{
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 120;
+      width: min(680px, calc(100vw - 28px));
+      max-height: min(76vh, 680px);
+      display: none;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 18px 48px rgba(15,25,35,.24);
+      overflow: hidden;
+    }}
+    .command-window.is-visible {{ display: grid; grid-template-rows: auto minmax(0, 1fr); }}
+    .command-window header {{
+      position: static;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--soft);
+    }}
+    .command-window-body {{ padding: 14px; overflow: auto; }}
+    .command-window pre {{ max-height: 44vh; }}
     @media (max-width: 760px) {{
       header {{ align-items: flex-start; padding: 14px 18px; }}
       main {{ padding: 20px 16px; }}
+      .nav-menu-links {{ left: 0; right: auto; }}
       .two-column {{ grid-template-columns: 1fr; }}
       .item-hero {{ grid-template-columns: 1fr; }}
       .metric-row {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
@@ -1346,19 +1951,50 @@ def page(title: str, body: str) -> bytes:
   <header>
     <a class="brand" href="/">Ian Open News</a>
     <nav>
-      <a href="/">共通入口</a>
-      <a href="/track/open-tech-open-industry">開放科技</a>
-      <a href="/track/digital-humanities-local-knowledge">人文知識</a>
-      <a href="/items">RSS 待整理</a>
-      <a href="/candidates">候選清單</a>
-      <a href="/reader">閱讀區</a>
-      <a href="/keywords">關鍵字</a>
-      <a href="/sources">RSS 來源</a>
-      <a href="/items/new">加收藏</a>
-      <a href="/sources/new">加 RSS</a>
+      <details class="nav-menu">
+        <summary><span class="icon" aria-hidden="true">H</span>共通入口</summary>
+        <div class="nav-menu-links">
+          <a href="/"><span class="icon" aria-hidden="true">H</span>總覽</a>
+          <a href="/track/open-tech-open-industry"><span class="icon" aria-hidden="true">O</span>開放科技</a>
+          <a href="/track/digital-humanities-local-knowledge"><span class="icon" aria-hidden="true">L</span>人文知識</a>
+        </div>
+      </details>
+      <details class="nav-menu">
+        <summary><span class="icon" aria-hidden="true">W</span>工作區</summary>
+        <div class="nav-menu-links">
+          <a href="/items"><span class="icon" aria-hidden="true">R</span>RSS 待整理</a>
+          <a href="/candidates"><span class="icon" aria-hidden="true">C</span>候選清單</a>
+          <a href="/reader"><span class="icon" aria-hidden="true">B</span>閱讀區</a>
+        </div>
+      </details>
+      <details class="nav-menu">
+        <summary><span class="icon" aria-hidden="true">+</span>新增</summary>
+        <div class="nav-menu-links">
+          <a href="/items/new"><span class="icon" aria-hidden="true">+</span>加收藏</a>
+          <a href="/sources/new"><span class="icon" aria-hidden="true">R</span>加 RSS</a>
+        </div>
+      </details>
+      <details class="nav-menu">
+        <summary><span class="icon" aria-hidden="true">*</span>管理</summary>
+        <div class="nav-menu-links">
+          <a href="/keywords"><span class="icon" aria-hidden="true">#</span>關鍵字</a>
+          <a href="/sources"><span class="icon" aria-hidden="true">S</span>RSS 來源</a>
+        </div>
+      </details>
     </nav>
   </header>
   <main>{body}</main>
+  <section class="command-window" id="command-window" aria-live="polite" aria-hidden="true">
+    <header>
+      <strong id="command-title">本機指令</strong>
+      <button type="button" class="quiet" id="command-close">關閉</button>
+    </header>
+    <div class="command-window-body">
+      <p class="muted" id="command-status">等待執行。</p>
+      <div class="loading-dots" id="command-loading" hidden><span></span><span></span><span></span></div>
+      <pre id="command-output" hidden></pre>
+    </div>
+  </section>
   <div class="loading-overlay" id="read-more-loading" aria-live="polite" aria-hidden="true">
     <div class="loading-card">
       <strong>正在展開全文</strong>
@@ -1366,7 +2002,212 @@ def page(title: str, body: str) -> bytes:
       <div class="loading-dots" aria-label="載入中"><span></span><span></span><span></span></div>
     </div>
   </div>
+  <div class="loading-overlay" id="codex-review-loading" aria-live="polite" aria-hidden="true">
+    <div class="loading-card">
+      <strong>正在生成 Codex 閱讀建議</strong>
+      <p class="muted">會先嘗試補抓全文，再把單篇資料送給 Codex 產生中文標題、閱讀理由與摘要。完成後會回到這篇文章。</p>
+      <div class="loading-dots" aria-label="載入中"><span></span><span></span><span></span></div>
+    </div>
+  </div>
   <script>
+  document.querySelectorAll(".nav-menu").forEach((menu) => {{
+    menu.addEventListener("toggle", () => {{
+      if (!menu.open) return;
+      document.querySelectorAll(".nav-menu").forEach((other) => {{
+        if (other !== menu) other.open = false;
+      }});
+    }});
+  }});
+
+  const commandWindow = document.getElementById("command-window");
+  const commandTitle = document.getElementById("command-title");
+  const commandStatus = document.getElementById("command-status");
+  const commandOutput = document.getElementById("command-output");
+  const commandLoading = document.getElementById("command-loading");
+  document.getElementById("command-close")?.addEventListener("click", () => {{
+    commandWindow?.classList.remove("is-visible");
+    commandWindow?.setAttribute("aria-hidden", "true");
+  }});
+  document.querySelectorAll("form[data-command-form]").forEach((form) => {{
+    form.addEventListener("submit", async (event) => {{
+      if (!window.fetch) return;
+      event.preventDefault();
+      const button = event.submitter || form.querySelector("button");
+      const label = form.closest(".command-card")?.querySelector("strong")?.textContent?.trim() || "本機指令";
+      commandTitle.textContent = label;
+      commandStatus.textContent = "已送出，正在執行固定指令...";
+      commandOutput.hidden = true;
+      commandOutput.textContent = "";
+      commandLoading.hidden = false;
+      commandWindow.classList.add("is-visible");
+      commandWindow.setAttribute("aria-hidden", "false");
+      if (button) button.disabled = true;
+      const startedAt = Date.now();
+      const timer = window.setInterval(() => {{
+        const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+        commandStatus.textContent = `執行中，已等待 ${{seconds}} 秒。`;
+      }}, 1000);
+      const data = new URLSearchParams(new FormData(form));
+      data.set("format", "json");
+      try {{
+        const response = await fetch(form.getAttribute("action") || form.action, {{
+          method: "POST",
+          headers: {{
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "X-Requested-With": "local-web-fetch"
+          }},
+          body: data
+        }});
+        const payload = await response.json();
+        commandStatus.textContent = `完成，exit code ${{payload.returncode}}。`;
+        commandOutput.hidden = false;
+        commandOutput.textContent = payload.output || "(沒有輸出)";
+      }} catch (error) {{
+        commandStatus.textContent = "指令沒有順利回傳，請看終端機或稍後再試。";
+        commandOutput.hidden = false;
+        commandOutput.textContent = String(error);
+      }} finally {{
+        window.clearInterval(timer);
+        commandLoading.hidden = true;
+        if (button) button.disabled = false;
+      }}
+    }});
+  }});
+
+  const escapeHTML = (value) => String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+  const setIfEmpty = (element, value) => {{
+    if (!element || !value || element.value.trim()) return;
+    element.value = value;
+  }};
+
+  const previewInputValue = (form) => {{
+    const kind = form.getAttribute("data-preview-kind") || "item";
+    if (kind === "source") {{
+      const feed = form.querySelector("[data-preview-feed-url]")?.value?.trim();
+      const site = form.querySelector("[data-preview-site-url]")?.value?.trim();
+      return feed || site || "";
+    }}
+    return form.querySelector("[data-preview-url]")?.value?.trim() || "";
+  }};
+
+  const feedSuggestionHTML = (feeds) => {{
+    if (!feeds?.length) return "<p class='help'>沒有在這頁偵測到 RSS / Atom feed。</p>";
+    return `<div class="feed-suggestions">${{feeds.map((feed) => {{
+      const status = feed.exists ? "<span class='badge badge--neutral'>已追蹤</span>" : "<span class='badge badge--rss'>可新增 RSS</span>";
+      const action = feed.exists
+        ? ""
+        : `<a class="button secondary" href="${{escapeHTML(feed.add_url)}}">新增這個 RSS</a>`;
+      return `<div class="feed-suggestion">
+        <strong>${{escapeHTML(feed.title || feed.url)}}</strong> ${{status}}
+        <p class="help break-anywhere">${{escapeHTML(feed.type || "RSS / Atom")}} · ${{escapeHTML(feed.url)}}</p>
+        ${{action}}
+      </div>`;
+    }}).join("")}}</div>`;
+  }};
+
+  const renderPreview = (form, payload) => {{
+    const kind = form.getAttribute("data-preview-kind") || "item";
+    const result = form.querySelector("[data-preview-result]");
+    const status = form.querySelector("[data-preview-status]");
+    const title = payload.feed_title || payload.title || payload.source_name || payload.final_url || payload.url;
+    const description = payload.description || payload.excerpt || "";
+    if (status) {{
+      const parts = [];
+      if (payload.is_feed) parts.push(`${{payload.feed_type || "RSS"}}，${{payload.entry_count || 0}} 則`);
+      if (payload.final_url && payload.final_url !== payload.url) parts.push("已帶入跳轉後網址");
+      status.textContent = parts.length ? `抓到了：${{parts.join("；")}}。` : "已抓到頁面資訊。";
+    }}
+    if (result) {{
+      result.innerHTML = `
+        <div>
+          <h3>${{escapeHTML(title)}}</h3>
+          <p class="help break-anywhere">${{escapeHTML(payload.final_url || payload.url || "")}}</p>
+          ${{description ? `<p>${{escapeHTML(description)}}</p>` : ""}}
+        </div>
+        <div>
+          <strong>RSS 建議</strong>
+          ${{feedSuggestionHTML(payload.feed_suggestions || [])}}
+        </div>
+      `;
+    }}
+
+    if (kind === "item") {{
+      const urlInput = form.querySelector("[data-preview-url]");
+      if (urlInput && payload.unwrapped_url) urlInput.value = payload.unwrapped_url;
+      setIfEmpty(form.querySelector("[data-preview-title]"), payload.title || payload.feed_title);
+      setIfEmpty(form.querySelector("[data-preview-source-name]"), payload.source_name);
+      setIfEmpty(form.querySelector("[data-preview-summary]"), description);
+    }} else {{
+      const feedInput = form.querySelector("[data-preview-feed-url]");
+      const siteInput = form.querySelector("[data-preview-site-url]");
+      const nameInput = form.querySelector("[data-preview-title]");
+      const typeInput = form.querySelector("[data-preview-source-type]");
+      const firstFeed = (payload.feed_suggestions || [])[0];
+      setIfEmpty(nameInput, payload.feed_title || payload.title || payload.source_name);
+      setIfEmpty(siteInput, payload.site_url || (!payload.is_feed ? payload.final_url : ""));
+      if (payload.is_feed) {{
+        setIfEmpty(feedInput, payload.final_url || payload.url);
+      }} else if (firstFeed && (!feedInput?.value?.trim() || feedInput.value.trim() === payload.url)) {{
+        feedInput.value = firstFeed.url;
+      }}
+      if (typeInput && !typeInput.value) typeInput.value = "rss";
+    }}
+  }};
+
+  const runUrlPreview = async (form, force = false) => {{
+    const url = previewInputValue(form);
+    const panel = form.querySelector("[data-preview-panel]");
+    const status = form.querySelector("[data-preview-status]");
+    const button = form.querySelector("[data-preview-button]");
+    if (!url || !url.startsWith("http")) return;
+    if (!force && form.dataset.previewLast === url) return;
+    form.dataset.previewLast = url;
+    if (panel) panel.hidden = false;
+    if (status) status.textContent = "正在抓取頁面與 RSS 資訊...";
+    if (button) button.disabled = true;
+    const data = new URLSearchParams();
+    data.set("url", url);
+    data.set("track", form.querySelector("[data-preview-track]")?.value || "digital-humanities-local-knowledge");
+    try {{
+      const response = await fetch("/preview-url", {{
+        method: "POST",
+        headers: {{
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          "X-Requested-With": "local-web-fetch"
+        }},
+        body: data
+      }});
+      const payload = await response.json();
+      if (!payload.ok) throw new Error(payload.error || "preview failed");
+      renderPreview(form, payload);
+    }} catch (error) {{
+      if (status) status.textContent = `這次沒有抓到頁面資訊：${{String(error)}}`;
+    }} finally {{
+      if (button) button.disabled = false;
+    }}
+  }};
+
+  document.querySelectorAll("form[data-url-preview-form]").forEach((form) => {{
+    let timer = 0;
+    const schedule = () => {{
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => runUrlPreview(form), 850);
+    }};
+    form.querySelector("[data-preview-button]")?.addEventListener("click", () => runUrlPreview(form, true));
+    form.querySelectorAll("[data-preview-url], [data-preview-site-url]").forEach((input) => {{
+      input.addEventListener("change", () => runUrlPreview(form, true));
+      input.addEventListener("blur", () => runUrlPreview(form, true));
+      input.addEventListener("input", schedule);
+    }});
+    if (previewInputValue(form)) window.setTimeout(() => runUrlPreview(form), 250);
+  }});
+
   document.querySelectorAll("form[data-read-more-form]").forEach((form) => {{
     form.addEventListener("submit", async (event) => {{
       if (!window.fetch) return;
@@ -1417,6 +2258,45 @@ def page(title: str, body: str) -> bytes:
           overlay.classList.remove("is-visible");
           overlay.setAttribute("aria-hidden", "true");
         }}
+      }}
+    }});
+  }});
+
+  document.querySelectorAll("form[data-codex-review-form]").forEach((form) => {{
+    form.addEventListener("submit", async (event) => {{
+      if (!window.fetch) return;
+      event.preventDefault();
+      const overlay = document.getElementById("codex-review-loading");
+      const button = event.submitter || form.querySelector("button");
+      if (overlay) {{
+        overlay.classList.add("is-visible");
+        overlay.setAttribute("aria-hidden", "false");
+      }}
+      if (button) button.disabled = true;
+      const data = new URLSearchParams(new FormData(form));
+      data.set("format", "json");
+      try {{
+        const response = await fetch(form.getAttribute("action") || form.action, {{
+          method: "POST",
+          headers: {{
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "X-Requested-With": "local-web-fetch"
+          }},
+          body: data
+        }});
+        const payload = await response.json();
+        if (!payload.ok) throw new Error(payload.error || "codex review failed");
+        window.location.href = payload.redirect || window.location.href;
+      }} catch (error) {{
+        const redirect = form.querySelector("input[name='redirect']")?.value || window.location.pathname + window.location.search;
+        const separator = redirect.includes("?") ? "&" : "?";
+        window.location.href = redirect + separator + "error=codex_review";
+      }} finally {{
+        if (overlay) {{
+          overlay.classList.remove("is-visible");
+          overlay.setAttribute("aria-hidden", "true");
+        }}
+        if (button) button.disabled = false;
       }}
     }});
   }});
@@ -1488,8 +2368,19 @@ class Handler(BaseHTTPRequestHandler):
             self.show_item_form(query)
         elif parsed.path == "/sources":
             self.show_sources(query)
+        elif parsed.path == "/sources/view":
+            self.show_source_view(query)
         elif parsed.path == "/sources/new":
-            self.show_source_form({"track": (query.get("track") or ["digital-humanities-local-knowledge"])[0]})
+            self.show_source_form(
+                {
+                    "track": (query.get("track") or ["digital-humanities-local-knowledge"])[0],
+                    "source_type": (query.get("source_type") or ["rss"])[0],
+                    "source_group": clean_text(unquote((query.get("source_group") or ["Manual RSS"])[0])),
+                    "name": clean_text(unquote((query.get("name") or [""])[0])),
+                    "feed_url": clean_text(unquote((query.get("feed_url") or [""])[0])),
+                    "site_url": clean_text(unquote((query.get("site_url") or [""])[0])),
+                }
+            )
         elif parsed.path == "/sources/edit":
             self.show_source_edit(query)
         else:
@@ -1513,6 +2404,12 @@ class Handler(BaseHTTPRequestHandler):
             self.requeue_skill_item(self.read_form())
         elif parsed.path == "/items/read-more":
             self.read_more_item(self.read_form())
+        elif parsed.path == "/items/codex-review":
+            self.codex_review_item(self.read_form())
+        elif parsed.path == "/items/update-url":
+            self.update_item_url(self.read_form())
+        elif parsed.path == "/preview-url":
+            self.preview_url(self.read_form())
         elif parsed.path == "/candidates/accept":
             self.accept_candidate(self.read_form())
         elif parsed.path == "/candidates/dismiss":
@@ -1528,6 +2425,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def show_home(self, query: dict[str, list[str]]) -> None:
         items = load_jsonl(ITEMS)
+        candidates = load_jsonl(CANDIDATES)
         sources = load_jsonl(SOURCES)
         candidates = load_jsonl(CANDIDATES)
         inbox_items = [item for item in items if item.get("status") == "inbox"]
@@ -1549,7 +2447,7 @@ class Handler(BaseHTTPRequestHandler):
             meta = track_meta(track)
             css_class = track_class(track)
             total_items = count_items(items, track)
-            inbox_items = count_items(items, track, "inbox")
+            pending_items = sum(1 for item in pending_review_items if item.get("track") == track)
             source_count = count_sources(sources, track)
             fetchable_count = count_sources(sources, track, active_only=True)
             button_class = f"button-{css_class}" if css_class in {"opentech", "humanities"} else "secondary"
@@ -1563,7 +2461,7 @@ class Handler(BaseHTTPRequestHandler):
     </div>
     <div class="metric-row">
       <div><div class="metric">{total_items}</div><div class="metric-label">全部項目</div></div>
-      <div><div class="metric">{inbox_items}</div><div class="metric-label">待整理</div></div>
+      <div><div class="metric">{pending_items}</div><div class="metric-label">待整理</div></div>
       <div><div class="metric">{source_count}</div><div class="metric-label">來源</div></div>
       <div><div class="metric">{fetchable_count}</div><div class="metric-label">會自動抓</div></div>
     </div>
@@ -1723,7 +2621,7 @@ class Handler(BaseHTTPRequestHandler):
     {badge(recommendation_label(recommendation), recommendation)}
     <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   <p class="help">判斷理由：{h(triage.get('reason', '未標示'))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
   <div class="decision-panel">
@@ -1741,7 +2639,7 @@ class Handler(BaseHTTPRequestHandler):
     </div>
     <p class="help">這則還在 RSS 新進。確認收或直接送 PR 時，系統會先寫進 database/items.jsonl，再套用你的決定；不收會寫入不收學習檔與略過清單。</p>
     <p class="help">不收原因</p>
-    <div class="reason-presets">{inline_reject_buttons(item_id, reason_options, action="/candidates/dismiss")}</div>
+    <div class="reason-presets">{inline_reject_buttons(item_id, prioritized_rejection_reasons(item, reason_options), action="/candidates/dismiss")}</div>
     <details class="inline-reason">
       <summary>其他原因</summary>
       <form method="post" action="/candidates/dismiss" data-decision-form data-require-reason>
@@ -1772,7 +2670,7 @@ class Handler(BaseHTTPRequestHandler):
     {badge(recommendation_label(recommendation), recommendation)}
     <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   <p class="help">判斷理由：{h(triage.get('reason', '未標示'))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
   <div class="decision-panel">
@@ -1788,7 +2686,7 @@ class Handler(BaseHTTPRequestHandler):
     </div>
     <p class="help">確認收會移到候選清單待跑 skill；純事實小消息可直接記錄為送 PR，不跑 skill。</p>
     <p class="help">不收原因</p>
-    <div class="reason-presets">{inline_reject_buttons(item_id, reason_options)}</div>
+    <div class="reason-presets">{inline_reject_buttons(item_id, prioritized_rejection_reasons(item, reason_options))}</div>
     <details class="inline-reason">
       <summary>其他原因</summary>
       <form method="post" action="/items/reject" data-decision-form data-require-reason>
@@ -2053,7 +2951,7 @@ document.getElementById("items-batch-form").addEventListener("submit", (event) =
             error = '<div class="notice">請先寫一點原因，再標記不收。</div>'
         reason_buttons = "\n".join(
             f'<button type="button" class="secondary reason-preset" data-reason="{h(reason)}">{h(reason)}</button>'
-            for reason in rejection_reason_options(items)
+            for reason in prioritized_rejection_reasons(item, rejection_reason_options(items))
         )
         triage = item.get("triage") or {}
         body = f"""
@@ -2066,7 +2964,7 @@ document.getElementById("items-batch-form").addEventListener("submit", (event) =
     {badge(recommendation_label(candidate_recommendation(item)), candidate_recommendation(item))}
     <strong><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('title'))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))} · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 420))}</p>
   <p class="help">系統判斷：{h(triage.get('reason', '未標示'))}</p>
 </article>
@@ -2139,7 +3037,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
     {badge(recommendation_label(recommendation), recommendation)}
     <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{h(item.get('source_name'))} · 確認收：{h(decided_at)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{source_name_link(item)} · 確認收：{h(decided_at)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   {editorial_triage_html(item, compact=True)}
   <p class="help">下一步：跑 skill 做摘要、切角與文章編修；整理好後再送 GitHub PR。<br>系統原判斷：{h(triage.get('reason', '未標示'))}</p>
@@ -2201,6 +3099,9 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
         items = [item for item in load_jsonl(ITEMS) if is_reader_item(item)]
         track_filter = (query.get("track") or ["all"])[0]
         kind_filter = (query.get("kind") or ["all"])[0]
+        view_mode = (query.get("view") or ["auto"])[0]
+        if view_mode not in {"auto", "card", "list"}:
+            view_mode = "auto"
         selected_keywords = {keyword for keyword in (query.get("keyword") or []) if keyword}
 
         def matches_basic(item: dict) -> bool:
@@ -2229,6 +3130,9 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
             key=lambda item: (item.get("published_at", ""), item.get("captured_at", ""), item.get("title", "")),
             reverse=True,
         )
+        if kind_filter == "all":
+            kind_priority = {"featured-article": 0, "opinion-article": 1, "small-news": 2, "needs-review": 3}
+            filtered.sort(key=lambda item: kind_priority.get(item_display_kind(item), 9))
         track_counts = Counter(item.get("track", "unclassified") for item in items)
         kind_counts = Counter(item_display_kind(item) for item in items)
         notice = ""
@@ -2241,10 +3145,13 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
             redirect_parts.append(f"track={quote(track_filter)}")
         if kind_filter != "all":
             redirect_parts.append(f"kind={quote(kind_filter)}")
+        if view_mode != "auto":
+            redirect_parts.append(f"view={quote(view_mode)}")
         for keyword in sorted(selected_keywords):
             redirect_parts.append(f"keyword={quote(keyword)}")
         reader_redirect = "/reader" + (f"?{'&'.join(redirect_parts)}" if redirect_parts else "")
         cards = []
+        list_rows = []
         for item in filtered[:180]:
             css_class = track_class(item.get("track", "unclassified"))
             kind = item_display_kind(item)
@@ -2256,8 +3163,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
             )
             note = personal_note_text(item)
             note_html = f"<p class='note-box'>{h(clean_text(note, 160))}</p>" if note else ""
-            cards.append(
-                f"""
+            card_html = f"""
 <article class="card reader-card">
   {thumb}
   <div class="reader-body">
@@ -2267,7 +3173,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
       {badge(content_kind_label(kind), "neutral")}
     </div>
     <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
-    <p class="muted break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))}</p>
+    <p class="muted break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))}</p>
     <p class="zh-summary">{h(item_zh_summary(item, 260))}</p>
     {note_html}
     <div class="button-row">
@@ -2288,17 +3194,66 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
   </div>
 </article>
 """
-            )
+            row_html = f"""
+<article class="card reader-list-item">
+  <div>
+    {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
+    {badge(status_label(item.get("status", "")), "neutral")}
+    {badge(content_kind_label(kind), "neutral")}
+  </div>
+  <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
+  <p class="muted break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a></p>
+  <p class="zh-summary">{h(item_zh_summary(item, 220))}</p>
+  {note_html}
+  <div class="button-row">
+    <a class="button" href="{h(item_detail_href(item))}">閱讀 / 記錄</a>
+    <form method="post" action="/items/read-more" data-read-more-form data-target="#fulltext-list-{h(item.get('id'))}">
+      <input type="hidden" name="id" value="{h(item.get('id'))}">
+      <input type="hidden" name="redirect" value="{h(reader_redirect)}">
+      <button type="submit" class="secondary">展開全文</button>
+    </form>
+  </div>
+  <section class="fulltext-panel source-card source-card--source" id="fulltext-list-{h(item.get('id'))}" hidden>
+    <div class="section-kicker">原始主文</div>
+    <h3>剛載入的全文</h3>
+    <p class="help" data-fulltext-meta></p>
+    <div class="article-text article-markdown" data-fulltext-body></div>
+  </section>
+</article>
+"""
+            cards.append(card_html)
+            list_rows.append(row_html)
         if not cards:
-            cards.append('<div class="card"><strong>目前沒有符合條件的閱讀項目</strong><p class="muted">在 RSS 待整理按「確認收」或「直接送 PR（小消息）」後，會出現在這裡。</p></div>')
+            reader_content = '<div class="card"><strong>目前沒有符合條件的閱讀項目</strong><p class="muted">在 RSS 待整理按「確認收」或「直接送 PR（小消息）」後，會出現在這裡。</p></div>'
+        else:
+            visible_items = filtered[:180]
+            auto_card_items = [card for item, card in zip(visible_items, cards) if item_display_kind(item) != "small-news"]
+            auto_list_items = [row for item, row in zip(visible_items, list_rows) if item_display_kind(item) == "small-news"]
+            if view_mode == "card":
+                reader_content = f"<div class='reader-grid'>{''.join(cards)}</div>"
+            elif view_mode == "list":
+                reader_content = f"<div class='reader-list'>{''.join(list_rows)}</div>"
+            elif kind_filter == "small-news":
+                reader_content = f"<div class='reader-list'>{''.join(list_rows)}</div>"
+            elif kind_filter in {"featured-article", "opinion-article"}:
+                reader_content = f"<div class='reader-grid'>{''.join(cards)}</div>"
+            else:
+                empty_primary = '<div class="card"><p class="muted">目前沒有精選或觀點文章。</p></div>'
+                empty_news = '<div class="card"><p class="muted">目前沒有小消息。</p></div>'
+                reader_content = (
+                    f"<h3>精選文章與觀點文章</h3><div class='reader-grid'>{''.join(auto_card_items) or empty_primary}</div>"
+                    f"<h3>小消息列表</h3><div class='reader-list'>{''.join(auto_list_items) or empty_news}</div>"
+                )
 
         track_options = [("all", "全部主線")] + [(track, TRACK_META[track]["label"]) for track in TRACK_ORDER]
         kind_options = [
             ("all", "全部類型"),
             ("featured-article", "精選文章 / 待跑 skill"),
             ("small-news", "純新聞 / 小消息"),
+            ("opinion-article", "觀點文章"),
             ("needs-review", "人工判斷"),
         ]
+        view_options = [("auto", "自動：精選卡片、小消息列表"), ("card", "卡片格式"), ("list", "列表格式")]
         keyword_filters = []
         for keyword in keyword_options:
             checked = " checked" if keyword in selected_keywords else ""
@@ -2335,6 +3290,11 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
       <select name="kind" class="auto-filter">{option_list(kind_options, kind_filter)}</select>
       <p class="help">精選文章適合跑 skill；小消息多半只需要查核與短 PR。</p>
     </div>
+    <div>
+      <label>顯示格式</label>
+      <select name="view" class="auto-filter">{option_list(view_options, view_mode)}</select>
+      <p class="help">自動模式會讓精選與觀點優先用卡片，小消息優先用列表。</p>
+    </div>
   </div>
   <label>子關鍵字</label>
   <div class="keyword-filters">{keyword_filter_html}</div>
@@ -2346,7 +3306,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
 </form>
 <h2>文章</h2>
 <p class="muted">符合條件：{len(filtered)} 筆。最多先顯示 180 筆，避免頁面太重。</p>
-<div class="reader-grid">{''.join(cards)}</div>
+{reader_content}
 <script>
 document.querySelectorAll("#reader-filter-form .auto-filter").forEach((field) => {{
   field.addEventListener("change", () => document.getElementById("reader-filter-form").submit());
@@ -2377,8 +3337,16 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
             notice = '<div class="notice">已重新送回 skill 候選。你的個人觀點會留在紀錄裡，後續撰稿要一起參考。</div>'
         elif saved == "read_more":
             notice = '<div class="notice">已嘗試載入原始主文與頁面資料；若抓到全文，已寫入閱讀資料庫並顯示在「原始主文」。</div>'
+        elif saved == "codex_review":
+            notice = '<div class="notice">已補上 Codex 生成閱讀建議；如果有抓到全文，這次會優先依全文判斷。</div>'
+        elif saved == "url":
+            notice = '<div class="notice">已更新原始網址。接著可以按「展開全文」重新抓文章內容。</div>'
         elif (query.get("error") or [""])[0] == "read_more":
             notice = '<div class="notice">這次沒有抓到更多資料。可能是網站擋住讀取、網址需要登入，或頁面沒有可抽取的主文。</div>'
+        elif (query.get("error") or [""])[0] == "codex_review":
+            notice = '<div class="notice">這次沒有順利補上 Codex 生成資訊。可以稍後再試，或先按「展開全文」補資料後再生成。</div>'
+        elif (query.get("error") or [""])[0] == "url_resolve":
+            notice = '<div class="notice">這次無法解析跳轉後網址。你仍可手動貼上實際文章網址再儲存。</div>'
 
         css_class = track_class(item.get("track", "unclassified"))
         triage = item.get("triage") or {}
@@ -2425,7 +3393,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
     </form>
   </div>
   <p class="help">不收原因</p>
-  <div class="reason-presets">{inline_reject_buttons(item_id, reason_options, action="/candidates/dismiss")}</div>
+  <div class="reason-presets">{inline_reject_buttons(item_id, prioritized_rejection_reasons(item, reason_options), action="/candidates/dismiss")}</div>
   <details class="inline-reason">
     <summary>其他原因</summary>
     <form method="post" action="/candidates/dismiss">
@@ -2475,7 +3443,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
         status_badge = badge("RSS 新進", "neutral") if is_rss_candidate else badge(status_label(item.get("status", "")), "neutral")
         body = f"""
 <h1>{h(item.get('title'))}</h1>
-<p class="lede break-anywhere">{h(item.get('source_name'))} · {h(item.get('published_at') or item.get('captured_at'))} · {h(item.get('url'))}</p>
+<p class="lede break-anywhere">{source_name_link(item)} · {h(item.get('published_at') or item.get('captured_at'))} · {h(item.get('url'))}</p>
 {notice}
 <div class="item-hero">
   <section class="card">
@@ -2508,7 +3476,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
   <section>
     <h2>閱讀建議與判斷來源</h2>
     {inbox_actions}
-    {editorial_triage_html(item)}
+    {editorial_triage_html(item, reject_action='/candidates/dismiss' if is_rss_candidate else '/items/reject')}
     <div class="card">
       <h2>關鍵字第一層判斷</h2>
       <p class="help">建議：{h(recommendation_label(candidate_recommendation(item)))}<br>理由：{h(triage.get('reason', '未標示'))}<br>命中：{h('、'.join(triage.get('matched_keywords') or []) or '無')}<br>排除：{h('、'.join(triage.get('skip_keywords') or []) or '無')}</p>
@@ -2516,6 +3484,21 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
     {skill_rows}
   </section>
   <aside>
+    <div class="card">
+      <h2>原始網址</h2>
+      <p class="muted break-anywhere"><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('url') or '尚未填寫')}</a></p>
+      <form method="post" action="/items/update-url">
+        <input type="hidden" name="id" value="{h(item_id)}">
+        <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+        <label>編輯原始網址</label>
+        <input name="url" value="{h(item.get('url', ''))}" placeholder="https://example.com/article">
+        <div class="button-row">
+          <button type="submit" name="action" value="save">儲存網址</button>
+          <button type="submit" name="action" value="resolve" class="secondary">帶入跳轉後網址</button>
+        </div>
+      </form>
+      <p class="help">Google 快訊或追蹤網址如果會先跳轉，可先按「帶入跳轉後網址」，再展開全文。</p>
+    </div>
     {'' if is_rss_candidate else f'''
     <div class="card">
       <h2>我的關鍵紀錄</h2>
@@ -2936,6 +3919,140 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
             return
         self.redirect(f"{redirect_to}{separator}saved=read_more")
 
+    def codex_review_item(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        redirect_to = form_value(data, "redirect", f"/items/view?id={quote(item_id)}")
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
+        if not redirect_to.startswith("/") or redirect_to.startswith("//"):
+            redirect_to = f"/items/view?id={quote(item_id)}"
+
+        target = ""
+        target_path = ITEMS
+        if any(row.get("id") == item_id for row in load_jsonl(ITEMS)):
+            target = "items"
+            target_path = ITEMS
+        elif any(row.get("id") == item_id for row in load_jsonl(CANDIDATES)):
+            target = "candidates"
+            target_path = CANDIDATES
+        else:
+            if wants_json:
+                self.send_json({"ok": False, "error": "找不到項目"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
+            return
+
+        if form_value(data, "with_fulltext", "1") == "1":
+            self.update_read_more_record(target_path, item_id)
+
+        command = [
+            sys.executable,
+            str(ROOT / "scripts" / "codex_enrich_reviews.py"),
+            "--target",
+            target,
+            "--id",
+            item_id,
+            "--limit",
+            "1",
+            "--batch-size",
+            "1",
+        ]
+        try:
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=960)
+            output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
+            ok = result.returncode == 0
+        except subprocess.TimeoutExpired as exc:
+            output = (exc.stdout or "") + ("\nSTDERR:\n" + exc.stderr if exc.stderr else "")
+            output = (output + "\nCodex 單篇生成逾時。").strip()
+            ok = False
+            result = subprocess.CompletedProcess(command, returncode=124, stdout="", stderr=output)
+
+        separator = "&" if "?" in redirect_to else "?"
+        final_redirect = f"{redirect_to}{separator}{'saved=codex_review' if ok else 'error=codex_review'}"
+        if wants_json:
+            self.send_json(
+                {
+                    "ok": ok,
+                    "returncode": result.returncode,
+                    "command": command,
+                    "output": output,
+                    "redirect": final_redirect,
+                    "error": "" if ok else clean_text(output, 1000),
+                },
+                HTTPStatus.OK if ok else HTTPStatus.BAD_GATEWAY,
+            )
+            return
+        self.redirect(final_redirect)
+
+    def update_url_record(self, path: Path, item_id: str, new_url: str, action: str) -> tuple[bool, str]:
+        records = load_jsonl(path)
+        updated_records = []
+        found = False
+        error = ""
+        final_url = unwrap_google_alert_url(new_url)
+        if action == "resolve":
+            resolved, error = resolve_final_url(new_url)
+            if resolved:
+                final_url = resolved
+        if not final_url:
+            return False, error or "網址是空的。"
+        updated_at = now_iso()
+        for item in records:
+            if item.get("id") != item_id:
+                updated_records.append(item)
+                continue
+            found = True
+            updated = dict(item)
+            previous_url = clean_text(updated.get("url"))
+            updated["url"] = final_url
+            reference = updated.get("reference") if isinstance(updated.get("reference"), dict) else {}
+            updated["reference"] = {
+                **reference,
+                "url_updated_at": updated_at,
+                "url_update_source": "local_web",
+                "previous_url": previous_url,
+            }
+            if action == "resolve":
+                updated["reference"]["resolved_from_url"] = new_url
+            metadata = updated.get("reading_metadata") if isinstance(updated.get("reading_metadata"), dict) else {}
+            if previous_url and previous_url != final_url:
+                updated["reading_metadata"] = {
+                    **metadata,
+                    "url_before_update": previous_url,
+                    "url_updated_at": updated_at,
+                }
+            updated_records.append(updated)
+        if found:
+            write_jsonl(path, updated_records)
+        return found, error
+
+    def update_item_url(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        new_url = form_value(data, "url")
+        action = form_value(data, "action", "save")
+        redirect_to = form_value(data, "redirect", f"/items/view?id={quote(item_id)}")
+        if not redirect_to.startswith("/") or redirect_to.startswith("//"):
+            redirect_to = f"/items/view?id={quote(item_id)}"
+        found, error = self.update_url_record(ITEMS, item_id, new_url, action)
+        if not found:
+            found, error = self.update_url_record(CANDIDATES, item_id, new_url, action)
+        if not found:
+            self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        separator = "&" if "?" in redirect_to else "?"
+        if error and action == "resolve":
+            self.redirect(f"{redirect_to}{separator}error=url_resolve")
+            return
+        self.redirect(f"{redirect_to}{separator}saved=url")
+
+    def preview_url(self, data: dict[str, list[str]]) -> None:
+        url = form_value(data, "url")
+        track = form_value(data, "track", "digital-humanities-local-knowledge")
+        try:
+            payload = build_url_preview(url, track)
+        except Exception as exc:  # noqa: BLE001 - keep the local form from crashing on unusual pages.
+            payload = {"ok": False, "error": str(exc)}
+        self.send_json(payload, HTTPStatus.OK if payload.get("ok") else HTTPStatus.BAD_REQUEST)
+
     def accept_candidate(self, data: dict[str, list[str]]) -> None:
         candidate_id = form_value(data, "id")
         mode = form_value(data, "mode", "accept")
@@ -3051,17 +4168,19 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
 
         items = load_jsonl(ITEMS)
         sources = load_jsonl(SOURCES)
+        candidates = load_jsonl(CANDIDATES)
         meta = track_meta(track)
         css_class = track_class(track)
         button_class = f"button-{css_class}" if css_class in {"opentech", "humanities"} else "secondary"
         track_items = [item for item in items if item.get("track") == track]
         inbox_items = [item for item in track_items if item.get("status") == "inbox"]
+        pending_items = [*inbox_items, *[item for item in candidates if item.get("track") == track]]
         track_sources = [source for source in sources if source.get("track") == track and source.get("status") != "archived"]
         fetchable_sources = [source for source in track_sources if is_fetchable_source(source)]
         source_types = Counter(source.get("source_type", "manual") for source in track_sources)
         source_groups = Counter(source.get("source_group", "未標示群組") for source in track_sources)
         recent_items = sorted(
-            inbox_items,
+            pending_items,
             key=lambda item: (item.get("captured_at", ""), item.get("published_at", ""), item.get("title", "")),
             reverse=True,
         )[:12]
@@ -3076,7 +4195,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
                 f"""
 <div class="list-item list-item--{h(css_class)}">
   <strong><a href="{h(detail_href)}">{h(title)}</a></strong>
-  <p class="muted">{h(source_name)} · {h(captured)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a></p>
+  <p class="muted">{source_name_link(item) if item.get('source_id') else h(source_name)} · {h(captured)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a></p>
   <p class="break-anywhere">{h(clean_text(item.get('summary'), 180))}</p>
 </div>
 """
@@ -3101,7 +4220,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
   {badge(meta["short"], css_class)}
   <div class="metric-row">
     <div><div class="metric">{len(track_items)}</div><div class="metric-label">全部項目</div></div>
-    <div><div class="metric">{len(inbox_items)}</div><div class="metric-label">待整理</div></div>
+    <div><div class="metric">{len(pending_items)}</div><div class="metric-label">待整理</div></div>
     <div><div class="metric">{len(track_sources)}</div><div class="metric-label">來源</div></div>
     <div><div class="metric">{len(fetchable_sources)}</div><div class="metric-label">會自動抓</div></div>
   </div>
@@ -3141,24 +4260,29 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
         body = f"""
 <h1>加入收藏</h1>
 <p class="lede">用在你看到一篇文章、一個頁面或一個案例，想先丟進 RSS 待整理時。這裡新增的是單筆知識項目，不是長期 RSS 來源。</p>
-<form class="form-panel" method="post" action="/items">
+<form class="form-panel" method="post" action="/items" data-url-preview-form data-preview-kind="item">
   <label>主線</label>
-  <select name="track">{option_list(TRACKS, current_track)}</select>
+  <select name="track" data-preview-track>{option_list(TRACKS, current_track)}</select>
   <p class="help">這決定它會出現在「開放科技」或「人文與在地知識」哪一個工作台。</p>
   <label>標題</label>
-  <input name="title" value="{h(title)}" required>
+  <input name="title" value="{h(title)}" required data-preview-title>
   <p class="help">通常用原本網頁標題就好，之後審稿時再改成更清楚的標題。</p>
   <label>網址</label>
-  <input name="url" value="{h(url)}" required>
+  <input name="url" value="{h(url)}" required data-preview-url placeholder="https://example.com/article">
   <p class="help">網址很長也沒關係，列表會自動換行。</p>
+  <div class="preview-panel" data-preview-panel hidden>
+    <div class="preview-status" data-preview-status>等待網址。</div>
+    <div class="preview-result" data-preview-result></div>
+  </div>
+  <button type="button" class="secondary" data-preview-button><span class="icon" aria-hidden="true">M</span>抓取頁面資訊</button>
   <label>來源 / 網站 / 作者</label>
-  <input name="source_name" placeholder="例如：報導者、Open Knowledge Foundation">
+  <input name="source_name" placeholder="例如：報導者、Open Knowledge Foundation" data-preview-source-name>
   <p class="help">不知道作者時，先填網站或組織名稱。</p>
   <label>發布日期</label>
   <input name="published_at" placeholder="YYYY-MM-DD">
   <p class="help">不確定可以留空，之後整理時再補。</p>
   <label>摘要或摘記</label>
-  <textarea name="summary"></textarea>
+  <textarea name="summary" data-preview-summary></textarea>
   <p class="help">先貼一兩句你覺得重要的脈絡，方便未來審稿時想起來為什麼收。</p>
   <label>標籤</label>
   <input name="tags" placeholder="用逗號分隔">
@@ -3175,7 +4299,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
     def save_item(self, data: dict[str, list[str]]) -> None:
         items = load_jsonl(ITEMS)
         sources = load_jsonl(SOURCES)
-        url = form_value(data, "url")
+        url = unwrap_google_alert_url(form_value(data, "url"))
         title = form_value(data, "title") or url
         if any(item.get("url") == url for item in items):
             self.send_html("已存在", f"<h1>這個網址已經在資料庫</h1><p>{h(url)}</p><p><a href='/'>回總覽</a></p>")
@@ -3192,39 +4316,50 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
                     "name": source_name,
                     "source_group": "Manual web bookmark",
                     "source_type": "manual",
+                    "fetch_frequency": "daily",
                     "feed_url": "",
                     "site_url": "",
                     "status": "active",
+                    "required_keywords": [],
+                    "excluded_keywords": [],
                     "notes": "由本機網頁加入。",
                 },
             )
         tags = [tag.strip() for tag in form_value(data, "tags").split(",") if tag.strip()]
         notes = form_value(data, "notes")
-        append_jsonl(
-            ITEMS,
-            {
-                "id": stable_id("item", "manual-web", url, title),
-                "track": track,
-                "status": "inbox",
-                "priority": "normal",
-                "title": title,
-                "url": url,
-                "source_id": source_id,
-                "source_name": source_name,
-                "author": source_name,
-                "published_at": form_value(data, "published_at"),
-                "captured_at": datetime.now(timezone.utc).date().isoformat(),
-                "summary": form_value(data, "summary"),
-                "tags": tags,
-                "origin": "manual-web",
-                "reference": {"created_by": "local_web"},
-                "review": default_review(notes),
-            },
-        )
+        record = {
+            "id": stable_id("item", "manual-web", url, title),
+            "track": track,
+            "status": "inbox",
+            "priority": "normal",
+            "title": title,
+            "url": url,
+            "source_id": source_id,
+            "source_name": source_name,
+            "author": source_name,
+            "published_at": form_value(data, "published_at"),
+            "captured_at": datetime.now(timezone.utc).date().isoformat(),
+            "summary": form_value(data, "summary"),
+            "tags": tags,
+            "origin": "manual-web",
+            "reference": {"created_by": "local_web"},
+            "review": default_review(notes),
+        }
+        enriched, did_change, _ = enrich_item_metadata(record)
+        if did_change:
+            metadata = item_reading_metadata(enriched)
+            if title == url and metadata.get("title"):
+                enriched["title"] = clean_text(metadata.get("title"), 300)
+            record = enriched
+        append_jsonl(ITEMS, record)
         self.redirect("/?saved=item")
 
     def show_sources(self, query: dict[str, list[str]]) -> None:
         sources = load_jsonl(SOURCES)
+        items = load_jsonl(ITEMS)
+        rejected_items = load_jsonl(REJECTED_ITEMS)
+        candidates = load_jsonl(CANDIDATES)
+        dismissed = load_jsonl(DISMISSED)
         track_filter = (query.get("track") or ["all"])[0]
         type_filter = (query.get("source_type") or ["all"])[0]
         status_filter = (query.get("status") or ["live"])[0]
@@ -3268,10 +4403,12 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
                 for source in sorted(group_sources, key=lambda row: (row.get("name", ""), row.get("id", ""))):
                     source_type = source.get("source_type", "manual")
                     status = source.get("status", "")
+                    frequency = source.get("fetch_frequency", "daily")
                     feed_url = source.get("feed_url") or ""
                     site_url = source.get("site_url") or ""
                     type_class = source_type.replace("_", "-")
                     status_class = status.replace("_", "-")
+                    health = source_health_summary(source, items, rejected_items, candidates, dismissed)
                     site_link = ""
                     if site_url:
                         site_link = f'<br><a class="muted break-anywhere" href="{h(site_url)}" target="_blank" rel="noreferrer">{h(site_url)}</a>'
@@ -3280,10 +4417,12 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
                         feed_display = f'<code class="url">{h(feed_url)}</code>'
                     rows.append(
                         "<tr>"
-                        f"<td><strong>{h(source.get('name'))}</strong>"
+                        f"<td><strong><a href='/sources/view?id={quote(source.get('id', ''))}'>{h(source.get('name'))}</a></strong>"
                         f"{site_link}</td>"
                         f"<td>{badge(source_type_label(source_type), type_class)}</td>"
                         f"<td>{badge(source_status_label(status), status_class)}</td>"
+                        f"<td>{h(source_frequency_label(frequency))}</td>"
+                        f"<td>{source_health_badge(health)}<br><span class='help'>{h(health.get('reason'))}</span></td>"
                         f"<td class='url-cell'>{feed_display}</td>"
                         f"<td><a href='/sources/edit?id={quote(source.get('id', ''))}'>編輯</a></td>"
                         "</tr>"
@@ -3293,7 +4432,7 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
 <details class="source-group" open>
   <summary>{h(group)} <span class="muted">({len(group_sources)})</span></summary>
   <table>
-    <thead><tr><th>名稱</th><th>類型</th><th>狀態</th><th>Feed URL</th><th></th></tr></thead>
+    <thead><tr><th>名稱</th><th>類型</th><th>狀態</th><th>頻率</th><th>健康狀態</th><th>Feed URL</th><th></th></tr></thead>
     <tbody>{''.join(rows)}</tbody>
   </table>
 </details>
@@ -3362,6 +4501,130 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
 """
         self.send_html("RSS 來源", body)
 
+    def show_source_view(self, query: dict[str, list[str]]) -> None:
+        source_id = form_value(query, "id")
+        sources = load_jsonl(SOURCES)
+        source = next((row for row in sources if row.get("id") == source_id), None)
+        if not source:
+            self.send_html("找不到來源", "<h1>找不到來源</h1><p><a class='button' href='/sources'>回 RSS 來源</a></p>", HTTPStatus.NOT_FOUND)
+            return
+
+        items = [item for item in load_jsonl(ITEMS) if item.get("source_id") == source_id]
+        candidates = [item for item in load_jsonl(CANDIDATES) if item.get("source_id") == source_id]
+        rejected = [item for item in load_jsonl(REJECTED_ITEMS) if item.get("source_id") == source_id]
+        dismissed = [item for item in load_jsonl(DISMISSED) if item.get("source_id") == source_id]
+        health = source_health_summary(source, load_jsonl(ITEMS), load_jsonl(REJECTED_ITEMS), load_jsonl(CANDIDATES), load_jsonl(DISMISSED))
+
+        def sort_items(records: list[dict]) -> list[dict]:
+            return sorted(
+                records,
+                key=lambda item: (clean_text(item.get("published_at") or item.get("captured_at") or item.get("dismissed_at")), clean_text(item.get("title"))),
+                reverse=True,
+            )
+
+        def source_record_row(item: dict, can_open: bool = True, archived: bool = False) -> str:
+            kind = item_display_kind(item)
+            item_url = clean_text(item.get("url"))
+            title = clean_text(item.get("title")) or item_url or "未命名項目"
+            title_html = f'<a href="{h(item_detail_href(item))}">{h(title)}</a>' if can_open else h(title)
+            reason = ""
+            if archived:
+                decision = item.get("local_decision") if isinstance(item.get("local_decision"), dict) else {}
+                reason = clean_text(item.get("reason") or decision.get("reason") or item.get("notes"), 240)
+            else:
+                reason = item_zh_summary(item, 260)
+            return f"""
+<article class="card reader-list-item">
+  <div>
+    {badge(track_meta(item.get("track", source.get("track", "unclassified")))["short"], track_class(item.get("track", source.get("track", "unclassified"))))}
+    {badge(status_label(item.get("status", "RSS 新進" if can_open else "封存")), "neutral")}
+    {badge(content_kind_label(kind), "neutral") if not archived else badge("不收紀錄", "suggest-skip")}
+  </div>
+  <h3>{title_html}</h3>
+  <p class="muted break-anywhere">{h(item.get('published_at') or item.get('captured_at') or item.get('dismissed_at') or '未標示時間')} · {f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">原始連結</a>' if item_url else '沒有原始連結'}</p>
+  <p class="zh-summary">{h(reason)}</p>
+</article>
+"""
+
+        def source_card(item: dict) -> str:
+            image = item_image_url(item)
+            css_class = track_class(item.get("track", source.get("track", "unclassified")))
+            thumb = (
+                f"<div class='reader-thumb'><img src='{h(image)}' alt=''></div>"
+                if image
+                else f"<div class='reader-thumb reader-thumb--{h(css_class)}'><span>{h(track_meta(item.get('track', source.get('track', 'unclassified')))['short'])}</span></div>"
+            )
+            kind = item_display_kind(item)
+            return f"""
+<article class="card reader-card">
+  {thumb}
+  <div class="reader-body">
+    <div>
+      {badge(track_meta(item.get("track", source.get("track", "unclassified")))["short"], css_class)}
+      {badge(status_label(item.get("status", "")), "neutral")}
+      {badge(content_kind_label(kind), "neutral")}
+    </div>
+    <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
+    <p class="muted break-anywhere">{h(item.get('published_at') or item.get('captured_at'))}</p>
+    <p class="zh-summary">{h(item_zh_summary(item, 260))}</p>
+    <div class="button-row">
+      <a class="button" href="{h(item_detail_href(item))}">閱讀 / 記錄</a>
+      <a class="button secondary" href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a>
+    </div>
+  </div>
+</article>
+"""
+
+        featured = sort_items([item for item in items if item_display_kind(item) in {"featured-article", "opinion-article"}])
+        small_news = sort_items([item for item in items if item_display_kind(item) == "small-news" and item.get("status") != "inbox"])
+        inbox = sort_items([item for item in items if item.get("status") == "inbox"])
+        pending = sort_items(candidates)
+        other_items = sort_items([item for item in items if item not in featured and item not in small_news and item not in inbox])
+        rejected_records = sort_items([*rejected, *dismissed])
+
+        def section(title: str, description: str, html_rows: str, empty: str, class_name: str = "reader-list") -> str:
+            return f"""
+<section>
+  <h2>{h(title)}</h2>
+  <p class="muted">{h(description)}</p>
+  <div class="{h(class_name)}">{html_rows or f'<div class="card"><p class="muted">{h(empty)}</p></div>'}</div>
+</section>
+"""
+
+        feed_url = clean_text(source.get("feed_url"))
+        site_url = clean_text(source.get("site_url"))
+        css_class = track_class(source.get("track", "unclassified"))
+        body = f"""
+<h1>{h(source.get("name") or "未命名來源")}</h1>
+<p class="lede">這裡先看同一個 RSS / 來源底下已收、待整理與不收的內容；要調整抓取頻率、健康狀態或關鍵字，再進編輯頁。</p>
+<section class="card track-card track-card--{h(css_class)}">
+  <div>
+    {badge(track_meta(source.get("track", "unclassified"))["short"], css_class)}
+    {badge(source_type_label(source.get("source_type", "manual")), source.get("source_type", "manual").replace("_", "-"))}
+    {badge(source_status_label(source.get("status", "")), clean_text(source.get("status", "neutral")).replace("_", "-"))}
+    {source_health_badge(health)}
+  </div>
+  <div class="metric-row">
+    <div><div class="metric">{len(featured)}</div><div class="metric-label">精選 / 觀點</div></div>
+    <div><div class="metric">{len(small_news)}</div><div class="metric-label">小消息</div></div>
+    <div><div class="metric">{len(inbox) + len(pending)}</div><div class="metric-label">待整理</div></div>
+    <div><div class="metric">{len(rejected_records)}</div><div class="metric-label">不收紀錄</div></div>
+  </div>
+  <p class="help">抓取頻率：{h(source_frequency_label(source.get('fetch_frequency', 'daily')))}；健康狀態：{h(health.get('reason'))}</p>
+  <p class="muted break-anywhere">{f'Feed：<code>{h(feed_url)}</code><br>' if feed_url else ''}{f'網站：<a href="{h(site_url)}" target="_blank" rel="noreferrer">{h(site_url)}</a>' if site_url else ''}</p>
+  <div class="button-row">
+    <a class="button secondary" href="/sources/edit?id={quote(source_id)}">編輯 RSS</a>
+    <a class="button quiet" href="/sources?track={quote(source.get('track', 'unclassified'))}">回 RSS 來源</a>
+  </div>
+</section>
+{section("精選文章與觀點文章", "已確認值得細讀、可能後續撰稿或觀點整理的內容。", ''.join(source_card(item) for item in featured), "這個來源目前沒有精選文章或觀點文章。", "reader-grid")}
+{section("純新聞 / 小消息", "可以快速掃過、查核後短訊處理的內容。", ''.join(source_record_row(item) for item in small_news), "這個來源目前沒有小消息。")}
+{section("待整理 / RSS 新進", "還沒完成收或不收判斷的內容，包含已入庫 inbox 和 RSS 新進。", ''.join(source_record_row(item) for item in [*inbox, *pending]), "這個來源目前沒有待整理項目。")}
+{section("其他已收項目", "已收但尚未歸入精選、觀點或小消息的內容。", ''.join(source_record_row(item) for item in other_items), "這個來源目前沒有其他已收項目。")}
+{section("不收紀錄", "已被標記不收或從 RSS 待整理移出的內容，方便判斷這個 RSS 是否該調整或暫停。", ''.join(source_record_row(item, can_open=False, archived=True) for item in rejected_records), "這個來源目前沒有不收紀錄。")}
+"""
+        self.send_html(str(source.get("name") or "來源內容"), body)
+
     def show_source_edit(self, query: dict[str, list[str]]) -> None:
         source_id = (query.get("id") or [""])[0]
         source = next((row for row in load_jsonl(SOURCES) if row.get("id") == source_id), None)
@@ -3378,32 +4641,72 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
             current_track = "digital-humanities-local-knowledge"
         current_type = source.get("source_type", "rss")
         current_status = source.get("status", "active")
+        current_frequency = source.get("fetch_frequency", "daily")
+        health_card = ""
+        if source_id:
+            health = source_health_summary(
+                source,
+                load_jsonl(ITEMS),
+                load_jsonl(REJECTED_ITEMS),
+                load_jsonl(CANDIDATES),
+                load_jsonl(DISMISSED),
+            )
+            rss_health = source.get("rss_health") if isinstance(source.get("rss_health"), dict) else {}
+            health_card = f"""
+<section class="card">
+  <h2>健康狀態</h2>
+  <p>{source_health_badge(health)}</p>
+  <p class="muted">{h(health.get('reason'))}</p>
+  <div class="metric-row">
+    <div><div class="metric">{health.get('accepted', 0)}</div><div class="metric-label">已收下</div></div>
+    <div><div class="metric">{health.get('inbox', 0) + health.get('candidates', 0)}</div><div class="metric-label">待整理</div></div>
+    <div><div class="metric">{health.get('rejected', 0)}</div><div class="metric-label">不收 / 刪除</div></div>
+    <div><div class="metric">{health.get('duplicate_skips', 0)}</div><div class="metric-label">近次重複略過</div></div>
+  </div>
+  <p class="help">最近檢查：{h(health.get('last_checked_at') or '尚未記錄')}；最近資料：{h(health.get('last_seen') or '尚未記錄')}；最近抓取狀態：{h(rss_health.get('last_fetch_status') or '尚未記錄')}。</p>
+</section>
+"""
         body = f"""
 <h1>{h(title)}</h1>
 <p class="lede">用在你想長期追蹤一個網站、Google 快訊、YouTube 頻道或 Podcast 時。RSS / Google 快訊 / YouTube / Podcast 會被每天的抓取流程處理。</p>
-<form class="form-panel" method="post" action="/sources">
+{health_card}
+<form class="form-panel" method="post" action="/sources" data-url-preview-form data-preview-kind="source">
   <input type="hidden" name="id" value="{h(source_id)}">
   <label>主線</label>
-  <select name="track">{option_list(TRACKS, current_track)}</select>
+  <select name="track" data-preview-track>{option_list(TRACKS, current_track)}</select>
   <p class="help">這決定來源會出現在開放科技、人文與在地知識，或未分類清單。</p>
   <label>名稱</label>
-  <input name="name" value="{h(source.get('name', ''))}" required>
+  <input name="name" value="{h(source.get('name', ''))}" required data-preview-title>
   <p class="help">填你看得懂的短名稱，例如網站名、作者名或頻道名。</p>
   <label>來源群組</label>
   <input name="source_group" value="{h(source.get('source_group', 'Manual RSS'))}">
   <p class="help">把同一批來源放在一起，例如「OpenTech RSS」「縣市政府文化局」。來源列表會用這個分組。</p>
   <label>來源類型</label>
-  <select name="source_type">{source_type_options(current_type)}</select>
+  <select name="source_type" data-preview-source-type>{source_type_options(current_type)}</select>
   <p class="help">{h(SOURCE_TYPE_HELP.get(current_type, "RSS / Google 快訊 / YouTube / Podcast 會被自動抓；其他類型目前用來保留脈絡。"))}</p>
   <label>狀態</label>
   <select name="status">{source_status_options(current_status)}</select>
   <p class="help">啟用會進入每日抓取；暫停會保留但不抓；封存代表這個來源暫時不再顯示。</p>
+  <label>抓取頻率</label>
+  <select name="fetch_frequency">{source_frequency_options(current_frequency)}</select>
+  <p class="help">每天的流程會看這個欄位；每週與每月會參考最近一次成功抓取時間，暫停抓取則保留來源但不抓。</p>
   <label>Feed URL</label>
-  <input name="feed_url" value="{h(source.get('feed_url', ''))}" placeholder="https://example.com/feed.xml">
+  <input name="feed_url" value="{h(source.get('feed_url', ''))}" placeholder="https://example.com/feed.xml" data-preview-url data-preview-feed-url>
   <p class="help">RSS / Google 快訊 / YouTube / Podcast 請填這欄。Facebook、舊 Inoreader monitor 或既有表格來源可以留空作為紀錄。</p>
   <label>Site URL</label>
-  <input name="site_url" value="{h(source.get('site_url', ''))}" placeholder="https://example.com/">
+  <input name="site_url" value="{h(source.get('site_url', ''))}" placeholder="https://example.com/" data-preview-site-url>
   <p class="help">原始網站首頁，方便之後回去確認來源脈絡。</p>
+  <div class="preview-panel" data-preview-panel hidden>
+    <div class="preview-status" data-preview-status>等待網址。</div>
+    <div class="preview-result" data-preview-result></div>
+  </div>
+  <button type="button" class="secondary" data-preview-button><span class="icon" aria-hidden="true">R</span>抓取來源資訊</button>
+  <label>必須包含的關鍵字</label>
+  <textarea name="required_keywords" placeholder="一行一個；留空代表不限制">{h(source_keywords_text(source, 'required_keywords'))}</textarea>
+  <p class="help">若有填，RSS 單篇標題、摘要、標籤、來源或網址至少要命中其中一個才會進待整理。</p>
+  <label>不能包含的關鍵字</label>
+  <textarea name="excluded_keywords" placeholder="一行一個；留空代表不限制">{h(source_keywords_text(source, 'excluded_keywords'))}</textarea>
+  <p class="help">命中這裡的單篇會在 RSS 抓取階段直接略過，不會進入候選、不收檔或正式資料庫。</p>
   <label>備註</label>
   <textarea name="notes">{h(source.get('notes', ''))}</textarea>
   <p class="help">可以寫為什麼要追、頻率如何、是不是從 Inoreader 舊流程轉來。</p>
@@ -3416,17 +4719,24 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
     def save_source(self, data: dict[str, list[str]]) -> None:
         sources = load_jsonl(SOURCES)
         existing_id = form_value(data, "id")
+        existing_source = next((source for source in sources if source.get("id") == existing_id), {}) if existing_id else {}
         record = {
             "id": existing_id or stable_id("src", form_value(data, "source_group"), form_value(data, "name"), form_value(data, "feed_url")),
             "track": form_value(data, "track", "unclassified"),
             "name": form_value(data, "name"),
             "source_group": form_value(data, "source_group", "Manual RSS"),
             "source_type": form_value(data, "source_type", "rss"),
+            "fetch_frequency": form_value(data, "fetch_frequency", "daily"),
             "feed_url": form_value(data, "feed_url"),
             "site_url": form_value(data, "site_url"),
             "status": form_value(data, "status", "active"),
+            "required_keywords": form_lines(form_value(data, "required_keywords")),
+            "excluded_keywords": form_lines(form_value(data, "excluded_keywords")),
             "notes": form_value(data, "notes"),
         }
+        for preserved_key in ["rss_health", "health_assessment", "last_fetched_at"]:
+            if preserved_key in existing_source:
+                record[preserved_key] = existing_source[preserved_key]
         if existing_id:
             sources = [record if source.get("id") == existing_id else source for source in sources]
         else:
@@ -3440,13 +4750,29 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
 
     def run_command(self, data: dict[str, list[str]]) -> None:
         command_name = form_value(data, "command")
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
         config = COMMANDS.get(command_name)
         if not config:
+            if wants_json:
+                self.send_json({"ok": False, "error": "不允許的指令"}, HTTPStatus.BAD_REQUEST)
+                return
             self.send_html("不允許的指令", "<h1>不允許的指令</h1>", HTTPStatus.BAD_REQUEST)
             return
         command = config["command"]
         result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=600)
         output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
+        if wants_json:
+            self.send_json(
+                {
+                    "ok": result.returncode == 0,
+                    "label": config["label"],
+                    "command": command,
+                    "returncode": result.returncode,
+                    "output": output,
+                },
+                HTTPStatus.OK,
+            )
+            return
         body = f"""
 <h1>{h(config['label'])}</h1>
 <p class="muted">Exit code: {result.returncode}</p>

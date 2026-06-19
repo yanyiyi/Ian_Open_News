@@ -343,8 +343,16 @@ def batched(records: list[dict[str, Any]], size: int) -> list[list[dict[str, Any
 def collect_targets(records: list[dict[str, Any]], args: argparse.Namespace, kind: str) -> list[dict[str, Any]]:
     tracks = set(args.track or [])
     statuses = set(args.status or [])
+    ids = set(args.id or [])
     selected: list[dict[str, Any]] = []
     for record in records:
+        if ids:
+            if str(record.get("id") or "") not in ids:
+                continue
+            if args.missing_only and has_codex_review(record):
+                continue
+            selected.append(record)
+            continue
         if args.missing_only and has_codex_review(record):
             continue
         if kind == "items":
@@ -384,6 +392,7 @@ def main() -> None:
     parser.add_argument("--candidates", type=Path, default=CANDIDATES)
     parser.add_argument("--track", action="append", default=[])
     parser.add_argument("--status", action="append", default=["inbox"])
+    parser.add_argument("--id", action="append", default=[], help="Only enrich the record with this id. Can be repeated.")
     parser.add_argument("--workflow-scope", action="store_true", help="For items, include inbox plus reader/workflow statuses.")
     parser.add_argument("--limit", type=int, default=24)
     parser.add_argument("--batch-size", type=int, default=6)
