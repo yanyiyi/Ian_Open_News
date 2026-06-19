@@ -13,12 +13,13 @@ import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, urlencode, unquote, urljoin, urlparse
 import hashlib
+from zoneinfo import ZoneInfo
 
 from page_metadata import attrs_from_tag, enrich_item_metadata, fetch_page_metadata, text_to_markdown, unwrap_google_alert_url
 
@@ -62,6 +63,7 @@ TRACK_META = {
     },
 }
 TRACK_ORDER = ["open-tech-open-industry", "digital-humanities-local-knowledge", "unclassified"]
+LOCAL_TIMEZONE = ZoneInfo("Asia/Taipei")
 SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast", "facebook", "inoreader-monitor", "spreadsheet", "manual"]
 SOURCE_STATUSES = ["active", "paused", "archived"]
 FETCH_FREQUENCIES = ["daily", "weekly", "monthly", "paused"]
@@ -718,6 +720,54 @@ def item_sort_time(item: dict) -> str:
     return parsed.isoformat() if parsed else ""
 
 
+def parse_local_date_input(value: str, *, end: bool = False) -> datetime | None:
+    text = clean_text(value)
+    if not text:
+        return None
+    try:
+        date_value = datetime.strptime(text, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+    parsed = datetime(date_value.year, date_value.month, date_value.day, tzinfo=LOCAL_TIMEZONE)
+    return parsed + timedelta(days=1) if end else parsed
+
+
+def reader_time_bounds(time_filter: str, start_value: str = "", end_value: str = "") -> tuple[datetime | None, datetime | None]:
+    now = datetime.now(LOCAL_TIMEZONE)
+    if time_filter == "three-days":
+        return now - timedelta(days=3), None
+    if time_filter == "week":
+        return now - timedelta(days=7), None
+    if time_filter == "month":
+        return now - timedelta(days=30), None
+    if time_filter == "quarter":
+        quarter_month = ((now.month - 1) // 3) * 3 + 1
+        return datetime(now.year, quarter_month, 1, tzinfo=LOCAL_TIMEZONE), None
+    if time_filter == "year":
+        return datetime(now.year, 1, 1, tzinfo=LOCAL_TIMEZONE), None
+    if time_filter == "custom":
+        return parse_local_date_input(start_value), parse_local_date_input(end_value, end=True)
+    return None, None
+
+
+def item_matches_time_filter(item: dict, start: datetime | None, end: datetime | None) -> bool:
+    if not start and not end:
+        return True
+    parsed = item_datetime(item, "published_at", "captured_at", "dismissed_at")
+    if not parsed:
+        return False
+    return (not start or parsed >= start) and (not end or parsed < end)
+
+
+def reader_time_summary(time_filter: str, start_value: str = "", end_value: str = "") -> str:
+    labels = dict(READER_TIME_FILTERS)
+    if time_filter == "custom":
+        start_text = clean_text(start_value) or "不限開始"
+        end_text = clean_text(end_value) or "不限結束"
+        return f"自定時間範圍：{start_text} 至 {end_text}"
+    return labels.get(time_filter, labels["all"])
+
+
 def source_health_summary(source: dict, items: list[dict], rejected: list[dict], candidates: list[dict], dismissed: list[dict]) -> dict:
     source_id = source.get("id")
     source_items = [item for item in items if item.get("source_id") == source_id]
@@ -1186,6 +1236,15 @@ def item_image_url(item: dict) -> str:
 
 
 LAYOUT_MODES = ["card", "list", "compact"]
+READER_TIME_FILTERS = [
+    ("three-days", "這三天（-3 天）"),
+    ("week", "這一週"),
+    ("month", "這一個月（-30 天）"),
+    ("quarter", "這一季"),
+    ("year", "這一年"),
+    ("custom", "自定時間範圍"),
+    ("all", "全部"),
+]
 
 
 def layout_icon(mode: str) -> str:
@@ -1672,6 +1731,12 @@ def page(title: str, body: str) -> bytes:
     form {{ margin: 0; }}
     .form-panel, .filter-panel {{ padding: 18px; }}
     .form-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }}
+    .date-range-fields {{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }}
+    .date-range-fields[hidden] {{ display: none; }}
     label {{ display: block; font-weight: 750; margin: 13px 0 5px; }}
     input, textarea, select {{
       width: 100%;
@@ -3386,6 +3451,12 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
         view_mode = (query.get("view") or ["auto"])[0]
         if view_mode not in {"auto", "card", "list", "compact"}:
             view_mode = "auto"
+        time_filter = (query.get("time") or ["week"])[0]
+        if time_filter not in {key for key, _ in READER_TIME_FILTERS}:
+            time_filter = "week"
+        start_date = clean_text((query.get("start") or [""])[0])
+        end_date = clean_text((query.get("end") or [""])[0])
+        time_start, time_end = reader_time_bounds(time_filter, start_date, end_date)
         selected_keywords = {keyword for keyword in (query.get("keyword") or []) if keyword}
 
         def matches_basic(item: dict) -> bool:
@@ -3396,14 +3467,17 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
                 return False
             return True
 
+        def matches_scope(item: dict) -> bool:
+            return matches_basic(item) and item_matches_time_filter(item, time_start, time_end)
+
         def matches(item: dict) -> bool:
-            if not matches_basic(item):
+            if not matches_scope(item):
                 return False
             if selected_keywords and not (item_triage_keywords(item) & selected_keywords):
                 return False
             return True
 
-        keyword_source_items = [item for item in items if matches_basic(item)]
+        keyword_source_items = [item for item in items if matches_scope(item)]
         keyword_counts = Counter(keyword for item in keyword_source_items for keyword in item_triage_keywords(item))
         keyword_options = [keyword for keyword, _ in keyword_counts.most_common(40)]
         for keyword in sorted(selected_keywords):
@@ -3431,6 +3505,13 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
             redirect_parts.append(f"kind={quote(kind_filter)}")
         if view_mode != "auto":
             redirect_parts.append(f"view={quote(view_mode)}")
+        if time_filter != "week":
+            redirect_parts.append(f"time={quote(time_filter)}")
+        if time_filter == "custom":
+            if start_date:
+                redirect_parts.append(f"start={quote(start_date)}")
+            if end_date:
+                redirect_parts.append(f"end={quote(end_date)}")
         for keyword in sorted(selected_keywords):
             redirect_parts.append(f"keyword={quote(keyword)}")
         reader_redirect = "/reader" + (f"?{'&'.join(redirect_parts)}" if redirect_parts else "")
@@ -3548,6 +3629,9 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
             ("needs-review", "人工判斷"),
         ]
         view_options = [("auto", "自動：分區預設"), ("card", "卡片"), ("list", "列表"), ("compact", "清單")]
+        time_options = READER_TIME_FILTERS
+        custom_hidden = "" if time_filter == "custom" else " hidden"
+        custom_disabled = "" if time_filter == "custom" else " disabled"
         keyword_filters = []
         for keyword in keyword_options:
             checked = " checked" if keyword in selected_keywords else ""
@@ -3589,6 +3673,21 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
       <select name="view" class="auto-filter">{option_list(view_options, view_mode)}</select>
       <p class="help">自動模式會讓精選與觀點優先用卡片，小消息優先用列表。</p>
     </div>
+    <div>
+      <label>時間</label>
+      <select name="time" class="auto-filter" id="reader-time-filter">{option_list(time_options, time_filter)}</select>
+      <p class="help">可看這三天、這週、最近 30 天、當季、今年、自定區間或全部。</p>
+    </div>
+    <div class="date-range-fields" data-time-custom-fields{custom_hidden}>
+      <div>
+        <label>開始日期</label>
+        <input type="date" name="start" value="{h(start_date)}"{custom_disabled}>
+      </div>
+      <div>
+        <label>結束日期</label>
+        <input type="date" name="end" value="{h(end_date)}"{custom_disabled}>
+      </div>
+    </div>
   </div>
   <label>子關鍵字</label>
   <div class="keyword-filters">{keyword_filter_html}</div>
@@ -3599,14 +3698,37 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
   <p class="help">勾選子關鍵字後會自動更新；多個關鍵字是任一命中就顯示。</p>
 </form>
 <h2>文章</h2>
-<p class="muted">符合條件：{len(filtered)} 筆。最多先顯示 180 筆，避免頁面太重。</p>
+<p class="muted">符合條件：{len(filtered)} 筆。時間：{h(reader_time_summary(time_filter, start_date, end_date))}。最多先顯示 180 筆，避免頁面太重。</p>
 {reader_content}
 <script>
+const readerFilterForm = document.getElementById("reader-filter-form");
+const readerTimeFilter = document.getElementById("reader-time-filter");
+const readerTimeFields = document.querySelector("[data-time-custom-fields]");
+function syncReaderTimeFields() {{
+  if (!readerTimeFilter || !readerTimeFields) return;
+  const isCustom = readerTimeFilter.value === "custom";
+  readerTimeFields.hidden = !isCustom;
+  readerTimeFields.querySelectorAll("input").forEach((field) => {{
+    field.disabled = !isCustom;
+  }});
+}}
+syncReaderTimeFields();
 document.querySelectorAll("#reader-filter-form .auto-filter").forEach((field) => {{
-  field.addEventListener("change", () => document.getElementById("reader-filter-form").submit());
+  field.addEventListener("change", () => {{
+    if (field === readerTimeFilter) {{
+      syncReaderTimeFields();
+      if (field.value === "custom" && !readerTimeFields.querySelector("input[value]:not([value=''])")) {{
+        return;
+      }}
+    }}
+    readerFilterForm.submit();
+  }});
 }});
 document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach((field) => {{
-  field.addEventListener("change", () => document.getElementById("reader-filter-form").submit());
+  field.addEventListener("change", () => readerFilterForm.submit());
+}});
+document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => {{
+  field.addEventListener("change", () => readerFilterForm.submit());
 }});
 </script>
 """

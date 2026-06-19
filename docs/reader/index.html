@@ -130,6 +130,46 @@
     .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
     .news-item h3 a { color: #4f3ed2; font-weight: 850; }
     .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -161,7 +201,7 @@
     <div class="masthead">
       <h1>開放科技閱讀版</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-19T19:47:42+00:00</p>
+      <p class="generated">產生時間：2026-06-19T20:02:12+00:00</p>
 
 <nav>
   <a class="is-active" href="index.html">精選與觀點</a>
@@ -171,11 +211,38 @@
     </div>
   </header>
   <main>
+
+<section class="reader-time-filter" data-time-filter>
+  <div>
+    <label for="reader-time-range">時間</label>
+    <select id="reader-time-range" data-time-select>
+      <option value="three-days">這三天（-3 天）</option>
+<option value="week">這一週</option>
+<option value="month">這一個月（-30 天）</option>
+<option value="quarter">這一季</option>
+<option value="year">這一年</option>
+<option value="custom">自定時間範圍</option>
+<option value="all" selected>全部</option>
+    </select>
+  </div>
+  <div class="reader-time-custom" data-time-custom hidden>
+    <div>
+      <label for="reader-time-start">開始日期</label>
+      <input id="reader-time-start" type="date" data-time-start>
+    </div>
+    <div>
+      <label for="reader-time-end">結束日期</label>
+      <input id="reader-time-end" type="date" data-time-end>
+    </div>
+  </div>
+  <p class="generated" data-time-count></p>
+</section>
+
 <section>
   <h2>精選文章與觀點文章</h2>
   <p class="lede">這裡優先呈現需要細讀、可能延伸撰稿或觀點整理的內容。</p>
   <div class="card-grid">
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div class="thumb"><img src="https://img.technews.tw/wp-content/themes/twentytwelve/library/images/logo.gif" alt=""></div>
   <div class="story-body">
     <div>
@@ -194,7 +261,7 @@
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -214,7 +281,7 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-c36dc7ca795301a6-4486ea03c735.jpg" alt=""></div>
   <div class="story-body">
     <div>
@@ -233,7 +300,7 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-6db0119b893bcd4d-8f44dccda473.png" alt=""></div>
   <div class="story-body">
     <div>
@@ -252,7 +319,7 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-8cf762c31e26f1a7-44de4e19967b.jpg" alt=""></div>
   <div class="story-body">
     <div>
@@ -271,7 +338,7 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-40509ec18f292e29-b86b8613d112.webp" alt=""></div>
   <div class="story-body">
     <div>
@@ -290,26 +357,26 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
 </article>
 
 
-<article class="story-card">
-  <div class="thumb"><span>開放科技</span></div>
+<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
+  <div class="thumb"><img src="https://techorange.com/app/uploads/2026/06/c9f633553260dbf8.jpg" alt=""></div>
   <div class="story-body">
     <div>
       <span class="badge">開放科技</span>
       <span class="badge">精選文章 / 待跑 skill</span>
-
+      <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-18 08:00</span>
     </div>
     <h2><a href="articles/item-f5eeb7d194af515a.html">【DEAT 專欄】城市 治理 的新拼圖：數位平台正在成為 治理 夥伴</a></h2>
     <p class="summary">摘要指出研究團隊觀察到台灣中央與地方之間仍缺乏部分分層數據，地方資料也存在零碎化問題；同時，社會信任等較軟性的治理指標仍待建立量化方法。這些問題不只影響研究，也反映城市治理在導入數位平台時仍有資料基礎與信任衡量的挑戰。</p>
     <div class="actions">
       <a class="button secondary reader-action-button" href="articles/item-f5eeb7d194af515a.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
-      <a class="button quiet reader-action-button" href="https://www.google.com/url?rct=j&amp;sa=t&amp;url=https://techorange.com/2026/06/18/deat-urban-governance/&amp;ct=ga&amp;cd=CAIyIDZkMmZmZDQ1NGY2OTc2Zjg6Y29tLnR3OnpoLVRXOlRX&amp;usg=AOvVaw1J5YcdhAXLugXAJeB3afLJ" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
+      <a class="button quiet reader-action-button" href="https://techorange.com/2026/06/18/deat-urban-governance/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-20d84fe2a6e07343-5df81ef12723.png" alt=""></div>
   <div class="story-body">
     <div>
@@ -328,7 +395,7 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -347,7 +414,7 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -366,7 +433,7 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -385,7 +452,7 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-d71b8325b75ce033-5f7575ffb52a.webp" alt=""></div>
   <div class="story-body">
     <div>
@@ -404,7 +471,7 @@ The post Vercel Open Sources ‘eve’ Amid Agentic AI...</p>
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -424,7 +491,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-2775f9f0fb484bf4-cd788ff617ef.webp" alt=""></div>
   <div class="story-body">
     <div>
@@ -443,17 +510,17 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
-  <div class="thumb"><span>開放科技</span></div>
+<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
+  <div class="thumb"><img src="https://www.zdnet.com/a/img/resize/c0b523bcfb5f7c6a812a97e6f05ac634d860f241/2026/06/18/74482f2e-bc3d-412c-9d4a-2f3e3703cf90/gettyimages-1436416704.jpg?auto=webp&amp;fit=crop&amp;height=675&amp;width=1200" alt=""></div>
   <div class="story-body">
     <div>
       <span class="badge">開放科技</span>
       <span class="badge">精選文章 / 待跑 skill</span>
-
+      <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-18 08:00</span>
     </div>
     <h2><a href="articles/item-73307537d64c05c7.html">10 signs that someone is monitoring or accessing your accounts - how to stop them</a></h2>
-    <p class="summary">Learn how to spot the signs of account monitoring and compromise - and take back control.</p>
+    <p class="summary">這篇文章說明線上帳號被他人監控或嘗試入侵時，常見跡象可能不明顯，但後果可能包含信箱被用來繞過 2FA、購物或金融服務遭濫用，甚至社群帳號被冒用。文中已提供的段落聚焦在幾個警訊：出現不明登入紀錄或裝置工作階段、突然收到未主動要求的 2FA 或 MFA 驗證碼、密碼變更或帳號復原通知，以及釣魚信或垃圾電話暴增。對應處置包括立即更換密碼、確認復原聯絡方式沒有被改掉、撤銷其他裝置登入、留意 VPN 造成的地點誤判、不要透露驗證碼，並在疑似 SIM swap 或釣魚攻擊時聯絡電信商或服務提供者。</p>
     <div class="actions">
       <a class="button secondary reader-action-button" href="articles/item-73307537d64c05c7.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
       <a class="button quiet reader-action-button" href="https://www.zdnet.com/article/10-signs-online-accounts-monitored-compromised-guide/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
@@ -462,7 +529,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -481,7 +548,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-3cdbd3cd1b925156-e5d016cb059f.jpg" alt=""></div>
   <div class="story-body">
     <div>
@@ -500,7 +567,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-7c9b8ff73de68096-8b8bc8d4fbbc.jpg" alt=""></div>
   <div class="story-body">
     <div>
@@ -519,7 +586,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-19f58898f7c60774-79655561295f.jpg" alt=""></div>
   <div class="story-body">
     <div>
@@ -538,7 +605,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -557,7 +624,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -576,7 +643,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -595,7 +662,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -614,7 +681,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -633,7 +700,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -652,7 +719,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-f7946983023b7f7c-f8b2931d7b97.jpg" alt=""></div>
   <div class="story-body">
     <div>
@@ -671,7 +738,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -690,7 +757,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -709,7 +776,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -728,7 +795,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -747,7 +814,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -766,7 +833,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -785,7 +852,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-3fb594430e66b25b-11605a01d20f.webp" alt=""></div>
   <div class="story-body">
     <div>
@@ -804,7 +871,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-8d85b5e41061165c-44914c46e4df.png" alt=""></div>
   <div class="story-body">
     <div>
@@ -823,7 +890,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -842,7 +909,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -861,7 +928,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -880,7 +947,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -899,7 +966,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -918,7 +985,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -937,7 +1004,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -956,7 +1023,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -975,7 +1042,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-f53e3830fbb704ba-ed752bdb01ce.png" alt=""></div>
   <div class="story-body">
     <div>
@@ -994,7 +1061,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -1013,7 +1080,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-78f2d34dd48a0cb7-abf1eac7622b.png" alt=""></div>
   <div class="story-body">
     <div>
@@ -1032,7 +1099,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -1051,7 +1118,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -1070,7 +1137,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -1089,7 +1156,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2026-06-14T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div>
@@ -1108,7 +1175,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-eee66b505e99ed5a-9f59ee0da2db.jpg" alt=""></div>
   <div class="story-body">
     <div>
@@ -1127,7 +1194,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2024-01-07T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-928d1ad0e95fadae-3dda354087c9.jpg" alt=""></div>
   <div class="story-body">
     <div>
@@ -1146,7 +1213,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2023-11-15T00:00:00+00:00">
   <div class="thumb"><img src="https://webfile.rti.org.tw/web/rti.org.tw/tw/code/public/assets/images/2023/10/26/701db677635ec8181226b273ea630459.png" alt=""></div>
   <div class="story-body">
     <div>
@@ -1165,7 +1232,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="2023-08-24T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-6bcf7a23a8cf2d2b-64b3ecb6cd58.jpg" alt=""></div>
   <div class="story-body">
     <div>
@@ -1188,7 +1255,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
   <h2>最新小消息</h2>
   <p class="lede">小消息改成列表，適合快速掃過；完整列表在下一頁。</p>
   <div class="news-list">
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -1199,7 +1266,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -1210,7 +1277,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -1221,7 +1288,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -1232,7 +1299,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -1243,7 +1310,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -1254,7 +1321,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -1265,7 +1332,7 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -1277,6 +1344,81 @@ The post Fable 5 ban: 4 open models responded before Anthropic could restore acc
 </div>
   <div class="actions"><a class="button secondary" href="news.html">看全部小消息</a></div>
 </section>
+<div class="empty" data-time-empty hidden>這個時間範圍沒有可顯示的項目。</div>
 </main>
+
+<script>
+(() => {
+  const panel = document.querySelector("[data-time-filter]");
+  if (!panel) return;
+  const select = panel.querySelector("[data-time-select]");
+  const custom = panel.querySelector("[data-time-custom]");
+  const startInput = panel.querySelector("[data-time-start]");
+  const endInput = panel.querySelector("[data-time-end]");
+  const count = panel.querySelector("[data-time-count]");
+  const items = Array.from(document.querySelectorAll("[data-reader-item]"));
+  const empty = document.querySelector("[data-time-empty]");
+
+  function parseInputDate(input, endOfDay) {
+    if (!input || !input.value) return null;
+    const parts = input.value.split("-").map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (endOfDay) date.setDate(date.getDate() + 1);
+    return date;
+  }
+
+  function rangeBounds() {
+    const now = new Date();
+    let start = null;
+    let end = null;
+    if (select.value === "three-days") {
+      start = new Date(now);
+      start.setDate(start.getDate() - 3);
+    } else if (select.value === "week") {
+      start = new Date(now);
+      start.setDate(start.getDate() - 7);
+    } else if (select.value === "month") {
+      start = new Date(now);
+      start.setDate(start.getDate() - 30);
+    } else if (select.value === "quarter") {
+      start = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    } else if (select.value === "year") {
+      start = new Date(now.getFullYear(), 0, 1);
+    } else if (select.value === "custom") {
+      start = parseInputDate(startInput, false);
+      end = parseInputDate(endInput, true);
+    }
+    return { start, end };
+  }
+
+  function applyTimeFilter() {
+    const isCustom = select.value === "custom";
+    custom.hidden = !isCustom;
+    custom.querySelectorAll("input").forEach((input) => {
+      input.disabled = !isCustom;
+    });
+    const { start, end } = rangeBounds();
+    let visible = 0;
+    items.forEach((item) => {
+      const raw = item.dataset.itemDate || "";
+      const date = raw ? new Date(raw) : null;
+      const hasDate = date && !Number.isNaN(date.getTime());
+      const keep = (!start && !end) || (hasDate && (!start || date >= start) && (!end || date < end));
+      item.classList.toggle("reader-hidden-by-time", !keep);
+      if (keep) visible += 1;
+    });
+    if (count) count.textContent = `顯示 ${visible} / ${items.length} 筆`;
+    if (empty) empty.hidden = visible > 0;
+  }
+
+  select.addEventListener("change", applyTimeFilter);
+  [startInput, endInput].forEach((input) => {
+    if (input) input.addEventListener("change", applyTimeFilter);
+  });
+  applyTimeFilter();
+})();
+</script>
+
 </body>
 </html>

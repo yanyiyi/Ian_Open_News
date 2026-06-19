@@ -32,6 +32,15 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "docs" / "reader" / "index.html"
 PUBLIC_KINDS = {"featured-article", "small-news", "opinion-article"}
 PRIMARY_KINDS = {"featured-article", "opinion-article"}
+TIME_FILTER_OPTIONS = [
+    ("three-days", "這三天（-3 天）"),
+    ("week", "這一週"),
+    ("month", "這一個月（-30 天）"),
+    ("quarter", "這一季"),
+    ("year", "這一年"),
+    ("custom", "自定時間範圍"),
+    ("all", "全部"),
+]
 
 
 def repo_web_url() -> str:
@@ -83,6 +92,115 @@ def item_date(item: dict) -> str:
     return item_display_time(item, "published_at", "captured_at")
 
 
+def item_data_date(item: dict) -> str:
+    return item_sort_time(item)
+
+
+def time_filter_controls() -> str:
+    options = "\n".join(
+        f'<option value="{h(value)}"{" selected" if value == "all" else ""}>{h(label)}</option>'
+        for value, label in TIME_FILTER_OPTIONS
+    )
+    return f"""
+<section class="reader-time-filter" data-time-filter>
+  <div>
+    <label for="reader-time-range">時間</label>
+    <select id="reader-time-range" data-time-select>
+      {options}
+    </select>
+  </div>
+  <div class="reader-time-custom" data-time-custom hidden>
+    <div>
+      <label for="reader-time-start">開始日期</label>
+      <input id="reader-time-start" type="date" data-time-start>
+    </div>
+    <div>
+      <label for="reader-time-end">結束日期</label>
+      <input id="reader-time-end" type="date" data-time-end>
+    </div>
+  </div>
+  <p class="generated" data-time-count></p>
+</section>
+"""
+
+
+def time_filter_script() -> str:
+    return """
+<script>
+(() => {
+  const panel = document.querySelector("[data-time-filter]");
+  if (!panel) return;
+  const select = panel.querySelector("[data-time-select]");
+  const custom = panel.querySelector("[data-time-custom]");
+  const startInput = panel.querySelector("[data-time-start]");
+  const endInput = panel.querySelector("[data-time-end]");
+  const count = panel.querySelector("[data-time-count]");
+  const items = Array.from(document.querySelectorAll("[data-reader-item]"));
+  const empty = document.querySelector("[data-time-empty]");
+
+  function parseInputDate(input, endOfDay) {
+    if (!input || !input.value) return null;
+    const parts = input.value.split("-").map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (endOfDay) date.setDate(date.getDate() + 1);
+    return date;
+  }
+
+  function rangeBounds() {
+    const now = new Date();
+    let start = null;
+    let end = null;
+    if (select.value === "three-days") {
+      start = new Date(now);
+      start.setDate(start.getDate() - 3);
+    } else if (select.value === "week") {
+      start = new Date(now);
+      start.setDate(start.getDate() - 7);
+    } else if (select.value === "month") {
+      start = new Date(now);
+      start.setDate(start.getDate() - 30);
+    } else if (select.value === "quarter") {
+      start = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    } else if (select.value === "year") {
+      start = new Date(now.getFullYear(), 0, 1);
+    } else if (select.value === "custom") {
+      start = parseInputDate(startInput, false);
+      end = parseInputDate(endInput, true);
+    }
+    return { start, end };
+  }
+
+  function applyTimeFilter() {
+    const isCustom = select.value === "custom";
+    custom.hidden = !isCustom;
+    custom.querySelectorAll("input").forEach((input) => {
+      input.disabled = !isCustom;
+    });
+    const { start, end } = rangeBounds();
+    let visible = 0;
+    items.forEach((item) => {
+      const raw = item.dataset.itemDate || "";
+      const date = raw ? new Date(raw) : null;
+      const hasDate = date && !Number.isNaN(date.getTime());
+      const keep = (!start && !end) || (hasDate && (!start || date >= start) && (!end || date < end));
+      item.classList.toggle("reader-hidden-by-time", !keep);
+      if (keep) visible += 1;
+    });
+    if (count) count.textContent = `顯示 ${visible} / ${items.length} 筆`;
+    if (empty) empty.hidden = visible > 0;
+  }
+
+  select.addEventListener("change", applyTimeFilter);
+  [startInput, endInput].forEach((input) => {
+    if (input) input.addEventListener("change", applyTimeFilter);
+  });
+  applyTimeFilter();
+})();
+</script>
+"""
+
+
 def reader_image_url(item: dict, depth: int = 0) -> str:
     url = item_image_url(item)
     if url.startswith("/reader/"):
@@ -120,7 +238,7 @@ def note_pr_url(item: dict, repo_url: str, branch: str) -> str:
     return f"{repo_url}/new/{branch}/reader-notes?filename={clean_text(item.get('id')) or 'item'}.md"
 
 
-def page_shell(title: str, body: str, current: str = "index", depth: int = 0) -> str:
+def page_shell(title: str, body: str, current: str = "index", depth: int = 0, include_time_filter: bool = False) -> str:
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     root_prefix = "../" if depth else ""
     nav = f"""
@@ -261,6 +379,46 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0) ->
     .news-item h3 {{ margin: 8px 0 10px; font-size: 19px; }}
     .news-item h3 a {{ color: #4f3ed2; font-weight: 850; }}
     .news-item .summary {{ margin: 0; font-size: 16px; line-height: 1.68; }}
+    .reader-time-filter {{
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }}
+    .reader-time-filter label {{
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }}
+    .reader-time-filter select,
+    .reader-time-filter input {{
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }}
+    .reader-time-custom {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }}
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {{
+      display: none !important;
+    }}
+    .reader-time-filter .generated {{
+      margin: 0 0 7px;
+    }}
     .article-layout {{ display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }}
     .article-panel, .side-panel {{
       background: #fff;
@@ -297,6 +455,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0) ->
     </div>
   </header>
   <main>{body}</main>
+  {time_filter_script() if include_time_filter else ""}
 </body>
 </html>
 """
@@ -309,7 +468,7 @@ def item_card(item: dict) -> str:
     summary = item_zh_summary(item, 440)
     has_body = bool(item_body_markdown(item))
     return f"""
-<article class="story-card">
+<article class="story-card" data-reader-item data-item-date="{h(item_data_date(item))}">
   <div class="thumb">{image_html}</div>
   <div class="story-body">
     <div>
@@ -334,7 +493,7 @@ def news_row(item: dict, depth: int = 0) -> str:
     summary = item_zh_summary(item, 220)
     has_body = bool(item_body_markdown(item))
     return f"""
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="{h(item_data_date(item))}">
   <div>
     <span class="badge">{h(content_kind_label(item_display_kind(item)))}</span>
     {'<span class="badge">已載入本機全文</span>' if has_body else ''}
@@ -421,6 +580,7 @@ def index_page(items: list[dict]) -> str:
     cards = "\n".join(item_card(item) for item in primary[:120]) or "<p class='empty'>目前沒有精選文章或觀點文章。</p>"
     news_preview = "\n".join(news_row(item) for item in small_news[:8]) or "<p class='empty'>目前沒有小消息。</p>"
     body = f"""
+{time_filter_controls()}
 <section>
   <h2>精選文章與觀點文章</h2>
   <p class="lede">這裡優先呈現需要細讀、可能延伸撰稿或觀點整理的內容。</p>
@@ -432,21 +592,24 @@ def index_page(items: list[dict]) -> str:
   <div class="news-list">{news_preview}</div>
   <div class="actions"><a class="button secondary" href="news.html">看全部小消息</a></div>
 </section>
+<div class="empty" data-time-empty hidden>這個時間範圍沒有可顯示的項目。</div>
 """
-    return page_shell("開放科技閱讀版", body, current="index")
+    return page_shell("開放科技閱讀版", body, current="index", include_time_filter=True)
 
 
 def news_page(items: list[dict]) -> str:
     small_news = [item for item in items if item_display_kind(item) == "small-news"]
     rows = "\n".join(news_row(item) for item in small_news) or "<p class='empty'>目前沒有小消息。</p>"
     body = f"""
+{time_filter_controls()}
 <section>
   <h2>小消息列表</h2>
   <p class="lede">純新聞消息用列表呈現，保留快速掃讀與點進單篇的入口。</p>
   <div class="news-list">{rows}</div>
 </section>
+<div class="empty" data-time-empty hidden>這個時間範圍沒有可顯示的小消息。</div>
 """
-    return page_shell("開放科技小消息", body, current="news")
+    return page_shell("開放科技小消息", body, current="news", include_time_filter=True)
 
 
 def write_clean(path: Path, html: str) -> None:

@@ -130,6 +130,46 @@
     .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
     .news-item h3 a { color: #4f3ed2; font-weight: 850; }
     .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -161,7 +201,7 @@
     <div class="masthead">
       <h1>開放科技小消息</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-19T19:47:42+00:00</p>
+      <p class="generated">產生時間：2026-06-19T20:02:12+00:00</p>
 
 <nav>
   <a class="" href="index.html">精選與觀點</a>
@@ -171,11 +211,38 @@
     </div>
   </header>
   <main>
+
+<section class="reader-time-filter" data-time-filter>
+  <div>
+    <label for="reader-time-range">時間</label>
+    <select id="reader-time-range" data-time-select>
+      <option value="three-days">這三天（-3 天）</option>
+<option value="week">這一週</option>
+<option value="month">這一個月（-30 天）</option>
+<option value="quarter">這一季</option>
+<option value="year">這一年</option>
+<option value="custom">自定時間範圍</option>
+<option value="all" selected>全部</option>
+    </select>
+  </div>
+  <div class="reader-time-custom" data-time-custom hidden>
+    <div>
+      <label for="reader-time-start">開始日期</label>
+      <input id="reader-time-start" type="date" data-time-start>
+    </div>
+    <div>
+      <label for="reader-time-end">結束日期</label>
+      <input id="reader-time-end" type="date" data-time-end>
+    </div>
+  </div>
+  <p class="generated" data-time-count></p>
+</section>
+
 <section>
   <h2>小消息列表</h2>
   <p class="lede">純新聞消息用列表呈現，保留快速掃讀與點進單篇的入口。</p>
   <div class="news-list">
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -186,7 +253,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -197,7 +264,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -208,7 +275,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -219,7 +286,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -230,7 +297,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -241,7 +308,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -252,7 +319,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -263,7 +330,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -274,7 +341,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -285,7 +352,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -296,7 +363,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -307,7 +374,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -318,7 +385,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -329,7 +396,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -340,7 +407,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -351,7 +418,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -362,7 +429,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -373,7 +440,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -384,7 +451,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -395,7 +462,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -406,7 +473,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -417,7 +484,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -428,7 +495,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -439,7 +506,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -450,7 +517,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -461,7 +528,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -472,7 +539,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -483,7 +550,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -494,7 +561,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -505,7 +572,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -516,7 +583,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -527,7 +594,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -538,7 +605,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -549,7 +616,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -560,7 +627,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -571,7 +638,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -582,7 +649,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -593,7 +660,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -604,7 +671,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -615,7 +682,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -626,7 +693,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -637,7 +704,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -648,7 +715,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -659,7 +726,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -670,7 +737,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -681,7 +748,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -692,7 +759,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -703,7 +770,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -714,7 +781,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -725,7 +792,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -736,7 +803,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -747,7 +814,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -758,7 +825,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -769,7 +836,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -780,7 +847,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -791,7 +858,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -802,7 +869,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -813,7 +880,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -824,7 +891,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -835,7 +902,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-11-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -846,7 +913,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-10-27T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -857,7 +924,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-09-12T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -868,7 +935,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-09-12T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -879,7 +946,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-09-12T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -890,7 +957,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-09-11T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -901,7 +968,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-08-22T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -912,7 +979,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-08-21T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -923,7 +990,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-08-03T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -934,7 +1001,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-07-27T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -945,7 +1012,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-07-05T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -956,7 +1023,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-04-30T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -967,7 +1034,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-04-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -978,7 +1045,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-02-09T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -989,7 +1056,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2023-02-08T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -1000,7 +1067,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2022-09-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -1011,7 +1078,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2021-07-29T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
 
@@ -1022,7 +1089,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2020-08-03T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -1033,7 +1100,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2020-07-31T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -1044,7 +1111,7 @@
 </article>
 
 
-<article class="news-item">
+<article class="news-item" data-reader-item data-item-date="2020-05-06T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
     <span class="badge">已載入本機全文</span>
@@ -1055,6 +1122,81 @@
 </article>
 </div>
 </section>
+<div class="empty" data-time-empty hidden>這個時間範圍沒有可顯示的小消息。</div>
 </main>
+
+<script>
+(() => {
+  const panel = document.querySelector("[data-time-filter]");
+  if (!panel) return;
+  const select = panel.querySelector("[data-time-select]");
+  const custom = panel.querySelector("[data-time-custom]");
+  const startInput = panel.querySelector("[data-time-start]");
+  const endInput = panel.querySelector("[data-time-end]");
+  const count = panel.querySelector("[data-time-count]");
+  const items = Array.from(document.querySelectorAll("[data-reader-item]"));
+  const empty = document.querySelector("[data-time-empty]");
+
+  function parseInputDate(input, endOfDay) {
+    if (!input || !input.value) return null;
+    const parts = input.value.split("-").map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (endOfDay) date.setDate(date.getDate() + 1);
+    return date;
+  }
+
+  function rangeBounds() {
+    const now = new Date();
+    let start = null;
+    let end = null;
+    if (select.value === "three-days") {
+      start = new Date(now);
+      start.setDate(start.getDate() - 3);
+    } else if (select.value === "week") {
+      start = new Date(now);
+      start.setDate(start.getDate() - 7);
+    } else if (select.value === "month") {
+      start = new Date(now);
+      start.setDate(start.getDate() - 30);
+    } else if (select.value === "quarter") {
+      start = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    } else if (select.value === "year") {
+      start = new Date(now.getFullYear(), 0, 1);
+    } else if (select.value === "custom") {
+      start = parseInputDate(startInput, false);
+      end = parseInputDate(endInput, true);
+    }
+    return { start, end };
+  }
+
+  function applyTimeFilter() {
+    const isCustom = select.value === "custom";
+    custom.hidden = !isCustom;
+    custom.querySelectorAll("input").forEach((input) => {
+      input.disabled = !isCustom;
+    });
+    const { start, end } = rangeBounds();
+    let visible = 0;
+    items.forEach((item) => {
+      const raw = item.dataset.itemDate || "";
+      const date = raw ? new Date(raw) : null;
+      const hasDate = date && !Number.isNaN(date.getTime());
+      const keep = (!start && !end) || (hasDate && (!start || date >= start) && (!end || date < end));
+      item.classList.toggle("reader-hidden-by-time", !keep);
+      if (keep) visible += 1;
+    });
+    if (count) count.textContent = `顯示 ${visible} / ${items.length} 筆`;
+    if (empty) empty.hidden = visible > 0;
+  }
+
+  select.addEventListener("change", applyTimeFilter);
+  [startInput, endInput].forEach((input) => {
+    if (input) input.addEventListener("change", applyTimeFilter);
+  });
+  applyTimeFilter();
+})();
+</script>
+
 </body>
 </html>
