@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import sys
 from pathlib import Path
 
 
@@ -14,7 +15,15 @@ DATABASE = ROOT / "database"
 def load_jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+    records = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").split("\n"), start=1):
+        if not line.strip():
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            print(f"warning: skip invalid JSONL {path}:{line_number}: {exc}", file=sys.stderr)
+    return records
 
 
 def main() -> None:
@@ -33,8 +42,9 @@ def main() -> None:
             connection.execute(
                 """
                 INSERT INTO sources
-                (id, track, name, source_group, source_type, feed_url, site_url, status, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, track, name, source_group, source_type, fetch_frequency, feed_url, site_url, status,
+                 required_keywords_json, excluded_keywords_json, rss_health_json, health_assessment_json, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     source["id"],
@@ -42,9 +52,14 @@ def main() -> None:
                     source["name"],
                     source.get("source_group", ""),
                     source["source_type"],
+                    source.get("fetch_frequency", "daily"),
                     source.get("feed_url", ""),
                     source.get("site_url", ""),
                     source["status"],
+                    json.dumps(source.get("required_keywords", []), ensure_ascii=False),
+                    json.dumps(source.get("excluded_keywords", []), ensure_ascii=False),
+                    json.dumps(source.get("rss_health", {}), ensure_ascii=False),
+                    json.dumps(source.get("health_assessment", {}), ensure_ascii=False),
                     source.get("notes", ""),
                 ),
             )

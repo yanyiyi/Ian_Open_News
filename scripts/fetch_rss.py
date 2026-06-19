@@ -13,9 +13,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 import xml.etree.ElementTree as ET
 
 from editorial_triage import build_editorial_context, evaluate_editorial_triage
+from page_metadata import unwrap_google_alert_url
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,6 +39,7 @@ def clean_text(value: object, limit: int | None = None) -> str:
     if value is None:
         return ""
     text = html.unescape(str(value))
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", text)
     text = re.sub(r"(?is)<(script|style).*?</\1>", " ", text)
     text = re.sub(r"(?i)<br\s*/?>", "\n", text)
     text = re.sub(r"(?i)</p>", "\n", text)
@@ -52,13 +55,27 @@ def clean_text(value: object, limit: int | None = None) -> str:
 def load_jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+    records = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").split("\n"), start=1):
+        if not line.strip():
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            print(f"warning: skip invalid JSONL {path}:{line_number}: {exc}", file=sys.stderr)
+    return records
 
 
 def load_json(path: Path) -> dict:
     if not path.exists():
         return {}
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write_jsonl(path: Path, records: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
+    path.write_text(text, encoding="utf-8")
 
 
 def append_jsonl(path: Path, records: list[dict]) -> None:
@@ -75,6 +92,54 @@ def append_jsonl(path: Path, records: list[dict]) -> None:
             handle.write("\n")
         for record in records:
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def normalize_url_for_match(value: object) -> str:
+    url = unwrap_google_alert_url(clean_text(value))
+    if not url:
+        return ""
+    parsed = urlparse(url)
+    if not parsed.scheme or not parsed.netloc:
+        return url.casefold()
+    ignored_prefixes = ("utm_",)
+    ignored_names = {"fbclid", "gclid", "igshid", "mc_cid", "mc_eid", "ref"}
+    query = [
+        (key, val)
+        for key, val in parse_qsl(parsed.query, keep_blank_values=True)
+        if key.casefold() not in ignored_names and not key.casefold().startswith(ignored_prefixes)
+    ]
+    normalized = parsed._replace(
+        scheme=parsed.scheme.casefold(),
+        netloc=parsed.netloc.casefold(),
+        fragment="",
+        query=urlencode(query, doseq=True),
+    )
+    return urlunparse(normalized).rstrip("/")
+
+
+def record_date(record: dict) -> datetime | None:
+    for key in ["captured_at", "published_at", "dismissed_at"]:
+        parsed = parse_date(clean_text(record.get(key)))
+        if parsed:
+            return parsed
+    return None
+
+
+def recent_records(records: list[dict], cutoff: datetime) -> list[dict]:
+    output = []
+    for record in records:
+        parsed = record_date(record)
+        if parsed and parsed >= cutoff:
+            output.append(record)
+    return output
+
+
+def list_field(value: object) -> list[str]:
+    if isinstance(value, list):
+        raw = [str(item) for item in value]
+    else:
+        raw = re.split(r"[\n,，]", str(value or ""))
+    return [item.strip() for item in raw if item.strip()]
 
 
 def local_name(tag: str) -> str:
@@ -296,7 +361,8 @@ def evaluate_triage(record: dict, keyword_config: dict) -> dict:
 
 
 def item_record(source: dict, entry: FeedEntry, captured_at: str) -> dict:
-    url = entry.url or entry.guid
+    original_url = entry.url or entry.guid
+    url = unwrap_google_alert_url(original_url)
     return {
         "id": stable_id("item", url, entry.guid, entry.title),
         "track": source["track"],
@@ -315,16 +381,63 @@ def item_record(source: dict, entry: FeedEntry, captured_at: str) -> dict:
         "reference": {
             "feed_url": source.get("feed_url", ""),
             "guid": entry.guid,
+            "original_url": original_url if original_url != url else "",
             "source_id": source["id"],
         },
         "review": default_review(),
     }
 
 
+def source_frequency(source: dict) -> str:
+    frequency = clean_text(source.get("fetch_frequency") or "daily").casefold()
+    if frequency in {"daily", "weekly", "monthly", "paused"}:
+        return frequency
+    return "daily"
+
+
+def source_last_fetch(source: dict) -> datetime | None:
+    health = source.get("rss_health") if isinstance(source.get("rss_health"), dict) else {}
+    for value in [source.get("last_fetched_at"), health.get("last_success_at"), health.get("last_checked_at")]:
+        parsed = parse_date(clean_text(value))
+        if parsed:
+            return parsed
+    return None
+
+
+def source_due_for_fetch(source: dict, now: datetime) -> tuple[bool, str]:
+    frequency = source_frequency(source)
+    if frequency == "paused":
+        return False, "source fetch_frequency is paused"
+    last_fetch = source_last_fetch(source)
+    if not last_fetch:
+        return True, ""
+    interval_days = {"daily": 1, "weekly": 7, "monthly": 30}.get(frequency, 1)
+    if now - last_fetch < timedelta(days=interval_days):
+        return False, f"source fetch_frequency {frequency} is not due yet"
+    return True, ""
+
+
+def source_keyword_filter(record: dict, source: dict) -> tuple[bool, str]:
+    required = list_field(source.get("required_keywords"))
+    excluded = list_field(source.get("excluded_keywords"))
+    text = candidate_haystack(record)
+    excluded_matches = keyword_matches(text, excluded)
+    if excluded_matches:
+        return False, "source excluded keywords matched: " + ", ".join(excluded_matches[:6])
+    if required:
+        required_matches = keyword_matches(text, required)
+        if not required_matches:
+            return False, "source required keywords not matched"
+    return True, ""
+
+
 def source_is_fetchable(source: dict, args: argparse.Namespace) -> tuple[bool, str]:
     feed_url = source.get("feed_url", "")
     if source.get("status") != "active":
         return False, "source status is not active"
+    due, due_reason = source_due_for_fetch(source, datetime.now(timezone.utc))
+    if not due:
+        return False, due_reason
     if source.get("source_type") not in args.source_type:
         return False, f"source_type {source.get('source_type')} is not enabled"
     if args.track and source.get("track") not in args.track:
@@ -395,6 +508,7 @@ def main() -> None:
     parser.add_argument("--include-unclassified", action="store_true")
     parser.add_argument("--source-id", action="append", default=[])
     parser.add_argument("--since-days", type=int, default=7)
+    parser.add_argument("--duplicate-lookback-days", type=int, default=7)
     parser.add_argument("--max-per-source", type=int, default=10)
     parser.add_argument("--timeout", type=int, default=20)
     parser.add_argument("--user-agent", default="IanOpenNewsBot/1.0 (+https://github.com/)")
@@ -412,6 +526,7 @@ def main() -> None:
     )
     parser.add_argument("--triage-keywords", type=Path, default=TRIAGE_KEYWORDS)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--no-update-source-health", action="store_true")
     parser.add_argument("--fail-on-source-error", action="store_true")
     args = parser.parse_args()
 
@@ -428,34 +543,18 @@ def main() -> None:
     keyword_config = load_json(args.triage_keywords)
     history_items = [*existing_items, *rejected_items]
     editorial_context = build_editorial_context(history_items, keyword_config)
-    seen_ids = {item.get("id") for item in existing_items}
-    seen_ids.update(item.get("id") for item in rejected_items)
-    seen_ids.update(candidate.get("id") for candidate in existing_candidates)
-    seen_ids.update(candidate.get("id") for candidate in dismissed_candidates)
-    seen_urls = {item.get("url") for item in existing_items if item.get("url")}
-    seen_urls.update(item.get("url") for item in rejected_items if item.get("url"))
-    seen_urls.update(candidate.get("url") for candidate in existing_candidates if candidate.get("url"))
-    seen_urls.update(candidate.get("url") for candidate in dismissed_candidates if candidate.get("url"))
+    duplicate_cutoff = datetime.now(timezone.utc) - timedelta(days=args.duplicate_lookback_days)
+    duplicate_history = recent_records(
+        [*existing_items, *rejected_items, *existing_candidates, *dismissed_candidates],
+        duplicate_cutoff,
+    )
+    seen_ids = {item.get("id") for item in duplicate_history}
+    seen_urls = {normalize_url_for_match(item.get("url")) for item in duplicate_history if item.get("url")}
     seen_guids = {
         (item.get("reference") or {}).get("guid")
-        for item in existing_items
+        for item in duplicate_history
         if isinstance(item.get("reference"), dict) and (item.get("reference") or {}).get("guid")
     }
-    seen_guids.update(
-        (item.get("reference") or {}).get("guid")
-        for item in rejected_items
-        if isinstance(item.get("reference"), dict) and (item.get("reference") or {}).get("guid")
-    )
-    seen_guids.update(
-        (candidate.get("reference") or {}).get("guid")
-        for candidate in existing_candidates
-        if isinstance(candidate.get("reference"), dict) and (candidate.get("reference") or {}).get("guid")
-    )
-    seen_guids.update(
-        (candidate.get("reference") or {}).get("guid")
-        for candidate in dismissed_candidates
-        if isinstance(candidate.get("reference"), dict) and (candidate.get("reference") or {}).get("guid")
-    )
 
     selected_sources: list[dict] = []
     skipped: list[tuple[dict, str]] = []
@@ -474,27 +573,59 @@ def main() -> None:
     failures: list[tuple[dict, str]] = []
     new_items: list[dict] = []
     fetched_sources = 0
+    source_stats: dict[str, dict[str, object]] = {}
+
+    def stats_for(source: dict) -> dict[str, object]:
+        source_id = source.get("id", "")
+        if source_id not in source_stats:
+            source_stats[source_id] = {
+                "source_id": source_id,
+                "last_checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "last_fetch_status": "pending",
+                "entries_seen": 0,
+                "new_items": 0,
+                "skipped_old": 0,
+                "skipped_duplicate_recent": 0,
+                "skipped_source_keywords": 0,
+                "last_error": "",
+            }
+        return source_stats[source_id]
 
     for source in selected_sources:
+        stats = stats_for(source)
         try:
             content = read_feed_bytes(source["feed_url"], args.timeout, args.user_agent)
             entries = parse_feed_entries(content)
             fetched_sources += 1
+            stats["last_fetch_status"] = "ok"
+            stats["entries_seen"] = len(entries)
         except (urllib.error.URLError, TimeoutError, ET.ParseError, ValueError, OSError) as exc:
             failures.append((source, str(exc)))
+            stats["last_fetch_status"] = "failed"
+            stats["last_error"] = str(exc)
             continue
 
         added_for_source = 0
         for entry in entries:
             published = parse_date(entry.published_at)
             if published and published < cutoff:
+                stats["skipped_old"] = int(stats.get("skipped_old") or 0) + 1
                 continue
             record = item_record(source, entry, captured_at)
+            normalized_record_url = normalize_url_for_match(record.get("url"))
             if record["id"] in seen_ids:
+                stats["skipped_duplicate_recent"] = int(stats.get("skipped_duplicate_recent") or 0) + 1
                 continue
-            if record["url"] and record["url"] in seen_urls:
+            if normalized_record_url and normalized_record_url in seen_urls:
+                stats["skipped_duplicate_recent"] = int(stats.get("skipped_duplicate_recent") or 0) + 1
                 continue
             if entry.guid and entry.guid in seen_guids:
+                stats["skipped_duplicate_recent"] = int(stats.get("skipped_duplicate_recent") or 0) + 1
+                continue
+            passed_source_filter, filter_reason = source_keyword_filter(record, source)
+            if not passed_source_filter:
+                stats["skipped_source_keywords"] = int(stats.get("skipped_source_keywords") or 0) + 1
+                stats["last_source_keyword_reason"] = filter_reason
                 continue
             record["triage"] = evaluate_triage(record, keyword_config)
             record["editorial_triage"] = evaluate_editorial_triage(record, keyword_config, editorial_context)
@@ -502,11 +633,12 @@ def main() -> None:
                 record["candidate_status"] = "pending"
             new_items.append(record)
             seen_ids.add(record["id"])
-            if record["url"]:
-                seen_urls.add(record["url"])
+            if normalized_record_url:
+                seen_urls.add(normalized_record_url)
             if entry.guid:
                 seen_guids.add(entry.guid)
             added_for_source += 1
+            stats["new_items"] = int(stats.get("new_items") or 0) + 1
             if added_for_source >= args.max_per_source:
                 break
 
@@ -515,6 +647,22 @@ def main() -> None:
             append_jsonl(args.candidate_output, new_items)
         else:
             append_jsonl(args.items, new_items)
+        if not args.no_update_source_health and source_stats:
+            checked_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            updated_sources = []
+            for source in sources:
+                stats = source_stats.get(source.get("id"))
+                if not stats:
+                    updated_sources.append(source)
+                    continue
+                updated = dict(source)
+                previous_health = updated.get("rss_health") if isinstance(updated.get("rss_health"), dict) else {}
+                updated["rss_health"] = {**previous_health, **stats, "last_checked_at": checked_at}
+                if stats.get("last_fetch_status") == "ok":
+                    updated["last_fetched_at"] = checked_at
+                    updated["rss_health"]["last_success_at"] = checked_at
+                updated_sources.append(updated)
+            write_jsonl(args.sources, updated_sources)
 
     report = build_report(
         fetched_sources=fetched_sources,

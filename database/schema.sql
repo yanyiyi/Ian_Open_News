@@ -6,9 +6,14 @@ CREATE TABLE IF NOT EXISTS sources (
   name TEXT NOT NULL,
   source_group TEXT,
   source_type TEXT NOT NULL,
+  fetch_frequency TEXT,
   feed_url TEXT,
   site_url TEXT,
   status TEXT NOT NULL,
+  required_keywords_json TEXT,
+  excluded_keywords_json TEXT,
+  rss_health_json TEXT,
+  health_assessment_json TEXT,
   notes TEXT
 );
 
