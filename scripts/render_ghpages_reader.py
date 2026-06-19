@@ -179,6 +179,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0) ->
       justify-content: center;
       gap: 6px;
     }}
+    nav a:hover, .button:hover, button:hover {{ color: #fff; }}
     nav a:not(.is-active), .button.secondary {{ background: var(--cyan); }}
     .button.quiet, button.quiet {{ background: #273244; }}
     .lede {{ max-width: 820px; color: var(--muted); }}

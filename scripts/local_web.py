@@ -1340,11 +1340,12 @@ def rejected_archive_record(record: dict, decided_at: str, reason: str = "", mov
     item["status"] = "archived"
     item["priority"] = "low"
     decision = item.get("local_decision") if isinstance(item.get("local_decision"), dict) else {}
+    previous_action = clean_text(decision.get("action"))
     item["local_decision"] = {
         **decision,
         "action": "rejected",
-        "decided_at": decision.get("decided_at") or decided_at,
-        "reason": decision.get("reason") or reason,
+        "decided_at": decision.get("decided_at") if previous_action == "rejected" and decision.get("decided_at") else decided_at,
+        "reason": decision.get("reason") if previous_action == "rejected" and decision.get("reason") else reason,
         "source": decision.get("source") or "local_web",
     }
     archive_meta = item.get("archive") if isinstance(item.get("archive"), dict) else {}
@@ -1593,12 +1594,12 @@ def page(title: str, body: str) -> bytes:
       border-radius: 6px;
       transition: background .16s ease, color .16s ease, transform .16s ease;
     }}
-    nav a:hover, .nav-menu summary:hover {{ background: var(--soft); color: var(--ocf-primary); transform: translateY(-1px); }}
+    nav a:hover, .nav-menu summary:hover {{ background: var(--soft); color: var(--ocf-dark); transform: translateY(-1px); }}
     .nav-menu {{ position: relative; }}
     .nav-menu summary {{ list-style: none; cursor: pointer; }}
     .nav-menu summary::-webkit-details-marker {{ display: none; }}
     .nav-menu summary::after {{ content: " v"; font-size: 11px; color: var(--muted); }}
-    .nav-menu[open] summary {{ background: var(--soft); color: var(--ocf-primary); }}
+    .nav-menu[open] summary {{ background: var(--soft); color: var(--ocf-dark); }}
     .nav-menu-links {{
       position: absolute;
       right: 0;
@@ -1619,7 +1620,8 @@ def page(title: str, body: str) -> bytes:
     h3 {{ font-size: 16px; margin: 0 0 8px; }}
     p {{ margin: 8px 0; }}
     a {{ color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }}
-    a:hover {{ color: var(--ocf-primary); }}
+    a:not(.button):hover {{ color: var(--ocf-primary); }}
+    .masthead nav a:hover {{ color: var(--ocf-dark); }}
     a, code, .url-cell, .url, .break-anywhere {{ overflow-wrap: anywhere; word-break: break-word; }}
     .brand {{ font-weight: 850; color: var(--ocf-primary); text-decoration: none; }}
     .brand:hover {{ color: var(--ocf-dark); }}
@@ -1689,6 +1691,7 @@ def page(title: str, body: str) -> bytes:
       transition: transform .16s ease, box-shadow .16s ease, filter .16s ease, background .16s ease;
     }}
     button:hover, .button:hover {{
+      color: #fff;
       transform: translateY(-1px);
       box-shadow: 0 6px 14px rgba(15,25,35,.16);
       filter: brightness(1.03);
@@ -1899,7 +1902,8 @@ def page(title: str, body: str) -> bytes:
       gap: 6px;
       font-size: 13px;
     }}
-    .layout-toggle-button:hover {{ background: var(--soft); box-shadow: none; transform: none; }}
+    .layout-toggle-button:hover {{ background: var(--soft); color: var(--ocf-dark); box-shadow: none; transform: none; }}
+    .layout-toggle-button.is-active:hover {{ color: var(--link); }}
     .layout-toggle-button.is-active {{ background: #eef1fb; color: var(--link); }}
     .layout-toggle-button svg {{
       width: 20px;
@@ -3826,7 +3830,30 @@ document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach(
             reason,
             ".cache/rss-candidates.jsonl",
         )
-        upsert_jsonl(REJECTED_ITEMS, archived_candidate)
+        item_url = clean_text(candidate.get("url"))
+        active_items = load_jsonl(ITEMS)
+        kept_items = []
+        archived_active_items = []
+        for item in active_items:
+            if item.get("id") == candidate.get("id") or (item_url and clean_text(item.get("url")) == item_url):
+                archived_active_items.append(
+                    rejected_archive_record(
+                        {
+                            **item,
+                            "review": append_review_note(item.get("review") or {}, f"{decided_at} {notes}"),
+                        },
+                        decided_at,
+                        reason,
+                    )
+                )
+            else:
+                kept_items.append(item)
+        if archived_active_items:
+            write_jsonl(ITEMS, kept_items)
+            for archived_item in archived_active_items:
+                upsert_jsonl(REJECTED_ITEMS, archived_item)
+        else:
+            upsert_jsonl(REJECTED_ITEMS, archived_candidate)
         dismissed = {
             "id": candidate.get("id"),
             "track": candidate.get("track"),
