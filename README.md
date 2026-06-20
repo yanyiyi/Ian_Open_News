@@ -1,5 +1,10 @@
 # Ian Open News 知識管理流程
 
+> 📦 **這是一個可 fork 的範本（template branch）。** 想拿來做自己的知識整理流程？
+> 先讀 **[docs/customize-your-fork.md](docs/customize-your-fork.md)** ——
+> 它會帶你一步步改主線、換 RSS、清掉範例資料、跑起整條流程。
+> 本分支只保留少量範例資料（4 個範例 RSS、5 筆範例 item），程式與流程都可用。
+
 這個 repo 把過去分散在 Inoreader、Make、Airtable、Excel 裡的知識整理流程，改成可以在 GitHub 上審核、追蹤、版本化的工作流。
 
 兩條主線：

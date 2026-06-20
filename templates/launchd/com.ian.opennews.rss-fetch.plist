@@ -6,14 +6,15 @@
   <key>Label</key>
   <string>com.ian.opennews.rss-fetch</string>
 
+  <!-- 把下面四個 /ABSOLUTE/PATH/TO/your-repo 換成你 fork 後 repo 的絕對路徑 -->
   <key>WorkingDirectory</key>
-  <string>/Users/ianliu/Documents/Ian_Open_News</string>
+  <string>/ABSOLUTE/PATH/TO/your-repo</string>
 
   <key>ProgramArguments</key>
   <array>
     <string>/usr/bin/env</string>
     <string>python3</string>
-    <string>/Users/ianliu/Documents/Ian_Open_News/scripts/local_rss_daily.py</string>
+    <string>/ABSOLUTE/PATH/TO/your-repo/scripts/local_rss_daily.py</string>
   </array>
 
   <key>StartCalendarInterval</key>
@@ -39,9 +40,9 @@
   </array>
 
   <key>StandardOutPath</key>
-  <string>/Users/ianliu/Documents/Ian_Open_News/.cache/launchd-rss-fetch.log</string>
+  <string>/ABSOLUTE/PATH/TO/your-repo/.cache/launchd-rss-fetch.log</string>
 
   <key>StandardErrorPath</key>
-  <string>/Users/ianliu/Documents/Ian_Open_News/.cache/launchd-rss-fetch.err</string>
+  <string>/ABSOLUTE/PATH/TO/your-repo/.cache/launchd-rss-fetch.err</string>
 </dict>
 </plist>
