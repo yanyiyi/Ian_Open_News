@@ -600,12 +600,17 @@ def data_autocommit_file_labels() -> list[str]:
 
 
 def data_autocommit_status(state: str, message: str = "", **extra: object) -> dict:
+    previous = load_json(DATA_COMMIT_STATUS)
     status = {
         "state": state,
         "message": message,
         "updated_at": datetime.now(LOCAL_TIMEZONE).isoformat(timespec="seconds"),
         **extra,
     }
+    if "next_run_at" not in status and previous.get("next_run_at"):
+        status["next_run_at"] = previous.get("next_run_at")
+    if "interval_seconds" not in status and previous.get("interval_seconds"):
+        status["interval_seconds"] = previous.get("interval_seconds")
     write_status_json(DATA_COMMIT_STATUS, status)
     return status
 
