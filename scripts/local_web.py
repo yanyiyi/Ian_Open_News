@@ -111,20 +111,40 @@ COMMAND_ICONS = {
     "git_status": "G",
     "git_diff_stat": "Δ",
 }
-DEFAULT_REJECTION_REASONS = [
+REJECTION_REASON_CATEGORIES = [
+    "活動公告/宣傳",
+    "純紀錄型資料",
     "資料太舊",
-    "已經是建議不要看",
-    "和兩條主線關聯太弱。",
-    "內容偏活動公告或宣傳，暫不整理。",
-    "記憶庫純紀錄型資料",
-    "和 OCF 關心的開放科技議題發展關係不大",
-    "社群內部消息，無關",
-    "來源重複，已由其他資料涵蓋。",
-    "資訊過舊或缺少可查證來源。",
-    "只是短訊或碎片，不足以形成文章。",
-    "其他類型文章",
+    "主線關聯弱",
+    "社群內部消息",
+    "重複/已涵蓋",
+    "地緣脈絡非台資訊",
 ]
+DEFAULT_REJECTION_REASONS = list(REJECTION_REASON_CATEGORIES)
 SOURCE_KEYWORD_EXCLUSION_REASON = "單一 RSS 專屬關鍵字排除"
+REJECTION_REASON_ALIASES = {
+    "內容偏活動公告或宣傳，暫不整理。": "活動公告/宣傳",
+    "活動公告": "活動公告/宣傳",
+    "宣傳": "活動公告/宣傳",
+    "記憶庫純紀錄型資料": "純紀錄型資料",
+    "只是短訊或碎片，不足以形成文章。": "純紀錄型資料",
+    "其他類型文章": "純紀錄型資料",
+    "資料太舊": "資料太舊",
+    "資訊過舊或缺少可查證來源。": "資料太舊",
+    "已經是建議不要看": "主線關聯弱",
+    "和兩條主線關聯太弱。": "主線關聯弱",
+    "和 OCF 關心的開放科技議題發展關係不大": "主線關聯弱",
+    "和 ocf 關心的開放科技議題發展關係不大": "主線關聯弱",
+    SOURCE_KEYWORD_EXCLUSION_REASON: "主線關聯弱",
+    "社群內部消息，無關": "社群內部消息",
+    "社群內部消息": "社群內部消息",
+    "來源重複，已由其他資料涵蓋。": "重複/已涵蓋",
+    "重複": "重複/已涵蓋",
+    "已涵蓋": "重複/已涵蓋",
+    "中國訊息": "地緣脈絡非台資訊",
+    "中國資料": "地緣脈絡非台資訊",
+    "地緣脈絡非台資訊": "地緣脈絡非台資訊",
+}
 
 COMMANDS = {
     "fetch_rss": {
@@ -954,7 +974,21 @@ def remove_local_candidate_fields(record: dict) -> dict:
     return item
 
 
+def record_codex_review(record: dict) -> dict:
+    editorial = record.get("editorial_triage") or {}
+    if not isinstance(editorial, dict):
+        return {}
+    review = editorial.get("codex_review")
+    return review if isinstance(review, dict) else {}
+
+
 def candidate_recommendation(candidate: dict) -> str:
+    codex_review = record_codex_review(candidate)
+    if codex_review:
+        codex_recommendation = clean_text(codex_review.get("recommendation")).casefold()
+        if codex_recommendation == "recommend-skip":
+            return "suggest-skip"
+        return "suggest-keep"
     return (candidate.get("triage") or {}).get("recommendation", "unknown")
 
 
@@ -1123,11 +1157,7 @@ def item_zh_summary(item: dict, limit: int = 420) -> str:
 
 
 def item_codex_review(item: dict) -> dict:
-    editorial = item.get("editorial_triage") or {}
-    if not isinstance(editorial, dict):
-        return {}
-    review = editorial.get("codex_review")
-    return review if isinstance(review, dict) else {}
+    return record_codex_review(item)
 
 
 def item_reading_metadata(item: dict) -> dict:
@@ -1349,6 +1379,7 @@ def action_icon(action: str) -> str:
         "read": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg>',
         "expand": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5"></path><path d="M3 3l7 7"></path><path d="M16 21h5v-5"></path><path d="M21 21l-7-7"></path></svg>',
         "external": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg>',
+        "wand": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4V2"></path><path d="M15 16v-2"></path><path d="M8 9H6"></path><path d="M20 9h-2"></path><path d="M17.8 6.2l1.4-1.4"></path><path d="M10.8 13.2l-7 7a1.5 1.5 0 0 0 2.1 2.1l7-7"></path><path d="M12 8l4 4"></path></svg>',
     }
     return icons.get(action, icons["read"])
 
@@ -1515,6 +1546,105 @@ def rejected_archive_record(record: dict, decided_at: str, reason: str = "", mov
     return item
 
 
+def rejection_reason_base(reason: object) -> str:
+    text = clean_text(reason, 140)
+    return re.sub(r"（\d{4}-\d{2}-\d{2}，自動批次處理）$", "", text).strip()
+
+
+def rejection_reason_suffix(reason: object) -> str:
+    match = re.search(r"（\d{4}-\d{2}-\d{2}，自動批次處理）$", clean_text(reason, 160))
+    return match.group(0) if match else ""
+
+
+def alias_rejection_reason(reason: object) -> str:
+    base = rejection_reason_base(reason)
+    if base in REJECTION_REASON_CATEGORIES:
+        return base
+    lowered = base.casefold()
+    for old_reason, category in REJECTION_REASON_ALIASES.items():
+        if clean_text(old_reason).casefold() in lowered:
+            return category
+    return ""
+
+
+def rejection_record_text(item: dict, current_reason: object = "") -> str:
+    triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
+    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    deletion = editorial.get("deletion_pattern_fit") if isinstance(editorial.get("deletion_pattern_fit"), dict) else {}
+    decision = item.get("local_decision") if isinstance(item.get("local_decision"), dict) else {}
+    reference = item.get("reference") if isinstance(item.get("reference"), dict) else {}
+    metadata = item_reading_metadata(item)
+    review = item.get("review") if isinstance(item.get("review"), dict) else {}
+    codex_review = record_codex_review(item)
+    parts: list[object] = [
+        current_reason,
+        decision.get("reason"),
+        item.get("reason"),
+        item.get("notes"),
+        review.get("notes"),
+        item.get("title"),
+        item.get("summary"),
+        item.get("url"),
+        item.get("source_name"),
+        item.get("source_id"),
+        item.get("published_at"),
+        item.get("captured_at"),
+        metadata.get("title"),
+        metadata.get("description"),
+        metadata.get("final_url"),
+        metadata.get("source_url"),
+        reference.get("file"),
+        reference.get("stream_id"),
+        editorial.get("summary_reason"),
+        editorial.get("zh_summary"),
+        editorial.get("content_kind_label"),
+        codex_review.get("one_line_recommendation"),
+        codex_review.get("summary"),
+        " ".join(item.get("tags") or []),
+        " ".join(triage.get("matched_keywords") or []),
+        " ".join(triage.get("skip_keywords") or []),
+        " ".join(str(signal) for signal in deletion.get("signals") or []),
+    ]
+    return " ".join(clean_text(part, 500) for part in parts if part).casefold()
+
+
+def infer_rejection_reason(item: dict, current_reason: object = "") -> str:
+    suffix = rejection_reason_suffix(current_reason)
+    alias = alias_rejection_reason(current_reason)
+    if alias:
+        return f"{alias}{suffix}"
+
+    text = rejection_record_text(item, current_reason)
+    triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
+    matched_keywords = [clean_text(keyword) for keyword in triage.get("matched_keywords") or [] if clean_text(keyword)]
+    skip_keywords = [clean_text(keyword) for keyword in triage.get("skip_keywords") or [] if clean_text(keyword)]
+
+    if re.search(r"重複|已收|已涵蓋|重刊|duplicate|similar|same story", text, flags=re.I):
+        return f"重複/已涵蓋{suffix}"
+    published = parse_loose_date(item.get("published_at") or item.get("captured_at"))
+    if published and (datetime.now(timezone.utc) - published).days >= 730:
+        return f"資料太舊{suffix}"
+    if re.search(r"社群內部|內部消息|會務|社群例會|籌備|organizer|maintainer update|minutes", text, flags=re.I):
+        return f"社群內部消息{suffix}"
+    if re.search(r"活動|報名|徵件|徵稿|招生|議程|研討會|講座|工作坊|論壇|招商|贊助|press release|webinar|conference|event|call for|cfp|sponsor", text, flags=re.I):
+        return f"活動公告/宣傳{suffix}"
+    if re.search(r"中國|中国|大陸|大陆|香港|澳門|澳门|央行|銀保監|证监|證監|國務院|国务院|people\.com\.cn|gov\.cn|xinhuanet|cfi\.cn|hkex|moomoo|aastocks", text, flags=re.I):
+        return f"地緣脈絡非台資訊{suffix}"
+    if re.search(r"股價|買超|賣超|自營商|投信|營收|財報|公告|年報|季報|法人|籌碼|個股|pdf|會議紀錄|逐字稿|transcript|minutes|record only|log", text, flags=re.I):
+        return f"純紀錄型資料{suffix}"
+    if len(clean_text(item.get("summary"))) < 180 and not item_article_text(item):
+        return f"純紀錄型資料{suffix}"
+    if skip_keywords or (candidate_recommendation(item) == "suggest-skip" and not matched_keywords):
+        return f"主線關聯弱{suffix}"
+    return f"主線關聯弱{suffix}"
+
+
+def automatic_batch_rejection_reason(item: dict) -> str:
+    base = rejection_reason_base(infer_rejection_reason(item)) or "主線關聯弱"
+    today = datetime.now(LOCAL_TIMEZONE).date().isoformat()
+    return f"{base}（{today}，自動批次處理）"
+
+
 def rejection_reason_options(items: list[dict]) -> list[str]:
     counts: Counter[str] = Counter()
     for item in [*items, *load_jsonl(REJECTED_ITEMS), *load_jsonl(DISMISSED)]:
@@ -1524,6 +1654,7 @@ def rejection_reason_options(items: list[dict]) -> list[str]:
             reason = clean_text(decision.get("reason"), 90)
         if not reason:
             reason = clean_text(item.get("reason"), 90)
+        reason = alias_rejection_reason(reason) or rejection_reason_base(reason)
         reason = re.sub(r"\s+", " ", reason).strip()
         if reason:
             counts[reason] += 1
@@ -1550,29 +1681,11 @@ def unique_reasons(reasons: list[str], limit: int | None = None) -> list[str]:
 
 def suggested_rejection_reasons(item: dict) -> list[str]:
     triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
-    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
-    text = " ".join(
-        clean_text(part)
-        for part in [
-            item.get("title"),
-            item.get("summary"),
-            item.get("source_name"),
-            item.get("url"),
-            editorial.get("summary_reason"),
-            " ".join(triage.get("skip_keywords") or []),
-        ]
-        if part
-    ).casefold()
-    reasons: list[str] = []
+    text = rejection_record_text(item)
+    reasons: list[str] = [rejection_reason_base(infer_rejection_reason(item))]
     skip_keywords = [clean_text(keyword) for keyword in triage.get("skip_keywords") or [] if clean_text(keyword)]
     matched_keywords = [clean_text(keyword) for keyword in triage.get("matched_keywords") or [] if clean_text(keyword)]
     recommendation = candidate_recommendation(item)
-    if recommendation == "suggest-skip":
-        reasons.append("已經是建議不要看")
-    if skip_keywords:
-        reasons.append("和兩條主線關聯太弱。")
-    if not matched_keywords and recommendation == "suggest-skip":
-        reasons.append("和兩條主線關聯太弱。")
 
     published = parse_loose_date(item.get("published_at") or item.get("captured_at"))
     if published:
@@ -1580,19 +1693,23 @@ def suggested_rejection_reasons(item: dict) -> list[str]:
         if age_days >= 730:
             reasons.append("資料太舊")
     if re.search(r"活動|報名|徵件|徵稿|招生|研討會|講座|工作坊|webinar|conference|event|call for|cfp", text, flags=re.I):
-        reasons.append("內容偏活動公告或宣傳，暫不整理。")
+        reasons.append("活動公告/宣傳")
     if re.search(r"抽獎|優惠|折扣|促銷|廣告|sponsored|coupon|sale|discount|職缺|招聘|hiring|job", text, flags=re.I):
-        reasons.append("其他類型文章")
-    deletion = editorial.get("deletion_pattern_fit") if isinstance(editorial.get("deletion_pattern_fit"), dict) else {}
-    deletion_signals = " ".join(str(signal) for signal in deletion.get("signals") or [])
-    if re.search(r"重複|已收|涵蓋|duplicate|similar", deletion_signals, flags=re.I):
-        reasons.append("來源重複，已由其他資料涵蓋。")
+        reasons.append("活動公告/宣傳")
+    if re.search(r"社群內部|內部消息|會務|社群例會|籌備|organizer|maintainer update", text, flags=re.I):
+        reasons.append("社群內部消息")
+    if re.search(r"重複|已收|涵蓋|duplicate|similar", text, flags=re.I):
+        reasons.append("重複/已涵蓋")
+    if re.search(r"中國|中国|大陸|大陆|香港|澳門|澳门|銀保監|國務院|people\.com\.cn|gov\.cn|hkex|moomoo", text, flags=re.I):
+        reasons.append("地緣脈絡非台資訊")
+    if re.search(r"股價|買超|賣超|自營商|投信|營收|財報|公告|年報|季報|法人|籌碼|個股|會議紀錄|逐字稿|transcript|minutes", text, flags=re.I):
+        reasons.append("純紀錄型資料")
     if len(clean_text(item.get("summary"))) < 180 and not item_article_text(item):
-        reasons.append("只是短訊或碎片，不足以形成文章。")
+        reasons.append("純紀錄型資料")
     if not fetchable_http_url(item.get("url")):
-        reasons.append("資訊過舊或缺少可查證來源。")
-    if recommendation == "suggest-skip":
-        reasons.extend(["其他類型文章", "資訊過舊或缺少可查證來源。"])
+        reasons.append("純紀錄型資料")
+    if skip_keywords or (recommendation == "suggest-skip" and not matched_keywords):
+        reasons.append("主線關聯弱")
     return unique_reasons(reasons, limit=5)
 
 
@@ -1897,6 +2014,16 @@ def page(title: str, body: str) -> bytes:
       box-shadow: 0 6px 14px rgba(15,25,35,.16);
       filter: brightness(1.03);
     }}
+    button svg, .button svg {{
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: 0 0 auto;
+    }}
     button:active, .button:active {{ transform: translateY(0); box-shadow: 0 2px 6px rgba(15,25,35,.14); }}
     .button-row {{ display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }}
     .button-row .button, .button-row button {{ margin-top: 0; }}
@@ -1978,6 +2105,16 @@ def page(title: str, body: str) -> bytes:
     .reason-presets {{ display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }}
     .reason-presets button {{ margin-top: 0; }}
     .batch-panel {{ border-left: 4px solid var(--ocf-cyan); }}
+    .auto-batch-panel {{
+      border-left: 4px solid var(--ocf-primary);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin: 14px 0;
+    }}
+    .auto-batch-panel button {{ margin-top: 0; }}
+    .auto-batch-panel .help {{ margin: 0; flex: 1 1 280px; }}
     .keyword-filters {{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }}
     .keyword-option {{
       display: inline-flex;
@@ -2896,6 +3033,8 @@ class Handler(BaseHTTPRequestHandler):
             self.reject_item(self.read_form())
         elif parsed.path == "/items/batch":
             self.batch_items(self.read_form())
+        elif parsed.path == "/items/auto-batch-skip":
+            self.auto_batch_skip_items(self.read_form())
         elif parsed.path == "/items/personal-note":
             self.save_personal_note(self.read_form())
         elif parsed.path == "/items/requeue-skill":
@@ -3112,6 +3251,9 @@ class Handler(BaseHTTPRequestHandler):
         if (query.get("saved") or [""])[0] == "accepted":
             count = h((query.get("count") or ["1"])[0])
             notice = f'<div class="notice">已確認收下 {count} 筆。處理過的項目已離開 RSS 待整理，現在可到候選清單的「待跑 skill」區接著編修。</div>'
+        elif (query.get("saved") or [""])[0] == "auto_rejected":
+            count = h((query.get("count") or ["0"])[0])
+            notice = f'<div class="notice">已用自動批次處理標記不收 {count} 筆，並依每則標題、網址與既有理由寫入新版不收分類。</div>'
         elif (query.get("saved") or [""])[0] == "rejected":
             count = h((query.get("count") or ["1"])[0])
             notice = f'<div class="notice">已標記不收 {count} 筆，項目已離開 RSS 待整理，原因也已寫進不收學習檔與 review event。</div>'
@@ -3131,7 +3273,7 @@ class Handler(BaseHTTPRequestHandler):
         rows = []
         for entry_type, item in visible:
             triage = item.get("triage") or {}
-            recommendation = triage.get("recommendation", "unknown")
+            recommendation = candidate_recommendation(item)
             matched = "、".join(triage.get("matched_keywords") or []) or "無"
             skipped = "、".join(triage.get("skip_keywords") or []) or "無"
             css_class = track_class(item.get("track", "unclassified"))
@@ -3267,6 +3409,25 @@ class Handler(BaseHTTPRequestHandler):
             )
         keyword_filter_html = "".join(keyword_filters) if keyword_filters else '<p class="help">目前篩選條件下沒有可用關鍵字。</p>'
         batch_buttons = batch_reason_buttons(reason_options)
+        auto_batch_panel = ""
+        if recommendation_filter == "suggest-skip" and filtered:
+            auto_hidden_inputs = [
+                f'<input type="hidden" name="track" value="{h(track_filter)}">',
+                '<input type="hidden" name="recommendation" value="suggest-skip">',
+            ]
+            if show_all:
+                auto_hidden_inputs.append('<input type="hidden" name="show" value="all">')
+            for keyword in sorted(selected_keywords):
+                auto_hidden_inputs.append(f'<input type="hidden" name="keyword" value="{h(keyword)}">')
+            auto_batch_panel = f"""
+<div class="card auto-batch-panel">
+  <form method="post" action="/items/auto-batch-skip">
+    {''.join(auto_hidden_inputs)}
+    <button type="submit" class="secondary">{action_icon("wand")}<span>自動批次處理</span></button>
+  </form>
+  <p class="help">會處理這個 view 下的 {len(filtered)} 筆「建議不要看」，逐筆推估不收分類，並在原因後加上「{datetime.now(LOCAL_TIMEZONE).date().isoformat()}，自動批次處理」。</p>
+</div>
+"""
         body = f"""
 <h1>RSS 待整理</h1>
 <p class="lede">這裡是本機人工篩選台。RSS 新進和已入庫 inbox 會一起出現；處理過的項目會立刻離開這裡。確認收後會移到候選清單的「待跑 skill」區，整理好才進 GitHub PR。</p>
@@ -3288,7 +3449,7 @@ class Handler(BaseHTTPRequestHandler):
     <div>
       <label>系統建議</label>
       <select name="recommendation" class="auto-filter">{option_list(recommendation_options, recommendation_filter)}</select>
-      <p class="help">這裡的建議來自目前的關鍵字設定。改完關鍵字後可到關鍵字頁重新跑。</p>
+      <p class="help">已跑 Codex 的項目優先看 Codex 判斷；還沒跑前維持第一段關鍵字初篩。改完關鍵字後可到關鍵字頁重新跑。</p>
     </div>
   </div>
   <label>關鍵字</label>
@@ -3299,6 +3460,7 @@ class Handler(BaseHTTPRequestHandler):
   </div>
   <p class="help">勾選關鍵字後會自動更新；多個關鍵字是「任一命中」就顯示。</p>
 </form>
+{auto_batch_panel}
 <h2>批次處理</h2>
 <div class="card batch-panel">
   <p><strong id="selected-count">已選取 0 則</strong></p>
@@ -4406,6 +4568,44 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             self.redirect(f"/items?saved=rejected&count={count}")
             return
         self.redirect("/items")
+
+    def auto_batch_skip_items(self, data: dict[str, list[str]]) -> None:
+        track_filter = form_value(data, "track", "all")
+        selected_keywords = {keyword for keyword in (data.get("keyword") or []) if keyword}
+        show_all = form_value(data, "show") == "all"
+        candidates = load_jsonl(CANDIDATES)
+        items = load_jsonl(ITEMS)
+        inbox_items = [item for item in items if item.get("status") == "inbox"]
+        pending_entries = [("rss", candidate) for candidate in candidates] + [("item", item) for item in inbox_items]
+
+        def matches_auto_batch(record: dict) -> bool:
+            if track_filter != "all" and record.get("track") != track_filter:
+                return False
+            if candidate_recommendation(record) != "suggest-skip":
+                return False
+            if selected_keywords and not (item_triage_keywords(record) & selected_keywords):
+                return False
+            return True
+
+        targets = [record for _, record in pending_entries if matches_auto_batch(record)]
+        count = 0
+        for item in targets:
+            item_id = clean_text(item.get("id"))
+            if not item_id:
+                continue
+            reason = automatic_batch_rejection_reason(item)
+            count += self.update_pending_decisions([item_id], "reject", reason)
+
+        params = []
+        if track_filter != "all":
+            params.append(("track", track_filter))
+        params.append(("recommendation", "suggest-skip"))
+        for keyword in sorted(selected_keywords):
+            params.append(("keyword", keyword))
+        if show_all:
+            params.append(("show", "all"))
+        params.extend([("saved", "auto_rejected"), ("count", str(count))])
+        self.redirect(href_with_query("/items", params))
 
     def save_personal_note(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
