@@ -26,6 +26,7 @@ TRIAGE_KEYWORDS = DATABASE / "triage-keywords.json"
 DEFAULT_CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
 DEFAULT_DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
 DEFAULT_REJECTED_ITEMS = DATABASE / "rejected-items.jsonl"
+DEFAULT_STATUS_FILE = ROOT / ".cache" / "rss-fetch-status.json"
 DEFAULT_SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast"]
 
 
@@ -76,6 +77,17 @@ def write_jsonl(path: Path, records: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
     path.write_text(text, encoding="utf-8")
+
+
+def write_status(path: Path | None, payload: dict) -> None:
+    if not path:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        **payload,
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def append_jsonl(path: Path, records: list[dict]) -> None:
@@ -485,6 +497,7 @@ def build_report(
     new_items: list[dict],
     failures: list[tuple[dict, str]],
     skipped: list[tuple[dict, str]],
+    source_stats: dict[str, dict[str, object]],
     dry_run: bool,
     candidate_mode: bool,
 ) -> str:
@@ -500,6 +513,20 @@ def build_report(
         f"- Skipped sources: {len(skipped)}",
         "",
     ]
+    if source_stats:
+        lines.extend(["## Source handling summary", ""])
+        for stats in source_stats.values():
+            lines.append(
+                "- "
+                f"{stats.get('source_name') or stats.get('source_id')} (`{stats.get('source_id')}`): "
+                f"seen {stats.get('entries_seen', 0)}, "
+                f"new {stats.get('new_items', 0)}, "
+                f"old {stats.get('skipped_old', 0)}, "
+                f"duplicate recent {stats.get('skipped_duplicate_recent', 0)}, "
+                f"source keyword excluded {stats.get('skipped_source_keywords', 0)}, "
+                f"status {stats.get('last_fetch_status', 'unknown')}"
+            )
+        lines.append("")
     if new_items:
         lines.extend([f"## New {item_label}", ""])
         for item in new_items[:80]:
@@ -543,6 +570,7 @@ def main() -> None:
     parser.add_argument("--timeout", type=int, default=20)
     parser.add_argument("--user-agent", default="IanOpenNewsBot/1.0 (+https://github.com/)")
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--status-file", type=Path, default=DEFAULT_STATUS_FILE)
     parser.add_argument("--force", action="store_true", help="Fetch matching sources even if their frequency is not due yet.")
     parser.add_argument(
         "--candidate-output",
@@ -599,6 +627,18 @@ def main() -> None:
         else:
             skipped.append((source, reason))
 
+    write_status(
+        args.status_file,
+        {
+            "phase": "starting",
+            "message": f"準備抓取 RSS，符合條件來源 {len(selected_sources)} 個。",
+            "selected_sources": len(selected_sources),
+            "skipped_sources": len(skipped),
+            "candidate_mode": bool(args.candidate_output),
+            "source_stats": {},
+        },
+    )
+
     cutoff = datetime.now(timezone.utc) - timedelta(days=args.since_days)
     captured_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     failures: list[tuple[dict, str]] = []
@@ -611,6 +651,8 @@ def main() -> None:
         if source_id not in source_stats:
             source_stats[source_id] = {
                 "source_id": source_id,
+                "source_name": source.get("name", ""),
+                "feed_url": source.get("feed_url", ""),
                 "last_checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 "last_fetch_status": "pending",
                 "entries_seen": 0,
@@ -622,8 +664,24 @@ def main() -> None:
             }
         return source_stats[source_id]
 
-    for source in selected_sources:
+    for source_index, source in enumerate(selected_sources, start=1):
         stats = stats_for(source)
+        write_status(
+            args.status_file,
+            {
+                "phase": "fetching",
+                "message": f"正在抓取 {source.get('name') or source.get('id')} ({source_index}/{len(selected_sources)})",
+                "current_source_id": source.get("id", ""),
+                "current_source_name": source.get("name", ""),
+                "source_index": source_index,
+                "selected_sources": len(selected_sources),
+                "fetched_sources": fetched_sources,
+                "new_items": len(new_items),
+                "failures": len(failures),
+                "candidate_mode": bool(args.candidate_output),
+                "source_stats": source_stats,
+            },
+        )
         try:
             content = read_feed_bytes(source["feed_url"], args.timeout, args.user_agent)
             entries = parse_feed_entries(content)
@@ -634,6 +692,22 @@ def main() -> None:
             failures.append((source, str(exc)))
             stats["last_fetch_status"] = "failed"
             stats["last_error"] = str(exc)
+            write_status(
+                args.status_file,
+                {
+                    "phase": "source-failed",
+                    "message": f"{source.get('name') or source.get('id')} 抓取失敗：{exc}",
+                    "current_source_id": source.get("id", ""),
+                    "current_source_name": source.get("name", ""),
+                    "source_index": source_index,
+                    "selected_sources": len(selected_sources),
+                    "fetched_sources": fetched_sources,
+                    "new_items": len(new_items),
+                    "failures": len(failures),
+                    "candidate_mode": bool(args.candidate_output),
+                    "source_stats": source_stats,
+                },
+            )
             continue
 
         added_for_source = 0
@@ -672,6 +746,26 @@ def main() -> None:
             stats["new_items"] = int(stats.get("new_items") or 0) + 1
             if added_for_source >= args.max_per_source:
                 break
+        excluded_count = int(stats.get("skipped_old") or 0) + int(stats.get("skipped_duplicate_recent") or 0) + int(stats.get("skipped_source_keywords") or 0)
+        write_status(
+            args.status_file,
+            {
+                "phase": "source-finished",
+                "message": (
+                    f"{source.get('name') or source.get('id')} 完成：看過 {stats.get('entries_seen', 0)} 則，"
+                    f"新增 {stats.get('new_items', 0)} 則，排除 {excluded_count} 則。"
+                ),
+                "current_source_id": source.get("id", ""),
+                "current_source_name": source.get("name", ""),
+                "source_index": source_index,
+                "selected_sources": len(selected_sources),
+                "fetched_sources": fetched_sources,
+                "new_items": len(new_items),
+                "failures": len(failures),
+                "candidate_mode": bool(args.candidate_output),
+                "source_stats": source_stats,
+            },
+        )
 
     if not args.dry_run:
         if args.candidate_output:
@@ -700,12 +794,35 @@ def main() -> None:
         new_items=new_items,
         failures=failures,
         skipped=skipped,
+        source_stats=source_stats,
         dry_run=args.dry_run,
         candidate_mode=bool(args.candidate_output),
     )
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(report, encoding="utf-8")
+    total_excluded = sum(
+        int(stats.get("skipped_old") or 0)
+        + int(stats.get("skipped_duplicate_recent") or 0)
+        + int(stats.get("skipped_source_keywords") or 0)
+        for stats in source_stats.values()
+    )
+    write_status(
+        args.status_file,
+        {
+            "phase": "finished" if not failures else "finished-with-errors",
+            "message": f"RSS 抓取完成：重新抓 {fetched_sources} 個來源，新增 {len(new_items)} 則，排除 {total_excluded} 則。",
+            "selected_sources": len(selected_sources),
+            "fetched_sources": fetched_sources,
+            "new_items": len(new_items),
+            "failures": len(failures),
+            "skipped_sources": len(skipped),
+            "excluded_items": total_excluded,
+            "candidate_mode": bool(args.candidate_output),
+            "source_stats": source_stats,
+            "completed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        },
+    )
     print(report)
 
     if failures and args.fail_on_source_error:

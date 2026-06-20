@@ -9,6 +9,8 @@ import mimetypes
 import re
 import subprocess
 import sys
+import threading
+import time
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -33,6 +35,9 @@ REVIEW_EVENTS = DATABASE / "review-events.jsonl"
 TRIAGE_KEYWORDS = DATABASE / "triage-keywords.json"
 CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
 DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
+RSS_FETCH_STATUS = ROOT / ".cache" / "rss-fetch-status.json"
+DATA_COMMIT_STATUS = ROOT / ".cache" / "data-autocommit-status.json"
+DATA_AUTOCOMMIT_INTERVAL_SECONDS = 30 * 60
 
 TRACKS = [
     ("digital-humanities-local-knowledge", "數位人文與在地知識建構"),
@@ -110,7 +115,10 @@ COMMAND_ICONS = {
     "codex_enrich_reviews": "C",
     "git_status": "G",
     "git_diff_stat": "Δ",
+    "commit_database_state": "✓",
 }
+DATA_AUTOCOMMIT_FILES = [ITEMS, REVIEW_EVENTS, SOURCES]
+DATA_AUTOCOMMIT_LOCK = threading.Lock()
 REJECTION_REASON_CATEGORIES = [
     "活動公告/宣傳",
     "純紀錄型資料",
@@ -236,6 +244,12 @@ COMMANDS = {
             "--batch-size",
             "6",
         ],
+    },
+    "commit_database_state": {
+        "label": "送 commit 儲存資料庫狀態",
+        "description": "只把 database/items.jsonl、database/review-events.jsonl、database/sources.jsonl 目前變更送成一個自訂紀錄 commit；背景每 30 分鐘也會自動檢查一次。",
+        "button": "送 commit 儲存狀態",
+        "internal": "commit_database_state",
     },
     "git_status": {
         "label": "查看檔案變更",
@@ -525,6 +539,11 @@ def write_json(path: Path, record: dict) -> None:
     path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def write_status_json(path: Path, record: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def write_jsonl(path: Path, records: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
@@ -565,6 +584,120 @@ def upsert_jsonl(path: Path, record: dict) -> None:
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def local_time_label(dt: datetime | None = None) -> str:
+    current = dt.astimezone(LOCAL_TIMEZONE) if dt else datetime.now(LOCAL_TIMEZONE)
+    return f"{current.month:02d} 月 {current.day:02d} 日 {current.hour:02d} 時 {current.minute:02d} 分 {current.second:02d} 秒"
+
+
+def data_commit_message(dt: datetime | None = None) -> str:
+    return f"閱讀資料庫自訂紀錄 {local_time_label(dt)} 的更新"
+
+
+def data_autocommit_file_labels() -> list[str]:
+    return [str(path.relative_to(ROOT)) for path in DATA_AUTOCOMMIT_FILES]
+
+
+def data_autocommit_status(state: str, message: str = "", **extra: object) -> dict:
+    status = {
+        "state": state,
+        "message": message,
+        "updated_at": datetime.now(LOCAL_TIMEZONE).isoformat(timespec="seconds"),
+        **extra,
+    }
+    write_status_json(DATA_COMMIT_STATUS, status)
+    return status
+
+
+def data_files_dirty() -> tuple[bool, str]:
+    command = ["git", "status", "--porcelain", "--", *data_autocommit_file_labels()]
+    result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=20)
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "git status failed")
+    return bool(result.stdout.strip()), result.stdout.strip()
+
+
+def commit_database_state(trigger: str = "manual") -> dict:
+    with DATA_AUTOCOMMIT_LOCK:
+        started_at = datetime.now(LOCAL_TIMEZONE)
+        data_autocommit_status(
+            "running",
+            "正在檢查閱讀資料庫是否需要 commit。",
+            trigger=trigger,
+            files=data_autocommit_file_labels(),
+        )
+        try:
+            dirty, status_output = data_files_dirty()
+            if not dirty:
+                return data_autocommit_status(
+                    "no-changes",
+                    "閱讀資料庫目前沒有需要 commit 的變更。",
+                    trigger=trigger,
+                    files=data_autocommit_file_labels(),
+                )
+
+            labels = data_autocommit_file_labels()
+            subprocess.run(["git", "add", "--", *labels], cwd=ROOT, check=True, text=True, capture_output=True, timeout=30)
+            message = data_commit_message(started_at)
+            commit = subprocess.run(
+                ["git", "commit", "-m", message, "--", *labels],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                timeout=120,
+            )
+            output = commit.stdout + ("\nSTDERR:\n" + commit.stderr if commit.stderr else "")
+            if commit.returncode != 0:
+                return data_autocommit_status(
+                    "failed",
+                    "閱讀資料庫 commit 沒有成功。",
+                    trigger=trigger,
+                    files=labels,
+                    git_status=status_output,
+                    output=output,
+                    returncode=commit.returncode,
+                )
+            rev = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, text=True, capture_output=True, timeout=20)
+            commit_id = clean_text(rev.stdout)
+            return data_autocommit_status(
+                "committed",
+                f"已送出閱讀資料庫自訂紀錄 commit {commit_id}。",
+                trigger=trigger,
+                files=labels,
+                commit=commit_id,
+                commit_message=message,
+                git_status=status_output,
+                output=output,
+                returncode=0,
+            )
+        except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
+            return data_autocommit_status(
+                "failed",
+                f"閱讀資料庫 commit 發生錯誤：{exc}",
+                trigger=trigger,
+                files=data_autocommit_file_labels(),
+            )
+
+
+def start_data_autocommit_worker() -> None:
+    def worker() -> None:
+        while True:
+            next_run = datetime.now(LOCAL_TIMEZONE) + timedelta(seconds=DATA_AUTOCOMMIT_INTERVAL_SECONDS)
+            current = load_json(DATA_COMMIT_STATUS)
+            if (current.get("state") or "") not in {"running", "committed", "failed", "no-changes"}:
+                current = {}
+            data_autocommit_status(
+                current.get("state") or "idle",
+                current.get("message") or "閱讀資料庫自動 commit 排程已啟動。",
+                next_run_at=next_run.isoformat(timespec="seconds"),
+                interval_seconds=DATA_AUTOCOMMIT_INTERVAL_SECONDS,
+                files=data_autocommit_file_labels(),
+            )
+            time.sleep(DATA_AUTOCOMMIT_INTERVAL_SECONDS)
+            commit_database_state("auto")
+
+    threading.Thread(target=worker, name="data-autocommit", daemon=True).start()
 
 
 def default_review(notes: str = "") -> dict:
@@ -1645,6 +1778,48 @@ def automatic_batch_rejection_reason(item: dict) -> str:
     return f"{base}（{today}，自動批次處理）"
 
 
+def latest_source_fetch_stats(source_id: str) -> dict:
+    status = load_json(RSS_FETCH_STATUS)
+    stats = status.get("source_stats") if isinstance(status.get("source_stats"), dict) else {}
+    source_stats = stats.get(source_id) if isinstance(stats.get(source_id), dict) else {}
+    return source_stats
+
+
+def source_fetch_counts(stats: dict) -> dict[str, int]:
+    skipped_old = int(stats.get("skipped_old") or 0)
+    skipped_duplicate = int(stats.get("skipped_duplicate_recent") or 0)
+    skipped_keywords = int(stats.get("skipped_source_keywords") or 0)
+    return {
+        "entries_seen": int(stats.get("entries_seen") or 0),
+        "new_items": int(stats.get("new_items") or 0),
+        "skipped_old": skipped_old,
+        "skipped_duplicate_recent": skipped_duplicate,
+        "skipped_source_keywords": skipped_keywords,
+        "excluded_items": skipped_old + skipped_duplicate + skipped_keywords,
+    }
+
+
+def source_fetch_summary_from_counts(counts: dict[str, int]) -> str:
+    return (
+        f"重新抓 {counts.get('entries_seen', 0)} 則；"
+        f"新增 {counts.get('new_items', 0)} 則；"
+        f"列入排除 {counts.get('excluded_items', 0)} 則"
+        f"（近 7 天重複 {counts.get('skipped_duplicate_recent', 0)}、過舊 {counts.get('skipped_old', 0)}、來源關鍵字排除 {counts.get('skipped_source_keywords', 0)}）。"
+    )
+
+
+def source_fetch_summary_from_query(query: dict[str, list[str]]) -> str:
+    counts = {
+        "entries_seen": int(form_value(query, "entries_seen", "0") or 0),
+        "new_items": int(form_value(query, "new_items", "0") or 0),
+        "excluded_items": int(form_value(query, "excluded_items", "0") or 0),
+        "skipped_duplicate_recent": int(form_value(query, "skipped_duplicate_recent", "0") or 0),
+        "skipped_old": int(form_value(query, "skipped_old", "0") or 0),
+        "skipped_source_keywords": int(form_value(query, "skipped_source_keywords", "0") or 0),
+    }
+    return source_fetch_summary_from_counts(counts)
+
+
 def rejection_reason_options(items: list[dict]) -> list[str]:
     counts: Counter[str] = Counter()
     for item in [*items, *load_jsonl(REJECTED_ITEMS), *load_jsonl(DISMISSED)]:
@@ -2640,27 +2815,62 @@ def page(title: str, body: str) -> bytes:
     commandWindow?.classList.remove("is-visible");
     commandWindow?.setAttribute("aria-hidden", "true");
   }});
+
+  const openCommandWindow = (label, status = "已送出，正在執行固定指令...") => {{
+    commandTitle.textContent = label || "本機指令";
+    commandStatus.textContent = status;
+    commandOutput.hidden = true;
+    commandOutput.textContent = "";
+    commandLoading.hidden = false;
+    commandWindow.classList.add("is-visible");
+    commandWindow.setAttribute("aria-hidden", "false");
+  }};
+
+  const startElapsedStatus = () => {{
+    const startedAt = Date.now();
+    return window.setInterval(() => {{
+      const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+      commandStatus.textContent = `執行中，已等待 ${{seconds}} 秒。`;
+    }}, 1000);
+  }};
+
+  const rssStatusLine = (payload) => {{
+    const message = payload?.message || "正在抓取 RSS。";
+    const index = payload?.source_index && payload?.selected_sources ? `（${{payload.source_index}}/${{payload.selected_sources}}）` : "";
+    const total = payload?.new_items !== undefined ? `新增 ${{payload.new_items}} 則` : "";
+    const excluded = payload?.excluded_items !== undefined ? `，排除 ${{payload.excluded_items}} 則` : "";
+    const suffix = total ? `；${{total}}${{excluded}}` : "";
+    return `${{message}}${{index}}${{suffix}}`;
+  }};
+
+  const startRssStatusPolling = () => {{
+    const poll = async () => {{
+      try {{
+        const response = await fetch("/api/rss-status", {{headers: {{"X-Requested-With": "local-web-fetch"}}}});
+        if (!response.ok) return;
+        const payload = await response.json();
+        commandStatus.textContent = rssStatusLine(payload);
+      }} catch (_error) {{
+        // Keep the command window alive; the command response will still show the final output.
+      }}
+    }};
+    poll();
+    return window.setInterval(poll, 1200);
+  }};
+
   document.querySelectorAll("form[data-command-form]").forEach((form) => {{
     form.addEventListener("submit", async (event) => {{
       if (!window.fetch) return;
       event.preventDefault();
       const button = event.submitter || form.querySelector("button");
-      const label = form.closest(".command-card")?.querySelector("strong")?.textContent?.trim() || "本機指令";
-      commandTitle.textContent = label;
-      commandStatus.textContent = "已送出，正在執行固定指令...";
-      commandOutput.hidden = true;
-      commandOutput.textContent = "";
-      commandLoading.hidden = false;
-      commandWindow.classList.add("is-visible");
-      commandWindow.setAttribute("aria-hidden", "false");
+      const label = form.closest(".command-card")?.querySelector("strong")?.textContent?.trim()
+        || form.closest(".card")?.querySelector("h3")?.textContent?.trim()
+        || "本機指令";
+      openCommandWindow(label);
       if (button) button.disabled = true;
-      const startedAt = Date.now();
-      const timer = window.setInterval(() => {{
-        const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
-        commandStatus.textContent = `執行中，已等待 ${{seconds}} 秒。`;
-      }}, 1000);
       const data = new URLSearchParams(new FormData(form));
       data.set("format", "json");
+      const timer = data.get("command") === "fetch_rss" ? startRssStatusPolling() : startElapsedStatus();
       try {{
         const response = await fetch(form.getAttribute("action") || form.action, {{
           method: "POST",
@@ -2671,7 +2881,7 @@ def page(title: str, body: str) -> bytes:
           body: data
         }});
         const payload = await response.json();
-        commandStatus.textContent = `完成，exit code ${{payload.returncode}}。`;
+        commandStatus.textContent = payload.summary || `完成，exit code ${{payload.returncode}}。`;
         commandOutput.hidden = false;
         commandOutput.textContent = payload.output || "(沒有輸出)";
       }} catch (error) {{
@@ -2679,7 +2889,45 @@ def page(title: str, body: str) -> bytes:
         commandOutput.hidden = false;
         commandOutput.textContent = String(error);
       }} finally {{
-        window.clearInterval(timer);
+        if (timer) window.clearInterval(timer);
+        commandLoading.hidden = true;
+        if (button) button.disabled = false;
+      }}
+    }});
+  }});
+
+  document.querySelectorAll("form[data-source-fetch-form]").forEach((form) => {{
+    form.addEventListener("submit", async (event) => {{
+      if (!window.fetch) return;
+      event.preventDefault();
+      const button = event.submitter || form.querySelector("button");
+      const sourceName = form.closest("tr")?.querySelector("strong")?.textContent?.trim()
+        || document.querySelector("h1")?.textContent?.trim()
+        || "RSS";
+      openCommandWindow(`手動更新 RSS：${{sourceName}}`, "已送出，正在抓取這個 RSS...");
+      if (button) button.disabled = true;
+      const data = new URLSearchParams(new FormData(form));
+      data.set("format", "json");
+      const timer = startRssStatusPolling();
+      try {{
+        const response = await fetch(form.getAttribute("action") || form.action, {{
+          method: "POST",
+          headers: {{
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "X-Requested-With": "local-web-fetch"
+          }},
+          body: data
+        }});
+        const payload = await response.json();
+        commandStatus.textContent = payload.summary || `完成，exit code ${{payload.returncode}}。`;
+        commandOutput.hidden = false;
+        commandOutput.textContent = payload.output || payload.summary || "(沒有輸出)";
+      }} catch (error) {{
+        commandStatus.textContent = "手動更新 RSS 沒有順利回傳，請看終端機或稍後再試。";
+        commandOutput.hidden = false;
+        commandOutput.textContent = String(error);
+      }} finally {{
+        if (timer) window.clearInterval(timer);
         commandLoading.hidden = true;
         if (button) button.disabled = false;
       }}
@@ -3018,6 +3266,10 @@ class Handler(BaseHTTPRequestHandler):
             )
         elif parsed.path == "/sources/edit":
             self.show_source_edit(query)
+        elif parsed.path == "/api/rss-status":
+            self.send_json(load_json(RSS_FETCH_STATUS))
+        elif parsed.path == "/api/data-commit-status":
+            self.send_json(load_json(DATA_COMMIT_STATUS))
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
 
@@ -3080,6 +3332,10 @@ class Handler(BaseHTTPRequestHandler):
         notice = ""
         if query.get("saved"):
             notice = '<div class="notice">已儲存。</div>'
+        data_commit_status = load_json(DATA_COMMIT_STATUS)
+        data_commit_message_text = clean_text(data_commit_status.get("message")) or "自動 commit 排程會在 local web 執行期間每 30 分鐘檢查一次。"
+        data_commit_next = clean_text(data_commit_status.get("next_run_at")) or "尚未排程"
+        data_commit_last = clean_text(data_commit_status.get("updated_at")) or "尚未記錄"
         host = self.headers.get("Host", "127.0.0.1:8765")
         bookmarklet = (
             f"javascript:location.href='http://{host}/items/new?url='"
@@ -3177,6 +3433,15 @@ class Handler(BaseHTTPRequestHandler):
     <p class="muted">依主線、來源類型、來源群組查看目前追蹤中的網站，也可以進去編輯或暫停。</p>
     <p><a class="button quiet" href="/sources">打開來源列表</a></p>
     <p class="help">長網址會自動換行，不會把表格撐爆。</p>
+  </div>
+  <div class="card">
+    <h3>閱讀資料庫狀態</h3>
+    <p class="muted">固定保護本機編輯狀態，只送出 items、review-events、sources 三個資料檔。</p>
+    <form method="post" action="/commands/run" data-command-form>
+      <input type="hidden" name="command" value="commit_database_state">
+      <button type="submit" class="secondary">送 commit 儲存狀態</button>
+    </form>
+    <p class="help">最近狀態：{h(data_commit_message_text)}<br>最近更新：{h(data_commit_last)}<br>下次自動檢查：{h(data_commit_next)}</p>
   </div>
 </div>
 <h2>本機指令</h2>
@@ -5045,6 +5310,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             "--force",
             "--report",
             str(report),
+            "--status-file",
+            str(RSS_FETCH_STATUS),
         ]
         source_type = clean_text(source.get("source_type"))
         if source_type in {"rss", "google-alert", "youtube", "podcast", "facebook", "inoreader-monitor"}:
@@ -5059,12 +5326,33 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     def fetch_source_now_post(self, data: dict[str, list[str]]) -> None:
         source_id = form_value(data, "id")
         redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/sources/view?id={quote(source_id)}")
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
         if not any(source.get("id") == source_id for source in load_jsonl(SOURCES)):
+            if wants_json:
+                self.send_json({"ok": False, "error": "找不到來源", "returncode": 1}, HTTPStatus.NOT_FOUND)
+                return
             self.send_html("找不到來源", "<h1>找不到來源</h1><p><a class='button' href='/sources'>回 RSS 來源</a></p>", HTTPStatus.NOT_FOUND)
             return
-        ok, _output = self.run_source_fetch(source_id)
+        ok, output = self.run_source_fetch(source_id)
+        counts = source_fetch_counts(latest_source_fetch_stats(source_id))
+        summary = source_fetch_summary_from_counts(counts)
+        if wants_json:
+            self.send_json(
+                {
+                    "ok": ok,
+                    "label": "手動更新 RSS",
+                    "returncode": 0 if ok else 1,
+                    "summary": summary,
+                    "output": output,
+                    "redirect": redirect_to,
+                    **counts,
+                },
+                HTTPStatus.OK,
+            )
+            return
         separator = "&" if "?" in redirect_to else "?"
-        self.redirect(f"{redirect_to}{separator}{'saved=source_fetch' if ok else 'error=source_fetch'}")
+        params = {"saved" if ok else "error": "source_fetch", **{key: str(value) for key, value in counts.items()}}
+        self.redirect(f"{redirect_to}{separator}{urlencode(params)}")
 
     def rescan_source_keyword_exclusions(self, source: dict) -> dict[str, int]:
         source_id = clean_text(source.get("id"))
@@ -5395,7 +5683,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 
         def source_fetch_button(source: dict) -> str:
             return f"""
-<form class="chip-form" method="post" action="/sources/fetch">
+<form class="chip-form" method="post" action="/sources/fetch" data-source-fetch-form>
   <input type="hidden" name="id" value="{h(source.get('id', ''))}">
   <input type="hidden" name="redirect" value="{h(redirect_path)}">
   <button type="submit" class="reason-chip" title="手動更新這個 RSS">更新</button>
@@ -5497,9 +5785,9 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         if saved == "source_quick":
             notice = '<div class="notice">來源欄位已更新。</div>'
         elif saved == "source_fetch":
-            notice = '<div class="notice">已手動更新這個 RSS，新的項目會進 RSS 待整理。</div>'
+            notice = f'<div class="notice">已手動更新這個 RSS。{h(source_fetch_summary_from_query(query))}新的項目會進 RSS 待整理。</div>'
         elif error == "source_fetch":
-            notice = '<div class="notice">手動更新沒有成功，請進來源檢視頁看健康狀態或錯誤訊息。</div>'
+            notice = f'<div class="notice">手動更新沒有成功。{h(source_fetch_summary_from_query(query))}請進來源檢視頁看健康狀態或錯誤訊息。</div>'
         body = f"""
 <h1>RSS 來源分類</h1>
 {notice}
@@ -5696,11 +5984,11 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         if saved == "restored":
             notice = '<div class="notice">已重新收錄，項目會回到 RSS 待整理。</div>'
         elif saved == "source_fetch":
-            notice = '<div class="notice">已手動更新這個 RSS，新的項目會進 RSS 待整理。</div>'
+            notice = f'<div class="notice">已手動更新這個 RSS。{h(source_fetch_summary_from_query(query))}新的項目會進 RSS 待整理。</div>'
         elif saved == "source_keywords":
             notice = '<div class="notice">來源已儲存，並已依單一 RSS 關鍵字重盤點與重新抓取。</div>'
         elif error == "source_fetch":
-            notice = '<div class="notice">手動更新沒有成功，請檢查健康狀態或 feed URL。</div>'
+            notice = f'<div class="notice">手動更新沒有成功。{h(source_fetch_summary_from_query(query))}請檢查健康狀態或 feed URL。</div>'
         body = f"""
 <h1>{h(source.get("name") or "未命名來源")}</h1>
 {notice}
@@ -5722,7 +6010,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <p class="muted break-anywhere">{f'Feed：<code>{h(feed_url)}</code><br>' if feed_url else ''}{f'網站：<a href="{h(site_url)}" target="_blank" rel="noreferrer">{h(site_url)}</a>' if site_url else ''}</p>
   <div class="button-row">
     <a class="button secondary" href="/sources/edit?id={quote(source_id)}">編輯 RSS</a>
-    <form method="post" action="/sources/fetch">
+    <form method="post" action="/sources/fetch" data-source-fetch-form>
       <input type="hidden" name="id" value="{h(source_id)}">
       <input type="hidden" name="redirect" value="/sources/view?id={h(quote(source_id))}">
       <button type="submit" class="secondary">手動更新 RSS</button>
@@ -5886,6 +6174,39 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 return
             self.send_html("不允許的指令", "<h1>不允許的指令</h1>", HTTPStatus.BAD_REQUEST)
             return
+        if config.get("internal") == "commit_database_state":
+            result = commit_database_state("manual")
+            ok = result.get("state") in {"committed", "no-changes"}
+            output = "\n".join(
+                line
+                for line in [
+                    clean_text(result.get("message")),
+                    f"commit: {clean_text(result.get('commit'))}" if result.get("commit") else "",
+                    f"message: {clean_text(result.get('commit_message'))}" if result.get("commit_message") else "",
+                    clean_text(result.get("output")),
+                ]
+                if line
+            )
+            if wants_json:
+                self.send_json(
+                    {
+                        "ok": ok,
+                        "label": config["label"],
+                        "command": ["internal", "commit_database_state"],
+                        "returncode": 0 if ok else 1,
+                        "output": output or "(沒有變更需要 commit)",
+                    },
+                    HTTPStatus.OK,
+                )
+                return
+            body = f"""
+<h1>{h(config['label'])}</h1>
+<p class="muted">狀態：{h(result.get('state'))}</p>
+<pre>{h(output or '(沒有變更需要 commit)')}</pre>
+<p><a href="/">回總覽</a></p>
+"""
+            self.send_html(str(config["label"]), body)
+            return
         command = config["command"]
         result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=600)
         output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
@@ -5943,6 +6264,7 @@ def main() -> None:
     if port != args.port:
         print(f"Port {args.port} is in use; using {port} instead.")
     print(f"Local web UI running at {url}")
+    start_data_autocommit_worker()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
