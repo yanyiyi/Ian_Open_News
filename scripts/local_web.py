@@ -903,6 +903,37 @@ def badge(label: str, class_name: str = "neutral") -> str:
     return f'<span class="badge badge--{h(class_name)}">{h(label)}</span>'
 
 
+def href_with_query(path: str, params: list[tuple[str, str]]) -> str:
+    clean_params = [(key, value) for key, value in params if value]
+    if not clean_params:
+        return path
+    return path + "?" + urlencode(clean_params)
+
+
+def metric_card(value: object, label: str, href: str = "", hint: str = "", class_name: str = "") -> str:
+    classes = "card metric-card"
+    if class_name:
+        classes += f" {class_name}"
+    hint_html = f'<span class="metric-link-label">{h(hint)}</span>' if hint else ""
+    value_html = h(str(value)) if value is not None else ""
+    content = f'<div class="metric">{value_html}</div><div class="metric-label">{h(label)}</div>{hint_html}'
+    if href:
+        return f'<a class="{h(classes)}" href="{h(href)}">{content}</a>'
+    return f'<div class="{h(classes)}">{content}</div>'
+
+
+def metric_tile(value: object, label: str, href: str = "", hint: str = "", class_name: str = "") -> str:
+    classes = "metric-tile"
+    if class_name:
+        classes += f" {class_name}"
+    hint_html = f'<span class="metric-link-label">{h(hint)}</span>' if hint else ""
+    value_html = h(str(value)) if value is not None else ""
+    content = f'<div class="metric">{value_html}</div><div class="metric-label">{h(label)}</div>{hint_html}'
+    if href:
+        return f'<a class="{h(classes)}" href="{h(href)}">{content}</a>'
+    return f'<div class="{h(classes)}">{content}</div>'
+
+
 def command_card(name: str, config: dict) -> str:
     icon = COMMAND_ICONS.get(name, ">")
     return (
@@ -1772,6 +1803,20 @@ def page(title: str, body: str) -> bytes:
     .track-card--humanities {{ --track-color: var(--humanities); }}
     .track-card--neutral {{ --track-color: var(--ocf-cyan); }}
     .metric-row {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }}
+    .metric-tile {{
+      min-width: 0;
+      padding: 8px;
+      border-radius: 6px;
+      color: var(--ink);
+      text-decoration: none;
+      transition: background .16s ease, transform .16s ease, box-shadow .16s ease;
+    }}
+    a.metric-tile:hover {{
+      color: var(--ink);
+      background: rgba(255,255,255,.68);
+      transform: translateY(-1px);
+      box-shadow: 0 5px 12px rgba(15,25,35,.10);
+    }}
     .metric {{
       font-size: 27px;
       font-weight: 850;
@@ -1779,6 +1824,31 @@ def page(title: str, body: str) -> bytes:
       line-height: 1.1;
     }}
     .metric-label {{ color: var(--muted); font-size: 13px; }}
+    .metric-card {{
+      display: block;
+      color: var(--ink);
+      text-decoration: none;
+      transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }}
+    a.metric-card:hover {{
+      color: var(--ink);
+      transform: translateY(-1px);
+      border-color: var(--link);
+      box-shadow: 0 8px 18px rgba(15,25,35,.12);
+    }}
+    a.metric-card:hover .metric-label {{ color: var(--muted); }}
+    .metric-link-label {{
+      display: inline-flex;
+      margin-top: 8px;
+      color: var(--link);
+      font-size: 13px;
+      font-weight: 800;
+    }}
+    a.metric-card:hover .metric-link-label, a.metric-tile:hover .metric-link-label {{ color: var(--link); text-decoration: underline; }}
+    .metric-card.is-active {{
+      border-color: var(--link);
+      box-shadow: 0 0 0 2px rgba(25,63,143,.08);
+    }}
     .muted {{ color: var(--muted); }}
     .help {{ color: var(--muted); font-size: 14px; margin-top: 4px; }}
     form {{ margin: 0; }}
@@ -2894,10 +2964,10 @@ class Handler(BaseHTTPRequestHandler):
       <p class="muted">{h(meta["description"])}</p>
     </div>
     <div class="metric-row">
-      <div><div class="metric">{total_items}</div><div class="metric-label">全部項目</div></div>
-      <div><div class="metric">{pending_items}</div><div class="metric-label">待整理</div></div>
-      <div><div class="metric">{source_count}</div><div class="metric-label">來源</div></div>
-      <div><div class="metric">{fetchable_count}</div><div class="metric-label">會自動抓</div></div>
+      {metric_tile(total_items, "全部項目", f"/track/{quote(track)}", "看主線")}
+      {metric_tile(pending_items, "待整理", href_with_query("/items", [("track", track)]), "篩選待整理")}
+      {metric_tile(source_count, "來源", href_with_query("/sources", [("track", track)]), "看來源")}
+      {metric_tile(fetchable_count, "會自動抓", href_with_query("/sources", [("track", track), ("status", "active")]), "只看啟用")}
     </div>
     <div class="button-row reader-card-actions">
       <a class="button {h(button_class)}" href="/track/{quote(track)}">{h(meta["entry"])}</a>
@@ -2924,21 +2994,30 @@ class Handler(BaseHTTPRequestHandler):
   <div class="card">
     <h3>RSS 待整理</h3>
     <p class="muted">每天 RSS 新進與已入庫 inbox 都在這裡分流。</p>
-    <p>{badge("全部 " + str(len(pending_review_items)), "neutral")} {badge("建議收 " + str(pending_counts.get("suggest-keep", 0)), "suggest-keep")} {badge("建議不要看 " + str(pending_counts.get("suggest-skip", 0)), "suggest-skip")}</p>
+    <div class="metric-row">
+      {metric_tile(len(pending_review_items), "全部", "/items", "打開")}
+      {metric_tile(pending_counts.get("suggest-keep", 0), "建議收", "/items?recommendation=suggest-keep", "只看")}
+      {metric_tile(pending_counts.get("suggest-skip", 0), "建議不要看", "/items?recommendation=suggest-skip", "只看")}
+    </div>
     <p><a class="button" href="/items">打開 RSS 待整理</a></p>
     <p class="help">確認收會直接進候選清單，不收會移出主資料庫並保留到學習檔，純小消息可直接標記送 PR。</p>
   </div>
   <div class="card">
     <h3>候選清單</h3>
     <p class="muted">只放你已確認收下、準備跑 skill 編修的文章。</p>
-    <p>{badge("待跑 skill " + str(len(skill_candidates)), "neutral")} {badge("直接送 PR " + str(len(direct_pr_items)), "suggest-keep")}</p>
+    <div class="metric-row">
+      {metric_tile(len(skill_candidates), "待跑 skill", "/candidates", "打開")}
+      {metric_tile(len(direct_pr_items), "直接送 PR", "/reader?kind=small-news&time=all", "看小消息")}
+    </div>
     <p><a class="button" href="/candidates">打開候選清單</a></p>
     <p class="help">RSS 新資料請先在 RSS 待整理處理；純小消息可在同一頁直接標記送 PR。</p>
   </div>
   <div class="card">
     <h3>閱讀區</h3>
     <p class="muted">閱讀已確認收下的精選文章與小消息，並補你的個人觀點。</p>
-    <p>{badge("可閱讀 " + str(len(reader_items)), "suggest-keep")}</p>
+    <div class="metric-row">
+      {metric_tile(len(reader_items), "可閱讀", "/reader?time=all", "看全部")}
+    </div>
     <p><a class="button" href="/reader">打開閱讀區</a></p>
     <p class="help">在閱讀區可寫「我的關鍵紀錄」，也能把好文章重新送回 skill 依你的觀點改寫。</p>
   </div>
@@ -3009,8 +3088,25 @@ class Handler(BaseHTTPRequestHandler):
         )
         filtered.sort(key=lambda entry: candidate_recommendation(entry[1]) == "suggest-skip")
         visible = filtered if show_all else filtered[:150]
-        counts = Counter(candidate_recommendation(record) for _, record in pending_entries)
+        summary_entries = [
+            entry
+            for entry in pending_entries
+            if (track_filter == "all" or entry[1].get("track") == track_filter)
+            and (not selected_keywords or bool(item_triage_keywords(entry[1]) & selected_keywords))
+        ]
+        counts = Counter(candidate_recommendation(record) for _, record in summary_entries)
         track_counts = Counter(record.get("track", "unclassified") for _, record in pending_entries)
+
+        def items_metric_href(recommendation: str = "") -> str:
+            params = []
+            if track_filter != "all":
+                params.append(("track", track_filter))
+            if recommendation:
+                params.append(("recommendation", recommendation))
+            for keyword in sorted(selected_keywords):
+                params.append(("keyword", keyword))
+            return href_with_query("/items", params)
+
         reason_options = rejection_reason_options(items)
         notice = ""
         if (query.get("saved") or [""])[0] == "accepted":
@@ -3176,9 +3272,9 @@ class Handler(BaseHTTPRequestHandler):
 <p class="lede">這裡是本機人工篩選台。RSS 新進和已入庫 inbox 會一起出現；處理過的項目會立刻離開這裡。確認收後會移到候選清單的「待跑 skill」區，整理好才進 GitHub PR。</p>
 {notice}
 <div class="grid">
-  <div class="card"><div class="metric">{len(pending_entries)}</div><div class="metric-label">全部待整理</div></div>
-  <div class="card"><div class="metric">{counts.get("suggest-keep", 0)}</div><div class="metric-label">建議收</div><p><a href="/items?recommendation=suggest-keep">只看建議收</a></p></div>
-  <div class="card"><div class="metric">{counts.get("suggest-skip", 0)}</div><div class="metric-label">建議不要看</div><p><a href="/items?recommendation=suggest-skip">只看建議不要看</a></p></div>
+  {metric_card(len(summary_entries), "全部待整理", items_metric_href(), "看全部", "is-active" if recommendation_filter == "all" else "")}
+  {metric_card(counts.get("suggest-keep", 0), "建議收", items_metric_href("suggest-keep"), "只看建議收", "is-active" if recommendation_filter == "suggest-keep" else "")}
+  {metric_card(counts.get("suggest-skip", 0), "建議不要看", items_metric_href("suggest-skip"), "只看建議不要看", "is-active" if recommendation_filter == "suggest-skip" else "")}
 </div>
 <h2>篩選 RSS 待整理</h2>
 <form class="filter-panel" method="get" action="/items" id="items-filter-form">
@@ -3495,14 +3591,23 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
 """
             )
         keyword_filter_html = "".join(keyword_filters) if keyword_filters else '<p class="help">目前篩選條件下沒有可用子關鍵字。</p>'
+
+        def candidate_metric_href(track: str = "") -> str:
+            params = []
+            if track:
+                params.append(("track", track))
+            for keyword in sorted(selected_keywords):
+                params.append(("keyword", keyword))
+            return href_with_query("/candidates", params)
+
         body = f"""
 <h1>候選清單</h1>
 <p class="lede">這裡只放你已確認收下、準備跑 skill 編修的資料。RSS 剛抓到的新文章請回「RSS 待整理」處理。</p>
 <div class="grid">
-  <div class="card"><div class="metric">{len(skill_candidates)}</div><div class="metric-label">待跑 skill</div></div>
-  <div class="card"><div class="metric">{track_counts.get("open-tech-open-industry", 0)}</div><div class="metric-label">開放科技</div></div>
-  <div class="card"><div class="metric">{track_counts.get("digital-humanities-local-knowledge", 0)}</div><div class="metric-label">人文知識</div></div>
-  <div class="card"><div class="metric">{track_counts.get("unclassified", 0)}</div><div class="metric-label">未分類</div></div>
+  {metric_card(len(skill_candidates), "待跑 skill", candidate_metric_href(), "看全部", "is-active" if track_filter == "all" else "")}
+  {metric_card(track_counts.get("open-tech-open-industry", 0), "開放科技", candidate_metric_href("open-tech-open-industry"), "只看開放科技", "is-active" if track_filter == "open-tech-open-industry" else "")}
+  {metric_card(track_counts.get("digital-humanities-local-knowledge", 0), "人文知識", candidate_metric_href("digital-humanities-local-knowledge"), "只看人文知識", "is-active" if track_filter == "digital-humanities-local-knowledge" else "")}
+  {metric_card(track_counts.get("unclassified", 0), "未分類", candidate_metric_href("unclassified"), "只看未分類", "is-active" if track_filter == "unclassified" else "")}
 </div>
 <h2>篩選候選</h2>
 <form class="filter-panel" method="get" action="/candidates" id="candidate-filter-form">
@@ -3730,15 +3835,24 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
 """
             )
         keyword_filter_html = "".join(keyword_filters) if keyword_filters else '<p class="help">目前篩選條件下沒有可用子關鍵字。</p>'
+
+        def reader_metric_href(track: str = "", kind: str = "") -> str:
+            params = [("time", "all")]
+            if track:
+                params.append(("track", track))
+            if kind:
+                params.append(("kind", kind))
+            return href_with_query("/reader", params)
+
         body = f"""
 <h1>閱讀區</h1>
 <p class="lede">這裡放已確認收下的精選文章與小消息。你可以像讀線上報一樣瀏覽，也可以在單篇頁留下「我的關鍵紀錄」，再把文章依你的觀點重新送回 skill。</p>
 {notice}
 <div class="grid">
-  <div class="card"><div class="metric">{len(items)}</div><div class="metric-label">可閱讀項目</div></div>
-  <div class="card"><div class="metric">{track_counts.get("open-tech-open-industry", 0)}</div><div class="metric-label">開放科技</div></div>
-  <div class="card"><div class="metric">{track_counts.get("digital-humanities-local-knowledge", 0)}</div><div class="metric-label">人文知識</div></div>
-  <div class="card"><div class="metric">{kind_counts.get("small-news", 0)}</div><div class="metric-label">小消息</div></div>
+  {metric_card(len(items), "可閱讀項目", reader_metric_href(), "看全部", "is-active" if track_filter == "all" and kind_filter == "all" and time_filter == "all" else "")}
+  {metric_card(track_counts.get("open-tech-open-industry", 0), "開放科技", reader_metric_href(track="open-tech-open-industry"), "只看開放科技", "is-active" if track_filter == "open-tech-open-industry" else "")}
+  {metric_card(track_counts.get("digital-humanities-local-knowledge", 0), "人文知識", reader_metric_href(track="digital-humanities-local-knowledge"), "只看人文知識", "is-active" if track_filter == "digital-humanities-local-knowledge" else "")}
+  {metric_card(kind_counts.get("small-news", 0), "小消息", reader_metric_href(kind="small-news"), "只看小消息", "is-active" if kind_filter == "small-news" else "")}
 </div>
 <h2>篩選閱讀</h2>
 <form class="filter-panel" method="get" action="/reader" id="reader-filter-form">
@@ -4909,10 +5023,10 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 <div class="card track-card track-card--{h(css_class)}">
   {badge(meta["short"], css_class)}
   <div class="metric-row">
-    <div><div class="metric">{len(track_items)}</div><div class="metric-label">全部項目</div></div>
-    <div><div class="metric">{len(pending_items)}</div><div class="metric-label">待整理</div></div>
-    <div><div class="metric">{len(track_sources)}</div><div class="metric-label">來源</div></div>
-    <div><div class="metric">{len(fetchable_sources)}</div><div class="metric-label">會自動抓</div></div>
+    {metric_tile(len(track_items), "全部項目", href_with_query("/reader", [("track", track), ("time", "all")]), "看閱讀")}
+    {metric_tile(len(pending_items), "待整理", href_with_query("/items", [("track", track)]), "篩選待整理")}
+    {metric_tile(len(track_sources), "來源", href_with_query("/sources", [("track", track)]), "看來源")}
+    {metric_tile(len(fetchable_sources), "會自動抓", href_with_query("/sources", [("track", track), ("status", "active")]), "只看啟用")}
   </div>
   <div class="button-row">
     <a class="button {h(button_class)}" href="/items/new?track={quote(track)}">幫這條主線加收藏</a>
@@ -5170,8 +5284,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 <div class="card track-card track-card--{h(css_class)}">
   {badge(meta["short"], css_class)}
   <div class="metric-row">
-    <div><div class="metric">{track_counts.get(track, 0)}</div><div class="metric-label">來源</div></div>
-    <div><div class="metric">{fetch_counts.get(track, 0)}</div><div class="metric-label">會自動抓</div></div>
+    {metric_tile(track_counts.get(track, 0), "來源", href_with_query("/sources", [("track", track)]), "看來源")}
+    {metric_tile(fetch_counts.get(track, 0), "會自動抓", href_with_query("/sources", [("track", track), ("status", "active")]), "只看啟用")}
   </div>
   <p class="help">會自動抓代表狀態是啟用，且類型是 RSS、Google 快訊、YouTube 或 Podcast。</p>
 </div>
@@ -5395,14 +5509,14 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <div>
     {badge(track_meta(source.get("track", "unclassified"))["short"], css_class)}
     {badge(source_type_label(source.get("source_type", "manual")), source.get("source_type", "manual").replace("_", "-"))}
-    {badge(source_status_label(source.get("status", "")), clean_text(source.get("status", "neutral")).replace("_", "-"))}
+  {badge(source_status_label(source.get("status", "")), clean_text(source.get("status", "neutral")).replace("_", "-"))}
     {source_health_badge(health)}
   </div>
   <div class="metric-row">
-    <div><div class="metric">{len(featured)}</div><div class="metric-label">精選 / 觀點</div></div>
-    <div><div class="metric">{len(small_news)}</div><div class="metric-label">小消息</div></div>
-    <div><div class="metric">{len(inbox) + len(pending)}</div><div class="metric-label">待整理</div></div>
-    <div><div class="metric">{len(rejected_records)}</div><div class="metric-label">不收紀錄</div></div>
+    {metric_tile(len(featured), "精選 / 觀點", "#source-featured", "看區塊")}
+    {metric_tile(len(small_news), "小消息", "#source-small-news", "看區塊")}
+    {metric_tile(len(inbox) + len(pending), "待整理", "#source-inbox", "看區塊")}
+    {metric_tile(len(rejected_records), "不收紀錄", "#source-rejected", "看區塊")}
   </div>
   <p class="help">抓取頻率：{h(source_frequency_label(source.get('fetch_frequency', 'daily')))}；健康狀態：{h(health.get('reason'))}</p>
   <p class="muted break-anywhere">{f'Feed：<code>{h(feed_url)}</code><br>' if feed_url else ''}{f'網站：<a href="{h(site_url)}" target="_blank" rel="noreferrer">{h(site_url)}</a>' if site_url else ''}</p>
@@ -5457,10 +5571,10 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <p>{source_health_badge(health)}</p>
   <p class="muted">{h(health.get('reason'))}</p>
   <div class="metric-row">
-    <div><div class="metric">{health.get('accepted', 0)}</div><div class="metric-label">已收下</div></div>
-    <div><div class="metric">{health.get('inbox', 0) + health.get('candidates', 0)}</div><div class="metric-label">待整理</div></div>
-    <div><div class="metric">{health.get('rejected', 0)}</div><div class="metric-label">不收 / 刪除</div></div>
-    <div><div class="metric">{health.get('duplicate_skips', 0)}</div><div class="metric-label">近次重複略過</div></div>
+    {metric_tile(health.get('accepted', 0), "已收下", f"/sources/view?id={quote(source_id)}#source-featured", "看已收")}
+    {metric_tile(health.get('inbox', 0) + health.get('candidates', 0), "待整理", f"/sources/view?id={quote(source_id)}#source-inbox", "看待整理")}
+    {metric_tile(health.get('rejected', 0), "不收 / 刪除", f"/sources/view?id={quote(source_id)}#source-rejected", "看不收")}
+    {metric_tile(health.get('duplicate_skips', 0), "近次重複略過")}
   </div>
   <p class="help">最近檢查：{h(health.get('last_checked_at') or '尚未記錄')}；最近資料：{h(health.get('last_seen') or '尚未記錄')}；最近抓取狀態：{h(rss_health.get('last_fetch_status') or '尚未記錄')}。</p>
 </section>
