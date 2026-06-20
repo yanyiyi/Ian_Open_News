@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Your AI isn’t broken. Your data is. - Ian Open News</title>
+  <title>你的 AI 沒壞，是你的資料壞了 - Ian Open News</title>
   <style>
     :root {
       --ink: #111827;
@@ -130,6 +130,46 @@
     .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
     .news-item h3 a { color: #4f3ed2; font-weight: 850; }
     .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -159,9 +199,9 @@
 <body>
   <header>
     <div class="masthead">
-      <h1>Your AI isn’t broken. Your data is.</h1>
+      <h1>你的 AI 沒壞，是你的資料壞了</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-19T19:47:42+00:00</p>
+      <p class="generated">產生時間：2026-06-20T03:56:12+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -179,7 +219,7 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-17 08:00</span>
     </div>
-    <h2>Your AI isn’t broken. Your data is.</h2>
+    <h2>你的 AI 沒壞，是你的資料壞了</h2>
     <p class="lede">Clario 以企業資料 ROT，也就是 redundant、obsolete、trivial data，解釋許多企業 AI 專案成效不佳的原因。它主張企業檔案庫裡大量重複、過時或無用資料不只增加儲存成本，也會污染內部 agent 與 RAG 系統的資料基礎。這家公司連接 Google Drive、SharePoint、OneDrive、Box、Confluence 等系統，先用 metadata、checksum、命名模式、存取時間與格式支援狀態判斷可疑檔案，再透過 Slack 或 Teams 要內容擁有者決定保留、封存或刪除。文章的亮點在於呈現 AI 基礎建設從模型轉向資料品質治理的產業敘事，但許多數字與案例來自公司說法，需保留查核空間。</p>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
@@ -194,11 +234,13 @@
   <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
   <div class="actions">
     <button type="button" id="note-save">儲存到這台瀏覽器</button>
-    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/codex/reader-optimize/reader-notes?filename=item-7c9b8ff73de68096.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/codex/l10n/reader-notes?filename=item-7c9b8ff73de68096.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>編輯紀錄</h2>
   <ul><li>本機決定：accepted-for-editing / 2026-06-19T00:25:36+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
 2026-06-19T00:25:36+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Your AI isn&#x27;t broken. Your data is.（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：你的 AI 沒壞，是你的資料壞了（Codex）</li><li><strong>原始作者</strong>：Darryl K. Taft（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-7c9b8ff73de68096";
@@ -211,5 +253,6 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>This Bluetooth tracker uses LoRa mesh networks to find things - and I couldn&#x27;t believe the accuracy - Ian Open News</title>
+  <title>用 LoRa Mesh 找物的 SenseCAP T1000-E 追蹤卡實測 - Ian Open News</title>
   <style>
     :root {
       --ink: #111827;
@@ -130,6 +130,46 @@
     .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
     .news-item h3 a { color: #4f3ed2; font-weight: 850; }
     .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -159,9 +199,9 @@
 <body>
   <header>
     <div class="masthead">
-      <h1>This Bluetooth tracker uses LoRa mesh networks to find things - and I couldn&#x27;t believe the accuracy</h1>
+      <h1>用 LoRa Mesh 找物的 SenseCAP T1000-E 追蹤卡實測</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-19T19:47:42+00:00</p>
+      <p class="generated">產生時間：2026-06-20T03:56:12+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -176,17 +216,18 @@
     <div>
       <span class="badge">開放科技</span>
       <span class="badge">精選文章 / 待跑 skill</span>
-      <span class="badge">尚未載入全文</span>
+      <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-18 08:00</span>
     </div>
-    <h2>This Bluetooth tracker uses LoRa mesh networks to find things - and I couldn&#x27;t believe the accuracy</h2>
-    <p class="lede">Seeed Studio&#x27;s SenseCAP T1000-E tracker card also doesn&#x27;t use cell towers or Wi-Fi. Here&#x27;s how it works in the real world.</p>
+    <h2>用 LoRa Mesh 找物的 SenseCAP T1000-E 追蹤卡實測</h2>
+    <p class="lede">這篇是 SenseCAP T1000-E 追蹤卡的實測心得。作者把它放在 AirTag 與其他藍牙追蹤器的脈絡下比較，重點在於 T1000-E 不只靠手機藍牙，也能連到 LoRaWAN、Meshtastic、Amazon Sidewalk、Helium 等網路；其中 Meshtastic/LoRa mesh 的賣點是低功耗、長距離、可離線、點對點，不一定仰賴電信或大型平台公司的基礎設施。作者肯定它的定位能力、戶外耐用性與 GPS 表現，也提醒實務缺點：電池續航只有幾天、專用磁吸充電線容易脫落、App 說明與介面體驗不夠好。整體而言，它可作為開源 mesh 技術進入消費硬體的觀察案例，但文章本身偏產品評測，不是深入的開放技術分析。</p>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
       <a class="button quiet" href="https://www.zdnet.com/article/sensecap-t1000-e-tracker-card-airtag-alternative-review/" target="_blank" rel="noreferrer">原始連結</a>
     </div>
-    <section class="article-body"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></section>
+    <section class="article-body"><h1>This Bluetooth tracker uses LoRa mesh networks to find things - and I couldn&#x27;t believe the accuracy</h1>
+<p>Follow ZDNET: Add us as a preferred source on Google. I&#x27;ve said it before, and I&#x27;ll say it again: were a total game-changer for me. Being able to pinpoint and locate things like keys and wallets, wherever they are in the world, has saved me no end of heartache, headaches, and wasted time. And the proliferation of third-party tags means there are tags for all sorts of applications. Also: I hid 4 Bluetooth trackers (including AirTags) to test their reliability - here&#x27;s how Android rivals comparedBut the one drawback is that all the tags rely on cellular and Wi-Fi networks. What if you could get tags that operated on their own networks and could operate independently of the networks built by multibillion-dollar corporations? That&#x27;s exactly what the offers. OK, how does this work? And with most things, there are a lot of things I like about the T1000-E, and a few things I don&#x27;t. But before I go any further, let me warn you that this card could very well be a gateway drug that pulls you into the huge world of LoRa mesh. LoRa stands for Long Range Radio and is a long-range wireless radio protocol that can be used to create a mesh. Also: I found an AirTag alternative that&#x27;s twice as durable and works with Android phonesWhat&#x27;s a mesh? It&#x27;s an open-source, off-grid, decentralized mesh network designed to run on small, low-power devices. It doesn&#x27;t need cell towers or the internet. It&#x27;s a completely stand-alone, peer-to-peer radio system. If you&#x27;re a bit like me and love getting your teeth into weird things, you&#x27;ll soon be hip-deep in mesh transceivers and setting up . Why? Because you can.Note: Make sure you get the T1000-E, and not the or B variants. Only the E is designed to work with peer-to-peer mesh, and the A and B variants make use of and require their own network gateways. OK, back to the T1000-E. This is a card-sized tracker much like all the others. It&#x27;s credit card-sized and as thick as a bunch of cards. Inside is a 700 mAh battery that&#x27;s enough to power the card for a couple of days, along with all the tech wizardry for communication and location magic. Also: I put away my AirTag just minutes after trying this Bluetooth tracker alternative - here&#x27;s whyThere&#x27;s a super-loud buzzer, an LED status light, and a button to turn the unit on and off and control things like Bluetooth. Built for the apocalypse The shell is IP65-rated for dust and water intrusion, so it&#x27;s fine to be out and about in the great outdoors. I like this a lot, but to achieve this level of dust and waterproofing, the manufacturer has opted for a magnetic charging pad on the back that uses pogo pins. Not only does this mean that you need a proprietary cable every time you need to charge the device, but the design means that if you try to charge the card while on the move (by, say, using a ), there&#x27;s a good chance that it&#x27;ll come loose and stop charging. I&#x27;ve come up with solutions using elastic bands or hot glue, but I wish there were a better way to keep the connector attached. It&#x27;s a great tracker By default, you&#x27;ll need to download the SenseCraft app ( / ) to set up and control the T1000-E. The app is OK, but not great. The instructions can be a bit vague; sometimes you&#x27;ll stumble across sections in Chinese, and it&#x27;s also trying to sell you more stuff (something I hate in an app for a product I&#x27;ve bought). My advice is that if you get stuck, hit the extensive support documentation wiki (complete with videos), or head over to the excellent r/meshtastic over on Reddit. Also: I took apart the new AirTag 2 and found a serious flaw in Apple&#x27;s popular trackerIf you just want to use the tracker as a tracker, you&#x27;ve pretty much done everything you need to do. The app has a map that shows you the card&#x27;s location, or you can use it to beacon your position to others when out and about by sharing your location. The card will use Bluetooth to connect to the app on the smartphone, but it can also connect to LoRaWAN, Meshtastic, Amazon Sidewalk, and Helium networks. Also: My new favorite AirTag alternative fits perfectly in my wallet - and is seriously durableIf you live in an area where there are people using mesh, that&#x27;s going to be a great option that just works. You might decide to put nodes up for you to use around your home or work, extending the mesh for everyone. I found that Amazon Sidewalk was also a really good, workable option, especially in built-up areas. After all, there are a lot of and out there, so there&#x27;s a pretty big mesh you can leverage. Loads of options. And yes, this could work in those apocalyptic scenarios where the power goes down, the cellular grids go quiet, and the zombies start to shuffle about. I&#x27;ve carried it in a pocket, bag, and strapped to the outside of my rucksack, and the GPS receiver is excellent even under subpar conditions. There&#x27;s a lanyard slot on the card for attaching it to things. But there&#x27;s more ... a lot more! But there&#x27;s a lot more to the T1000-E. It&#x27;s a lot more than a tracker card. It&#x27;s a fully functional mesh transmitter that can be used to send and receive messages between other devices. If you want to get into this, then you&#x27;ll need another mesh device (say, another tracker or a ). And this is where you start the slide into mesh obsession. Also: I slipped this stealthy $15 tracker into my favorite jacket - now it&#x27;s an everyday essentialYou can also delve deeper into the card. For example, you can dump the firmware that Seeed Studio loaded onto the T1000-E, and install stock Meshtastic firmware onto it using the online flasher tool. Now you can use the Meshtastic app ( / ) to control the card, and I found this to be a whole lot better, especially if you want to go deeper into the card&#x27;s capabilities. This is well beyond what I can go into here, but if you want something to get you started, this video will probably kick-start your obsession. ZDNET&#x27;s buying advice The will set you back around $50. You&#x27;ll sometimes see it for a lot more, but avoid those. Usually, if you wait a day or so, the prices will come down. Also: These are the closest things to AirTags for Android users (and better in some ways)For a pure tracker card, that&#x27;s a pretty hefty price tag, but once you realize it can also serve as a messaging client and you can use it to send and receive messages for free, it starts to feel more reasonable. Mesh is great for off-grid comms and also for places like cruise ships, where the company will charge you an arm and a leg for Wi-Fi.</p></section>
   </article>
 
 <aside class="side-panel">
@@ -194,11 +235,13 @@
   <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
   <div class="actions">
     <button type="button" id="note-save">儲存到這台瀏覽器</button>
-    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/codex/reader-optimize/reader-notes?filename=item-da9da0021fe160db.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/codex/l10n/reader-notes?filename=item-da9da0021fe160db.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>編輯紀錄</h2>
   <ul><li>本機決定：accepted-for-editing / 2026-06-19T05:00:01+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
 2026-06-19T05:00:01+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：This Bluetooth tracker uses LoRa mesh networks to find things - and I couldn&#x27;t believe the accuracy（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：用 LoRa Mesh 找物的 SenseCAP T1000-E 追蹤卡實測（Codex）</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-da9da0021fe160db";
@@ -211,5 +254,6 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
 </body>
 </html>
