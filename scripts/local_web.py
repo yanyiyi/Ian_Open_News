@@ -604,6 +604,17 @@ def upsert_jsonl(path: Path, record: dict) -> None:
     write_jsonl(path, updated)
 
 
+def remove_jsonl_ids(path: Path, record_ids: set[str]) -> int:
+    if not record_ids or not path.exists():
+        return 0
+    records = load_jsonl(path)
+    kept_records = [record for record in records if str(record.get("id") or "") not in record_ids]
+    removed = len(records) - len(kept_records)
+    if removed:
+        write_jsonl(path, kept_records)
+    return removed
+
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -4895,8 +4906,16 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             None,
         )
         if existing:
+            existing_id = clean_text(existing.get("id"))
+            if existing_id:
+                remove_jsonl_ids(REJECTED_ITEMS, {existing_id})
+                remove_jsonl_ids(DISMISSED, {existing_id})
             return existing, True
         append_jsonl(ITEMS, item)
+        item_id = clean_text(item.get("id"))
+        if item_id:
+            remove_jsonl_ids(REJECTED_ITEMS, {item_id})
+            remove_jsonl_ids(DISMISSED, {item_id})
         return item, False
 
     def dismiss_candidate_record(self, candidate_id: str, reason: str = "") -> bool:
@@ -4989,6 +5008,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         updated_items = []
         decided_at = now_iso()
         events = []
+        active_ids = set()
         changed = 0
         for item in items:
             if item.get("id") not in selected_ids or item.get("status") != "inbox":
@@ -5036,11 +5056,14 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 upsert_jsonl(REJECTED_ITEMS, rejected_archive_record(updated_item, decided_at, reason))
             else:
                 updated_items.append(updated_item)
+                active_ids.add(str(updated_item.get("id")))
             events.append(review_event(updated_item, event_status, note))
             changed += 1
 
         if changed:
             write_jsonl(ITEMS, updated_items)
+            remove_jsonl_ids(REJECTED_ITEMS, active_ids)
+            remove_jsonl_ids(DISMISSED, active_ids)
             for event in events:
                 append_jsonl(REVIEW_EVENTS, event)
         return changed
