@@ -169,6 +169,14 @@ def child_attr(element: ET.Element, name: str, attr: str, preferred_rel: str = "
     return fallback
 
 
+def attr_text(element: ET.Element, *names: str) -> str:
+    wanted = set(names)
+    for key, value in element.attrib.items():
+        if local_name(key) in wanted:
+            return clean_text(value)
+    return ""
+
+
 def category_terms(element: ET.Element) -> list[str]:
     terms: list[str] = []
     for child in list(element):
@@ -227,7 +235,7 @@ class FeedEntry:
 
 
 def parse_feed_entries(content: bytes) -> list[FeedEntry]:
-    root = ET.fromstring(content)
+    root = ET.fromstring(content.lstrip(b"\xef\xbb\xbf \t\r\n"))
     root_name = local_name(root.tag)
     entries: list[FeedEntry] = []
 
@@ -242,6 +250,27 @@ def parse_feed_entries(content: bytes) -> list[FeedEntry]:
             author = child_text(item, "creator", "author")
             published = parse_date(child_text(item, "pubDate", "published", "updated", "date"))
             summary = child_text(item, "encoded", "description", "summary", "content")
+            entries.append(
+                FeedEntry(
+                    title=title,
+                    url=url,
+                    guid=guid,
+                    author=author,
+                    published_at=date_string(published),
+                    summary=summary,
+                    tags=category_terms(item),
+                )
+            )
+    elif root_name == "RDF":
+        raw_entries = [child for child in list(root) if local_name(child.tag) == "item"]
+        for item in raw_entries:
+            title = child_text(item, "title") or "(無標題)"
+            link = child_text(item, "link")
+            guid = child_text(item, "identifier") or attr_text(item, "about")
+            url = link or guid
+            author = child_text(item, "creator", "author")
+            published = parse_date(child_text(item, "date", "pubDate", "published", "updated"))
+            summary = child_text(item, "description", "summary", "encoded", "content")
             entries.append(
                 FeedEntry(
                     title=title,
@@ -435,9 +464,10 @@ def source_is_fetchable(source: dict, args: argparse.Namespace) -> tuple[bool, s
     feed_url = source.get("feed_url", "")
     if source.get("status") != "active":
         return False, "source status is not active"
-    due, due_reason = source_due_for_fetch(source, datetime.now(timezone.utc))
-    if not due:
-        return False, due_reason
+    if not getattr(args, "force", False):
+        due, due_reason = source_due_for_fetch(source, datetime.now(timezone.utc))
+        if not due:
+            return False, due_reason
     if source.get("source_type") not in args.source_type:
         return False, f"source_type {source.get('source_type')} is not enabled"
     if args.track and source.get("track") not in args.track:
@@ -513,6 +543,7 @@ def main() -> None:
     parser.add_argument("--timeout", type=int, default=20)
     parser.add_argument("--user-agent", default="IanOpenNewsBot/1.0 (+https://github.com/)")
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--force", action="store_true", help="Fetch matching sources even if their frequency is not due yet.")
     parser.add_argument(
         "--candidate-output",
         type=Path,
