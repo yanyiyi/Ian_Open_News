@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>開放科技閱讀器</title>
+  <meta name="description" content="開放科技閱讀器入口，收錄精選文章、觀點文章與小消息。">
+  <link rel="canonical" href="https://tectnews.ospo.tw/">
+  <style>
+    :root {
+      --ink: #162033;
+      --muted: #617086;
+      --line: #d9e0ec;
+      --panel: #ffffff;
+      --soft: #f4f7fb;
+      --link: #243f8f;
+      --accent: #1a9fd6;
+      --shadow: 0 18px 50px rgba(22, 32, 51, .11);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #f8fafc 0%, #eef4fa 100%);
+      letter-spacing: 0;
+    }
+    main {
+      width: min(960px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 64px 0;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .masthead {
+      display: grid;
+      gap: 18px;
+      padding: 36px;
+      border-top: 8px solid var(--link);
+    }
+    .kicker {
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 850;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 6vw, 58px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.75;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    a {
+      color: var(--link);
+      text-underline-offset: 3px;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--link);
+      background: var(--link);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+    }
+    .button.secondary {
+      background: #fff;
+      color: var(--link);
+    }
+    .button:hover {
+      color: #fff;
+      filter: brightness(.96);
+    }
+    .button.secondary:hover {
+      color: var(--link);
+      background: var(--soft);
+      filter: none;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-top: 1px solid var(--line);
+      background: var(--soft);
+    }
+    .info-card {
+      padding: 24px;
+      border-right: 1px solid var(--line);
+    }
+    .info-card:last-child { border-right: 0; }
+    .info-card h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      line-height: 1.3;
+    }
+    .info-card p {
+      font-size: 15px;
+      line-height: 1.65;
+    }
+    footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+    }
+    @media (max-width: 720px) {
+      main { padding: 28px 0; }
+      .masthead { padding: 24px; }
+      .info-grid { grid-template-columns: 1fr; }
+      .info-card { border-right: 0; border-bottom: 1px solid var(--line); }
+      .info-card:last-child { border-bottom: 0; }
+      .button { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="panel">
+      <div class="masthead">
+        <div class="kicker">tectnews.ospo.tw</div>
+        <h1>開放科技閱讀器</h1>
+        <p>這裡是 Ian Open News 的線上閱讀版入口，優先呈現開放科技相關的精選文章、觀點文章與可快速掃讀的小消息。</p>
+        <div class="actions" aria-label="主要連結">
+          <a class="button" href="/reader/">進入閱讀器</a>
+          <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News" target="_blank" rel="noreferrer">GitHub 專案頁</a>
+        </div>
+      </div>
+      <div class="info-grid">
+        <article class="info-card">
+          <h2>精選文章</h2>
+          <p>適合細讀、補充脈絡，或之後延伸成完整撰稿的資料。</p>
+        </article>
+        <article class="info-card">
+          <h2>觀點文章</h2>
+          <p>保留可形成判斷、評論或台灣脈絡整理的閱讀線索。</p>
+        </article>
+        <article class="info-card">
+          <h2>小消息</h2>
+          <p>以列表呈現，方便快速掃過近期開放科技動態。</p>
+        </article>
+      </div>
+    </section>
+    <footer>閱讀器網址：<a href="https://tectnews.ospo.tw/reader/">tectnews.ospo.tw/reader</a></footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Can Digital Humanitarianism and Local Action Fight the Ebola Epidemic in DRC? - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card .actions { gap: 6px; margin-top: 8px; }
+    .story-card .actions { justify-content: flex-end; }
+    .story-card .actions .reader-action-button {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
+    }
+    .story-card .actions svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .reader-action-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>Can Digital Humanitarianism and Local Action Fight the Ebola Epidemic in DRC?</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-19T19:47:42+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">純新聞 / 小消息</span>
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-17 08:00</span>
+    </div>
+    <h2>Can Digital Humanitarianism and Local Action Fight the Ebola Epidemic in DRC?</h2>
+    <p class="lede">文章討論在剛果民主共和國伊波拉疫情中，全球數位人道工作者與遠端資料提供者如何回應「用資訊對抗伊波拉」的需求。疫情宣布後，Humanitarian OpenStreetMap Team 與無國界醫生合作啟動任務，動員全球志工支援相關資訊工作；但摘要未說明後續成果。</p>
+    <div class="actions">
+      <a class="button secondary" href="../index.html">回精選與觀點</a>
+      <a class="button secondary" href="../news.html">看小消息</a>
+      <a class="button quiet" href="https://thelivinglib.org/can-digital-humanitarianism-and-local-action-fight-the-ebola-epidemic-in-drc/" target="_blank" rel="noreferrer">原始連結</a>
+    </div>
+    <section class="article-body"><h1>Can Digital Humanitarianism and Local Action Fight the Ebola Epidemic in DRC?</h1>
+<p><a href="https://www.crisisready.io/can-digital-humanitarianism-and-local-action-fight-the-ebola-epidemic-in-drc/" target="_blank" rel="noreferrer">Article</a>by Andrew Schroeder, Lauren Bateman, John Crowley, Satchit Balsari, Nishant Kishore, Jennifer Chan: “Meanwhile, global digital humanitarians and remote data providers have begun to heed the call to “<a href="https://reliefweb.int/report/liberia/fighting-ebola-information-learning-use-data-information-and-digital-technologies" target="_blank" rel="noreferrer">fight Ebola with information</a>”. Almost immediately following the epidemic declaration, Humanitarian OpenStreetMap Team (HOT) coordinated with Médecins Sans Frontières to <a href="https://wiki.openstreetmap.org/wiki/Humanitarian_OSM_Team/Open_Mapping_Hub_Eastern_and_Southern_Africa/DRC_Ebola_2026" target="_blank" rel="noreferrer">launch a set of tasks</a> for the global digital mapping community to use high resolution satellite imagery to update building footprints, roads, critical infrastructure, and other features for the creation of maps to aid in population estimations, community surveys, contact tracing, and other epidemic control efforts. Their efforts have been buttressed by releases of satellite imagery from Vantor. Satellogic and Planet have also made satellite imagery available. Other key organizations have stepped forward as well. <a href="https://www.flowminder.org/resources/publications-reports/drc-reports-publications/population-movements-from-bunia-mongbwalu-and-rwampara-based-on-privacy-secure-analysis-of-mobile-operator-data-from-vodacom-congo" target="_blank" rel="noreferrer">Flowminder has been regularly publishing analysis of human mobility flows</a> to and from the epidemic affected areas based on digital device data from the mobile network operator Vodacom. These flow maps allow for rapid prioritization of epidemic control efforts based on anticipation of probable case transmission areas. <a href="https://wopr.worldpop.org/?COD/Population" target="_blank" rel="noreferrer">WorldPop</a> and <a href="https://data.grid3.org/datasets/GRID3::grid3-cod-health-facilities-v8-0/about" target="_blank" rel="noreferrer">GRID3</a> have published high resolution baseline population data as well as accurate health facility locations to aid with planning for health services and calculations of baselines for population exposures, among other essential analyses. The <a href="https://acleddata.com/country/democratic-republic-congo" target="_blank" rel="noreferrer">Armed Conflict Location and Event Data (ACLED) project is publishing</a> regularly updated geospatially specific conflict data to assist in understanding changing security risks and other threats to affected communities and to the response effort. <a href="https://data.humdata.org/event/crisis-ebola-bundibugyo-virus-disease?page=1#datasets-section" target="_blank" rel="noreferrer">UN OCHA’s Humanitarian Data Exchange (HDX) platform is now hosting more than 40 datasets</a> specifically relevant to the current response in DRC, although a reasonably high number of these are topically filtered extracts from OpenStre... If we look above the proverbial “water line” of the information iceberg at what is publicly visible, easily traceable, and known to be in use by response actors, we can see significant gains in key areas. These include small area demographics, building footprint and infrastructure mapping, remote sensing, event alerting, and case reporting. Right at the waterline, where novel datasets and models are emerging now into routine visibility and usage, we find human mobility flows based on mobile device data. <a href="https://ibagur.github.io/IM-portfolio/outputs/drc/drc_ebola_dashboard.html#page-1" target="_blank" rel="noreferrer">Flowminder’s data from Vodacom has been integrated into several risk models</a>. At this level we also see a range of disease forecast models and dashboards, at different levels of spatial and temporal resolution, some of which may be based on very similar data and distributed across opaque and discontinuous channels. What is most concerning though is what still lies below the waterline, where needs may be unmet and substantial gaps in data, information, and analysis likely exist. For instance, as of now there does not appear to be a common list of ebola treatment units available publicly. Data on safe burials is largely absent. <a href="https://www.ifrc.org/press-release/international-red-cross-and-red-crescent-movement-expresses-concern-over-attack-red" target="_blank" rel="noreferrer">Misinformation</a>, as is now normally the case online, runs rampant without an obvious rumor cataloguing effort, or community information management. <a href="https://www.msf.org/drc-msf-warns-dangerous-gaps-persist-ebola-disease-response" target="_blank" rel="noreferrer">Logistics and supply chain needs are referenced constantly by response agencies</a>, particularly for PPE and sanitation, but supply chain flows are largely undocumented publicly, and in any event not obviously connected to the epidemiological forecasts and risk assessments despite clear calls from WHO for strategic prepositioning of essential supplies. Health facility locations are widely circulated, but facility-level capacity in terms of staffing, equipment, and supplies, is ambiguous at best. Epidemiological forecasts and risk analyses are not obviously connected to any particular workflows on logistics and supply chain…(<a href="https://www.crisisready.io/can-digital-humanitarianism-and-local-action-fight-the-ebola-epidemic-in-drc/" target="_blank" rel="noreferrer">More</a>)”.</p>
+<h3>Share</h3>
+<h3>How to contribute</h3>
+<p>Did you come across – or create – a compelling project/report/book/app at the leading edge of innovation in governance? Share it with us at <strong>info@thelivinglib.org</strong> so that we can add it to the Collection!</p>
+<h3>About the Curator</h3>
+<h2>Stefaan Verhulst</h2>
+<h3>Get the latest news right in your inbox</h3>
+<h3>Related articles</h3>
+<h3>New Commons Incubator Launches to Support Indigenous-Led Language and Cultural Data Commons in the Age of AI</h3>
+<h3>What’s the Question? Deciding What You Really Want to Know</h3>
+<h3>Governing The Future</h3></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/codex/reader-optimize/reader-notes?filename=item-225dc0eb4bdc2dd1.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：direct-pr-small-news / 2026-06-19T03:52:41+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-19T03:52:41+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-225dc0eb4bdc2dd1";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+</body>
+</html>

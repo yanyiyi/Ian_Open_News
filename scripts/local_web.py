@@ -23,7 +23,15 @@ from urllib.parse import parse_qs, quote, urlencode, unquote, urljoin, urlparse
 import hashlib
 from zoneinfo import ZoneInfo
 
-from page_metadata import attrs_from_tag, enrich_item_metadata, fetch_page_metadata, text_to_markdown, unwrap_google_alert_url
+from page_metadata import (
+    attrs_from_tag,
+    complete_item_metadata,
+    enrich_item_metadata,
+    fetch_page_metadata,
+    infer_language_from_text,
+    text_to_markdown,
+    unwrap_google_alert_url,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -104,9 +112,23 @@ FETCH_FREQUENCY_LABELS = {
     "paused": "暫停抓取",
 }
 COMMAND_ICONS = {
+    "fetch_rss": "rss",
+    "validate": "check-circle",
+    "apply_triage_keywords": "filter",
+    "analyze_source_health": "pulse",
+    "export_sqlite": "database",
+    "render_ghpages_reader": "publish",
+    "enrich_reader_metadata": "image",
+    "enrich_article_summaries": "text-lines",
+    "codex_enrich_reviews": "sparkle",
+    "git_status": "branch",
+    "git_diff_stat": "chart",
+    "commit_database_state": "save",
+}
+COMMAND_SHORTCUTS = {
     "fetch_rss": "R",
     "validate": "V",
-    "apply_triage_keywords": "#",
+    "apply_triage_keywords": "F",
     "analyze_source_health": "H",
     "export_sqlite": "D",
     "render_ghpages_reader": "P",
@@ -114,8 +136,8 @@ COMMAND_ICONS = {
     "enrich_article_summaries": "S",
     "codex_enrich_reviews": "C",
     "git_status": "G",
-    "git_diff_stat": "Δ",
-    "commit_database_state": "✓",
+    "git_diff_stat": "I",
+    "commit_database_state": "K",
 }
 DATA_AUTOCOMMIT_FILES = [ITEMS, REVIEW_EVENTS, SOURCES]
 DATA_AUTOCOMMIT_LOCK = threading.Lock()
@@ -1093,14 +1115,15 @@ def metric_tile(value: object, label: str, href: str = "", hint: str = "", class
 
 
 def command_card(name: str, config: dict) -> str:
-    icon = COMMAND_ICONS.get(name, ">")
+    icon = COMMAND_ICONS.get(name, "read")
+    shortcut = COMMAND_SHORTCUTS.get(name, "")
     return (
         "<div class='card command-card'>"
-        f"<strong><span class='icon' aria-hidden='true'>{h(icon)}</span>{h(config['label'])}</strong>"
+        f"<strong>{icon_span(icon, shortcut)}{h(config['label'])}</strong>"
         f"<p class='muted'>{h(config['description'])}</p>"
         "<form method='post' action='/commands/run' data-command-form>"
         f"<input type='hidden' name='command' value='{h(name)}'>"
-        f"<button type='submit' class='secondary'><span class='icon' aria-hidden='true'>{h(icon)}</span>{h(config['button'])}</button>"
+        f"<button type='submit' class='secondary'>{button_content(config['button'], icon, shortcut)}</button>"
         "</form>"
         "</div>"
     )
@@ -1301,6 +1324,87 @@ def item_codex_review(item: dict) -> dict:
 def item_reading_metadata(item: dict) -> dict:
     metadata = item.get("reading_metadata")
     return metadata if isinstance(metadata, dict) else {}
+
+
+def item_codex_zh_title(item: dict) -> str:
+    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    codex_review = editorial.get("codex_review") if isinstance(editorial.get("codex_review"), dict) else {}
+    return (
+        clean_text(codex_review.get("zh_title"), 300)
+        or clean_text(editorial.get("zh_title"), 300)
+        or clean_text(editorial.get("codex_zh_title"), 300)
+    )
+
+
+def item_display_title(item: dict) -> str:
+    metadata = item_reading_metadata(item)
+    return (
+        clean_text(item.get("editorial_title"), 320)
+        or clean_text(metadata.get("editorial_title"), 320)
+        or item_codex_zh_title(item)
+        or clean_text(metadata.get("translated_zh_title"), 320)
+        or clean_text(item.get("title"), 320)
+        or clean_text(item.get("url"), 320)
+        or "未命名項目"
+    )
+
+
+def item_original_title(item: dict) -> str:
+    metadata = item_reading_metadata(item)
+    return clean_text(metadata.get("original_site_title") or metadata.get("title") or item.get("title"), 360)
+
+
+def language_label(language: object) -> str:
+    code = clean_text(language, 80)
+    labels = {
+        "zh": "中文",
+        "zh-Hant": "繁體中文",
+        "zh-Hans": "簡體中文",
+        "en": "英文",
+        "ja": "日文",
+        "ko": "韓文",
+        "fr": "法文",
+        "de": "德文",
+        "es": "西班牙文",
+        "pt": "葡萄牙文",
+    }
+    return labels.get(code, code or "未知")
+
+
+def metadata_source_label(metadata: dict, field: str) -> str:
+    source = clean_text(metadata.get(f"{field}_source"), 120)
+    if not source:
+        return ""
+    return f"（{source}）"
+
+
+def item_original_language(item: dict) -> str:
+    metadata = item_reading_metadata(item)
+    language = clean_text(metadata.get("original_language"))
+    if language:
+        return language
+    text = "\n".join(
+        part
+        for part in [
+            item_article_text(item),
+            clean_text(metadata.get("article_markdown"), 3000),
+            clean_text(item.get("summary"), 1200),
+            clean_text(item.get("title"), 300),
+        ]
+        if part
+    )
+    return infer_language_from_text(text)
+
+
+def is_foreign_language_item(item: dict) -> bool:
+    language = item_original_language(item)
+    if not language or language in {"unknown", "und"}:
+        return False
+    return not language.startswith("zh")
+
+
+def item_translated_markdown(item: dict) -> str:
+    return clean_text(item_reading_metadata(item).get("translated_article_markdown_zh"))
 
 
 def item_article_text(item: dict) -> str:
@@ -1518,8 +1622,49 @@ def action_icon(action: str) -> str:
         "expand": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5"></path><path d="M3 3l7 7"></path><path d="M16 21h5v-5"></path><path d="M21 21l-7-7"></path></svg>',
         "external": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg>',
         "wand": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4V2"></path><path d="M15 16v-2"></path><path d="M8 9H6"></path><path d="M20 9h-2"></path><path d="M17.8 6.2l1.4-1.4"></path><path d="M10.8 13.2l-7 7a1.5 1.5 0 0 0 2.1 2.1l7-7"></path><path d="M12 8l4 4"></path></svg>',
+        "home": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path><path d="M9 20v-6h6v6"></path></svg>',
+        "globe": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a14 14 0 0 1 0 18"></path><path d="M12 3a14 14 0 0 0 0 18"></path></svg>',
+        "archive": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M6 7v13h12V7"></path><path d="M4 4h16v3H4z"></path><path d="M9 11h6"></path></svg>',
+        "workspace": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"></rect><path d="M8 20h8"></path><path d="M12 18v2"></path><path d="M7 8h5"></path><path d="M7 12h10"></path></svg>',
+        "rss": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5a14 14 0 0 1 14 14"></path><path d="M5 11a8 8 0 0 1 8 8"></path><circle cx="6" cy="18" r="1.5"></circle></svg>',
+        "inbox": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13l2-7h12l2 7"></path><path d="M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5h-5a3 3 0 0 1-6 0z"></path></svg>',
+        "plus": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>',
+        "settings": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></path><path d="M4 12h2"></path><path d="M18 12h2"></path><path d="M12 4v2"></path><path d="M12 18v2"></path><path d="M6.3 6.3l1.4 1.4"></path><path d="M16.3 16.3l1.4 1.4"></path><path d="M17.7 6.3l-1.4 1.4"></path><path d="M7.7 16.3l-1.4 1.4"></path></svg>',
+        "filter": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16"></path><path d="M7 12h10"></path><path d="M10 19h4"></path></svg>',
+        "source": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><circle cx="4" cy="6" r="1.5"></circle><circle cx="4" cy="12" r="1.5"></circle><circle cx="4" cy="18" r="1.5"></circle></svg>',
+        "check-circle": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12l2.5 2.5L16 9"></path></svg>',
+        "pulse": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h4l2-7 4 14 2-7h6"></path></svg>',
+        "database": '<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v7c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path><path d="M5 12v7c0 1.7 3.1 3 7 3s7-1.3 7-3v-7"></path></svg>',
+        "publish": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M5 20h14"></path></svg>',
+        "image": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="8" cy="10" r="1.5"></circle><path d="M21 16l-5-5-4 4-2-2-5 5"></path></svg>',
+        "text-lines": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14"></path><path d="M5 10h14"></path><path d="M5 14h10"></path><path d="M5 18h12"></path></svg>',
+        "sparkle": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg>',
+        "branch": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="12" cy="18" r="2"></circle><path d="M8 6h8"></path><path d="M6 8v2a8 8 0 0 0 6 7.7"></path><path d="M18 8v2a8 8 0 0 1-6 7.7"></path></svg>',
+        "chart": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"></path><path d="M4 19h16"></path><rect x="7" y="11" width="3" height="5"></rect><rect x="12" y="8" width="3" height="8"></rect><rect x="17" y="6" width="3" height="10"></rect></svg>',
+        "save": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"></path><path d="M8 4v6h8V4"></path><path d="M8 20v-6h8v6"></path></svg>',
+        "accept": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4L19 6"></path><path d="M5 20h14"></path></svg>',
+        "small-news": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"></rect><path d="M8 9h8"></path><path d="M8 13h5"></path><path d="M8 17h8"></path></svg>',
+        "reject": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 8l8 8"></path><path d="M16 8l-8 8"></path></svg>',
+        "select": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 12l3 3 5-6"></path></svg>',
+        "clear": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>',
+        "preview": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+        "refresh": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5"></path><path d="M4 18v-5h5"></path><path d="M19 11a7 7 0 0 0-12-4"></path><path d="M5 13a7 7 0 0 0 12 4"></path></svg>',
+        "edit": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11a2.5 2.5 0 0 0-4-4L4 16z"></path><path d="M13 6l5 5"></path></svg>',
+        "translate": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h10"></path><path d="M9 5v14"></path><path d="M4 19h10"></path><path d="M16 10h4l-2 8"></path><path d="M15 18h6"></path></svg>',
+        "note": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M8 8h8"></path><path d="M8 12h8"></path><path d="M8 16h5"></path></svg>',
     }
     return icons.get(action, icons["read"])
+
+
+def icon_span(action: str, shortcut: str = "", class_name: str = "icon") -> str:
+    shortcut = clean_text(shortcut, 8).upper()
+    shortcut_html = f'<span class="shortcut-hint">⌥{h(shortcut)}</span>' if shortcut else ""
+    shortcut_attr = f' data-shortcut="{h(shortcut)}"' if shortcut else ""
+    return f'<span class="{h(class_name)}" aria-hidden="true"{shortcut_attr}>{action_icon(action)}{shortcut_html}</span>'
+
+
+def button_content(label: str, action: str, shortcut: str = "") -> str:
+    return f'{icon_span(action, shortcut)}<span>{h(label)}</span>'
 
 
 def action_label(label: str) -> str:
@@ -1591,7 +1736,7 @@ def editorial_triage_html(item: dict, compact: bool = False, reject_action: str 
             f"<input type='hidden' name='id' value='{h(item.get('id'))}'>"
             f"<input type='hidden' name='redirect' value='{h(item_detail_href(item))}'>"
             "<input type='hidden' name='with_fulltext' value='1'>"
-            f"<button type='submit' class='secondary'><span class='icon' aria-hidden='true'>C</span>{h(button_label)}</button>"
+            f"<button type='submit' class='secondary'>{button_content(button_label, 'sparkle', 'C')}</button>"
             "</form>"
             "</div>"
         )
@@ -2071,6 +2216,28 @@ def page(title: str, body: str) -> bytes:
     h1 {{ font-size: 28px; margin: 0 0 12px; }}
     h2 {{ font-size: 20px; margin: 30px 0 12px; }}
     h3 {{ font-size: 16px; margin: 0 0 8px; }}
+    .title-editor {{
+      margin: 0 0 10px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }}
+    .title-editor summary {{
+      cursor: pointer;
+      list-style: none;
+      display: grid;
+      gap: 2px;
+    }}
+    .title-editor summary::-webkit-details-marker {{ display: none; }}
+    .title-editor summary h1 {{ margin-bottom: 2px; color: var(--ocf-dark); }}
+    .title-editor summary:hover h1 {{ color: var(--ocf-dark); }}
+    .title-editor form {{
+      max-width: 760px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }}
     p {{ margin: 8px 0; }}
     a {{ color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }}
     a:not(.button):hover {{ color: var(--ocf-primary); }}
@@ -2214,16 +2381,35 @@ def page(title: str, body: str) -> bytes:
     .icon {{
       display: inline-grid;
       place-items: center;
-      width: 20px;
+      width: 22px;
       height: 20px;
       border-radius: 5px;
       background: rgba(255,255,255,.24);
       color: currentColor;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 900;
       line-height: 1;
       flex: 0 0 auto;
     }}
+    .icon svg {{
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }}
+    .shortcut-hint {{ display: none; white-space: nowrap; }}
+    body.show-shortcuts .icon[data-shortcut] {{
+      width: auto;
+      min-width: 30px;
+      padding: 0 4px;
+      font-size: 11px;
+      letter-spacing: 0;
+    }}
+    body.show-shortcuts .icon[data-shortcut] svg {{ display: none; }}
+    body.show-shortcuts .icon[data-shortcut] .shortcut-hint {{ display: inline; }}
     .card > strong .icon, nav .icon {{
       background: var(--soft);
       color: var(--ocf-primary);
@@ -2731,33 +2917,33 @@ def page(title: str, body: str) -> bytes:
     <a class="brand" href="/">Ian Open News</a>
     <nav>
       <details class="nav-menu">
-        <summary><span class="icon" aria-hidden="true">H</span>共通入口</summary>
+        <summary>{icon_span("home", "H")}共通入口</summary>
         <div class="nav-menu-links">
-          <a href="/"><span class="icon" aria-hidden="true">H</span>總覽</a>
-          <a href="/track/open-tech-open-industry"><span class="icon" aria-hidden="true">O</span>開放科技</a>
-          <a href="/track/digital-humanities-local-knowledge"><span class="icon" aria-hidden="true">L</span>人文知識</a>
+          <a href="/">{icon_span("home", "H")}總覽</a>
+          <a href="/track/open-tech-open-industry">{icon_span("globe", "O")}開放科技</a>
+          <a href="/track/digital-humanities-local-knowledge">{icon_span("archive", "L")}人文知識</a>
         </div>
       </details>
       <details class="nav-menu">
-        <summary><span class="icon" aria-hidden="true">W</span>工作區</summary>
+        <summary>{icon_span("workspace", "W")}工作區</summary>
         <div class="nav-menu-links">
-          <a href="/items"><span class="icon" aria-hidden="true">R</span>RSS 待整理</a>
-          <a href="/candidates"><span class="icon" aria-hidden="true">C</span>候選清單</a>
-          <a href="/reader"><span class="icon" aria-hidden="true">B</span>閱讀區</a>
+          <a href="/items">{icon_span("rss", "R")}RSS 待整理</a>
+          <a href="/candidates">{icon_span("inbox", "C")}候選清單</a>
+          <a href="/reader">{icon_span("read", "B")}閱讀區</a>
         </div>
       </details>
       <details class="nav-menu">
-        <summary><span class="icon" aria-hidden="true">+</span>新增</summary>
+        <summary>{icon_span("plus", "N")}新增</summary>
         <div class="nav-menu-links">
-          <a href="/items/new"><span class="icon" aria-hidden="true">+</span>加收藏</a>
-          <a href="/sources/new"><span class="icon" aria-hidden="true">R</span>加 RSS</a>
+          <a href="/items/new">{icon_span("plus", "N")}加收藏</a>
+          <a href="/sources/new">{icon_span("rss", "R")}加 RSS</a>
         </div>
       </details>
       <details class="nav-menu">
-        <summary><span class="icon" aria-hidden="true">*</span>管理</summary>
+        <summary>{icon_span("settings", "M")}管理</summary>
         <div class="nav-menu-links">
-          <a href="/keywords"><span class="icon" aria-hidden="true">#</span>關鍵字</a>
-          <a href="/sources"><span class="icon" aria-hidden="true">S</span>RSS 來源</a>
+          <a href="/keywords">{icon_span("filter", "F")}關鍵字</a>
+          <a href="/sources">{icon_span("source", "S")}RSS 來源</a>
         </div>
       </details>
     </nav>
@@ -2789,6 +2975,17 @@ def page(title: str, body: str) -> bytes:
     </div>
   </div>
   <script>
+  const setShortcutMode = (active) => {{
+    document.body.classList.toggle("show-shortcuts", Boolean(active));
+  }};
+  window.addEventListener("keydown", (event) => {{
+    if (event.altKey) setShortcutMode(true);
+  }});
+  window.addEventListener("keyup", (event) => {{
+    if (!event.altKey) setShortcutMode(false);
+  }});
+  window.addEventListener("blur", () => setShortcutMode(false));
+
   document.querySelectorAll(".nav-menu").forEach((menu) => {{
     menu.addEventListener("toggle", () => {{
       if (!menu.open) return;
@@ -3110,6 +3307,16 @@ def page(title: str, body: str) -> bytes:
             }}
           }}
           if (meta) meta.textContent = payload.message || "";
+          const translationActions = panel.querySelector("[data-translation-actions]");
+          if (translationActions) {{
+            if (payload.translation_actions_html) {{
+              translationActions.innerHTML = payload.translation_actions_html;
+              translationActions.hidden = false;
+            }} else {{
+              translationActions.innerHTML = "";
+              translationActions.hidden = true;
+            }}
+          }}
           panel.scrollIntoView({{ behavior: "smooth", block: "start" }});
         }} else if (payload.redirect) {{
           window.location.href = payload.redirect;
@@ -3302,6 +3509,12 @@ class Handler(BaseHTTPRequestHandler):
             self.codex_review_item(self.read_form())
         elif parsed.path == "/items/update-url":
             self.update_item_url(self.read_form())
+        elif parsed.path == "/items/update-title":
+            self.update_item_title(self.read_form())
+        elif parsed.path == "/items/update-metadata":
+            self.update_item_metadata(self.read_form())
+        elif parsed.path == "/items/translate-zh":
+            self.translate_item_zh(self.read_form())
         elif parsed.path == "/preview-url":
             self.preview_url(self.read_form())
         elif parsed.path == "/candidates/accept":
@@ -3561,7 +3774,7 @@ class Handler(BaseHTTPRequestHandler):
     {badge("RSS 新進", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
-    <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
+    <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
@@ -3571,12 +3784,12 @@ class Handler(BaseHTTPRequestHandler):
       <form method="post" action="/candidates/accept" data-decision-form>
         <input type="hidden" name="id" value="{h(item_id)}">
         <input type="hidden" name="decision" value="accept">
-        <button type="submit">確認收，準備跑 skill</button>
+        <button type="submit">{button_content("確認收，準備跑 skill", "accept", "A")}</button>
       </form>
       <form method="post" action="/candidates/accept" data-decision-form>
         <input type="hidden" name="id" value="{h(item_id)}">
         <input type="hidden" name="decision" value="direct_pr">
-        <button type="submit" class="secondary">直接送 PR（小消息）</button>
+        <button type="submit" class="secondary">{button_content("直接送 PR（小消息）", "small-news", "P")}</button>
       </form>
     </div>
     <p class="help">這則還在 RSS 新進。確認收或直接送 PR 時，系統會先寫進 database/items.jsonl，再套用你的決定；不收會寫入不收學習檔與略過清單。</p>
@@ -3588,7 +3801,7 @@ class Handler(BaseHTTPRequestHandler):
         <input type="hidden" name="id" value="{h(item_id)}">
         <div class="button-row">
           <input name="reason" placeholder="寫一句不收原因">
-          <button type="submit" class="reason-chip reason-chip--danger">記錄不收</button>
+          <button type="submit" class="reason-chip reason-chip--danger">{button_content("記錄不收", "reject", "X")}</button>
         </div>
       </form>
     </details>
@@ -3610,7 +3823,7 @@ class Handler(BaseHTTPRequestHandler):
     {badge("已入庫待分流", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
-    <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
+    <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
@@ -3619,11 +3832,11 @@ class Handler(BaseHTTPRequestHandler):
     <div class="button-row">
       <form method="post" action="/items/accept" data-decision-form>
         <input type="hidden" name="id" value="{h(item_id)}">
-        <button type="submit">確認收，準備跑 skill</button>
+        <button type="submit">{button_content("確認收，準備跑 skill", "accept", "A")}</button>
       </form>
       <form method="post" action="/items/direct-pr" data-decision-form>
         <input type="hidden" name="id" value="{h(item_id)}">
-        <button type="submit" class="secondary">直接送 PR（小消息）</button>
+        <button type="submit" class="secondary">{button_content("直接送 PR（小消息）", "small-news", "P")}</button>
       </form>
     </div>
     <p class="help">確認收會移到候選清單待跑 skill；純事實小消息可直接記錄為送 PR，不跑 skill。</p>
@@ -3635,7 +3848,7 @@ class Handler(BaseHTTPRequestHandler):
         <input type="hidden" name="id" value="{h(item_id)}">
         <div class="button-row">
           <input name="reason" placeholder="寫一句不收原因">
-          <button type="submit" class="reason-chip reason-chip--danger">記錄不收</button>
+          <button type="submit" class="reason-chip reason-chip--danger">{button_content("記錄不收", "reject", "X")}</button>
         </div>
       </form>
     </details>
@@ -3693,7 +3906,7 @@ class Handler(BaseHTTPRequestHandler):
 <div class="card auto-batch-panel">
   <form method="post" action="/items/auto-batch-skip">
     {''.join(auto_hidden_inputs)}
-    <button type="submit" class="secondary">{action_icon("wand")}<span>自動批次處理</span></button>
+    <button type="submit" class="secondary">{button_content("自動批次處理", "wand", "W")}</button>
   </form>
   <p class="help">會處理這個 view 下的 {len(filtered)} 筆「建議不要看」，逐筆推估不收分類，並在原因後加上「{datetime.now(LOCAL_TIMEZONE).date().isoformat()}，自動批次處理」。</p>
 </div>
@@ -3735,15 +3948,15 @@ class Handler(BaseHTTPRequestHandler):
 <div class="card batch-panel">
   <p><strong id="selected-count">已選取 0 則</strong></p>
   <div class="button-row">
-    <button type="button" class="secondary" id="select-visible">全選目前顯示</button>
-    <button type="button" class="quiet" id="clear-selection">清除選取</button>
+    <button type="button" class="secondary" id="select-visible">{button_content("全選目前顯示", "select", "A")}</button>
+    <button type="button" class="quiet" id="clear-selection">{button_content("清除選取", "clear", "L")}</button>
   </div>
   <form id="items-batch-form" method="post" action="/items/batch" data-batch-form>
     <input type="hidden" id="batch-ids" name="ids">
     <input type="hidden" id="batch-reason" name="reason">
     <div class="button-row">
-      <button type="submit" name="action" value="accept">批次確認收，準備跑 skill</button>
-      <button type="submit" name="action" value="direct_pr" class="secondary">批次直接送 PR（小消息）</button>
+      <button type="submit" name="action" value="accept">{button_content("批次確認收，準備跑 skill", "accept", "A")}</button>
+      <button type="submit" name="action" value="direct_pr" class="secondary">{button_content("批次直接送 PR（小消息）", "small-news", "P")}</button>
     </div>
     <p class="help">批次不收原因</p>
     <div class="reason-presets">{batch_buttons}</div>
@@ -3751,7 +3964,7 @@ class Handler(BaseHTTPRequestHandler):
       <summary>批次其他原因</summary>
       <div class="button-row">
         <input id="batch-custom-reason" name="custom_reason" placeholder="寫一句批次不收原因">
-        <button type="submit" name="action" value="reject" class="reason-chip reason-chip--danger" data-custom-reason="1">用這個原因批次不收</button>
+        <button type="submit" name="action" value="reject" class="reason-chip reason-chip--danger" data-custom-reason="1">{button_content("用這個原因批次不收", "reject", "X")}</button>
       </div>
     </details>
   </form>
@@ -3924,7 +4137,7 @@ document.getElementById("items-batch-form").addEventListener("submit", (event) =
   <div>
     {badge(track_meta(item.get("track", "unclassified"))["short"], track_class(item.get("track", "unclassified")))}
     {badge(recommendation_label(candidate_recommendation(item)), candidate_recommendation(item))}
-    <strong><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('title'))}</a></strong>
+    <strong><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 420))}</p>
@@ -3939,7 +4152,7 @@ document.getElementById("items-batch-form").addEventListener("submit", (event) =
   <textarea id="reject-reason" name="reason" required></textarea>
   <p class="help">例：和主線關聯太弱、重複、只是活動公告、缺少可查證來源。這會寫進不收學習檔和 review event。</p>
   <div class="button-row">
-    <button type="submit" class="danger">確認不收並記錄原因</button>
+    <button type="submit" class="danger">{button_content("確認不收並記錄原因", "reject", "X")}</button>
     <a class="button secondary" href="/items">先不要決定</a>
   </div>
 </form>
@@ -3997,7 +4210,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge("待跑 skill", "neutral")}
     {badge(recommendation_label(recommendation), recommendation)}
-    <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
+    <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · 確認收：{h(decided_at)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
@@ -4107,7 +4320,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
                 keyword_options.insert(0, keyword)
         filtered = [item for item in items if matches(item)]
         filtered.sort(
-            key=lambda item: (item_sort_time(item), clean_text(item.get("title"))),
+            key=lambda item: (item_sort_time(item), item_display_title(item)),
             reverse=True,
         )
         if kind_filter == "all":
@@ -4159,23 +4372,24 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
       {badge(status_label(item.get("status", "")), "neutral")}
       {badge(content_kind_label(kind), "neutral")}
     </div>
-    <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
+    <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
     <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
     <p class="zh-summary">{h(item_zh_summary(item, 260))}</p>
     {note_html}
     <div class="button-row reader-card-actions" aria-label="文章操作">
-      <a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{action_icon("read")}{action_label("閱讀 / 記錄")}</a>
+      <a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{icon_span("read", "O", "icon reader-action-icon")}{action_label("閱讀 / 記錄")}</a>
       <form method="post" action="/items/read-more" data-read-more-form data-target="#{fulltext_id}">
         <input type="hidden" name="id" value="{h(item.get('id'))}">
         <input type="hidden" name="redirect" value="{h(reader_redirect)}">
-        <button type="submit" class="secondary reader-action-button" aria-label="展開全文" title="展開全文">{action_icon("expand")}{action_label("展開全文")}</button>
+        <button type="submit" class="secondary reader-action-button" aria-label="展開全文" title="展開全文">{icon_span("expand", "E", "icon reader-action-icon")}{action_label("展開全文")}</button>
       </form>
-      <a class="button secondary reader-action-button" href="{h(item.get('url'))}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{action_icon("external")}{action_label("原始連結")}</a>
+      <a class="button secondary reader-action-button" href="{h(item.get('url'))}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{icon_span("external", "L", "icon reader-action-icon")}{action_label("原始連結")}</a>
     </div>
     <section class="fulltext-panel source-card source-card--source" id="{fulltext_id}" hidden>
       <div class="section-kicker">原始主文</div>
       <h3>剛載入的全文</h3>
       <p class="help" data-fulltext-meta></p>
+      <div class="button-row" data-translation-actions hidden></div>
       <div class="article-text article-markdown" data-fulltext-body></div>
     </section>
   </div>
@@ -4190,7 +4404,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
     {badge(content_kind_label(kind), "neutral")}
     {badge(item_display_time(item, 'published_at', 'captured_at'), "neutral")}
   </div>
-  <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
+  <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
   <p class="zh-summary">{h(item_zh_summary(item, 360))}</p>
 </article>
 """
@@ -4199,7 +4413,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
             return f"""
 <article class="reader-compact-row">
   <span class="reader-dot" aria-hidden="true"></span>
-  <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
+  <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
   <div class="reader-row-time">{h(item_display_time(item, 'published_at', 'captured_at'))}</div>
 </article>
 """
@@ -4375,6 +4589,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             if not item:
                 self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
                 return
+        item, _ = complete_item_metadata(item)
 
         saved = (query.get("saved") or [""])[0]
         notice = ""
@@ -4388,12 +4603,20 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             notice = '<div class="notice">已補上 Codex 生成閱讀建議；如果有抓到全文，這次會優先依全文判斷。</div>'
         elif saved == "url":
             notice = '<div class="notice">已更新原始網址。接著可以按「展開全文」重新抓文章內容。</div>'
+        elif saved == "title":
+            notice = '<div class="notice">已更新這篇的對外顯示標題。</div>'
+        elif saved == "metadata":
+            notice = '<div class="notice">已更新這篇的原始 metadata。</div>'
+        elif saved == "translation":
+            notice = '<div class="notice">已完成中文翻譯，並存回閱讀資料庫。</div>'
         elif (query.get("error") or [""])[0] == "read_more":
             notice = '<div class="notice">這次沒有抓到更多資料。可能是網站擋住讀取、網址需要登入，或頁面沒有可抽取的主文。</div>'
         elif (query.get("error") or [""])[0] == "codex_review":
             notice = '<div class="notice">這次沒有順利補上 Codex 生成資訊。可以稍後再試，或先按「展開全文」補資料後再生成。</div>'
         elif (query.get("error") or [""])[0] == "url_resolve":
             notice = '<div class="notice">這次無法解析跳轉後網址。你仍可手動貼上實際文章網址再儲存。</div>'
+        elif (query.get("error") or [""])[0] == "translation":
+            notice = '<div class="notice">這次沒有順利翻譯。請先確認已展開全文，或稍後再試。</div>'
 
         css_class = track_class(item.get("track", "unclassified"))
         triage = item.get("triage") or {}
@@ -4408,6 +4631,36 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         article_markdown = item_article_markdown(item)
         article_html = markdown_to_html(article_markdown) if article_markdown else ""
         article_meta = item_reading_metadata(item)
+        display_title = item_display_title(item)
+        original_title = item_original_title(item)
+        original_language = item_original_language(item)
+        translated_markdown = item_translated_markdown(item)
+        translated_html = markdown_to_html(translated_markdown) if translated_markdown else ""
+        can_translate = bool(article_markdown or article_text) and is_foreign_language_item(item) and not translated_markdown and not is_rss_candidate
+        translate_actions = (
+            f"""
+  <form method="post" action="/items/translate-zh">
+    <input type="hidden" name="id" value="{h(item_id)}">
+    <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+    <button type="submit" class="secondary">自動翻譯成中文</button>
+  </form>
+  <p class="help">偵測原文語言：{h(language_label(original_language))}{h(metadata_source_label(article_meta, "original_language"))}。會用台灣習慣用語翻成繁體中文，並存回本機資料庫。</p>
+"""
+            if can_translate
+            else ""
+        )
+        translation_panel = (
+            f"""
+<section class="card fulltext-panel source-card source-card--source" id="translation-panel">
+  <div class="section-kicker">Codex 中文翻譯</div>
+  <h2>自動翻譯成中文</h2>
+  <p class="help">翻譯來源：{h(article_meta.get('translation_source', 'Codex'))} · {h(article_meta.get('translation_generated_at', ''))}</p>
+  <div class="article-text article-markdown">{translated_html}</div>
+</section>
+"""
+            if translated_markdown
+            else ""
+        )
         fulltext_hidden = "" if article_markdown or article_text else " hidden"
         fulltext_message = (
             f"已載入 Markdown 閱讀版，約 {article_meta.get('article_markdown_chars', len(article_markdown)) or article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_markdown_method') or article_meta.get('article_text_method', 'metadata')}。"
@@ -4431,12 +4684,12 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <form method="post" action="/candidates/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
       <input type="hidden" name="decision" value="accept">
-      <button type="submit">確認收，準備跑 skill</button>
+      <button type="submit">{button_content("確認收，準備跑 skill", "accept", "A")}</button>
     </form>
     <form method="post" action="/candidates/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
       <input type="hidden" name="decision" value="direct_pr">
-      <button type="submit" class="secondary">直接送 PR（小消息）</button>
+      <button type="submit" class="secondary">{button_content("直接送 PR（小消息）", "small-news", "P")}</button>
     </form>
   </div>
   <p class="help">不收原因</p>
@@ -4447,7 +4700,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
       <input type="hidden" name="id" value="{h(item_id)}">
       <label>這次不收的原因</label>
       <textarea name="reason" required></textarea>
-      <button type="submit" class="danger">確認不收並記錄原因</button>
+      <button type="submit" class="danger">{button_content("確認不收並記錄原因", "reject", "X")}</button>
     </form>
   </details>
 </div>
@@ -4460,13 +4713,13 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <div class="button-row">
     <form method="post" action="/items/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
-      <button type="submit">確認收，準備跑 skill</button>
+        <button type="submit">{button_content("確認收，準備跑 skill", "accept", "A")}</button>
     </form>
     <form method="post" action="/items/direct-pr">
       <input type="hidden" name="id" value="{h(item_id)}">
-      <button type="submit" class="secondary">直接送 PR（小消息）</button>
+        <button type="submit" class="secondary">{button_content("直接送 PR（小消息）", "small-news", "P")}</button>
     </form>
-    <a class="button quiet" href="/items/reject?id={quote(item_id)}">不收，寫原因</a>
+    <a class="button quiet" href="/items/reject?id={quote(item_id)}">{button_content("不收，寫原因", "reject", "X")}</a>
   </div>
   <p class="help">確認收會移到候選清單；直接送 PR 適合純事實小消息；不收會要求留下原因。</p>
 </div>
@@ -4487,9 +4740,46 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         <button type="submit">展開全文</button>
       </form>
 """
+        metadata_form = f"""
+    <div class="card">
+      <h2>原始 metadata</h2>
+      <form method="post" action="/items/update-metadata">
+        <input type="hidden" name="id" value="{h(item_id)}">
+        <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+        <label>原始網站標題 {h(metadata_source_label(article_meta, "original_site_title"))}</label>
+        <input name="original_site_title" value="{h(article_meta.get('original_site_title') or original_title)}" placeholder="原始網站標題">
+        <label>原始語言 {h(metadata_source_label(article_meta, "original_language"))}</label>
+        <input name="original_language" value="{h(original_language)}" placeholder="en / zh-Hant / ja">
+        <p class="help">目前顯示：{h(language_label(original_language))}</p>
+        <label>自動翻譯中文標題 {h(metadata_source_label(article_meta, "translated_zh_title"))}</label>
+        <input name="translated_zh_title" value="{h(article_meta.get('translated_zh_title') or item_codex_zh_title(item))}" placeholder="翻譯後的中文標題">
+        <label>原始作者 {h(metadata_source_label(article_meta, "original_author"))}</label>
+        <input name="original_author" value="{h(article_meta.get('original_author') or item.get('author', ''))}" placeholder="作者或組織">
+        <label>原始網站授權 {h(metadata_source_label(article_meta, "original_license"))}</label>
+        <input name="original_license" value="{h(article_meta.get('original_license', ''))}" placeholder="Creative Commons / 著作權保護 / 未標示">
+        <label>授權連結</label>
+        <input name="original_license_url" value="{h(article_meta.get('original_license_url', ''))}" placeholder="https://...">
+        <button type="submit">儲存 metadata</button>
+      </form>
+      <p class="help">標成「推斷」的欄位代表系統只從頁面字樣或內容比例判讀，仍可手動修正。</p>
+    </div>
+"""
         status_badge = badge("RSS 新進", "neutral") if is_rss_candidate else badge(status_label(item.get("status", "")), "neutral")
         body = f"""
-<h1>{h(item.get('title'))}</h1>
+<details class="title-editor">
+  <summary>
+    <h1>{h(display_title)}</h1>
+    <span class="help">點擊標題可編輯；原始標題：{h(original_title)}</span>
+  </summary>
+  <form method="post" action="/items/update-title">
+    <input type="hidden" name="id" value="{h(item_id)}">
+    <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+    <label>對外顯示標題</label>
+    <input name="title" value="{h(display_title)}" placeholder="輸入要顯示的中文標題">
+    <button type="submit">儲存標題</button>
+    <p class="help">留空儲存會清除人工標題，改回 Codex 中文標題或原始標題。</p>
+  </form>
+</details>
 <p class="lede break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · {h(item.get('url'))}</p>
 {notice}
 <div class="item-hero">
@@ -4517,7 +4807,9 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <h2>展開全文載入的 Markdown 閱讀版</h2>
   <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
   <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
+  <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
 </section>
+{translation_panel}
 
 <div class="two-column">
   <section>
@@ -4546,6 +4838,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
       </form>
       <p class="help">Google 快訊或追蹤網址如果會先跳轉，可先按「帶入跳轉後網址」，再展開全文。</p>
     </div>
+    {metadata_form}
     {'' if is_rss_candidate else f'''
     <div class="card">
       <h2>我的關鍵紀錄</h2>
@@ -4977,8 +5270,10 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         if not redirect_to.startswith("/") or redirect_to.startswith("//"):
             redirect_to = f"/items/view?id={quote(item_id)}"
         found, changed, response_item, error = self.update_read_more_record(ITEMS, item_id)
+        found_in_items = found
         if not found:
             found, changed, response_item, error = self.update_read_more_record(CANDIDATES, item_id)
+            found_in_items = False
         if not found:
             if wants_json:
                 self.send_json({"ok": False, "error": "找不到項目"}, HTTPStatus.NOT_FOUND)
@@ -4994,6 +5289,16 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 else ""
             )
             article_html = markdown_to_html(article_markdown) if article_markdown else ""
+            translation_actions_html = ""
+            if found_in_items and response_item and article_markdown and is_foreign_language_item(response_item) and not item_translated_markdown(response_item):
+                translation_actions_html = f"""
+<form method="post" action="/items/translate-zh">
+  <input type="hidden" name="id" value="{h(item_id)}">
+  <input type="hidden" name="redirect" value="{h(redirect_to)}">
+  <button type="submit" class="secondary">自動翻譯成中文</button>
+</form>
+<p class="help">偵測原文語言：{h(language_label(item_original_language(response_item)))}{h(metadata_source_label(metadata, "original_language"))}。會用台灣習慣用語翻成繁體中文，並存回本機資料庫。</p>
+"""
             message = (
                 f"已載入 Markdown 閱讀版，約 {metadata.get('article_markdown_chars', len(article_markdown)) or metadata.get('article_text_chars', len(article_text))} 字；"
                 f"抽取方式：{metadata.get('article_markdown_method') or metadata.get('article_text_method', 'metadata')}。"
@@ -5011,6 +5316,9 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                     "article_html": article_html,
                     "article_text_status": metadata.get("article_text_status", ""),
                     "article_markdown_status": metadata.get("article_markdown_status", ""),
+                    "original_language": item_original_language(response_item or {}),
+                    "can_translate": bool(translation_actions_html),
+                    "translation_actions_html": translation_actions_html,
                     "image_url": metadata.get("image_url", ""),
                     "redirect": redirect_to,
                 },
@@ -5151,6 +5459,125 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             self.redirect(f"{redirect_to}{separator}error=url_resolve")
             return
         self.redirect(f"{redirect_to}{separator}saved=url")
+
+    def update_title_record(self, path: Path, item_id: str, title: str) -> bool:
+        records = load_jsonl(path)
+        updated_records = []
+        found = False
+        updated_at = now_iso()
+        for item in records:
+            if item.get("id") != item_id:
+                updated_records.append(item)
+                continue
+            found = True
+            updated = dict(item)
+            metadata = updated.get("reading_metadata") if isinstance(updated.get("reading_metadata"), dict) else {}
+            metadata = dict(metadata)
+            clean_title = clean_text(title, 320)
+            if clean_title:
+                updated["editorial_title"] = clean_title
+                metadata["editorial_title"] = clean_title
+                metadata["editorial_title_source"] = "manual"
+                metadata["editorial_title_updated_at"] = updated_at
+            else:
+                updated.pop("editorial_title", None)
+                metadata.pop("editorial_title", None)
+                metadata.pop("editorial_title_source", None)
+                metadata["editorial_title_cleared_at"] = updated_at
+            updated["reading_metadata"] = metadata
+            updated_records.append(updated)
+        if found:
+            write_jsonl(path, updated_records)
+        return found
+
+    def update_item_title(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        title = form_value(data, "title")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        found = self.update_title_record(ITEMS, item_id, title)
+        if not found:
+            found = self.update_title_record(CANDIDATES, item_id, title)
+        if not found:
+            self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}saved=title")
+
+    def update_metadata_record(self, path: Path, item_id: str, data: dict[str, list[str]]) -> bool:
+        fields = [
+            "original_site_title",
+            "original_language",
+            "translated_zh_title",
+            "original_author",
+            "original_license",
+            "original_license_url",
+        ]
+        records = load_jsonl(path)
+        updated_records = []
+        found = False
+        updated_at = now_iso()
+        for item in records:
+            if item.get("id") != item_id:
+                updated_records.append(item)
+                continue
+            found = True
+            updated = dict(item)
+            metadata = updated.get("reading_metadata") if isinstance(updated.get("reading_metadata"), dict) else {}
+            metadata = dict(metadata)
+            for field in fields:
+                value = clean_text(form_value(data, field), 1200 if field != "translated_zh_title" else 320)
+                metadata[field] = value
+                if value:
+                    metadata[f"{field}_source"] = "manual"
+            metadata["metadata_updated_at"] = updated_at
+            updated["reading_metadata"] = metadata
+            updated_records.append(updated)
+        if found:
+            write_jsonl(path, updated_records)
+        return found
+
+    def update_item_metadata(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        found = self.update_metadata_record(ITEMS, item_id, data)
+        if not found:
+            found = self.update_metadata_record(CANDIDATES, item_id, data)
+        if not found:
+            self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}saved=metadata")
+
+    def translate_item_zh(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        if not any(item.get("id") == item_id for item in load_jsonl(ITEMS)):
+            self.send_html("找不到項目", "<h1>找不到可翻譯項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        found, changed, response_item, error = self.update_read_more_record(ITEMS, item_id)
+        article_markdown = item_article_markdown(response_item or {})
+        if not found or (error and not article_markdown) or not article_markdown:
+            separator = "&" if "?" in redirect_to else "?"
+            self.redirect(f"{redirect_to}{separator}error=translation")
+            return
+        command = [
+            sys.executable,
+            str(ROOT / "scripts" / "codex_translate_article.py"),
+            "--id",
+            item_id,
+        ]
+        try:
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800)
+            output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
+            ok = result.returncode == 0
+        except subprocess.TimeoutExpired as exc:
+            output = (exc.stdout or "") + ("\nSTDERR:\n" + exc.stderr if exc.stderr else "")
+            output = (output + "\nCodex 翻譯逾時。").strip()
+            ok = False
+        if not ok:
+            print(output, file=sys.stderr)
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}{'saved=translation' if ok else 'error=translation'}")
 
     def preview_url(self, data: dict[str, list[str]]) -> None:
         url = form_value(data, "url")
@@ -5478,13 +5905,13 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         source_groups = Counter(source.get("source_group", "未標示群組") for source in track_sources)
         recent_items = sorted(
             pending_items,
-            key=lambda item: (item_sort_time(item), clean_text(item.get("title"))),
+            key=lambda item: (item_sort_time(item), item_display_title(item)),
             reverse=True,
         )[:12]
 
         item_rows = []
         for item in recent_items:
-            title = item.get("title") or item.get("url") or "未命名項目"
+            title = item_display_title(item)
             source_name = item.get("source_name") or item.get("author") or "未標示來源"
             captured = item_display_time(item, "captured_at", "published_at")
             detail_href = item_detail_href(item)
@@ -5571,7 +5998,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <div class="preview-status" data-preview-status>等待網址。</div>
     <div class="preview-result" data-preview-result></div>
   </div>
-  <button type="button" class="secondary" data-preview-button><span class="icon" aria-hidden="true">M</span>抓取頁面資訊</button>
+  <button type="button" class="secondary" data-preview-button>{button_content("抓取頁面資訊", "preview", "M")}</button>
   <label>來源 / 網站 / 作者</label>
   <input name="source_name" placeholder="例如：報導者、Open Knowledge Foundation" data-preview-source-name>
   <p class="help">不知道作者時，先填網站或組織名稱。</p>
@@ -5846,7 +6273,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         def sort_items(records: list[dict]) -> list[dict]:
             return sorted(
                 records,
-                key=lambda item: (item_sort_time(item), clean_text(item.get("title"))),
+                key=lambda item: (item_sort_time(item), item_display_title(item)),
                 reverse=True,
             )
 
@@ -5872,7 +6299,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         def source_list_row(item: dict, can_open: bool = True, archived: bool = False) -> str:
             kind = item_display_kind(item)
             item_url = clean_text(item.get("url"))
-            title = clean_text(item.get("title")) or item_url or "未命名項目"
+            title = item_display_title(item)
             if archived and item_url:
                 title_html = f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">{h(title)}</a>'
             elif can_open:
@@ -5894,7 +6321,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 
         def source_compact_row(item: dict, can_open: bool = True, archived: bool = False) -> str:
             item_url = clean_text(item.get("url"))
-            title = clean_text(item.get("title")) or item_url or "未命名項目"
+            title = item_display_title(item)
             if archived and item_url:
                 title_html = f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">{h(title)}</a>'
             elif can_open:
@@ -5919,7 +6346,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             )
             kind = item_display_kind(item)
             item_url = clean_text(item.get("url"))
-            title = clean_text(item.get("title")) or item_url or "未命名項目"
+            title = item_display_title(item)
             if archived and item_url:
                 title_html = f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">{h(title)}</a>'
             elif can_open:
@@ -5938,7 +6365,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <h3>{title_html}</h3>
     <p class="muted break-anywhere">{h(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'))}</p>
     <p class="zh-summary">{h(source_summary(item, archived, 260))}</p>
-    {f'<div class="button-row reader-card-actions" aria-label="文章操作"><a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{action_icon("read")}{action_label("閱讀 / 記錄")}</a><a class="button secondary reader-action-button" href="{h(item_url)}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{action_icon("external")}{action_label("原始連結")}</a></div>' if can_open and item_url else ''}
+    {f'<div class="button-row reader-card-actions" aria-label="文章操作"><a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{icon_span("read", "O", "icon reader-action-icon")}{action_label("閱讀 / 記錄")}</a><a class="button secondary reader-action-button" href="{h(item_url)}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{icon_span("external", "L", "icon reader-action-icon")}{action_label("原始連結")}</a></div>' if can_open and item_url else ''}
     {f'<div class="source-action-row">{restore_form(item)}</div>' if archived else ''}
   </div>
 </article>
@@ -6106,7 +6533,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <div class="preview-status" data-preview-status>等待網址。</div>
     <div class="preview-result" data-preview-result></div>
   </div>
-  <button type="button" class="secondary" data-preview-button><span class="icon" aria-hidden="true">R</span>抓取來源資訊</button>
+  <button type="button" class="secondary" data-preview-button>{button_content("抓取來源資訊", "rss", "R")}</button>
   <label>必須包含的關鍵字</label>
   <textarea name="required_keywords" placeholder="一行一個；留空代表不限制">{h(source_keywords_text(source, 'required_keywords'))}</textarea>
   <p class="help">若有填，RSS 單篇標題、摘要、標籤、來源或網址至少要命中其中一個才會進待整理；編輯後存檔會重盤點這個來源的待整理項目並重新抓一次。</p>

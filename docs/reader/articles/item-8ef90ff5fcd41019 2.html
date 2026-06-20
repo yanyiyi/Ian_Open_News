@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blog - LINE ENGINEERING - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card .actions { gap: 6px; margin-top: 8px; }
+    .story-card .actions { justify-content: flex-end; }
+    .story-card .actions .reader-action-button {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
+    }
+    .story-card .actions svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .reader-action-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>Blog - LINE ENGINEERING</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-19T19:47:42+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">純新聞 / 小消息</span>
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2024-01-15 08:00</span>
+    </div>
+    <h2>Blog - LINE ENGINEERING</h2>
+    <p class="lede">這筆內容來自 LINE Engineering 的 COSCUP 標籤頁，摘要混合了多篇文章。主要可見 Nijia Lin 在 COSCUP 2023 分享 side project 經驗，包括用 LINE Bot 作為操作介面、整理寶可夢相關資訊、用 Flex Message 呈現互動流程，以及另一篇談如何把 side project 開發到 public cloud。後段也提到 2022 年 LINE Engineering 參與 COSCUP 的文章。</p>
+    <div class="actions">
+      <a class="button secondary" href="../index.html">回精選與觀點</a>
+      <a class="button secondary" href="../news.html">看小消息</a>
+      <a class="button quiet" href="https://engineering.linecorp.com/zh-hant/blog/tag/COSCUP" target="_blank" rel="noreferrer">原始連結</a>
+    </div>
+    <section class="article-body"><h1>Blog - LINE ENGINEERING</h1>
+<h2>Blog</h2>
+<h3>TAG ARCHIVES: COSCUP</h3>
+<ul>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/how-to-deploy-pokemon-line-bot/" target="_blank" rel="noreferrer">寶可夢苦難日: 結局不是重點，重點是我爬不 上大師啊</a> <a href="https://engineering.linecorp.com/zh-hant/blog/author/Nijia%20Lin" target="_blank" rel="noreferrer">Nijia Lin</a> 2023-07-30 LINE Taiwan Technology Evangelist [前言</li>
+</ul>
+<p>我是 LINE Taiwan 的技術傳教士 Nijia (a.k.a 忍者)，這次有幸來 COSCUP 2023 分享過年期間實做關於寶可夢 Side project 的一些心得，透過以下文章跟大家分享經驗談！ 本次分享簡報：https://speakerdeck.com/line_developers_tw/how-to-deploy-pokemon-line-bot 介紹 以下介紹為個人業餘時間所開發的 Side Projec...](https://engineering.linecorp.com/zh-hant/blog/how-to-deploy-pokemon-line-bot/) [LINE BOT](https://engineering.linecorp.com/zh-hant/blog/tag/LINE BOT)</p>
+<ul>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/Python" target="_blank" rel="noreferrer">Python</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/COSCUP" target="_blank" rel="noreferrer">COSCUP</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/Cloud" target="_blank" rel="noreferrer">Cloud</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/how-to-develop-side-project-into-public-cloud/" target="_blank" rel="noreferrer">【從零開始養】透過 Side Project 增加你的能見度！ 以 LINE Bot 為例</a> <a href="https://engineering.linecorp.com/zh-hant/blog/author/Nijia%20Lin" target="_blank" rel="noreferrer">Nijia Lin</a> 2023-07-28 LINE Taiwan Technology Evangelist [前言</li>
+</ul>
+<p>大家好，我是 LINE Taiwan 的技術傳教士 Nijia (a.k.a 忍者)，這次很榮幸來 COSCUP 2023 分享業餘時間做 Side project 的一些心得，這次透過文章跟大家分享經驗談！ 簡報：https://speakerdeck.com/line_developers_tw/how-to-develop-side-project-to-public-cloud 介紹 以下透過我這幾年收到也是我過去的各種疑...](https://engineering.linecorp.com/zh-hant/blog/how-to-develop-side-project-into-public-cloud/) [LINE BOT](https://engineering.linecorp.com/zh-hant/blog/tag/LINE BOT)</p>
+<ul>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/COSCUP" target="_blank" rel="noreferrer">COSCUP</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/Cloud" target="_blank" rel="noreferrer">Cloud</a></li>
+<li>[[COSCUP 2022] LINE 台灣工程團隊議程分享](https://engineering.linecorp.com/zh-hant/blog/line-dev-in-coscup-2022/) <a href="https://engineering.linecorp.com/zh-hant/blog/author/LINE%20Engineering" target="_blank" rel="noreferrer">LINE Engineering</a> 2022-07-29 LINE Engineering Blog official account [前言</li>
+</ul>
+<p>今年 COSCUP 將會以線下的方式舉辦，而 LINER 這次有三個入選議程，在一年一度的開源會議中與大家分享，與大家一起共襄盛舉，體驗開源社群充滿熱忱與活力的氛圍！如果對於 LINER 分享的議程有興趣，歡迎跟著小編一起往下看！ 什麼是 COSCUP? COSCUP 是由台灣開放原始碼社群聯合推動的年度研討會，起源於 2006 年，是台灣自由軟體運動 (FOSSM) 重要的推動者之一。活動包括有講座、攤位、社團同樂會等，除了邀請...](https://engineering.linecorp.com/zh-hant/blog/line-dev-in-coscup-2022/) <a href="https://engineering.linecorp.com/zh-hant/blog/tag/Client" target="_blank" rel="noreferrer">Client</a></p>
+<ul>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/Container" target="_blank" rel="noreferrer">Container</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/Client-side" target="_blank" rel="noreferrer">Client-side</a></li>
+<li>[cloud native](https://engineering.linecorp.com/zh-hant/blog/tag/cloud native)</li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/COSCUP" target="_blank" rel="noreferrer">COSCUP</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/Cloud" target="_blank" rel="noreferrer">Cloud</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/coscup-2021-keynote/" target="_blank" rel="noreferrer">【COSCUP throwback】Keynote | 參與開源</a> <a href="https://engineering.linecorp.com/zh-hant/blog/author/Nijia%20Lin" target="_blank" rel="noreferrer">Nijia Lin</a> 2021-10-26 LINE Taiwan Technology Evangelist <a href="https://engineering.linecorp.com/zh-hant/blog/coscup-2021-keynote/" target="_blank" rel="noreferrer">什麼是 COSCUP?COSCUP 是亞洲最大的開源會議之一，自 2006 年開始由開源社群舉行的年度會議，也是台灣自由開源軟體運動 (FOSSM) 的主要倡導者。COSCUP 包含演講、贊助商、社群攤位，以及 BoF 社群同樂會等，COSCUP 的宗旨在於提供一個聯結開放原始碼開發者、使用者與推廣者的平台。可惜今年因為疫情關係改為線上，但也不減大家參與 COSCUP 的熱情！參與社群活動一直是我很喜歡做的事情之一，從演講中分享自己這段...</a> [Open Source](https://engineering.linecorp.com/zh-hant/blog/tag/Open Source)</li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/LINE" target="_blank" rel="noreferrer">LINE</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/COSCUP" target="_blank" rel="noreferrer">COSCUP</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/coscup-throwback-verda-liff/" target="_blank" rel="noreferrer">【COSCUP throwback】日本團隊分享 | Verda, LIFF</a> <a href="https://engineering.linecorp.com/zh-hant/blog/author/LINE%20Engineering" target="_blank" rel="noreferrer">LINE Engineering</a> 2021-09-06 LINE Engineering Blog official account <a href="https://engineering.linecorp.com/zh-hant/blog/coscup-throwback-verda-liff/" target="_blank" rel="noreferrer">前言在 COSCUP 的安排中很幸運可以邀請到國外的同仁來為我們分享在當地工作的內容，本次文章則帶大家了解遺下在日本的團隊(Verda + LIFF)的工作內容，如果想回味當天講者實際分享的內容在稍後也可以看 youtube 影片回味一下喔!(當天也是有許多朋友前來詢問許多與日本工作相關的問題，生活、履歷等等)投影片LINE VerdaBuild an mini-app ecosystem for LINE developers介紹Ve...</a> <a href="https://engineering.linecorp.com/zh-hant/blog/tag/Verda" target="_blank" rel="noreferrer">Verda</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/LIFF" target="_blank" rel="noreferrer">LIFF</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/COSCUP" target="_blank" rel="noreferrer">COSCUP</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/coscup-2021-empower-your-kubernetes-with-service-mesh-distributed-tracing/" target="_blank" rel="noreferrer">COSCUP 2021 議程分享：Empower Your Kubernetes with Service Mesh + Distributed Tracing</a> <a href="https://engineering.linecorp.com/zh-hant/blog/author/Hsu%20Ming" target="_blank" rel="noreferrer">Hsu Ming</a> 2021-09-03 <a href="https://engineering.linecorp.com/zh-hant/blog/coscup-2021-empower-your-kubernetes-with-service-mesh-distributed-tracing/" target="_blank" rel="noreferrer">嗨我是 LINE Today 的 Ming，這裡與大家分享我在 COSCUP 2021 擔任 Cloud Native 議程講者的一些內容簡介與感想。雖然這次是線上分享，但大家在各平台上的積極發問與留言實在令人感到社群滿滿的活力。當天議程連結簡報介紹這次我分享的主題是 &quot;Empower Your Kubernetes with Service Mesh + Distributed Tracing&quot;，主要介紹了 service mesh...</a> <a href="https://engineering.linecorp.com/zh-hant/blog/tag/Kubernetes" target="_blank" rel="noreferrer">Kubernetes</a></li>
+<li>[cloud native](https://engineering.linecorp.com/zh-hant/blog/tag/cloud native)</li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/COSCUP" target="_blank" rel="noreferrer">COSCUP</a></li>
+<li>[LINE TECH FRESH](https://engineering.linecorp.com/zh-hant/blog/tag/LINE TECH FRESH)</li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/coscup-2021-line-fukuoka/" target="_blank" rel="noreferrer">【COSCUP Throwback】LINE Fukuoka 團隊分享</a> <a href="https://engineering.linecorp.com/zh-hant/blog/author/LINE%20Engineering" target="_blank" rel="noreferrer">LINE Engineering</a> 2021-08-12 LINE Engineering Blog official account <a href="https://engineering.linecorp.com/zh-hant/blog/coscup-2021-line-fukuoka/" target="_blank" rel="noreferrer">前言相信在螢幕前觀看此篇文章得你一定對 LINE 貼圖小舖不陌生(畢竟都要買貼圖跟朋友&quot;交流&quot;)，因為背後的技術與流量其實是需要非常龐大的架構才支撐的下，本次 COSCUP 的 LINE 攤位上就邀請到福岡的前端與 CSI 團隊來分享相關的內容！前端團隊分享大家在購買貼圖時可能會在 LINE APP 中直接進行，也可能透過網頁的方式去購買，當然兩者的入口不一樣，背後所需要處理的技術內容也就不同。在 Web 的貼圖小舖中，需要了解現在用戶...</a> [LINE Fukuoka](https://engineering.linecorp.com/zh-hant/blog/tag/LINE Fukuoka)</li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/COSCUP" target="_blank" rel="noreferrer">COSCUP</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/coscup-2021-line-thailand-developer-relations/" target="_blank" rel="noreferrer">【COSCUP Throwback】LINE Thailand Developer Relations 議程分享</a> <a href="https://engineering.linecorp.com/zh-hant/blog/author/LINE%20Engineering" target="_blank" rel="noreferrer">LINE Engineering</a> 2021-08-06 LINE Engineering Blog official account <a href="https://engineering.linecorp.com/zh-hant/blog/coscup-2021-line-thailand-developer-relations/" target="_blank" rel="noreferrer">前言開發者關係與技術推廣(Developer Relations)部門除了台灣之外，在韓國、日本、台灣、泰國、印尼皆都有此部門，除了技術品牌經營外，也會安排許多對外技術活動，本次 COSCUP 活動中邀請到泰國的 - Tee、Tan、Bee 來為我們分享在泰國裡所實踐的內容與經驗分享，對於當天的內容有興趣的朋友，除了繼續觀看本文外也可收看當天的錄影檔(英文版本)：以下就由我帶各位用文章的方式回味當天的精彩內容吧！與技術社群共同成長在技術...</a> <a href="https://engineering.linecorp.com/zh-hant/blog/tag/COSCUP" target="_blank" rel="noreferrer">COSCUP</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/line-coscup-2020/" target="_blank" rel="noreferrer">COSCUP 2020 年會 - LINE 工程團隊的議程分享</a> <a href="https://engineering.linecorp.com/zh-hant/blog/author/Nijia%20Lin" target="_blank" rel="noreferrer">Nijia Lin</a> 2020-08-06 LINE Taiwan Technology Evangelist <a href="https://engineering.linecorp.com/zh-hant/blog/line-coscup-2020/" target="_blank" rel="noreferrer">什麼是 COSCUP?大家好，我是 LINE Taiwan Technology Evangelist – NiJia。很高興這次能以 LINER 身份於 8/1、8/2 參加 COSCUP 2020，並體驗開源社群充滿熱忱與活力的氛圍！COSCUP 是亞洲最大的開源會議之一，自 2006 年開始由開源社群舉行的年度會議，也是台灣自由開源軟體運動 (FOSSM) 的主要倡導者。COSCUP 包含演講、贊助商、社群攤位，以及 BoF 社群...</a> [LINE Notify](https://engineering.linecorp.com/zh-hant/blog/tag/LINE Notify)</li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/Verda" target="_blank" rel="noreferrer">Verda</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/Clojure" target="_blank" rel="noreferrer">Clojure</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/COSCUP" target="_blank" rel="noreferrer">COSCUP</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/line-coscup-2019/" target="_blank" rel="noreferrer">持續支持開源社群 - LINE Taiwan x COSCUP 2019</a> <a href="https://engineering.linecorp.com/zh-hant/blog/author/Claire%20Wang" target="_blank" rel="noreferrer">Claire Wang</a> 2019-09-24 LINE Taiwan Technical Writer <a href="https://engineering.linecorp.com/zh-hant/blog/line-coscup-2019/" target="_blank" rel="noreferrer">什麼是 COSCUP?大家好，我是 LINE Taiwan Technical Writer – Claire Wang。很高興這次能以 LINER 身份參加 COSCUP 2019，並體驗開源社群充滿熱忱與活力的氛圍！COSCUP 是亞洲最大的開源會議之一，自 2006 年開始由開源社群舉行的年度會議，也是台灣自由開源軟體運動 (FOSSM) 的主要倡導者。COSCUP 包含演講、贊助商、社群攤位，以及 BoF 社群同樂會等，COSC...</a> [Open Source](https://engineering.linecorp.com/zh-hant/blog/tag/Open Source)</li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/community" target="_blank" rel="noreferrer">community</a></li>
+<li><a href="https://engineering.linecorp.com/zh-hant/blog/tag/COSCUP" target="_blank" rel="noreferrer">COSCUP</a></li>
+</ul>
+<h2>Tags</h2></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/codex/reader-optimize/reader-notes?filename=item-8ef90ff5fcd41019.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：direct-pr-small-news / 2026-06-18T13:16:53+00:00</li><li>審稿備註：2026-06-18T13:16:53+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-8ef90ff5fcd41019";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+</body>
+</html>

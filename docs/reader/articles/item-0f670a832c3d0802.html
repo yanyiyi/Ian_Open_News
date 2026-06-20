@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>COSCUP 2023 - 開源工具加速前端開發 - Ian Open News</title>
+  <title>COSCUP 2023：用開源工具加速前端開發 - Ian Open News</title>
   <style>
     :root {
       --ink: #111827;
@@ -130,6 +130,46 @@
     .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
     .news-item h3 a { color: #4f3ed2; font-weight: 850; }
     .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -159,9 +199,9 @@
 <body>
   <header>
     <div class="masthead">
-      <h1>COSCUP 2023 - 開源工具加速前端開發</h1>
+      <h1>COSCUP 2023：用開源工具加速前端開發</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-19T19:47:42+00:00</p>
+      <p class="generated">產生時間：2026-06-20T03:56:13+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -179,7 +219,7 @@
       <span class="badge">尚未載入全文</span>
       <span class="badge">2024-01-15 08:00</span>
     </div>
-    <h2>COSCUP 2023 - 開源工具加速前端開發</h2>
+    <h2>COSCUP 2023：用開源工具加速前端開發</h2>
     <p class="lede">這篇文章是作者在 COSCUP 2023 分享「開源工具加速前端開發」後的整理與心得。內容從前端開發常見痛點出發，包括 ESLint、Prettier、VSCode 設定、表單驗證、型別檢查、API 串接、response 型別不明、等待後端完成等問題，並主張用一份 API 文件搭配多種開源工具來改善流程。文章也強調這套方法不綁特定框架，較像面向實作者的工具流程分享。</p>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
@@ -194,10 +234,12 @@
   <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
   <div class="actions">
     <button type="button" id="note-save">儲存到這台瀏覽器</button>
-    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/codex/reader-optimize/reader-notes?filename=item-0f670a832c3d0802.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/codex/l10n/reader-notes?filename=item-0f670a832c3d0802.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>編輯紀錄</h2>
   <ul><li>本機決定：direct-pr-small-news / 2026-06-18T13:16:53+00:00</li><li>審稿備註：2026-06-18T13:16:53+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：COSCUP 2023 - 開源工具加速前端開發（RSS/頁面標題）</li><li><strong>原始語言</strong>：zh（推斷）</li><li><strong>自動翻譯中文標題</strong>：COSCUP 2023：用開源工具加速前端開發（Codex）</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-0f670a832c3d0802";
@@ -210,5 +252,6 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
 </body>
 </html>

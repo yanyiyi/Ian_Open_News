@@ -16,6 +16,7 @@ from local_web import (
     content_kind_label,
     h,
     item_display_time,
+    item_display_title,
     is_reader_item,
     item_display_kind,
     item_image_url,
@@ -211,12 +212,15 @@ def reader_image_url(item: dict, depth: int = 0) -> str:
 
 def item_body_markdown(item: dict) -> str:
     metadata = item.get("reading_metadata") if isinstance(item.get("reading_metadata"), dict) else {}
+    translated = clean_text(metadata.get("translated_article_markdown_zh"))
+    if translated:
+        return translated
     markdown = clean_text(metadata.get("article_markdown"))
     if markdown:
         return markdown
     article_text = clean_text(metadata.get("article_text"))
     if article_text:
-        return text_to_markdown(article_text, title=metadata.get("title") or item.get("title") or "")
+        return text_to_markdown(article_text, title=metadata.get("title") or item_display_title(item))
     return ""
 
 
@@ -231,7 +235,7 @@ def item_is_public_reader(item: dict) -> bool:
 def kind_order(item: dict) -> tuple[int, str, str, str]:
     kind = item_display_kind(item)
     order = {"featured-article": 0, "opinion-article": 1, "small-news": 2}.get(kind, 9)
-    return (order, item_sort_time(item), clean_text(item.get("title")), clean_text(item.get("id")))
+    return (order, item_sort_time(item), item_display_title(item), clean_text(item.get("id")))
 
 
 def note_pr_url(item: dict, repo_url: str, branch: str) -> str:
@@ -477,7 +481,7 @@ def item_card(item: dict) -> str:
       {'<span class="badge">已載入本機全文</span>' if has_body else ''}
       <span class="badge">{h(item_date(item))}</span>
     </div>
-    <h2><a href="{h(article_href(item))}">{h(item.get('title'))}</a></h2>
+    <h2><a href="{h(article_href(item))}">{h(item_display_title(item))}</a></h2>
     <p class="summary">{h(summary)}</p>
     <div class="actions">
       <a class="button secondary reader-action-button" href="{h(article_href(item))}" aria-label="閱讀單篇" title="閱讀單篇">{action_icon("read")}{action_label("閱讀單篇")}</a>
@@ -499,7 +503,7 @@ def news_row(item: dict, depth: int = 0) -> str:
     {'<span class="badge">已載入本機全文</span>' if has_body else ''}
     <span class="badge">{h(item_date(item))}</span>
   </div>
-  <h3><a href="{h(prefix + article_href(item))}">{h(item.get('title'))}</a></h3>
+  <h3><a href="{h(prefix + article_href(item))}">{h(item_display_title(item))}</a></h3>
   <p class="summary">{h(summary)}</p>
 </article>
 """
@@ -524,6 +528,25 @@ def edit_record_html(item: dict) -> str:
     return "<ul>" + "".join(f"<li>{h(line)}</li>" for line in lines) + "</ul>"
 
 
+def metadata_html(item: dict) -> str:
+    metadata = item.get("reading_metadata") if isinstance(item.get("reading_metadata"), dict) else {}
+    rows = [
+        ("original_site_title", "原始網站標題", metadata.get("original_site_title") or metadata.get("title") or item.get("title")),
+        ("original_language", "原始語言", metadata.get("original_language")),
+        ("translated_zh_title", "自動翻譯中文標題", metadata.get("translated_zh_title")),
+        ("original_author", "原始作者", metadata.get("original_author") or item.get("author")),
+        ("original_license", "原始網站授權", metadata.get("original_license")),
+    ]
+    items = []
+    for key, label, value in rows:
+        text = clean_text(value, 520)
+        if not text:
+            text = "未標示"
+        source = clean_text(metadata.get(f"{key}_source"), 120)
+        items.append(f"<li><strong>{h(label)}</strong>：{h(text)}{f'（{h(source)}）' if source else ''}</li>")
+    return "<ul>" + "".join(items) + "</ul>"
+
+
 def article_page(item: dict, repo_url: str, branch: str) -> str:
     kind = item_display_kind(item)
     body_markdown = item_body_markdown(item)
@@ -540,6 +563,8 @@ def article_page(item: dict, repo_url: str, branch: str) -> str:
   </div>
   <h2>編輯紀錄</h2>
   {edit_record_html(item)}
+  <h2>原始 metadata</h2>
+  {metadata_html(item)}
 </aside>
 <script>
 const noteKey = "ian-open-news-note:{note_key}";
@@ -559,7 +584,7 @@ document.getElementById("note-save").addEventListener("click", () => {{
       {'<span class="badge">已載入本機全文</span>' if body_markdown else '<span class="badge">尚未載入全文</span>'}
       <span class="badge">{h(item_date(item))}</span>
     </div>
-    <h2>{h(item.get('title'))}</h2>
+    <h2>{h(item_display_title(item))}</h2>
     <p class="lede">{h(item_zh_summary(item, 520))}</p>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
@@ -571,7 +596,7 @@ document.getElementById("note-save").addEventListener("click", () => {{
   {side}
 </div>
 """
-    return page_shell(clean_text(item.get("title")) or "單篇文章", body, current="article", depth=1)
+    return page_shell(item_display_title(item) or "單篇文章", body, current="article", depth=1)
 
 
 def index_page(items: list[dict]) -> str:
