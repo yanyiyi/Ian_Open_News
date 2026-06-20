@@ -112,9 +112,23 @@ FETCH_FREQUENCY_LABELS = {
     "paused": "暫停抓取",
 }
 COMMAND_ICONS = {
+    "fetch_rss": "rss",
+    "validate": "check-circle",
+    "apply_triage_keywords": "filter",
+    "analyze_source_health": "pulse",
+    "export_sqlite": "database",
+    "render_ghpages_reader": "publish",
+    "enrich_reader_metadata": "image",
+    "enrich_article_summaries": "text-lines",
+    "codex_enrich_reviews": "sparkle",
+    "git_status": "branch",
+    "git_diff_stat": "chart",
+    "commit_database_state": "save",
+}
+COMMAND_SHORTCUTS = {
     "fetch_rss": "R",
     "validate": "V",
-    "apply_triage_keywords": "#",
+    "apply_triage_keywords": "F",
     "analyze_source_health": "H",
     "export_sqlite": "D",
     "render_ghpages_reader": "P",
@@ -122,8 +136,8 @@ COMMAND_ICONS = {
     "enrich_article_summaries": "S",
     "codex_enrich_reviews": "C",
     "git_status": "G",
-    "git_diff_stat": "Δ",
-    "commit_database_state": "✓",
+    "git_diff_stat": "I",
+    "commit_database_state": "K",
 }
 DATA_AUTOCOMMIT_FILES = [ITEMS, REVIEW_EVENTS, SOURCES]
 DATA_AUTOCOMMIT_LOCK = threading.Lock()
@@ -1101,14 +1115,15 @@ def metric_tile(value: object, label: str, href: str = "", hint: str = "", class
 
 
 def command_card(name: str, config: dict) -> str:
-    icon = COMMAND_ICONS.get(name, ">")
+    icon = COMMAND_ICONS.get(name, "read")
+    shortcut = COMMAND_SHORTCUTS.get(name, "")
     return (
         "<div class='card command-card'>"
-        f"<strong><span class='icon' aria-hidden='true'>{h(icon)}</span>{h(config['label'])}</strong>"
+        f"<strong>{icon_span(icon, shortcut)}{h(config['label'])}</strong>"
         f"<p class='muted'>{h(config['description'])}</p>"
         "<form method='post' action='/commands/run' data-command-form>"
         f"<input type='hidden' name='command' value='{h(name)}'>"
-        f"<button type='submit' class='secondary'><span class='icon' aria-hidden='true'>{h(icon)}</span>{h(config['button'])}</button>"
+        f"<button type='submit' class='secondary'>{button_content(config['button'], icon, shortcut)}</button>"
         "</form>"
         "</div>"
     )
@@ -1607,8 +1622,49 @@ def action_icon(action: str) -> str:
         "expand": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5"></path><path d="M3 3l7 7"></path><path d="M16 21h5v-5"></path><path d="M21 21l-7-7"></path></svg>',
         "external": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg>',
         "wand": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4V2"></path><path d="M15 16v-2"></path><path d="M8 9H6"></path><path d="M20 9h-2"></path><path d="M17.8 6.2l1.4-1.4"></path><path d="M10.8 13.2l-7 7a1.5 1.5 0 0 0 2.1 2.1l7-7"></path><path d="M12 8l4 4"></path></svg>',
+        "home": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path><path d="M9 20v-6h6v6"></path></svg>',
+        "globe": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a14 14 0 0 1 0 18"></path><path d="M12 3a14 14 0 0 0 0 18"></path></svg>',
+        "archive": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M6 7v13h12V7"></path><path d="M4 4h16v3H4z"></path><path d="M9 11h6"></path></svg>',
+        "workspace": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"></rect><path d="M8 20h8"></path><path d="M12 18v2"></path><path d="M7 8h5"></path><path d="M7 12h10"></path></svg>',
+        "rss": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5a14 14 0 0 1 14 14"></path><path d="M5 11a8 8 0 0 1 8 8"></path><circle cx="6" cy="18" r="1.5"></circle></svg>',
+        "inbox": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13l2-7h12l2 7"></path><path d="M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5h-5a3 3 0 0 1-6 0z"></path></svg>',
+        "plus": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>',
+        "settings": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"></path><path d="M4 12h2"></path><path d="M18 12h2"></path><path d="M12 4v2"></path><path d="M12 18v2"></path><path d="M6.3 6.3l1.4 1.4"></path><path d="M16.3 16.3l1.4 1.4"></path><path d="M17.7 6.3l-1.4 1.4"></path><path d="M7.7 16.3l-1.4 1.4"></path></svg>',
+        "filter": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16"></path><path d="M7 12h10"></path><path d="M10 19h4"></path></svg>',
+        "source": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><circle cx="4" cy="6" r="1.5"></circle><circle cx="4" cy="12" r="1.5"></circle><circle cx="4" cy="18" r="1.5"></circle></svg>',
+        "check-circle": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12l2.5 2.5L16 9"></path></svg>',
+        "pulse": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h4l2-7 4 14 2-7h6"></path></svg>',
+        "database": '<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v7c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path><path d="M5 12v7c0 1.7 3.1 3 7 3s7-1.3 7-3v-7"></path></svg>',
+        "publish": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M5 20h14"></path></svg>',
+        "image": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="8" cy="10" r="1.5"></circle><path d="M21 16l-5-5-4 4-2-2-5 5"></path></svg>',
+        "text-lines": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14"></path><path d="M5 10h14"></path><path d="M5 14h10"></path><path d="M5 18h12"></path></svg>',
+        "sparkle": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg>',
+        "branch": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="12" cy="18" r="2"></circle><path d="M8 6h8"></path><path d="M6 8v2a8 8 0 0 0 6 7.7"></path><path d="M18 8v2a8 8 0 0 1-6 7.7"></path></svg>',
+        "chart": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"></path><path d="M4 19h16"></path><rect x="7" y="11" width="3" height="5"></rect><rect x="12" y="8" width="3" height="8"></rect><rect x="17" y="6" width="3" height="10"></rect></svg>',
+        "save": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5z"></path><path d="M8 4v6h8V4"></path><path d="M8 20v-6h8v6"></path></svg>',
+        "accept": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4L19 6"></path><path d="M5 20h14"></path></svg>',
+        "small-news": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"></rect><path d="M8 9h8"></path><path d="M8 13h5"></path><path d="M8 17h8"></path></svg>',
+        "reject": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 8l8 8"></path><path d="M16 8l-8 8"></path></svg>',
+        "select": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 12l3 3 5-6"></path></svg>',
+        "clear": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>',
+        "preview": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+        "refresh": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5"></path><path d="M4 18v-5h5"></path><path d="M19 11a7 7 0 0 0-12-4"></path><path d="M5 13a7 7 0 0 0 12 4"></path></svg>',
+        "edit": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11a2.5 2.5 0 0 0-4-4L4 16z"></path><path d="M13 6l5 5"></path></svg>',
+        "translate": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h10"></path><path d="M9 5v14"></path><path d="M4 19h10"></path><path d="M16 10h4l-2 8"></path><path d="M15 18h6"></path></svg>',
+        "note": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M8 8h8"></path><path d="M8 12h8"></path><path d="M8 16h5"></path></svg>',
     }
     return icons.get(action, icons["read"])
+
+
+def icon_span(action: str, shortcut: str = "", class_name: str = "icon") -> str:
+    shortcut = clean_text(shortcut, 8).upper()
+    shortcut_html = f'<span class="shortcut-hint">⌥{h(shortcut)}</span>' if shortcut else ""
+    shortcut_attr = f' data-shortcut="{h(shortcut)}"' if shortcut else ""
+    return f'<span class="{h(class_name)}" aria-hidden="true"{shortcut_attr}>{action_icon(action)}{shortcut_html}</span>'
+
+
+def button_content(label: str, action: str, shortcut: str = "") -> str:
+    return f'{icon_span(action, shortcut)}<span>{h(label)}</span>'
 
 
 def action_label(label: str) -> str:
@@ -1680,7 +1736,7 @@ def editorial_triage_html(item: dict, compact: bool = False, reject_action: str 
             f"<input type='hidden' name='id' value='{h(item.get('id'))}'>"
             f"<input type='hidden' name='redirect' value='{h(item_detail_href(item))}'>"
             "<input type='hidden' name='with_fulltext' value='1'>"
-            f"<button type='submit' class='secondary'><span class='icon' aria-hidden='true'>C</span>{h(button_label)}</button>"
+            f"<button type='submit' class='secondary'>{button_content(button_label, 'sparkle', 'C')}</button>"
             "</form>"
             "</div>"
         )
@@ -2325,16 +2381,35 @@ def page(title: str, body: str) -> bytes:
     .icon {{
       display: inline-grid;
       place-items: center;
-      width: 20px;
+      width: 22px;
       height: 20px;
       border-radius: 5px;
       background: rgba(255,255,255,.24);
       color: currentColor;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 900;
       line-height: 1;
       flex: 0 0 auto;
     }}
+    .icon svg {{
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }}
+    .shortcut-hint {{ display: none; white-space: nowrap; }}
+    body.show-shortcuts .icon[data-shortcut] {{
+      width: auto;
+      min-width: 30px;
+      padding: 0 4px;
+      font-size: 11px;
+      letter-spacing: 0;
+    }}
+    body.show-shortcuts .icon[data-shortcut] svg {{ display: none; }}
+    body.show-shortcuts .icon[data-shortcut] .shortcut-hint {{ display: inline; }}
     .card > strong .icon, nav .icon {{
       background: var(--soft);
       color: var(--ocf-primary);
@@ -2842,33 +2917,33 @@ def page(title: str, body: str) -> bytes:
     <a class="brand" href="/">Ian Open News</a>
     <nav>
       <details class="nav-menu">
-        <summary><span class="icon" aria-hidden="true">H</span>共通入口</summary>
+        <summary>{icon_span("home", "H")}共通入口</summary>
         <div class="nav-menu-links">
-          <a href="/"><span class="icon" aria-hidden="true">H</span>總覽</a>
-          <a href="/track/open-tech-open-industry"><span class="icon" aria-hidden="true">O</span>開放科技</a>
-          <a href="/track/digital-humanities-local-knowledge"><span class="icon" aria-hidden="true">L</span>人文知識</a>
+          <a href="/">{icon_span("home", "H")}總覽</a>
+          <a href="/track/open-tech-open-industry">{icon_span("globe", "O")}開放科技</a>
+          <a href="/track/digital-humanities-local-knowledge">{icon_span("archive", "L")}人文知識</a>
         </div>
       </details>
       <details class="nav-menu">
-        <summary><span class="icon" aria-hidden="true">W</span>工作區</summary>
+        <summary>{icon_span("workspace", "W")}工作區</summary>
         <div class="nav-menu-links">
-          <a href="/items"><span class="icon" aria-hidden="true">R</span>RSS 待整理</a>
-          <a href="/candidates"><span class="icon" aria-hidden="true">C</span>候選清單</a>
-          <a href="/reader"><span class="icon" aria-hidden="true">B</span>閱讀區</a>
+          <a href="/items">{icon_span("rss", "R")}RSS 待整理</a>
+          <a href="/candidates">{icon_span("inbox", "C")}候選清單</a>
+          <a href="/reader">{icon_span("read", "B")}閱讀區</a>
         </div>
       </details>
       <details class="nav-menu">
-        <summary><span class="icon" aria-hidden="true">+</span>新增</summary>
+        <summary>{icon_span("plus", "N")}新增</summary>
         <div class="nav-menu-links">
-          <a href="/items/new"><span class="icon" aria-hidden="true">+</span>加收藏</a>
-          <a href="/sources/new"><span class="icon" aria-hidden="true">R</span>加 RSS</a>
+          <a href="/items/new">{icon_span("plus", "N")}加收藏</a>
+          <a href="/sources/new">{icon_span("rss", "R")}加 RSS</a>
         </div>
       </details>
       <details class="nav-menu">
-        <summary><span class="icon" aria-hidden="true">*</span>管理</summary>
+        <summary>{icon_span("settings", "M")}管理</summary>
         <div class="nav-menu-links">
-          <a href="/keywords"><span class="icon" aria-hidden="true">#</span>關鍵字</a>
-          <a href="/sources"><span class="icon" aria-hidden="true">S</span>RSS 來源</a>
+          <a href="/keywords">{icon_span("filter", "F")}關鍵字</a>
+          <a href="/sources">{icon_span("source", "S")}RSS 來源</a>
         </div>
       </details>
     </nav>
@@ -2900,6 +2975,17 @@ def page(title: str, body: str) -> bytes:
     </div>
   </div>
   <script>
+  const setShortcutMode = (active) => {{
+    document.body.classList.toggle("show-shortcuts", Boolean(active));
+  }};
+  window.addEventListener("keydown", (event) => {{
+    if (event.altKey) setShortcutMode(true);
+  }});
+  window.addEventListener("keyup", (event) => {{
+    if (!event.altKey) setShortcutMode(false);
+  }});
+  window.addEventListener("blur", () => setShortcutMode(false));
+
   document.querySelectorAll(".nav-menu").forEach((menu) => {{
     menu.addEventListener("toggle", () => {{
       if (!menu.open) return;
@@ -3698,12 +3784,12 @@ class Handler(BaseHTTPRequestHandler):
       <form method="post" action="/candidates/accept" data-decision-form>
         <input type="hidden" name="id" value="{h(item_id)}">
         <input type="hidden" name="decision" value="accept">
-        <button type="submit">確認收，準備跑 skill</button>
+        <button type="submit">{button_content("確認收，準備跑 skill", "accept", "A")}</button>
       </form>
       <form method="post" action="/candidates/accept" data-decision-form>
         <input type="hidden" name="id" value="{h(item_id)}">
         <input type="hidden" name="decision" value="direct_pr">
-        <button type="submit" class="secondary">直接送 PR（小消息）</button>
+        <button type="submit" class="secondary">{button_content("直接送 PR（小消息）", "small-news", "P")}</button>
       </form>
     </div>
     <p class="help">這則還在 RSS 新進。確認收或直接送 PR 時，系統會先寫進 database/items.jsonl，再套用你的決定；不收會寫入不收學習檔與略過清單。</p>
@@ -3715,7 +3801,7 @@ class Handler(BaseHTTPRequestHandler):
         <input type="hidden" name="id" value="{h(item_id)}">
         <div class="button-row">
           <input name="reason" placeholder="寫一句不收原因">
-          <button type="submit" class="reason-chip reason-chip--danger">記錄不收</button>
+          <button type="submit" class="reason-chip reason-chip--danger">{button_content("記錄不收", "reject", "X")}</button>
         </div>
       </form>
     </details>
@@ -3746,11 +3832,11 @@ class Handler(BaseHTTPRequestHandler):
     <div class="button-row">
       <form method="post" action="/items/accept" data-decision-form>
         <input type="hidden" name="id" value="{h(item_id)}">
-        <button type="submit">確認收，準備跑 skill</button>
+        <button type="submit">{button_content("確認收，準備跑 skill", "accept", "A")}</button>
       </form>
       <form method="post" action="/items/direct-pr" data-decision-form>
         <input type="hidden" name="id" value="{h(item_id)}">
-        <button type="submit" class="secondary">直接送 PR（小消息）</button>
+        <button type="submit" class="secondary">{button_content("直接送 PR（小消息）", "small-news", "P")}</button>
       </form>
     </div>
     <p class="help">確認收會移到候選清單待跑 skill；純事實小消息可直接記錄為送 PR，不跑 skill。</p>
@@ -3762,7 +3848,7 @@ class Handler(BaseHTTPRequestHandler):
         <input type="hidden" name="id" value="{h(item_id)}">
         <div class="button-row">
           <input name="reason" placeholder="寫一句不收原因">
-          <button type="submit" class="reason-chip reason-chip--danger">記錄不收</button>
+          <button type="submit" class="reason-chip reason-chip--danger">{button_content("記錄不收", "reject", "X")}</button>
         </div>
       </form>
     </details>
@@ -3820,7 +3906,7 @@ class Handler(BaseHTTPRequestHandler):
 <div class="card auto-batch-panel">
   <form method="post" action="/items/auto-batch-skip">
     {''.join(auto_hidden_inputs)}
-    <button type="submit" class="secondary">{action_icon("wand")}<span>自動批次處理</span></button>
+    <button type="submit" class="secondary">{button_content("自動批次處理", "wand", "W")}</button>
   </form>
   <p class="help">會處理這個 view 下的 {len(filtered)} 筆「建議不要看」，逐筆推估不收分類，並在原因後加上「{datetime.now(LOCAL_TIMEZONE).date().isoformat()}，自動批次處理」。</p>
 </div>
@@ -3862,15 +3948,15 @@ class Handler(BaseHTTPRequestHandler):
 <div class="card batch-panel">
   <p><strong id="selected-count">已選取 0 則</strong></p>
   <div class="button-row">
-    <button type="button" class="secondary" id="select-visible">全選目前顯示</button>
-    <button type="button" class="quiet" id="clear-selection">清除選取</button>
+    <button type="button" class="secondary" id="select-visible">{button_content("全選目前顯示", "select", "A")}</button>
+    <button type="button" class="quiet" id="clear-selection">{button_content("清除選取", "clear", "L")}</button>
   </div>
   <form id="items-batch-form" method="post" action="/items/batch" data-batch-form>
     <input type="hidden" id="batch-ids" name="ids">
     <input type="hidden" id="batch-reason" name="reason">
     <div class="button-row">
-      <button type="submit" name="action" value="accept">批次確認收，準備跑 skill</button>
-      <button type="submit" name="action" value="direct_pr" class="secondary">批次直接送 PR（小消息）</button>
+      <button type="submit" name="action" value="accept">{button_content("批次確認收，準備跑 skill", "accept", "A")}</button>
+      <button type="submit" name="action" value="direct_pr" class="secondary">{button_content("批次直接送 PR（小消息）", "small-news", "P")}</button>
     </div>
     <p class="help">批次不收原因</p>
     <div class="reason-presets">{batch_buttons}</div>
@@ -3878,7 +3964,7 @@ class Handler(BaseHTTPRequestHandler):
       <summary>批次其他原因</summary>
       <div class="button-row">
         <input id="batch-custom-reason" name="custom_reason" placeholder="寫一句批次不收原因">
-        <button type="submit" name="action" value="reject" class="reason-chip reason-chip--danger" data-custom-reason="1">用這個原因批次不收</button>
+        <button type="submit" name="action" value="reject" class="reason-chip reason-chip--danger" data-custom-reason="1">{button_content("用這個原因批次不收", "reject", "X")}</button>
       </div>
     </details>
   </form>
@@ -4066,7 +4152,7 @@ document.getElementById("items-batch-form").addEventListener("submit", (event) =
   <textarea id="reject-reason" name="reason" required></textarea>
   <p class="help">例：和主線關聯太弱、重複、只是活動公告、缺少可查證來源。這會寫進不收學習檔和 review event。</p>
   <div class="button-row">
-    <button type="submit" class="danger">確認不收並記錄原因</button>
+    <button type="submit" class="danger">{button_content("確認不收並記錄原因", "reject", "X")}</button>
     <a class="button secondary" href="/items">先不要決定</a>
   </div>
 </form>
@@ -4291,13 +4377,13 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
     <p class="zh-summary">{h(item_zh_summary(item, 260))}</p>
     {note_html}
     <div class="button-row reader-card-actions" aria-label="文章操作">
-      <a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{action_icon("read")}{action_label("閱讀 / 記錄")}</a>
+      <a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{icon_span("read", "O", "icon reader-action-icon")}{action_label("閱讀 / 記錄")}</a>
       <form method="post" action="/items/read-more" data-read-more-form data-target="#{fulltext_id}">
         <input type="hidden" name="id" value="{h(item.get('id'))}">
         <input type="hidden" name="redirect" value="{h(reader_redirect)}">
-        <button type="submit" class="secondary reader-action-button" aria-label="展開全文" title="展開全文">{action_icon("expand")}{action_label("展開全文")}</button>
+        <button type="submit" class="secondary reader-action-button" aria-label="展開全文" title="展開全文">{icon_span("expand", "E", "icon reader-action-icon")}{action_label("展開全文")}</button>
       </form>
-      <a class="button secondary reader-action-button" href="{h(item.get('url'))}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{action_icon("external")}{action_label("原始連結")}</a>
+      <a class="button secondary reader-action-button" href="{h(item.get('url'))}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{icon_span("external", "L", "icon reader-action-icon")}{action_label("原始連結")}</a>
     </div>
     <section class="fulltext-panel source-card source-card--source" id="{fulltext_id}" hidden>
       <div class="section-kicker">原始主文</div>
@@ -4598,12 +4684,12 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <form method="post" action="/candidates/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
       <input type="hidden" name="decision" value="accept">
-      <button type="submit">確認收，準備跑 skill</button>
+      <button type="submit">{button_content("確認收，準備跑 skill", "accept", "A")}</button>
     </form>
     <form method="post" action="/candidates/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
       <input type="hidden" name="decision" value="direct_pr">
-      <button type="submit" class="secondary">直接送 PR（小消息）</button>
+      <button type="submit" class="secondary">{button_content("直接送 PR（小消息）", "small-news", "P")}</button>
     </form>
   </div>
   <p class="help">不收原因</p>
@@ -4614,7 +4700,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
       <input type="hidden" name="id" value="{h(item_id)}">
       <label>這次不收的原因</label>
       <textarea name="reason" required></textarea>
-      <button type="submit" class="danger">確認不收並記錄原因</button>
+      <button type="submit" class="danger">{button_content("確認不收並記錄原因", "reject", "X")}</button>
     </form>
   </details>
 </div>
@@ -4627,13 +4713,13 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <div class="button-row">
     <form method="post" action="/items/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
-      <button type="submit">確認收，準備跑 skill</button>
+        <button type="submit">{button_content("確認收，準備跑 skill", "accept", "A")}</button>
     </form>
     <form method="post" action="/items/direct-pr">
       <input type="hidden" name="id" value="{h(item_id)}">
-      <button type="submit" class="secondary">直接送 PR（小消息）</button>
+        <button type="submit" class="secondary">{button_content("直接送 PR（小消息）", "small-news", "P")}</button>
     </form>
-    <a class="button quiet" href="/items/reject?id={quote(item_id)}">不收，寫原因</a>
+    <a class="button quiet" href="/items/reject?id={quote(item_id)}">{button_content("不收，寫原因", "reject", "X")}</a>
   </div>
   <p class="help">確認收會移到候選清單；直接送 PR 適合純事實小消息；不收會要求留下原因。</p>
 </div>
@@ -5912,7 +5998,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <div class="preview-status" data-preview-status>等待網址。</div>
     <div class="preview-result" data-preview-result></div>
   </div>
-  <button type="button" class="secondary" data-preview-button><span class="icon" aria-hidden="true">M</span>抓取頁面資訊</button>
+  <button type="button" class="secondary" data-preview-button>{button_content("抓取頁面資訊", "preview", "M")}</button>
   <label>來源 / 網站 / 作者</label>
   <input name="source_name" placeholder="例如：報導者、Open Knowledge Foundation" data-preview-source-name>
   <p class="help">不知道作者時，先填網站或組織名稱。</p>
@@ -6279,7 +6365,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <h3>{title_html}</h3>
     <p class="muted break-anywhere">{h(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'))}</p>
     <p class="zh-summary">{h(source_summary(item, archived, 260))}</p>
-    {f'<div class="button-row reader-card-actions" aria-label="文章操作"><a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{action_icon("read")}{action_label("閱讀 / 記錄")}</a><a class="button secondary reader-action-button" href="{h(item_url)}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{action_icon("external")}{action_label("原始連結")}</a></div>' if can_open and item_url else ''}
+    {f'<div class="button-row reader-card-actions" aria-label="文章操作"><a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{icon_span("read", "O", "icon reader-action-icon")}{action_label("閱讀 / 記錄")}</a><a class="button secondary reader-action-button" href="{h(item_url)}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{icon_span("external", "L", "icon reader-action-icon")}{action_label("原始連結")}</a></div>' if can_open and item_url else ''}
     {f'<div class="source-action-row">{restore_form(item)}</div>' if archived else ''}
   </div>
 </article>
@@ -6447,7 +6533,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <div class="preview-status" data-preview-status>等待網址。</div>
     <div class="preview-result" data-preview-result></div>
   </div>
-  <button type="button" class="secondary" data-preview-button><span class="icon" aria-hidden="true">R</span>抓取來源資訊</button>
+  <button type="button" class="secondary" data-preview-button>{button_content("抓取來源資訊", "rss", "R")}</button>
   <label>必須包含的關鍵字</label>
   <textarea name="required_keywords" placeholder="一行一個；留空代表不限制">{h(source_keywords_text(source, 'required_keywords'))}</textarea>
   <p class="help">若有填，RSS 單篇標題、摘要、標籤、來源或網址至少要命中其中一個才會進待整理；編輯後存檔會重盤點這個來源的待整理項目並重新抓一次。</p>
