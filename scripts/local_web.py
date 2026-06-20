@@ -23,7 +23,15 @@ from urllib.parse import parse_qs, quote, urlencode, unquote, urljoin, urlparse
 import hashlib
 from zoneinfo import ZoneInfo
 
-from page_metadata import attrs_from_tag, enrich_item_metadata, fetch_page_metadata, text_to_markdown, unwrap_google_alert_url
+from page_metadata import (
+    attrs_from_tag,
+    complete_item_metadata,
+    enrich_item_metadata,
+    fetch_page_metadata,
+    infer_language_from_text,
+    text_to_markdown,
+    unwrap_google_alert_url,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1303,6 +1311,87 @@ def item_reading_metadata(item: dict) -> dict:
     return metadata if isinstance(metadata, dict) else {}
 
 
+def item_codex_zh_title(item: dict) -> str:
+    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    codex_review = editorial.get("codex_review") if isinstance(editorial.get("codex_review"), dict) else {}
+    return (
+        clean_text(codex_review.get("zh_title"), 300)
+        or clean_text(editorial.get("zh_title"), 300)
+        or clean_text(editorial.get("codex_zh_title"), 300)
+    )
+
+
+def item_display_title(item: dict) -> str:
+    metadata = item_reading_metadata(item)
+    return (
+        clean_text(item.get("editorial_title"), 320)
+        or clean_text(metadata.get("editorial_title"), 320)
+        or item_codex_zh_title(item)
+        or clean_text(metadata.get("translated_zh_title"), 320)
+        or clean_text(item.get("title"), 320)
+        or clean_text(item.get("url"), 320)
+        or "未命名項目"
+    )
+
+
+def item_original_title(item: dict) -> str:
+    metadata = item_reading_metadata(item)
+    return clean_text(metadata.get("original_site_title") or metadata.get("title") or item.get("title"), 360)
+
+
+def language_label(language: object) -> str:
+    code = clean_text(language, 80)
+    labels = {
+        "zh": "中文",
+        "zh-Hant": "繁體中文",
+        "zh-Hans": "簡體中文",
+        "en": "英文",
+        "ja": "日文",
+        "ko": "韓文",
+        "fr": "法文",
+        "de": "德文",
+        "es": "西班牙文",
+        "pt": "葡萄牙文",
+    }
+    return labels.get(code, code or "未知")
+
+
+def metadata_source_label(metadata: dict, field: str) -> str:
+    source = clean_text(metadata.get(f"{field}_source"), 120)
+    if not source:
+        return ""
+    return f"（{source}）"
+
+
+def item_original_language(item: dict) -> str:
+    metadata = item_reading_metadata(item)
+    language = clean_text(metadata.get("original_language"))
+    if language:
+        return language
+    text = "\n".join(
+        part
+        for part in [
+            item_article_text(item),
+            clean_text(metadata.get("article_markdown"), 3000),
+            clean_text(item.get("summary"), 1200),
+            clean_text(item.get("title"), 300),
+        ]
+        if part
+    )
+    return infer_language_from_text(text)
+
+
+def is_foreign_language_item(item: dict) -> bool:
+    language = item_original_language(item)
+    if not language or language in {"unknown", "und"}:
+        return False
+    return not language.startswith("zh")
+
+
+def item_translated_markdown(item: dict) -> str:
+    return clean_text(item_reading_metadata(item).get("translated_article_markdown_zh"))
+
+
 def item_article_text(item: dict) -> str:
     return clean_text(item_reading_metadata(item).get("article_text"))
 
@@ -2071,6 +2160,28 @@ def page(title: str, body: str) -> bytes:
     h1 {{ font-size: 28px; margin: 0 0 12px; }}
     h2 {{ font-size: 20px; margin: 30px 0 12px; }}
     h3 {{ font-size: 16px; margin: 0 0 8px; }}
+    .title-editor {{
+      margin: 0 0 10px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }}
+    .title-editor summary {{
+      cursor: pointer;
+      list-style: none;
+      display: grid;
+      gap: 2px;
+    }}
+    .title-editor summary::-webkit-details-marker {{ display: none; }}
+    .title-editor summary h1 {{ margin-bottom: 2px; color: var(--ocf-dark); }}
+    .title-editor summary:hover h1 {{ color: var(--ocf-dark); }}
+    .title-editor form {{
+      max-width: 760px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }}
     p {{ margin: 8px 0; }}
     a {{ color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }}
     a:not(.button):hover {{ color: var(--ocf-primary); }}
@@ -3110,6 +3221,16 @@ def page(title: str, body: str) -> bytes:
             }}
           }}
           if (meta) meta.textContent = payload.message || "";
+          const translationActions = panel.querySelector("[data-translation-actions]");
+          if (translationActions) {{
+            if (payload.translation_actions_html) {{
+              translationActions.innerHTML = payload.translation_actions_html;
+              translationActions.hidden = false;
+            }} else {{
+              translationActions.innerHTML = "";
+              translationActions.hidden = true;
+            }}
+          }}
           panel.scrollIntoView({{ behavior: "smooth", block: "start" }});
         }} else if (payload.redirect) {{
           window.location.href = payload.redirect;
@@ -3302,6 +3423,12 @@ class Handler(BaseHTTPRequestHandler):
             self.codex_review_item(self.read_form())
         elif parsed.path == "/items/update-url":
             self.update_item_url(self.read_form())
+        elif parsed.path == "/items/update-title":
+            self.update_item_title(self.read_form())
+        elif parsed.path == "/items/update-metadata":
+            self.update_item_metadata(self.read_form())
+        elif parsed.path == "/items/translate-zh":
+            self.translate_item_zh(self.read_form())
         elif parsed.path == "/preview-url":
             self.preview_url(self.read_form())
         elif parsed.path == "/candidates/accept":
@@ -3561,7 +3688,7 @@ class Handler(BaseHTTPRequestHandler):
     {badge("RSS 新進", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
-    <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
+    <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
@@ -3610,7 +3737,7 @@ class Handler(BaseHTTPRequestHandler):
     {badge("已入庫待分流", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
-    <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
+    <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
@@ -3924,7 +4051,7 @@ document.getElementById("items-batch-form").addEventListener("submit", (event) =
   <div>
     {badge(track_meta(item.get("track", "unclassified"))["short"], track_class(item.get("track", "unclassified")))}
     {badge(recommendation_label(candidate_recommendation(item)), candidate_recommendation(item))}
-    <strong><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('title'))}</a></strong>
+    <strong><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 420))}</p>
@@ -3997,7 +4124,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge("待跑 skill", "neutral")}
     {badge(recommendation_label(recommendation), recommendation)}
-    <strong><a href="{h(detail_href)}">{h(item.get('title'))}</a></strong>
+    <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · 確認收：{h(decided_at)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
@@ -4107,7 +4234,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
                 keyword_options.insert(0, keyword)
         filtered = [item for item in items if matches(item)]
         filtered.sort(
-            key=lambda item: (item_sort_time(item), clean_text(item.get("title"))),
+            key=lambda item: (item_sort_time(item), item_display_title(item)),
             reverse=True,
         )
         if kind_filter == "all":
@@ -4159,7 +4286,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
       {badge(status_label(item.get("status", "")), "neutral")}
       {badge(content_kind_label(kind), "neutral")}
     </div>
-    <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
+    <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
     <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
     <p class="zh-summary">{h(item_zh_summary(item, 260))}</p>
     {note_html}
@@ -4176,6 +4303,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
       <div class="section-kicker">原始主文</div>
       <h3>剛載入的全文</h3>
       <p class="help" data-fulltext-meta></p>
+      <div class="button-row" data-translation-actions hidden></div>
       <div class="article-text article-markdown" data-fulltext-body></div>
     </section>
   </div>
@@ -4190,7 +4318,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
     {badge(content_kind_label(kind), "neutral")}
     {badge(item_display_time(item, 'published_at', 'captured_at'), "neutral")}
   </div>
-  <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
+  <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
   <p class="zh-summary">{h(item_zh_summary(item, 360))}</p>
 </article>
 """
@@ -4199,7 +4327,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
             return f"""
 <article class="reader-compact-row">
   <span class="reader-dot" aria-hidden="true"></span>
-  <h3><a href="{h(item_detail_href(item))}">{h(item.get('title'))}</a></h3>
+  <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
   <div class="reader-row-time">{h(item_display_time(item, 'published_at', 'captured_at'))}</div>
 </article>
 """
@@ -4375,6 +4503,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             if not item:
                 self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
                 return
+        item, _ = complete_item_metadata(item)
 
         saved = (query.get("saved") or [""])[0]
         notice = ""
@@ -4388,12 +4517,20 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             notice = '<div class="notice">已補上 Codex 生成閱讀建議；如果有抓到全文，這次會優先依全文判斷。</div>'
         elif saved == "url":
             notice = '<div class="notice">已更新原始網址。接著可以按「展開全文」重新抓文章內容。</div>'
+        elif saved == "title":
+            notice = '<div class="notice">已更新這篇的對外顯示標題。</div>'
+        elif saved == "metadata":
+            notice = '<div class="notice">已更新這篇的原始 metadata。</div>'
+        elif saved == "translation":
+            notice = '<div class="notice">已完成中文翻譯，並存回閱讀資料庫。</div>'
         elif (query.get("error") or [""])[0] == "read_more":
             notice = '<div class="notice">這次沒有抓到更多資料。可能是網站擋住讀取、網址需要登入，或頁面沒有可抽取的主文。</div>'
         elif (query.get("error") or [""])[0] == "codex_review":
             notice = '<div class="notice">這次沒有順利補上 Codex 生成資訊。可以稍後再試，或先按「展開全文」補資料後再生成。</div>'
         elif (query.get("error") or [""])[0] == "url_resolve":
             notice = '<div class="notice">這次無法解析跳轉後網址。你仍可手動貼上實際文章網址再儲存。</div>'
+        elif (query.get("error") or [""])[0] == "translation":
+            notice = '<div class="notice">這次沒有順利翻譯。請先確認已展開全文，或稍後再試。</div>'
 
         css_class = track_class(item.get("track", "unclassified"))
         triage = item.get("triage") or {}
@@ -4408,6 +4545,36 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         article_markdown = item_article_markdown(item)
         article_html = markdown_to_html(article_markdown) if article_markdown else ""
         article_meta = item_reading_metadata(item)
+        display_title = item_display_title(item)
+        original_title = item_original_title(item)
+        original_language = item_original_language(item)
+        translated_markdown = item_translated_markdown(item)
+        translated_html = markdown_to_html(translated_markdown) if translated_markdown else ""
+        can_translate = bool(article_markdown or article_text) and is_foreign_language_item(item) and not translated_markdown and not is_rss_candidate
+        translate_actions = (
+            f"""
+  <form method="post" action="/items/translate-zh">
+    <input type="hidden" name="id" value="{h(item_id)}">
+    <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+    <button type="submit" class="secondary">自動翻譯成中文</button>
+  </form>
+  <p class="help">偵測原文語言：{h(language_label(original_language))}{h(metadata_source_label(article_meta, "original_language"))}。會用台灣習慣用語翻成繁體中文，並存回本機資料庫。</p>
+"""
+            if can_translate
+            else ""
+        )
+        translation_panel = (
+            f"""
+<section class="card fulltext-panel source-card source-card--source" id="translation-panel">
+  <div class="section-kicker">Codex 中文翻譯</div>
+  <h2>自動翻譯成中文</h2>
+  <p class="help">翻譯來源：{h(article_meta.get('translation_source', 'Codex'))} · {h(article_meta.get('translation_generated_at', ''))}</p>
+  <div class="article-text article-markdown">{translated_html}</div>
+</section>
+"""
+            if translated_markdown
+            else ""
+        )
         fulltext_hidden = "" if article_markdown or article_text else " hidden"
         fulltext_message = (
             f"已載入 Markdown 閱讀版，約 {article_meta.get('article_markdown_chars', len(article_markdown)) or article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_markdown_method') or article_meta.get('article_text_method', 'metadata')}。"
@@ -4487,9 +4654,46 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         <button type="submit">展開全文</button>
       </form>
 """
+        metadata_form = f"""
+    <div class="card">
+      <h2>原始 metadata</h2>
+      <form method="post" action="/items/update-metadata">
+        <input type="hidden" name="id" value="{h(item_id)}">
+        <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+        <label>原始網站標題 {h(metadata_source_label(article_meta, "original_site_title"))}</label>
+        <input name="original_site_title" value="{h(article_meta.get('original_site_title') or original_title)}" placeholder="原始網站標題">
+        <label>原始語言 {h(metadata_source_label(article_meta, "original_language"))}</label>
+        <input name="original_language" value="{h(original_language)}" placeholder="en / zh-Hant / ja">
+        <p class="help">目前顯示：{h(language_label(original_language))}</p>
+        <label>自動翻譯中文標題 {h(metadata_source_label(article_meta, "translated_zh_title"))}</label>
+        <input name="translated_zh_title" value="{h(article_meta.get('translated_zh_title') or item_codex_zh_title(item))}" placeholder="翻譯後的中文標題">
+        <label>原始作者 {h(metadata_source_label(article_meta, "original_author"))}</label>
+        <input name="original_author" value="{h(article_meta.get('original_author') or item.get('author', ''))}" placeholder="作者或組織">
+        <label>原始網站授權 {h(metadata_source_label(article_meta, "original_license"))}</label>
+        <input name="original_license" value="{h(article_meta.get('original_license', ''))}" placeholder="Creative Commons / 著作權保護 / 未標示">
+        <label>授權連結</label>
+        <input name="original_license_url" value="{h(article_meta.get('original_license_url', ''))}" placeholder="https://...">
+        <button type="submit">儲存 metadata</button>
+      </form>
+      <p class="help">標成「推斷」的欄位代表系統只從頁面字樣或內容比例判讀，仍可手動修正。</p>
+    </div>
+"""
         status_badge = badge("RSS 新進", "neutral") if is_rss_candidate else badge(status_label(item.get("status", "")), "neutral")
         body = f"""
-<h1>{h(item.get('title'))}</h1>
+<details class="title-editor">
+  <summary>
+    <h1>{h(display_title)}</h1>
+    <span class="help">點擊標題可編輯；原始標題：{h(original_title)}</span>
+  </summary>
+  <form method="post" action="/items/update-title">
+    <input type="hidden" name="id" value="{h(item_id)}">
+    <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+    <label>對外顯示標題</label>
+    <input name="title" value="{h(display_title)}" placeholder="輸入要顯示的中文標題">
+    <button type="submit">儲存標題</button>
+    <p class="help">留空儲存會清除人工標題，改回 Codex 中文標題或原始標題。</p>
+  </form>
+</details>
 <p class="lede break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · {h(item.get('url'))}</p>
 {notice}
 <div class="item-hero">
@@ -4517,7 +4721,9 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <h2>展開全文載入的 Markdown 閱讀版</h2>
   <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
   <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
+  <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
 </section>
+{translation_panel}
 
 <div class="two-column">
   <section>
@@ -4546,6 +4752,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
       </form>
       <p class="help">Google 快訊或追蹤網址如果會先跳轉，可先按「帶入跳轉後網址」，再展開全文。</p>
     </div>
+    {metadata_form}
     {'' if is_rss_candidate else f'''
     <div class="card">
       <h2>我的關鍵紀錄</h2>
@@ -4977,8 +5184,10 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         if not redirect_to.startswith("/") or redirect_to.startswith("//"):
             redirect_to = f"/items/view?id={quote(item_id)}"
         found, changed, response_item, error = self.update_read_more_record(ITEMS, item_id)
+        found_in_items = found
         if not found:
             found, changed, response_item, error = self.update_read_more_record(CANDIDATES, item_id)
+            found_in_items = False
         if not found:
             if wants_json:
                 self.send_json({"ok": False, "error": "找不到項目"}, HTTPStatus.NOT_FOUND)
@@ -4994,6 +5203,16 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 else ""
             )
             article_html = markdown_to_html(article_markdown) if article_markdown else ""
+            translation_actions_html = ""
+            if found_in_items and response_item and article_markdown and is_foreign_language_item(response_item) and not item_translated_markdown(response_item):
+                translation_actions_html = f"""
+<form method="post" action="/items/translate-zh">
+  <input type="hidden" name="id" value="{h(item_id)}">
+  <input type="hidden" name="redirect" value="{h(redirect_to)}">
+  <button type="submit" class="secondary">自動翻譯成中文</button>
+</form>
+<p class="help">偵測原文語言：{h(language_label(item_original_language(response_item)))}{h(metadata_source_label(metadata, "original_language"))}。會用台灣習慣用語翻成繁體中文，並存回本機資料庫。</p>
+"""
             message = (
                 f"已載入 Markdown 閱讀版，約 {metadata.get('article_markdown_chars', len(article_markdown)) or metadata.get('article_text_chars', len(article_text))} 字；"
                 f"抽取方式：{metadata.get('article_markdown_method') or metadata.get('article_text_method', 'metadata')}。"
@@ -5011,6 +5230,9 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                     "article_html": article_html,
                     "article_text_status": metadata.get("article_text_status", ""),
                     "article_markdown_status": metadata.get("article_markdown_status", ""),
+                    "original_language": item_original_language(response_item or {}),
+                    "can_translate": bool(translation_actions_html),
+                    "translation_actions_html": translation_actions_html,
                     "image_url": metadata.get("image_url", ""),
                     "redirect": redirect_to,
                 },
@@ -5151,6 +5373,125 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             self.redirect(f"{redirect_to}{separator}error=url_resolve")
             return
         self.redirect(f"{redirect_to}{separator}saved=url")
+
+    def update_title_record(self, path: Path, item_id: str, title: str) -> bool:
+        records = load_jsonl(path)
+        updated_records = []
+        found = False
+        updated_at = now_iso()
+        for item in records:
+            if item.get("id") != item_id:
+                updated_records.append(item)
+                continue
+            found = True
+            updated = dict(item)
+            metadata = updated.get("reading_metadata") if isinstance(updated.get("reading_metadata"), dict) else {}
+            metadata = dict(metadata)
+            clean_title = clean_text(title, 320)
+            if clean_title:
+                updated["editorial_title"] = clean_title
+                metadata["editorial_title"] = clean_title
+                metadata["editorial_title_source"] = "manual"
+                metadata["editorial_title_updated_at"] = updated_at
+            else:
+                updated.pop("editorial_title", None)
+                metadata.pop("editorial_title", None)
+                metadata.pop("editorial_title_source", None)
+                metadata["editorial_title_cleared_at"] = updated_at
+            updated["reading_metadata"] = metadata
+            updated_records.append(updated)
+        if found:
+            write_jsonl(path, updated_records)
+        return found
+
+    def update_item_title(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        title = form_value(data, "title")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        found = self.update_title_record(ITEMS, item_id, title)
+        if not found:
+            found = self.update_title_record(CANDIDATES, item_id, title)
+        if not found:
+            self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}saved=title")
+
+    def update_metadata_record(self, path: Path, item_id: str, data: dict[str, list[str]]) -> bool:
+        fields = [
+            "original_site_title",
+            "original_language",
+            "translated_zh_title",
+            "original_author",
+            "original_license",
+            "original_license_url",
+        ]
+        records = load_jsonl(path)
+        updated_records = []
+        found = False
+        updated_at = now_iso()
+        for item in records:
+            if item.get("id") != item_id:
+                updated_records.append(item)
+                continue
+            found = True
+            updated = dict(item)
+            metadata = updated.get("reading_metadata") if isinstance(updated.get("reading_metadata"), dict) else {}
+            metadata = dict(metadata)
+            for field in fields:
+                value = clean_text(form_value(data, field), 1200 if field != "translated_zh_title" else 320)
+                metadata[field] = value
+                if value:
+                    metadata[f"{field}_source"] = "manual"
+            metadata["metadata_updated_at"] = updated_at
+            updated["reading_metadata"] = metadata
+            updated_records.append(updated)
+        if found:
+            write_jsonl(path, updated_records)
+        return found
+
+    def update_item_metadata(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        found = self.update_metadata_record(ITEMS, item_id, data)
+        if not found:
+            found = self.update_metadata_record(CANDIDATES, item_id, data)
+        if not found:
+            self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}saved=metadata")
+
+    def translate_item_zh(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        if not any(item.get("id") == item_id for item in load_jsonl(ITEMS)):
+            self.send_html("找不到項目", "<h1>找不到可翻譯項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        found, changed, response_item, error = self.update_read_more_record(ITEMS, item_id)
+        article_markdown = item_article_markdown(response_item or {})
+        if not found or (error and not article_markdown) or not article_markdown:
+            separator = "&" if "?" in redirect_to else "?"
+            self.redirect(f"{redirect_to}{separator}error=translation")
+            return
+        command = [
+            sys.executable,
+            str(ROOT / "scripts" / "codex_translate_article.py"),
+            "--id",
+            item_id,
+        ]
+        try:
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800)
+            output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
+            ok = result.returncode == 0
+        except subprocess.TimeoutExpired as exc:
+            output = (exc.stdout or "") + ("\nSTDERR:\n" + exc.stderr if exc.stderr else "")
+            output = (output + "\nCodex 翻譯逾時。").strip()
+            ok = False
+        if not ok:
+            print(output, file=sys.stderr)
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}{'saved=translation' if ok else 'error=translation'}")
 
     def preview_url(self, data: dict[str, list[str]]) -> None:
         url = form_value(data, "url")
@@ -5478,13 +5819,13 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         source_groups = Counter(source.get("source_group", "未標示群組") for source in track_sources)
         recent_items = sorted(
             pending_items,
-            key=lambda item: (item_sort_time(item), clean_text(item.get("title"))),
+            key=lambda item: (item_sort_time(item), item_display_title(item)),
             reverse=True,
         )[:12]
 
         item_rows = []
         for item in recent_items:
-            title = item.get("title") or item.get("url") or "未命名項目"
+            title = item_display_title(item)
             source_name = item.get("source_name") or item.get("author") or "未標示來源"
             captured = item_display_time(item, "captured_at", "published_at")
             detail_href = item_detail_href(item)
@@ -5846,7 +6187,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         def sort_items(records: list[dict]) -> list[dict]:
             return sorted(
                 records,
-                key=lambda item: (item_sort_time(item), clean_text(item.get("title"))),
+                key=lambda item: (item_sort_time(item), item_display_title(item)),
                 reverse=True,
             )
 
@@ -5872,7 +6213,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         def source_list_row(item: dict, can_open: bool = True, archived: bool = False) -> str:
             kind = item_display_kind(item)
             item_url = clean_text(item.get("url"))
-            title = clean_text(item.get("title")) or item_url or "未命名項目"
+            title = item_display_title(item)
             if archived and item_url:
                 title_html = f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">{h(title)}</a>'
             elif can_open:
@@ -5894,7 +6235,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 
         def source_compact_row(item: dict, can_open: bool = True, archived: bool = False) -> str:
             item_url = clean_text(item.get("url"))
-            title = clean_text(item.get("title")) or item_url or "未命名項目"
+            title = item_display_title(item)
             if archived and item_url:
                 title_html = f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">{h(title)}</a>'
             elif can_open:
@@ -5919,7 +6260,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             )
             kind = item_display_kind(item)
             item_url = clean_text(item.get("url"))
-            title = clean_text(item.get("title")) or item_url or "未命名項目"
+            title = item_display_title(item)
             if archived and item_url:
                 title_html = f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">{h(title)}</a>'
             elif can_open:

@@ -5,7 +5,7 @@ import argparse
 import json
 from pathlib import Path
 
-from page_metadata import enrich_item_metadata
+from page_metadata import complete_item_metadata, enrich_item_metadata
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,6 +46,7 @@ def main() -> None:
     parser.add_argument("--status", action="append", default=[], help="Limit to one or more item statuses.")
     parser.add_argument("--reader-only", action="store_true", help="Only enrich items visible in the reading area.")
     parser.add_argument("--only-missing-image", action="store_true", help="Skip items that already have an image.")
+    parser.add_argument("--metadata-only", action="store_true", help="Only fill local/inferred metadata fields without fetching pages.")
     parser.add_argument("--limit", type=int, default=80)
     parser.add_argument("--timeout", type=int, default=8)
     parser.add_argument("--dry-run", action="store_true")
@@ -73,13 +74,23 @@ def main() -> None:
             output.append(item)
             continue
         checked += 1
-        updated, did_change, error = enrich_item_metadata(item, timeout=args.timeout)
+        prepared, prepared_change = complete_item_metadata(item)
+        if args.metadata_only:
+            if prepared_change:
+                changed += 1
+            output.append(prepared)
+            continue
+        updated, did_change, error = enrich_item_metadata(prepared, timeout=args.timeout)
         if error:
             failed += 1
-            output.append(item)
+            if prepared_change:
+                changed += 1
+                output.append(prepared)
+            else:
+                output.append(item)
             print(f"failed {item.get('id')}: {error}")
             continue
-        if did_change:
+        if did_change or prepared_change:
             changed += 1
         output.append(updated)
 
