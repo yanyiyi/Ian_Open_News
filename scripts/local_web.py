@@ -124,6 +124,7 @@ DEFAULT_REJECTION_REASONS = [
     "只是短訊或碎片，不足以形成文章。",
     "其他類型文章",
 ]
+SOURCE_KEYWORD_EXCLUSION_REASON = "單一 RSS 專屬關鍵字排除"
 
 COMMANDS = {
     "fetch_rss": {
@@ -622,6 +623,48 @@ def source_keywords_text(source: dict, key: str) -> str:
     return "\n".join(form_lines(source.get(key)))
 
 
+def source_keyword_signature(source: dict) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    return (
+        tuple(form_lines(source.get("required_keywords"))),
+        tuple(form_lines(source.get("excluded_keywords"))),
+    )
+
+
+def source_keyword_haystack(record: dict) -> str:
+    parts: list[str] = []
+    for key in ["title", "summary", "url", "source_name", "author", "published_at", "captured_at"]:
+        parts.append(clean_text(record.get(key)))
+    for value in [record.get("tags"), record.get("keywords")]:
+        if isinstance(value, list):
+            parts.extend(clean_text(item) for item in value)
+        else:
+            parts.append(clean_text(value))
+    for section_key in ["reference", "triage", "editorial_triage", "reading_metadata"]:
+        section = record.get(section_key)
+        if not isinstance(section, dict):
+            continue
+        for key in ["title", "summary", "description", "recommendation", "content_kind", "url", "site_name"]:
+            parts.append(clean_text(section.get(key)))
+    return "\n".join(part for part in parts if part).casefold()
+
+
+def source_keyword_matches(text: str, keywords: list[str]) -> list[str]:
+    return [keyword for keyword in keywords if clean_text(keyword).casefold() in text]
+
+
+def source_record_passes_keywords(record: dict, source: dict) -> bool:
+    required = form_lines(source.get("required_keywords"))
+    excluded = form_lines(source.get("excluded_keywords"))
+    if not required and not excluded:
+        return True
+    haystack = source_keyword_haystack(record)
+    if source_keyword_matches(haystack, excluded):
+        return False
+    if required and not source_keyword_matches(haystack, required):
+        return False
+    return True
+
+
 def is_fetchable_source(source: dict) -> bool:
     return (
         source.get("status") == "active"
@@ -643,6 +686,13 @@ def count_sources(sources: list[dict], track: str, active_only: bool = False) ->
         and source.get("status") != "archived"
         and (not active_only or is_fetchable_source(source))
     )
+
+
+def safe_redirect_path(value: object, default: str = "/sources") -> str:
+    path = clean_text(value)
+    if not path or not path.startswith("/") or path.startswith("//"):
+        return default
+    return path
 
 
 def source_name_link(item: dict) -> str:
@@ -1907,6 +1957,20 @@ def page(title: str, body: str) -> bytes:
       background: #fff0f6;
       color: var(--ocf-magenda);
     }}
+    .inline-select-form {{ display: inline-flex; margin: 0; }}
+    .inline-select-form select {{
+      width: auto;
+      min-width: 112px;
+      margin: 0;
+      padding: 6px 28px 6px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.2;
+      background-color: #fff;
+    }}
+    .source-action-row {{ display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }}
+    .source-action-row .button, .source-action-row button {{ margin-top: 0; padding: 6px 8px; font-size: 12px; }}
     .inline-reason summary {{
       cursor: pointer;
       color: var(--muted);
@@ -2046,6 +2110,7 @@ def page(title: str, body: str) -> bytes:
     .reader-row-main h3 {{ flex: 0 1 auto; min-width: 28%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }}
     .reader-row-summary {{ flex: 1 1 auto; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
     .reader-row-time {{ color: var(--muted); white-space: nowrap; font-weight: 750; }}
+    .reader-row-tools {{ display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }}
     .reader-compact-list {{ display: grid; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }}
     .reader-compact-row {{
       display: grid;
@@ -2781,6 +2846,12 @@ class Handler(BaseHTTPRequestHandler):
             self.save_keywords(self.read_form())
         elif parsed.path == "/sources":
             self.save_source(self.read_form())
+        elif parsed.path == "/sources/quick-update":
+            self.quick_update_source(self.read_form())
+        elif parsed.path == "/sources/fetch":
+            self.fetch_source_now_post(self.read_form())
+        elif parsed.path == "/sources/restore-item":
+            self.restore_source_item(self.read_form())
         elif parsed.path == "/commands/run":
             self.run_command(self.read_form())
         else:
@@ -4614,6 +4685,172 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         write_json(TRIAGE_KEYWORDS, config)
         self.redirect("/keywords?saved=1")
 
+    def quick_update_source(self, data: dict[str, list[str]]) -> None:
+        source_id = form_value(data, "id")
+        field = form_value(data, "field")
+        value = form_value(data, "value")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), "/sources")
+        allowed_values = {
+            "status": SOURCE_STATUSES,
+            "fetch_frequency": FETCH_FREQUENCIES,
+        }
+        if field not in allowed_values or value not in allowed_values[field]:
+            self.send_html("欄位不允許", "<h1>欄位不允許</h1>", HTTPStatus.BAD_REQUEST)
+            return
+        sources = load_jsonl(SOURCES)
+        updated_sources = []
+        found = False
+        for source in sources:
+            if source.get("id") != source_id:
+                updated_sources.append(source)
+                continue
+            updated = dict(source)
+            updated[field] = value
+            updated_sources.append(updated)
+            found = True
+        if not found:
+            self.send_html("找不到來源", "<h1>找不到來源</h1><p><a class='button' href='/sources'>回 RSS 來源</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        write_jsonl(SOURCES, updated_sources)
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}saved=source_quick")
+
+    def run_source_fetch(self, source_id: str) -> tuple[bool, str]:
+        source = next((row for row in load_jsonl(SOURCES) if row.get("id") == source_id), {})
+        report = ROOT / ".cache" / f"rss-fetch-{source_id}.md"
+        command = [
+            sys.executable,
+            str(ROOT / "scripts" / "fetch_rss.py"),
+            "--candidate-output",
+            str(CANDIDATES),
+            "--dismissed",
+            str(DISMISSED),
+            "--source-id",
+            source_id,
+            "--include-unclassified",
+            "--force",
+            "--report",
+            str(report),
+        ]
+        source_type = clean_text(source.get("source_type"))
+        if source_type in {"rss", "google-alert", "youtube", "podcast", "facebook", "inoreader-monitor"}:
+            command.extend(["--source-type", source_type])
+        source_track = clean_text(source.get("track"))
+        if source_track:
+            command.extend(["--track", source_track])
+        result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=180)
+        output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
+        return result.returncode == 0, output
+
+    def fetch_source_now_post(self, data: dict[str, list[str]]) -> None:
+        source_id = form_value(data, "id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/sources/view?id={quote(source_id)}")
+        if not any(source.get("id") == source_id for source in load_jsonl(SOURCES)):
+            self.send_html("找不到來源", "<h1>找不到來源</h1><p><a class='button' href='/sources'>回 RSS 來源</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        ok, _output = self.run_source_fetch(source_id)
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}{'saved=source_fetch' if ok else 'error=source_fetch'}")
+
+    def rescan_source_keyword_exclusions(self, source: dict) -> dict[str, int]:
+        source_id = clean_text(source.get("id"))
+        if not source_id:
+            return {"items": 0, "candidates": 0}
+        decided_at = now_iso()
+        reason = SOURCE_KEYWORD_EXCLUSION_REASON
+        note = f"單一 RSS 來源關鍵字更新後重新盤點；排除原因：{reason}"
+
+        items = load_jsonl(ITEMS)
+        kept_items = []
+        archived_items = []
+        events = []
+        for item in items:
+            if item.get("source_id") != source_id or item.get("status") != "inbox" or source_record_passes_keywords(item, source):
+                kept_items.append(item)
+                continue
+            updated = dict(item)
+            updated["status"] = "archived"
+            updated["priority"] = "low"
+            updated["local_decision"] = {
+                "action": "rejected",
+                "decided_at": decided_at,
+                "reason": reason,
+                "source": "local_web_source_keywords",
+            }
+            updated["review"] = append_review_note(updated.get("review") or {}, f"{decided_at} {note}")
+            archived_items.append(updated)
+            events.append(review_event(updated, "rejected", note))
+        if archived_items:
+            write_jsonl(ITEMS, kept_items)
+            for item in archived_items:
+                upsert_jsonl(REJECTED_ITEMS, rejected_archive_record(item, decided_at, reason))
+            for event in events:
+                append_jsonl(REVIEW_EVENTS, event)
+
+        candidate_ids = [
+            clean_text(candidate.get("id"))
+            for candidate in load_jsonl(CANDIDATES)
+            if candidate.get("source_id") == source_id and not source_record_passes_keywords(candidate, source)
+        ]
+        dismissed_count = 0
+        for candidate_id in candidate_ids:
+            if candidate_id and self.dismiss_candidate_record(candidate_id, reason):
+                dismissed_count += 1
+        return {"items": len(archived_items), "candidates": dismissed_count}
+
+    def restore_source_item(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        source_id = form_value(data, "source_id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/sources/view?id={quote(source_id)}")
+        rejected_records = load_jsonl(REJECTED_ITEMS)
+        restored_record: dict | None = None
+        kept_rejected = []
+        for record in rejected_records:
+            if record.get("id") == item_id and restored_record is None:
+                restored_record = record
+                continue
+            kept_rejected.append(record)
+
+        dismissed_records = load_jsonl(DISMISSED)
+        kept_dismissed = []
+        dismissed_record: dict | None = None
+        for record in dismissed_records:
+            if record.get("id") == item_id and dismissed_record is None:
+                dismissed_record = record
+                continue
+            kept_dismissed.append(record)
+
+        if restored_record is None:
+            restored_record = dismissed_record
+        if restored_record is None:
+            self.send_html("找不到不收紀錄", "<h1>找不到不收紀錄</h1><p><a class='button' href='/sources'>回 RSS 來源</a></p>", HTTPStatus.NOT_FOUND)
+            return
+
+        decided_at = now_iso()
+        note = "從單一 RSS 來源的不收紀錄重新收錄，回到 RSS 待整理。"
+        restored = dict(restored_record)
+        for key in ["archive", "dismissed_at", "candidate_status", "reason"]:
+            restored.pop(key, None)
+        restored["status"] = "inbox"
+        restored["priority"] = "normal"
+        restored["local_decision"] = {
+            "action": "restored",
+            "decided_at": decided_at,
+            "reason": "來源頁重新收錄",
+            "source": "local_web",
+            "next_step": "review-in-rss-inbox",
+        }
+        restored["review"] = append_review_note(restored.get("review") or {}, f"{decided_at} {note}")
+        if source_id and not restored.get("source_id"):
+            restored["source_id"] = source_id
+        upsert_jsonl(ITEMS, restored)
+        write_jsonl(REJECTED_ITEMS, kept_rejected)
+        write_jsonl(DISMISSED, kept_dismissed)
+        append_jsonl(REVIEW_EVENTS, review_event(restored, "restored", note))
+
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}saved=restored")
+
     def show_track(self, track: str) -> None:
         if track not in TRACK_META:
             self.send_html("找不到主線", "<h1>找不到這條知識主線</h1>", HTTPStatus.NOT_FOUND)
@@ -4830,6 +5067,27 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             return True
 
         filtered_sources = [source for source in sources if matches(source)]
+        redirect_path = self.path
+
+        def inline_source_select(source: dict, field: str, options: list[tuple[str, str]], current: str) -> str:
+            return f"""
+<form class="inline-select-form" method="post" action="/sources/quick-update">
+  <input type="hidden" name="id" value="{h(source.get('id', ''))}">
+  <input type="hidden" name="field" value="{h(field)}">
+  <input type="hidden" name="redirect" value="{h(redirect_path)}">
+  <select name="value" aria-label="{h(field)}" onchange="this.form.submit()">{option_list(options, current)}</select>
+</form>
+"""
+
+        def source_fetch_button(source: dict) -> str:
+            return f"""
+<form class="chip-form" method="post" action="/sources/fetch">
+  <input type="hidden" name="id" value="{h(source.get('id', ''))}">
+  <input type="hidden" name="redirect" value="{h(redirect_path)}">
+  <button type="submit" class="reason-chip" title="手動更新這個 RSS">更新</button>
+</form>
+"""
+
         track_counts = {track: count_sources(sources, track) for track in TRACK_ORDER}
         fetch_counts = {track: count_sources(sources, track, active_only=True) for track in TRACK_ORDER}
         type_counts = Counter(source.get("source_type", "manual") for source in filtered_sources)
@@ -4873,11 +5131,11 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                         f"<td><strong><a href='/sources/view?id={quote(source.get('id', ''))}'>{h(source.get('name'))}</a></strong>"
                         f"{site_link}</td>"
                         f"<td>{badge(source_type_label(source_type), type_class)}</td>"
-                        f"<td>{badge(source_status_label(status), status_class)}</td>"
-                        f"<td>{h(source_frequency_label(frequency))}</td>"
+                        f"<td>{inline_source_select(source, 'status', [(value, SOURCE_STATUS_LABELS.get(value, value)) for value in SOURCE_STATUSES], status)}</td>"
+                        f"<td>{inline_source_select(source, 'fetch_frequency', [(value, FETCH_FREQUENCY_LABELS.get(value, value)) for value in FETCH_FREQUENCIES], frequency)}</td>"
                         f"<td>{source_health_badge(health)}<br><span class='help'>{h(health.get('reason'))}</span></td>"
                         f"<td class='url-cell'>{feed_display}</td>"
-                        f"<td><a href='/sources/edit?id={quote(source.get('id', ''))}'>編輯</a></td>"
+                        f"<td><div class='source-action-row'><a class='reason-chip' href='/sources/edit?id={quote(source.get('id', ''))}'>編輯</a>{source_fetch_button(source)}</div></td>"
                         "</tr>"
                     )
                 source_sections.append(
@@ -4919,8 +5177,18 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 </div>
 """
             )
+        notice = ""
+        saved = form_value(query, "saved")
+        error = form_value(query, "error")
+        if saved == "source_quick":
+            notice = '<div class="notice">來源欄位已更新。</div>'
+        elif saved == "source_fetch":
+            notice = '<div class="notice">已手動更新這個 RSS，新的項目會進 RSS 待整理。</div>'
+        elif error == "source_fetch":
+            notice = '<div class="notice">手動更新沒有成功，請進來源檢視頁看健康狀態或錯誤訊息。</div>'
         body = f"""
 <h1>RSS 來源分類</h1>
+{notice}
 <p class="lede">這裡管理每天會被自動抓取或人工保留追蹤的來源。預設不顯示封存來源；你可以用篩選器切換主線、來源類型和狀態。</p>
 <div class="grid">{''.join(overview_cards)}</div>
 <h2>篩選來源</h2>
@@ -4981,11 +5249,29 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 return clean_text(item.get("reason") or decision.get("reason") or item.get("notes"), limit)
             return item_zh_summary(item, limit)
 
+        def restore_form(item: dict) -> str:
+            item_id = clean_text(item.get("id"))
+            if not item_id:
+                return ""
+            return f"""
+<form class="chip-form" method="post" action="/sources/restore-item">
+  <input type="hidden" name="id" value="{h(item_id)}">
+  <input type="hidden" name="source_id" value="{h(source_id)}">
+  <input type="hidden" name="redirect" value="/sources/view?id={h(quote(source_id))}#source-rejected">
+  <button type="submit" class="reason-chip">重新收錄</button>
+</form>
+"""
+
         def source_list_row(item: dict, can_open: bool = True, archived: bool = False) -> str:
             kind = item_display_kind(item)
             item_url = clean_text(item.get("url"))
             title = clean_text(item.get("title")) or item_url or "未命名項目"
-            title_html = f'<a href="{h(item_detail_href(item))}">{h(title)}</a>' if can_open else h(title)
+            if archived and item_url:
+                title_html = f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">{h(title)}</a>'
+            elif can_open:
+                title_html = f'<a href="{h(item_detail_href(item))}">{h(title)}</a>'
+            else:
+                title_html = h(title)
             summary = source_summary(item, archived, 240)
             return f"""
 <article class="reader-list-card">
@@ -4995,18 +5281,24 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   </div>
   <h3>{title_html}</h3>
   <p class="zh-summary">{h(summary)}</p>
+  {f'<div class="source-action-row">{restore_form(item)}</div>' if archived else ''}
 </article>
 """
 
-        def source_compact_row(item: dict, can_open: bool = True) -> str:
+        def source_compact_row(item: dict, can_open: bool = True, archived: bool = False) -> str:
             item_url = clean_text(item.get("url"))
             title = clean_text(item.get("title")) or item_url or "未命名項目"
-            title_html = f'<a href="{h(item_detail_href(item))}">{h(title)}</a>' if can_open else h(title)
+            if archived and item_url:
+                title_html = f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">{h(title)}</a>'
+            elif can_open:
+                title_html = f'<a href="{h(item_detail_href(item))}">{h(title)}</a>'
+            else:
+                title_html = h(title)
             return f"""
 <article class="reader-compact-row">
   <span class="reader-dot" aria-hidden="true"></span>
   <h3>{title_html}</h3>
-  <div class="reader-row-time">{h(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'))}</div>
+  <div class="reader-row-tools"><span class="reader-row-time">{h(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'))}</span>{restore_form(item) if archived else ''}</div>
 </article>
 """
 
@@ -5021,7 +5313,12 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             kind = item_display_kind(item)
             item_url = clean_text(item.get("url"))
             title = clean_text(item.get("title")) or item_url or "未命名項目"
-            title_html = f'<a href="{h(item_detail_href(item))}">{h(title)}</a>' if can_open else h(title)
+            if archived and item_url:
+                title_html = f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">{h(title)}</a>'
+            elif can_open:
+                title_html = f'<a href="{h(item_detail_href(item))}">{h(title)}</a>'
+            else:
+                title_html = h(title)
             return f"""
 <article class="card reader-card">
   {thumb}
@@ -5035,6 +5332,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <p class="muted break-anywhere">{h(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'))}</p>
     <p class="zh-summary">{h(source_summary(item, archived, 260))}</p>
     {f'<div class="button-row reader-card-actions" aria-label="文章操作"><a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{action_icon("read")}{action_label("閱讀 / 記錄")}</a><a class="button secondary reader-action-button" href="{h(item_url)}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{action_icon("external")}{action_label("原始連結")}</a></div>' if can_open and item_url else ''}
+    {f'<div class="source-action-row">{restore_form(item)}</div>' if archived else ''}
   </div>
 </article>
 """
@@ -5058,7 +5356,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         ) -> str:
             cards_html = "".join(source_card(item, can_open=can_open, archived=archived) for item in records)
             list_html = "".join(source_list_row(item, can_open=can_open, archived=archived) for item in records)
-            compact_html = "".join(source_compact_row(item, can_open=can_open) for item in records)
+            compact_html = "".join(source_compact_row(item, can_open=can_open, archived=archived) for item in records)
             empty_html = f'<div class="card"><p class="muted">{h(empty)}</p></div>'
             return f"""
 <section class="reader-layout-section" id="{h(section_id)}" data-layout="{h(default_layout)}">
@@ -5078,8 +5376,20 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         feed_url = clean_text(source.get("feed_url"))
         site_url = clean_text(source.get("site_url"))
         css_class = track_class(source.get("track", "unclassified"))
+        notice = ""
+        saved = form_value(query, "saved")
+        error = form_value(query, "error")
+        if saved == "restored":
+            notice = '<div class="notice">已重新收錄，項目會回到 RSS 待整理。</div>'
+        elif saved == "source_fetch":
+            notice = '<div class="notice">已手動更新這個 RSS，新的項目會進 RSS 待整理。</div>'
+        elif saved == "source_keywords":
+            notice = '<div class="notice">來源已儲存，並已依單一 RSS 關鍵字重盤點與重新抓取。</div>'
+        elif error == "source_fetch":
+            notice = '<div class="notice">手動更新沒有成功，請檢查健康狀態或 feed URL。</div>'
         body = f"""
 <h1>{h(source.get("name") or "未命名來源")}</h1>
+{notice}
 <p class="lede">這裡先看同一個 RSS / 來源底下已收、待整理與不收的內容；要調整抓取頻率、健康狀態或關鍵字，再進編輯頁。</p>
 <section class="card track-card track-card--{h(css_class)}">
   <div>
@@ -5098,6 +5408,11 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <p class="muted break-anywhere">{f'Feed：<code>{h(feed_url)}</code><br>' if feed_url else ''}{f'網站：<a href="{h(site_url)}" target="_blank" rel="noreferrer">{h(site_url)}</a>' if site_url else ''}</p>
   <div class="button-row">
     <a class="button secondary" href="/sources/edit?id={quote(source_id)}">編輯 RSS</a>
+    <form method="post" action="/sources/fetch">
+      <input type="hidden" name="id" value="{h(source_id)}">
+      <input type="hidden" name="redirect" value="/sources/view?id={h(quote(source_id))}">
+      <button type="submit" class="secondary">手動更新 RSS</button>
+    </form>
     <a class="button quiet" href="/sources?track={quote(source.get('track', 'unclassified'))}">回 RSS 來源</a>
   </div>
 </section>
@@ -5187,15 +5502,15 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <button type="button" class="secondary" data-preview-button><span class="icon" aria-hidden="true">R</span>抓取來源資訊</button>
   <label>必須包含的關鍵字</label>
   <textarea name="required_keywords" placeholder="一行一個；留空代表不限制">{h(source_keywords_text(source, 'required_keywords'))}</textarea>
-  <p class="help">若有填，RSS 單篇標題、摘要、標籤、來源或網址至少要命中其中一個才會進待整理。</p>
+  <p class="help">若有填，RSS 單篇標題、摘要、標籤、來源或網址至少要命中其中一個才會進待整理；編輯後存檔會重盤點這個來源的待整理項目並重新抓一次。</p>
   <label>不能包含的關鍵字</label>
   <textarea name="excluded_keywords" placeholder="一行一個；留空代表不限制">{h(source_keywords_text(source, 'excluded_keywords'))}</textarea>
-  <p class="help">命中這裡的單篇會在 RSS 抓取階段直接略過，不會進入候選、不收檔或正式資料庫。</p>
+  <p class="help">命中這裡的單篇會在 RSS 抓取階段直接略過；若是既有待整理或候選，存檔重盤點時會以「{h(SOURCE_KEYWORD_EXCLUSION_REASON)}」移到不收紀錄。</p>
   <label>備註</label>
   <textarea name="notes">{h(source.get('notes', ''))}</textarea>
   <p class="help">可以寫為什麼要追、頻率如何、是不是從 Inoreader 舊流程轉來。</p>
   <button type="submit">儲存這個來源</button>
-  <p class="help">送出後會寫進 database/sources.jsonl。要真的抓新資料，可以回首頁按「現在抓新資料」。</p>
+  <p class="help">送出後會寫進 database/sources.jsonl。要抓新資料，可以在來源列表或來源頁按「更新」。</p>
 </form>
 """
         self.send_html(title, body)
@@ -5218,6 +5533,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             "excluded_keywords": form_lines(form_value(data, "excluded_keywords")),
             "notes": form_value(data, "notes"),
         }
+        keywords_changed = bool(existing_id) and source_keyword_signature(existing_source) != source_keyword_signature(record)
         for preserved_key in ["rss_health", "health_assessment", "last_fetched_at"]:
             if preserved_key in existing_source:
                 record[preserved_key] = existing_source[preserved_key]
@@ -5230,6 +5546,20 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             sources.append(record)
         sources.sort(key=lambda row: (row.get("source_group", ""), row.get("name", ""), row.get("id", "")))
         write_jsonl(SOURCES, sources)
+        if keywords_changed:
+            stats = self.rescan_source_keyword_exclusions(record)
+            fetch_ok, _output = self.run_source_fetch(record["id"])
+            query = urlencode(
+                {
+                    "id": record["id"],
+                    "saved": "source_keywords" if fetch_ok else "source_keywords",
+                    "excluded_items": str(stats.get("items", 0)),
+                    "excluded_candidates": str(stats.get("candidates", 0)),
+                    "fetch": "ok" if fetch_ok else "failed",
+                }
+            )
+            self.redirect(f"/sources/view?{query}")
+            return
         self.redirect(f"/sources?track={quote(record['track'])}")
 
     def run_command(self, data: dict[str, list[str]]) -> None:
