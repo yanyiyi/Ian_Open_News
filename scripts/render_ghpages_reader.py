@@ -281,19 +281,19 @@ def period_sections(items: list[dict], renderer, container_class: str, empty: st
         groups[group_index[label]] = (label_text, min(current_month_index, item_month_index), records)
     sections = []
     for label, item_month_index, records in groups:
-        hidden = " hidden" if item_month_index >= 2 else ""
+        hidden = " hidden" if item_month_index >= 1 else ""
         sections.append(
             f"""
 <section class="reader-period" data-reader-period data-month-index="{item_month_index}" id="{h(reader_period_key(records[0]))}"{hidden}>
-  <h2>{h(label)}</h2>
+  <h2><span>{h(label)}</span></h2>
   <p class="lede">{len(records)} 筆</p>
   <div class="{h(container_class)}">{''.join(renderer(item) for item in records)}</div>
 </section>
 """
         )
     more = ""
-    if len(month_keys) > 2:
-        more = '<div class="actions"><button type="button" class="secondary" data-reader-more-months>more：再載入 2 個月</button></div>'
+    if len(month_keys) > 1:
+        more = '<div class="actions reader-more-row"><button type="button" class="secondary" data-reader-more-months>more：再載入 1 個月</button></div>'
     return "".join(sections) + more
 
 
@@ -303,7 +303,7 @@ def period_more_script() -> str:
 (() => {
   const button = document.querySelector("[data-reader-more-months]");
   if (!button) return;
-  let visibleMonths = 2;
+  let visibleMonths = 1;
   function sync() {
     const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
     let hiddenCount = 0;
@@ -316,7 +316,7 @@ def period_more_script() -> str:
     button.hidden = hiddenCount === 0;
   }
   button.addEventListener("click", () => {
-    visibleMonths += 2;
+    visibleMonths += 1;
     sync();
   });
   sync();
@@ -528,8 +528,40 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     .reader-period {{
       margin: 0 0 24px;
     }}
+    .reader-period h2 {{
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }}
+    .reader-period h2::before {{
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }}
+    .reader-period h2 span {{
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }}
     .reader-period[hidden] {{
       display: none !important;
+    }}
+    .reader-more-row {{
+      justify-content: center;
+      margin: 8px 0 30px;
     }}
     .article-layout {{ display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }}
     .article-panel, .side-panel {{

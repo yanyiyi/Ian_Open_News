@@ -188,8 +188,40 @@
     .reader-period {
       margin: 0 0 24px;
     }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period h2 span {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
     .reader-period[hidden] {
       display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
     }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
@@ -222,7 +254,7 @@
     <div class="masthead">
       <h1>MySQL 參與印度、京都與 COSCUP 活動巡迴</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T17:19:41+00:00</p>
+      <p class="generated">產生時間：2026-06-21T17:42:14+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -280,7 +312,7 @@ document.getElementById("note-save").addEventListener("click", () => {
 (() => {
   const button = document.querySelector("[data-reader-more-months]");
   if (!button) return;
-  let visibleMonths = 2;
+  let visibleMonths = 1;
   function sync() {
     const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
     let hiddenCount = 0;
@@ -293,7 +325,7 @@ document.getElementById("note-save").addEventListener("click", () => {
     button.hidden = hiddenCount === 0;
   }
   button.addEventListener("click", () => {
-    visibleMonths += 2;
+    visibleMonths += 1;
     sync();
   });
   sync();

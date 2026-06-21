@@ -40,6 +40,21 @@ def has_image(item: dict) -> bool:
     return bool(item.get("image_url") or metadata.get("image_url"))
 
 
+def item_title(item: dict) -> str:
+    for key in ("title", "original_title", "source_name", "id"):
+        value = str(item.get(key) or "").strip()
+        if value:
+            return value[:120]
+    return "未命名文章"
+
+
+def write_status(path: Path | None, payload: dict) -> None:
+    if not path:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch page metadata and cover images for reading cards.")
     parser.add_argument("--items", type=Path, default=ITEMS)
@@ -49,6 +64,7 @@ def main() -> None:
     parser.add_argument("--metadata-only", action="store_true", help="Only fill local/inferred metadata fields without fetching pages.")
     parser.add_argument("--limit", type=int, default=80)
     parser.add_argument("--timeout", type=int, default=8)
+    parser.add_argument("--status-file", type=Path)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -74,6 +90,20 @@ def main() -> None:
             output.append(item)
             continue
         checked += 1
+        title = item_title(item)
+        write_status(
+            args.status_file,
+            {
+                "command": "enrich_reader_metadata",
+                "state": "running",
+                "message": "正在補閱讀卡圖片、描述與主文",
+                "index": checked,
+                "total": args.limit,
+                "item_id": item.get("id"),
+                "item_title": title,
+            },
+        )
+        print(f"enriching {checked}/{args.limit}: {title} ({item.get('id')})", flush=True)
         prepared, prepared_change = complete_item_metadata(item)
         if args.metadata_only:
             if prepared_change:
@@ -96,6 +126,18 @@ def main() -> None:
 
     if not args.dry_run:
         write_jsonl(args.items, output)
+    write_status(
+        args.status_file,
+        {
+            "command": "enrich_reader_metadata",
+            "state": "done" if failed == 0 else "failed",
+            "message": "補閱讀卡圖片、描述與主文完成" if failed == 0 else "補閱讀卡圖片、描述與主文有失敗項目",
+            "checked": checked,
+            "changed": changed,
+            "failed": failed,
+            "skipped": skipped,
+        },
+    )
     print(f"checked={checked} changed={changed} failed={failed} skipped={skipped} dry_run={args.dry_run}")
 
 

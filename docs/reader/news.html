@@ -188,8 +188,40 @@
     .reader-period {
       margin: 0 0 24px;
     }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period h2 span {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
     .reader-period[hidden] {
       display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
     }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
@@ -222,7 +254,7 @@
     <div class="masthead">
       <h1>開放科技小消息</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T17:19:41+00:00</p>
+      <p class="generated">產生時間：2026-06-21T17:42:14+00:00</p>
 
 <nav>
   <a class="" href="index.html">精選與觀點</a>
@@ -263,9 +295,9 @@
   <h2>小消息列表</h2>
   <p class="lede">純新聞消息用列表呈現，保留快速掃讀與點進單篇的入口。</p>
 
-<section class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月下半月">
-  <h2>2026 年 6 月下半月</h2>
-  <p class="lede">52 筆</p>
+<section class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-3">
+  <h2><span>2026 年 6 月 Week 3</span></h2>
+  <p class="lede">59 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div>
@@ -891,13 +923,7 @@
 The post Anthropic pauses Claude Agent SDK subscription change on day it was due to take effect ap...</p>
 
 </article>
-</div>
-</section>
 
-<section class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月上半月">
-  <h2>2026 年 6 月上半月</h2>
-  <p class="lede">9 筆</p>
-  <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
@@ -981,7 +1007,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <p class="summary">MLCommons 發布 MLPerf Mobile v6.0，新增針對裝置端 LLM 的生成式 AI 基準測試，並擴大 NPU 加速的測試範圍。這筆資料的重點在於行動裝置上的 LLM 推論開始有更標準化的比較方式。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
+</div>
+</section>
 
+<section class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-2">
+  <h2><span>2026 年 6 月 Week 2</span></h2>
+  <p class="lede">1 筆</p>
+  <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-10T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
@@ -993,7 +1025,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <p class="summary">這篇摘要說明 Helion kernels 被整合到 vLLM，用於 Qwen3 模型的 FP8 推論，並在 NVIDIA H100 與 B200 GPU 上評估。文章主軸看起來是用 PyTorch 原生方式開發可攜的推論 kernel，同時兼顧生產力與效能。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
+</div>
+</section>
 
+<section class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-1">
+  <h2><span>2026 年 6 月 Week 1</span></h2>
+  <p class="lede">1 筆</p>
+  <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-02T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
@@ -1008,9 +1046,9 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月下半月">
-  <h2>2026 年 5 月下半月</h2>
-  <p class="lede">9 筆</p>
+<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-4" hidden>
+  <h2><span>2026 年 5 月 Week 4</span></h2>
+  <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-26T00:00:00+00:00">
   <div>
@@ -1023,7 +1061,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <p class="summary">這筆資料聚焦英國線上年齡驗證政策。摘要顯示，age-gating 原先在 2025 年被定位為限制兒童接觸色情內容的有限措施，但很快被擴張到線上遊戲、應用程式商店、社群平台與其他一般網路服務。從現有文字看，核心價值在於檢視兒少保護政策如何延伸成更廣泛的線上身分或年齡檢查機制。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
+</div>
+</section>
 
+<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-3" hidden>
+  <h2><span>2026 年 5 月 Week 3</span></h2>
+  <p class="lede">8 筆</p>
+  <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-21T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
@@ -1122,9 +1166,9 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月上半月">
-  <h2>2026 年 5 月上半月</h2>
-  <p class="lede">6 筆</p>
+<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-2" hidden>
+  <h2><span>2026 年 5 月 Week 2</span></h2>
+  <p class="lede">3 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-14T00:00:00+00:00">
   <div>
@@ -1161,7 +1205,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <p class="summary">這篇應與哈薩克準備下一輪 ODIN 評估有關，重點可能從單純衡量開放資料進展，延伸到如何支持各國改善資料開放。就摘要而言，尚未提供具體措施或成果。</p>
   <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span></div>
 </article>
+</div>
+</section>
 
+<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-1" hidden>
+  <h2><span>2026 年 5 月 Week 1</span></h2>
+  <p class="lede">3 筆</p>
+  <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-07T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
@@ -1200,9 +1250,9 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月下半月" hidden>
-  <h2>2026 年 4 月下半月</h2>
-  <p class="lede">3 筆</p>
+<section class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-4" hidden>
+  <h2><span>2026 年 4 月 Week 4</span></h2>
+  <p class="lede">2 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-04-27T00:00:00+00:00">
   <div>
@@ -1227,7 +1277,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <p class="summary">這份簡報似乎主張，歐盟已經有可用來承擔 Digital Commons 治理的制度載體 DC-EDIC，但它需要更明確的任務授權與資源，才能發揮應有潛力。以摘要來看，重點偏政策制度設計。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
+</div>
+</section>
 
+<section class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-3" hidden>
+  <h2><span>2026 年 4 月 Week 3</span></h2>
+  <p class="lede">1 筆</p>
+  <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-04-16T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
@@ -1242,8 +1298,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="3" id="2024-年-1-月上半月" hidden>
-  <h2>2024 年 1 月上半月</h2>
+<section class="reader-period" data-reader-period data-month-index="3" id="2024-年-1-月-Week-3" hidden>
+  <h2><span>2024 年 1 月 Week 3</span></h2>
   <p class="lede">29 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
@@ -1596,8 +1652,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="4" id="2023-年-11-月上半月" hidden>
-  <h2>2023 年 11 月上半月</h2>
+<section class="reader-period" data-reader-period data-month-index="4" id="2023-年-11-月-Week-3" hidden>
+  <h2><span>2023 年 11 月 Week 3</span></h2>
   <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-11-15T00:00:00+00:00">
@@ -1614,8 +1670,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="5" id="2023-年-10-月下半月" hidden>
-  <h2>2023 年 10 月下半月</h2>
+<section class="reader-period" data-reader-period data-month-index="5" id="2023-年-10-月-Week-4" hidden>
+  <h2><span>2023 年 10 月 Week 4</span></h2>
   <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-10-27T00:00:00+00:00">
@@ -1632,8 +1688,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="6" id="2023-年-9-月上半月" hidden>
-  <h2>2023 年 9 月上半月</h2>
+<section class="reader-period" data-reader-period data-month-index="6" id="2023-年-9-月-Week-2" hidden>
+  <h2><span>2023 年 9 月 Week 2</span></h2>
   <p class="lede">4 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-09-12T00:00:00+00:00">
@@ -1686,9 +1742,9 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="7" id="2023-年-8-月下半月" hidden>
-  <h2>2023 年 8 月下半月</h2>
-  <p class="lede">2 筆</p>
+<section class="reader-period" data-reader-period data-month-index="7" id="2023-年-8-月-Week-4" hidden>
+  <h2><span>2023 年 8 月 Week 4</span></h2>
+  <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-08-22T00:00:00+00:00">
   <div>
@@ -1701,7 +1757,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <p class="summary">這篇是 Paloma Oliveira 在受 OSI 邀請到 COSCUP 分享「開源 25 年」後的反思。她以自身來自南美與歐洲、首次到亞洲參與 COSCUP 的經驗，討論開源在全球與地方脈絡中的意義，也強調回顧歷史不只是慶祝成就，更包含辨識失敗、重新理解開源運動如何前進。文章同時描寫 COSCUP 作為亞洲開源社群交流場域的特色。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
 </article>
+</div>
+</section>
 
+<section class="reader-period" data-reader-period data-month-index="7" id="2023-年-8-月-Week-3" hidden>
+  <h2><span>2023 年 8 月 Week 3</span></h2>
+  <p class="lede">1 筆</p>
+  <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-08-21T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
@@ -1716,8 +1778,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="7" id="2023-年-8-月上半月" hidden>
-  <h2>2023 年 8 月上半月</h2>
+<section class="reader-period" data-reader-period data-month-index="7" id="2023-年-8-月-Week-1" hidden>
+  <h2><span>2023 年 8 月 Week 1</span></h2>
   <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-08-03T00:00:00+00:00">
@@ -1734,8 +1796,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="8" id="2023-年-7-月下半月" hidden>
-  <h2>2023 年 7 月下半月</h2>
+<section class="reader-period" data-reader-period data-month-index="8" id="2023-年-7-月-Week-4" hidden>
+  <h2><span>2023 年 7 月 Week 4</span></h2>
   <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-07-27T00:00:00+00:00">
@@ -1752,8 +1814,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="8" id="2023-年-7-月上半月" hidden>
-  <h2>2023 年 7 月上半月</h2>
+<section class="reader-period" data-reader-period data-month-index="8" id="2023-年-7-月-Week-1" hidden>
+  <h2><span>2023 年 7 月 Week 1</span></h2>
   <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-07-05T00:00:00+00:00">
@@ -1770,9 +1832,9 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="9" id="2023-年-4-月下半月" hidden>
-  <h2>2023 年 4 月下半月</h2>
-  <p class="lede">2 筆</p>
+<section class="reader-period" data-reader-period data-month-index="9" id="2023-年-4-月-Week-5" hidden>
+  <h2><span>2023 年 4 月 Week 5</span></h2>
+  <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-04-30T00:00:00+00:00">
   <div>
@@ -1785,7 +1847,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <p class="summary">這則貼文是在說明作者計畫於 COSCUP 2023 設置 Ubuntu Taiwan LoCo 與 UbuCon Asia 的聯合攤位，用來推廣台灣 Ubuntu 社群與當年的 UbuCon Asia。從片段來看，它主要是活動籌備或參展公告。</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
 </article>
+</div>
+</section>
 
+<section class="reader-period" data-reader-period data-month-index="9" id="2023-年-4-月-Week-3" hidden>
+  <h2><span>2023 年 4 月 Week 3</span></h2>
+  <p class="lede">1 筆</p>
+  <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-04-17T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
@@ -1800,8 +1868,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="10" id="2023-年-2-月上半月" hidden>
-  <h2>2023 年 2 月上半月</h2>
+<section class="reader-period" data-reader-period data-month-index="10" id="2023-年-2-月-Week-2" hidden>
+  <h2><span>2023 年 2 月 Week 2</span></h2>
   <p class="lede">2 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-02-09T00:00:00+00:00">
@@ -1830,8 +1898,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="11" id="2022-年-9-月下半月" hidden>
-  <h2>2022 年 9 月下半月</h2>
+<section class="reader-period" data-reader-period data-month-index="11" id="2022-年-9-月-Week-3" hidden>
+  <h2><span>2022 年 9 月 Week 3</span></h2>
   <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2022-09-17T00:00:00+00:00">
@@ -1848,8 +1916,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="12" id="2021-年-7-月下半月" hidden>
-  <h2>2021 年 7 月下半月</h2>
+<section class="reader-period" data-reader-period data-month-index="12" id="2021-年-7-月-Week-5" hidden>
+  <h2><span>2021 年 7 月 Week 5</span></h2>
   <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2021-07-29T00:00:00+00:00">
@@ -1866,8 +1934,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="13" id="2020-年-8-月上半月" hidden>
-  <h2>2020 年 8 月上半月</h2>
+<section class="reader-period" data-reader-period data-month-index="13" id="2020-年-8-月-Week-1" hidden>
+  <h2><span>2020 年 8 月 Week 1</span></h2>
   <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2020-08-03T00:00:00+00:00">
@@ -1884,8 +1952,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="14" id="2020-年-7-月下半月" hidden>
-  <h2>2020 年 7 月下半月</h2>
+<section class="reader-period" data-reader-period data-month-index="14" id="2020-年-7-月-Week-5" hidden>
+  <h2><span>2020 年 7 月 Week 5</span></h2>
   <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2020-07-31T00:00:00+00:00">
@@ -1902,8 +1970,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </div>
 </section>
 
-<section class="reader-period" data-reader-period data-month-index="15" id="2020-年-5-月上半月" hidden>
-  <h2>2020 年 5 月上半月</h2>
+<section class="reader-period" data-reader-period data-month-index="15" id="2020-年-5-月-Week-1" hidden>
+  <h2><span>2020 年 5 月 Week 1</span></h2>
   <p class="lede">1 筆</p>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2020-05-06T00:00:00+00:00">
@@ -1919,7 +1987,7 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 </article>
 </div>
 </section>
-<div class="actions"><button type="button" class="secondary" data-reader-more-months>more：再載入 2 個月</button></div>
+<div class="actions reader-more-row"><button type="button" class="secondary" data-reader-more-months>more：再載入 1 個月</button></div>
 </section>
 <div class="empty" data-time-empty hidden>這個時間範圍沒有可顯示的小消息。</div>
 </main>
@@ -1928,7 +1996,7 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 (() => {
   const button = document.querySelector("[data-reader-more-months]");
   if (!button) return;
-  let visibleMonths = 2;
+  let visibleMonths = 1;
   function sync() {
     const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
     let hiddenCount = 0;
@@ -1941,7 +2009,7 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
     button.hidden = hiddenCount === 0;
   }
   button.addEventListener("click", () => {
-    visibleMonths += 2;
+    visibleMonths += 1;
     sync();
   });
   sync();

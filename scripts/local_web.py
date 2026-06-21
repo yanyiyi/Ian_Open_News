@@ -46,6 +46,7 @@ CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
 DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
 RSS_FETCH_STATUS = ROOT / ".cache" / "rss-fetch-status.json"
 DATA_COMMIT_STATUS = ROOT / ".cache" / "data-autocommit-status.json"
+COMMAND_STATUS = ROOT / ".cache" / "command-status.json"
 DATA_AUTOCOMMIT_INTERVAL_SECONDS = 30 * 60
 TAG_SUGGESTION_LIMIT = 12
 CURRENT_READING_PRIORITY_DAYS = 2
@@ -310,6 +311,8 @@ COMMANDS = {
             "--only-missing-image",
             "--limit",
             "40",
+            "--status-file",
+            str(COMMAND_STATUS),
         ],
     },
     "enrich_article_summaries": {
@@ -1179,12 +1182,8 @@ def reader_period_label(item: dict) -> str:
     parsed = item_local_datetime(item)
     if not parsed:
         return "未標示時間"
-    now = datetime.now(LOCAL_TIMEZONE)
-    week_start = datetime(now.year, now.month, now.day, tzinfo=LOCAL_TIMEZONE) - timedelta(days=now.weekday())
-    if parsed >= week_start:
-        return "本週"
-    half = "上半月" if parsed.day <= 15 else "下半月"
-    return f"{parsed.year} 年 {parsed.month} 月{half}"
+    week_number = ((parsed.day - 1) // 7) + 1
+    return f"{parsed.year} 年 {parsed.month} 月 Week {week_number}"
 
 
 def reader_period_key(item: dict) -> str:
@@ -1737,7 +1736,7 @@ def reader_flag_badges(item: dict) -> str:
     return "".join(badge(label, "reading") for label in labels)
 
 
-def tag_editor_html(item: dict, records: list[dict], redirect_to: str) -> str:
+def tag_editor_html(item: dict, records: list[dict], redirect_to: str, autosave: bool = False) -> str:
     item_id = clean_text(item.get("id"))
     current_tags = normalized_item_tags(item)
     suggestions = suggested_item_tags(item, records)
@@ -1774,10 +1773,13 @@ def tag_editor_html(item: dict, records: list[dict], redirect_to: str) -> str:
         )
     suggested_html = "".join(suggested_groups_html)
     options_json = json.dumps(option_payload, ensure_ascii=False).replace("<", "\\u003c")
+    autosave_attr = " data-tag-autosave" if autosave else ""
+    autosave_status = '<p class="help tag-autosave-status" data-tag-autosave-status>變更會自動儲存</p>' if autosave else ""
+    submit_button = "" if autosave else f'<button type="submit">{button_content("儲存 tag", "tag", "T")}</button>'
     return f"""
 <div class="card" id="tag-panel">
   <h2>概念標籤</h2>
-  <form method="post" action="/items/update-tags" class="tag-picker" data-tag-picker>
+  <form method="post" action="/items/update-tags" class="tag-picker" data-tag-picker{autosave_attr}>
     <input type="hidden" name="id" value="{h(item_id)}">
     <input type="hidden" name="redirect" value="{h(redirect_to)}">
     <div class="tag-picker-current" data-tag-current>{current_html}</div>
@@ -1788,7 +1790,8 @@ def tag_editor_html(item: dict, records: list[dict], redirect_to: str) -> str:
     <div class="tag-suggestion-groups" data-tag-suggestions>{suggested_html}</div>
     <div data-tag-hidden>{hidden_inputs}</div>
     <script type="application/json" data-tag-options>{options_json}</script>
-    <button type="submit">{button_content("儲存 tag", "tag", "T")}</button>
+    {autosave_status}
+    {submit_button}
   </form>
 </div>
 """
@@ -2880,13 +2883,18 @@ def page(title: str, body: str) -> bytes:
     }}
     .title-editor summary::-webkit-details-marker {{ display: none; }}
     .title-editor summary h1 {{ margin-bottom: 2px; color: var(--ocf-dark); }}
-    .title-editor summary:hover h1 {{ color: var(--ocf-dark); }}
+    .title-editor summary:hover h1 {{ color: var(--link); }}
     .title-editor form {{
       max-width: 760px;
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
+    }}
+    .title-editor-fields {{
+      display: grid;
+      gap: 12px;
+      margin-top: 10px;
     }}
     p {{ margin: 8px 0; }}
     a {{ color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }}
@@ -3197,8 +3205,9 @@ def page(title: str, body: str) -> bytes:
       box-shadow: none;
     }}
     .tag-pill:hover, .tag-suggestion:hover, .tag-menu-option:hover {{
-      color: var(--ocf-dark);
-      background: var(--soft);
+      color: #00699f;
+      border-color: #78cde5;
+      background: #eefcff;
       box-shadow: none;
       transform: translateY(-1px);
     }}
@@ -3224,6 +3233,11 @@ def page(title: str, body: str) -> bytes:
       opacity: 1;
       background: #fff0f6;
       color: var(--ocf-magenda);
+    }}
+    .tag-autosave-status {{
+      margin: 0;
+      min-height: 18px;
+      font-size: 12px;
     }}
     .tag-search-wrap {{ position: relative; }}
     .tag-search-wrap input {{ padding-right: 34px; }}
@@ -3454,12 +3468,14 @@ def page(title: str, body: str) -> bytes:
       box-shadow: none;
       font-size: 12px;
       font-weight: 850;
+      transition: background-color .18s ease, color .18s ease, border-color .18s ease;
     }}
     .source-toggle span {{
       width: 18px;
       height: 18px;
       border-radius: 999px;
       background: currentColor;
+      transition: transform .18s ease;
     }}
     .source-toggle.is-on {{
       background: #e7f5fc;
@@ -3469,6 +3485,7 @@ def page(title: str, body: str) -> bytes:
       box-shadow: none;
       transform: none;
       filter: none;
+      border-color: currentColor;
     }}
     .source-toggle--archived {{
       min-width: auto;
@@ -3632,6 +3649,49 @@ def page(title: str, body: str) -> bytes:
     .reader-layout-section[data-layout="list"] .reader-compact-list {{ display: none; }}
     .reader-layout-section[data-layout="compact"] .reader-grid,
     .reader-layout-section[data-layout="compact"] .reader-list {{ display: none; }}
+    .reader-category {{
+      display: grid;
+      gap: 12px;
+      margin: 22px 0 30px;
+    }}
+    .reader-category > h2 {{
+      margin-bottom: 0;
+    }}
+    .reader-period-heading {{
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }}
+    .reader-period-heading::before {{
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }}
+    .reader-period-heading span {{
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }}
+    .reader-more-row {{
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0 30px;
+    }}
     .reader-card {{
       display: grid;
       grid-template-rows: 160px auto;
@@ -3703,6 +3763,19 @@ def page(title: str, body: str) -> bytes:
       margin: 0 0 14px;
     }}
     .article-top-nav .button {{ margin-top: 0; }}
+    .article-back-button {{
+      color: var(--ocf-dark);
+      background: #fff;
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }}
+    .article-back-button:hover {{
+      color: #00699f;
+      background: #eefcff;
+      border-color: #78cde5;
+      box-shadow: none;
+      transform: translateX(-1px);
+    }}
     .article-detail-layout {{
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
@@ -3715,6 +3788,8 @@ def page(title: str, body: str) -> bytes:
       min-width: 0;
     }}
     .article-detail-main > * {{ margin-top: 0; margin-bottom: 0; }}
+    .article-detail-stack {{ display: grid; gap: 12px; }}
+    .article-detail-stack > h2 {{ margin: 4px 0 0; }}
     .article-action-dock {{
       position: sticky;
       top: 78px;
@@ -3741,6 +3816,32 @@ def page(title: str, body: str) -> bytes:
     .article-action-dock .button-row button {{
       padding: 8px 10px;
       font-size: 13px;
+    }}
+    .article-action-dock details.card summary {{
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }}
+    .article-action-dock details.card summary::-webkit-details-marker {{ display: none; }}
+    .article-action-dock details.card summary::after {{
+      content: "+";
+      color: var(--muted);
+      font-weight: 900;
+    }}
+    .article-action-dock details.card[open] summary::after {{ content: "-"; }}
+    .help-dot {{
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
     }}
     .article-dock-actions form {{ display: inline-flex; margin: 0; }}
     .article-sequence-nav {{
@@ -3782,6 +3883,12 @@ def page(title: str, body: str) -> bytes:
       gap: 18px;
       align-items: start;
     }}
+    .article-title-grid {{
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(180px, 260px);
+      gap: 16px;
+      align-items: start;
+    }}
     .item-image {{
       min-height: 220px;
       border-radius: 8px;
@@ -3792,6 +3899,12 @@ def page(title: str, body: str) -> bytes:
       align-items: flex-end;
       padding: 16px;
       font-weight: 850;
+    }}
+    .item-image--compact {{
+      min-height: 0;
+      height: 170px;
+      padding: 12px;
+      align-items: flex-end;
     }}
     .item-image img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
     .note-box {{
@@ -3918,6 +4031,8 @@ def page(title: str, body: str) -> bytes:
       .article-sequence-nav {{ left: 10px; right: 10px; bottom: 10px; }}
       .article-sequence-link span {{ display: none; }}
       .item-hero {{ grid-template-columns: 1fr; }}
+      .article-title-grid {{ grid-template-columns: 1fr; }}
+      .item-image--compact {{ height: 180px; }}
       .metric-row {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .layout-toggle {{ width: 100%; justify-content: space-between; }}
       .layout-toggle-button {{ flex: 1 1 0; }}
@@ -4069,6 +4184,13 @@ def page(title: str, body: str) -> bytes:
     return `${{message}}${{index}}${{suffix}}`;
   }};
 
+  const commandStatusLine = (payload) => {{
+    if (!payload || !payload.message) return "執行中。";
+    const index = payload.index && payload.total ? `（${{payload.index}}/${{payload.total}}）` : "";
+    const title = payload.item_title ? `：${{payload.item_title}}` : "";
+    return `${{payload.message}}${{index}}${{title}}`;
+  }};
+
   const startRssStatusPolling = () => {{
     const poll = async () => {{
       try {{
@@ -4084,6 +4206,29 @@ def page(title: str, body: str) -> bytes:
     return window.setInterval(poll, 1200);
   }};
 
+  const startCommandStatusPolling = (commandName) => {{
+    const poll = async () => {{
+      try {{
+        const response = await fetch(`/api/command-status?command=${{encodeURIComponent(commandName)}}`, {{headers: {{"X-Requested-With": "local-web-fetch"}}}});
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (payload?.command === commandName && payload?.state === "running") {{
+          commandStatus.textContent = commandStatusLine(payload);
+        }}
+      }} catch (_error) {{
+        // The final command response still carries stdout/stderr if polling is unavailable.
+      }}
+    }};
+    poll();
+    return window.setInterval(poll, 1200);
+  }};
+
+  const commandTimerFor = (commandName) => {{
+    if (commandName === "fetch_rss") return startRssStatusPolling();
+    if (commandName === "enrich_reader_metadata") return startCommandStatusPolling(commandName);
+    return startElapsedStatus();
+  }};
+
   document.querySelectorAll("form[data-command-form]").forEach((form) => {{
     form.addEventListener("submit", async (event) => {{
       if (!window.fetch) return;
@@ -4096,7 +4241,7 @@ def page(title: str, body: str) -> bytes:
       if (button) button.disabled = true;
       const data = new URLSearchParams(new FormData(form));
       data.set("format", "json");
-      const timer = data.get("command") === "fetch_rss" ? startRssStatusPolling() : startElapsedStatus();
+      const timer = commandTimerFor(data.get("command") || "");
       try {{
         const response = await fetch(form.getAttribute("action") || form.action, {{
           method: "POST",
@@ -4160,6 +4305,43 @@ def page(title: str, body: str) -> bytes:
     }});
   }});
 
+  document.querySelectorAll("form[data-source-toggle-form]").forEach((form) => {{
+    form.addEventListener("submit", async (event) => {{
+      if (!window.fetch) return;
+      event.preventDefault();
+      const button = form.querySelector("[data-source-toggle-button]");
+      const valueInput = form.querySelector("[data-source-toggle-value]");
+      const nextStatus = valueInput?.value || "";
+      if (!button || !valueInput || !nextStatus) return;
+      const previousHTML = button.innerHTML;
+      button.disabled = true;
+      try {{
+        const data = new URLSearchParams(new FormData(form));
+        const response = await fetch(form.getAttribute("action") || form.action, {{
+          method: "POST",
+          headers: {{
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "X-Requested-With": "local-web-fetch"
+          }},
+          body: data
+        }});
+        if (!response.ok) throw new Error(`HTTP ${{response.status}}`);
+        const isActive = nextStatus === "active";
+        button.classList.toggle("is-on", isActive);
+        button.innerHTML = `<span></span>${{isActive ? "啟用" : "暫停"}}`;
+        const nextValue = isActive ? "paused" : "active";
+        const hint = isActive ? "點一下暫停抓取" : "點一下恢復啟用";
+        valueInput.value = nextValue;
+        button.title = hint;
+        button.setAttribute("aria-label", hint);
+      }} catch (_error) {{
+        button.innerHTML = previousHTML;
+      }} finally {{
+        button.disabled = false;
+      }}
+    }});
+  }});
+
   const escapeHTML = (value) => String(value || "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -4187,11 +4369,15 @@ def page(title: str, body: str) -> bytes:
     const hidden = form.querySelector("[data-tag-hidden]");
     const suggestionStrip = form.querySelector("[data-tag-suggestions]");
     const optionsScript = form.querySelector("[data-tag-options]");
+    const autosave = form.hasAttribute("data-tag-autosave");
+    const autosaveStatus = form.querySelector("[data-tag-autosave-status]");
     if (!current || !input || !menu || !hidden) return;
 
     let selected = Array.from(current.querySelectorAll("[data-tag-value]"))
       .map((button) => button.dataset.tagValue || button.textContent || "")
       .flatMap(splitTagInput);
+    let autosaveReady = false;
+    let autosaveTimer = 0;
     const allOptions = [];
     const addOption = (tag) => {{
       const label = splitTagInput(tag)[0] || "";
@@ -4210,10 +4396,40 @@ def page(title: str, body: str) -> bytes:
 
     const selectedKeys = () => new Set(selected.map(tagKeyClient));
 
+    const setAutosaveStatus = (message) => {{
+      if (autosaveStatus) autosaveStatus.textContent = message;
+    }};
+
     const syncHidden = () => {{
       hidden.innerHTML = selected
         .map((tag) => `<input type="hidden" name="tags" value="${{escapeHTML(tag)}}">`)
         .join("");
+    }};
+
+    const saveAutosavedTags = async () => {{
+      if (!autosave) return;
+      setAutosaveStatus("正在儲存 tag...");
+      const data = new URLSearchParams(new FormData(form));
+      try {{
+        const response = await fetch(form.getAttribute("action") || form.action, {{
+          method: "POST",
+          headers: {{
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "X-Requested-With": "local-web-fetch"
+          }},
+          body: data
+        }});
+        if (!response.ok) throw new Error(`HTTP ${{response.status}}`);
+        setAutosaveStatus("tag 已自動儲存");
+      }} catch (error) {{
+        setAutosaveStatus("tag 儲存失敗，請稍後再試");
+      }}
+    }};
+
+    const scheduleAutosave = () => {{
+      if (!autosave || !autosaveReady) return;
+      window.clearTimeout(autosaveTimer);
+      autosaveTimer = window.setTimeout(saveAutosavedTags, 260);
     }};
 
     const renderSelected = () => {{
@@ -4227,6 +4443,7 @@ def page(title: str, body: str) -> bytes:
       suggestionStrip?.querySelectorAll("[data-tag-suggestion]").forEach((button) => {{
         button.hidden = keys.has(tagKeyClient(button.dataset.tagSuggestion || ""));
       }});
+      scheduleAutosave();
     }};
 
     const addTag = (value) => {{
@@ -4320,10 +4537,14 @@ def page(title: str, body: str) -> bytes:
       }}
     }});
 
-    form.addEventListener("submit", () => {{
+    form.addEventListener("submit", (event) => {{
       if (input.value.trim()) addTag(input.value);
       input.value = "";
       syncHidden();
+      if (autosave) {{
+        event.preventDefault();
+        scheduleAutosave();
+      }}
     }});
 
     document.addEventListener("click", (event) => {{
@@ -4331,6 +4552,7 @@ def page(title: str, body: str) -> bytes:
     }});
 
     renderSelected();
+    autosaveReady = true;
   }};
 
   document.querySelectorAll("form[data-tag-picker]").forEach(setupTagPicker);
@@ -4814,6 +5036,20 @@ class Handler(BaseHTTPRequestHandler):
     def is_async_request(self) -> bool:
         return self.headers.get("X-Requested-With") == "local-web-fetch"
 
+    def same_origin_referer_path(self, fallback: str) -> str:
+        referer = clean_text(self.headers.get("Referer", ""))
+        if not referer:
+            return fallback
+        parsed = urlparse(referer)
+        current_host = clean_text(self.headers.get("Host", ""))
+        if parsed.netloc and parsed.netloc != current_host:
+            return fallback
+        path = parsed.path or "/"
+        if path == "/items/view":
+            return fallback
+        query = f"?{parsed.query}" if parsed.query else ""
+        return safe_redirect_path(f"{path}{query}", fallback)
+
     def send_no_content(self, status: HTTPStatus = HTTPStatus.NO_CONTENT) -> None:
         self.send_response(status)
         self.end_headers()
@@ -4874,6 +5110,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(load_json(RSS_FETCH_STATUS))
         elif parsed.path == "/api/data-commit-status":
             self.send_json(load_json(DATA_COMMIT_STATUS))
+        elif parsed.path == "/api/command-status":
+            status = load_json(COMMAND_STATUS)
+            requested_command = clean_text((query.get("command") or [""])[0])
+            if requested_command and clean_text(status.get("command")) != requested_command:
+                status = {"state": "idle", "command": requested_command}
+            self.send_json(status)
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
 
@@ -5827,9 +6069,9 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
         if time_filter not in {key for key, _ in READER_TIME_FILTERS}:
             time_filter = "all"
         try:
-            month_limit = max(1, min(24, int(form_value(query, "months", "2") or "2")))
+            month_limit = max(1, min(24, int(form_value(query, "months", "1") or "1")))
         except ValueError:
-            month_limit = 2
+            month_limit = 1
         start_date = clean_text((query.get("start") or [""])[0])
         end_date = clean_text((query.get("end") or [""])[0])
         time_start, time_end = reader_time_bounds(time_filter, start_date, end_date)
@@ -5889,7 +6131,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
             redirect_parts.append(f"view={quote(view_mode)}")
         if time_filter != "all":
             redirect_parts.append(f"time={quote(time_filter)}")
-        if month_limit != 2:
+        if month_limit != 1:
             redirect_parts.append(f"months={month_limit}")
         if time_filter == "custom":
             if start_date:
@@ -5972,17 +6214,21 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
 </article>
 """
 
-        def reader_section(section_id: str, title: str, description: str, section_items: list[dict], default_layout: str) -> str:
+        def reader_section(section_id: str, title: str, description: str, section_items: list[dict], default_layout: str, timeline: bool = False) -> str:
             cards_html = "".join(reader_card(item, f"{section_id}-card") for item in section_items)
             list_html = "".join(reader_list_row(item) for item in section_items)
             compact_html = "".join(reader_compact_row(item) for item in section_items)
             empty = '<div class="card"><p class="muted">目前沒有符合這個區塊的文章。</p></div>'
+            period_heading = f'<div class="reader-period-heading"><span>{h(title)}</span></div>' if timeline else ""
+            header_title = "" if timeline else f"<h3>{h(title)}</h3>"
+            description_html = f'<p class="muted">{h(description)}</p>' if description else ""
             return f"""
 <section class="reader-layout-section" id="{h(section_id)}" data-layout="{h(default_layout)}">
+  {period_heading}
   <div class="layout-bar">
     <div>
-      <h3>{h(title)}</h3>
-      <p class="muted">{h(description)}</p>
+      {header_title}
+      {description_html}
     </div>
     {layout_toggle(section_id, default_layout)}
   </div>
@@ -5992,8 +6238,9 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
 </section>
 """
 
+        time_sorted_filtered = sorted(filtered, key=lambda item: (item_sort_time(item), item_display_title(item)), reverse=True)
         month_keys: list[str] = []
-        for item in filtered:
+        for item in time_sorted_filtered:
             key = reader_month_key(item)
             if key not in month_keys:
                 month_keys.append(key)
@@ -6004,30 +6251,66 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
         more_link = ""
         if hidden_month_count:
             more_parts = [part for part in redirect_parts if not part.startswith("months=")]
-            more_parts.append(f"months={month_limit + 2}")
+            more_parts.append(f"months={month_limit + 1}")
             more_href = "/reader?" + "&".join(more_parts)
-            more_link = f'<p><a class="button secondary" href="{h(more_href)}">more：再載入 2 個月</a> <span class="muted">還有 {hidden_month_count} 個月份未顯示。</span></p>'
+            more_link = f'<p class="reader-more-row"><a class="button secondary" href="{h(more_href)}">more：再載入 1 個月</a> <span class="muted">還有 {hidden_month_count} 個月份未顯示。</span></p>'
         if not visible_items:
             if reading_filter == "current":
                 reader_content = reader_section("reader-current", "優先正在閱讀區", "近期特別想讀、想分享，且後續 skill 會優先參考的文章。", [], "card")
             else:
                 reader_content = '<div class="card"><strong>目前沒有符合條件的閱讀項目</strong><p class="muted">在 RSS 待整理按「確認收」或「直接送 PR（小消息）」後，會出現在這裡。</p></div>'
         else:
-            period_groups: list[tuple[str, list[dict]]] = []
-            period_index: dict[str, int] = {}
-            for item in visible_items:
-                label = reader_period_label(item)
-                if label not in period_index:
-                    period_index[label] = len(period_groups)
-                    period_groups.append((label, []))
-                period_groups[period_index[label]][1].append(item)
+            def timeline_sections(category_id: str, title: str, description: str, section_items: list[dict], default_layout: str) -> str:
+                if not section_items:
+                    return ""
+                period_groups: list[tuple[str, list[dict]]] = []
+                period_index: dict[str, int] = {}
+                for section_item in section_items:
+                    label = reader_period_label(section_item)
+                    if label not in period_index:
+                        period_index[label] = len(period_groups)
+                        period_groups.append((label, []))
+                    period_groups[period_index[label]][1].append(section_item)
+                period_html = []
+                for label, period_items in period_groups:
+                    layout = view_mode if view_mode != "auto" else default_layout
+                    period_html.append(
+                        reader_section(
+                            f"{category_id}-{reader_period_key(period_items[0])}",
+                            label,
+                            f"{len(period_items)} 筆",
+                            period_items,
+                            layout,
+                            timeline=True,
+                        )
+                    )
+                return f"""
+<section class="reader-category" id="{h(category_id)}">
+  <h2>{h(title)}</h2>
+  <p class="muted">{h(description)}</p>
+  {''.join(period_html)}
+</section>
+"""
 
+            current_items = [item for item in visible_items if item_is_current_reading(item)]
+            regular_items = [item for item in visible_items if not item_is_current_reading(item)]
+            category_items = regular_items if kind_filter == "all" else visible_items
+            primary_items = [item for item in category_items if item_display_kind(item) in {"featured-article", "opinion-article"}]
+            small_news_items = [item for item in category_items if item_display_kind(item) == "small-news"]
+            other_items = [item for item in category_items if item_display_kind(item) not in {"featured-article", "opinion-article", "small-news"}]
             sections = []
-            for label, period_items in period_groups:
-                default_layout = view_mode if view_mode != "auto" else ("list" if all(item_display_kind(item) == "small-news" for item in period_items) else "card")
-                description = f"{len(period_items)} 筆。最近先顯示 {month_limit} 個月份，超過就用 more 延伸。"
-                sections.append(reader_section(f"reader-period-{reader_period_key(period_items[0])}", label, description, period_items, default_layout))
-            reader_content = "".join(sections)
+            if current_items and kind_filter == "all":
+                sections.append(timeline_sections("reader-current", "優先正在閱讀區", "近期特別想讀、想分享，且後續 skill 會優先參考的文章。", current_items, "card"))
+            if reading_filter == "current":
+                reader_content = timeline_sections("reader-current", "優先正在閱讀區", "近期特別想讀、想分享，且後續 skill 會優先參考的文章。", visible_items, "card")
+            else:
+                if kind_filter in {"all", "featured-article", "opinion-article"}:
+                    sections.append(timeline_sections("reader-primary", "精選文章與觀點文章", "適合細讀、整理觀點或後續跑 skill 的文章。", primary_items, "card"))
+                if kind_filter in {"all", "small-news"}:
+                    sections.append(timeline_sections("reader-small-news", "小消息列表", "純新聞消息維持列表模式，快速掃讀、必要時點進單篇。", small_news_items, "list"))
+                if kind_filter in {"all", "needs-review"}:
+                    sections.append(timeline_sections("reader-other", "其他待判斷", "尚未明確落在精選、觀點或小消息的閱讀項目。", other_items, "compact"))
+                reader_content = "".join(section for section in sections if section) or '<div class="card"><strong>目前沒有符合條件的閱讀項目</strong></div>'
 
         track_options = [("all", "全部主線")] + [(track, TRACK_META[track]["label"]) for track in TRACK_ORDER]
         kind_options = [
@@ -6127,7 +6410,6 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
 </form>
 <h2>文章</h2>
 <p class="muted">符合條件：{len(filtered)} 筆。時間：{h(reader_time_summary(time_filter, start_date, end_date))}。目前顯示最近 {month_limit} 個月份、至多 180 筆。</p>
-{more_link}
 {reader_content}
 {more_link}
 <script>
@@ -6240,9 +6522,9 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         kind = item_display_kind(item)
         image = item_image_url(item)
         image_html = (
-            f"<div class='item-image'><img src='{h(image)}' alt=''></div>"
+            f"<div class='item-image item-image--compact'><img src='{h(image)}' alt=''></div>"
             if image
-            else f"<div class='item-image'>{h(track_meta(item.get('track', 'unclassified'))['short'])}</div>"
+            else f"<div class='item-image item-image--compact'>{h(track_meta(item.get('track', 'unclassified'))['short'])}</div>"
         )
         article_text = item_article_text(item)
         article_markdown = item_article_markdown(item)
@@ -6290,7 +6572,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         if isinstance(personal_notes, dict) and personal_notes.get("updated_at"):
             note_updated = f"<p class='help'>上次更新：{h(personal_notes.get('updated_at'))}</p>"
         tag_reference_records = [*all_items, *candidate_records, *load_jsonl(REJECTED_ITEMS)]
-        tag_panel = tag_editor_html(item, tag_reference_records, item_detail_href(item))
+        tag_panel = tag_editor_html(item, tag_reference_records, item_detail_href(item), autosave=True)
         reading_priority_actions = "" if is_rss_candidate else reading_priority_form(item, item_detail_href(item))
 
         inbox_actions = ""
@@ -6298,8 +6580,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             reason_options = rejection_reason_options(load_jsonl(ITEMS))
             inbox_actions = f"""
 <div class="card">
-  <h2>RSS 新進決定</h2>
-  <p class="muted">這則還在 RSS 新進。確認收或直接送 PR 時，系統會先寫進 database/items.jsonl，再套用你的決定；不收會寫入不收學習檔與略過清單。</p>
+  <h2>RSS 新進決定 <span class="help-dot" title="確認收或直接送 PR 會先寫進 database/items.jsonl；不收會寫入學習檔與略過清單。">?</span></h2>
   <div class="button-row">
     <form method="post" action="/candidates/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
@@ -6344,8 +6625,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             reason_options = rejection_reason_options(load_jsonl(ITEMS))
             inbox_actions = f"""
 <div class="card">
-  <h2>{h(action_title)}</h2>
-  <p class="muted">{h(action_help)}</p>
+  <h2>{h(action_title)} <span class="help-dot" title="{h(action_help)}">?</span></h2>
   <div class="button-row">
     <form method="post" action="/items/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
@@ -6376,7 +6656,6 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
       <button type="submit" class="danger">{button_content("確認不收並記錄原因", "reject", "X")}</button>
     </form>
   </details>
-  <p class="help">確認收會放到待跑 skill；直接送 PR 適合純事實小消息；不收會保留原因供之後學習。</p>
 </div>
 """
 
@@ -6396,8 +6675,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
       </form>
 """
         metadata_form = f"""
-    <div class="card">
-      <h2>原始 metadata</h2>
+    <details class="card metadata-dock">
+      <summary><h2>原始 metadata</h2><span class="help-dot" title="手動修正網站標題、語言、授權與作者；這區需要按儲存。">?</span></summary>
       <form method="post" action="/items/update-metadata">
         <input type="hidden" name="id" value="{h(item_id)}">
         <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
@@ -6416,15 +6695,12 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         <input name="original_license_url" value="{h(article_meta.get('original_license_url', ''))}" placeholder="https://...">
         <button type="submit">儲存 metadata</button>
       </form>
-      <p class="help">標成「推斷」的欄位代表系統只從頁面字樣或內容比例判讀，仍可手動修正。</p>
-    </div>
+    </details>
 """
         status_badge = badge("RSS 新進", "neutral") if is_rss_candidate else badge(status_label(item.get("status", "")), "neutral")
         top_navigation = f"""
 <nav class="article-top-nav" aria-label="返回">
-  <a class="button quiet" href="{h(context_home)}">{icon_span("back", "", "icon")}{h(context_home_label)}</a>
-  <a class="button secondary" href="/items">{icon_span("back", "", "icon")}RSS 待整理</a>
-  <a class="button secondary" href="/reader">{icon_span("back", "", "icon")}閱讀區</a>
+  <a class="button article-back-button" href="{h(self.same_origin_referer_path(context_home))}">{icon_span("back", "", "icon")}上一頁</a>
 </nav>
 """
         previous_nav = (
@@ -6438,44 +6714,77 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             else ""
         )
         bottom_navigation = f'<nav class="article-sequence-nav" aria-label="前後項目">{previous_nav}{next_nav}</nav>' if previous_nav or next_nav else ""
-        note_anchor = '<a class="button secondary" href="#personal-note-panel">筆記</a>' if not is_rss_candidate else ""
+        personal_note_panel = "" if is_rss_candidate else f"""
+  <div class="card" id="personal-note-panel">
+    <h2>我的關鍵紀錄 <span class="help-dot" title="寫下你的判斷、疑問或想補的觀點；重新送 skill 時會一起參考。">?</span></h2>
+    <form method="post" action="/items/personal-note">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <textarea name="note" placeholder="例如：這篇和 OCF 的資料治理倡議有關，但要補台灣案例。">{h(note)}</textarea>
+      <button type="submit">儲存我的紀錄</button>
+    </form>
+    {note_updated}
+  </div>
+  <div class="card">
+    <h2>重新送 skill <span class="help-dot" title="不會自動發 PR，只會留下重送 skill 紀錄並把狀態放回待跑 skill。">?</span></h2>
+    <form method="post" action="/items/requeue-skill">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <button type="submit">用我的觀點重新送 skill</button>
+    </form>
+  </div>
+"""
         action_dock = f"""
 <aside class="article-action-dock">
   {inbox_actions}
   <div class="card">
-    <h2>閱讀操作</h2>
+    <h2>閱讀操作 <span class="help-dot" title="這個面板會跟著畫面停在右側，讀到哪裡都能操作。">?</span></h2>
     <div class="button-row article-dock-actions">
       {read_more_actions}
       {reading_priority_actions}
-      <a class="button secondary" href="#tag-panel">Tag</a>
-      {note_anchor}
-      <a class="button quiet" href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a>
     </div>
-    <p class="help">這個面板會跟著畫面停在右側，讀到哪裡都能操作。</p>
   </div>
+  {tag_panel}
+  {metadata_form}
+  {personal_note_panel}
 </aside>
 """
         body = f"""
 {top_navigation}
-<details class="title-editor">
-  <summary>
-    <h1>{h(display_title)}</h1>
-    <span class="help">點擊標題可編輯；原始標題：{h(original_title)}</span>
-  </summary>
-  <form method="post" action="/items/update-title">
-    <input type="hidden" name="id" value="{h(item_id)}">
-    <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
-    <label>對外顯示標題</label>
-    <input name="title" value="{h(display_title)}" placeholder="輸入要顯示的中文標題">
-    <button type="submit">儲存標題</button>
-    <p class="help">留空儲存會清除人工標題，改回 Codex 中文標題或原始標題。</p>
-  </form>
-</details>
-<p class="lede break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · {h(item.get('url'))}</p>
 {notice}
 <div class="article-detail-layout">
 <div class="article-detail-main">
-<div class="item-hero">
+<div class="article-title-grid">
+  <div>
+    <details class="title-editor">
+      <summary title="編輯標題與原始網址">
+        <h1>{h(display_title)}</h1>
+        <span class="help">原始標題：{h(original_title)}</span>
+      </summary>
+      <div class="title-editor-fields">
+        <form method="post" action="/items/update-title">
+          <input type="hidden" name="id" value="{h(item_id)}">
+          <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+          <label>對外顯示標題</label>
+          <input name="title" value="{h(display_title)}" placeholder="輸入要顯示的中文標題">
+          <button type="submit">儲存標題</button>
+        </form>
+        <form method="post" action="/items/update-url">
+          <input type="hidden" name="id" value="{h(item_id)}">
+          <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+          <label>原始網址</label>
+          <p class="muted break-anywhere"><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('url') or '尚未填寫')}</a></p>
+          <input name="url" value="{h(item.get('url', ''))}" placeholder="https://example.com/article">
+          <div class="button-row">
+            <button type="submit" name="action" value="save">儲存網址</button>
+            <button type="submit" name="action" value="resolve" class="secondary">帶入跳轉後網址</button>
+          </div>
+        </form>
+      </div>
+    </details>
+    <p class="lede break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
+  </div>
+  {image_html}
+</div>
+
   <section class="card">
     <div>
       {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
@@ -6488,8 +6797,6 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     {tag_chips_html(item_visible_tags(item, 8))}
     <p>{h(clean_text(item.get('summary'), 1800))}</p>
   </section>
-  {image_html}
-</div>
 
 <section class="card fulltext-panel source-card source-card--source" id="fulltext-panel"{fulltext_hidden}>
   <div class="section-kicker">原始主文</div>
@@ -6500,57 +6807,15 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 </section>
 {translation_panel}
 
-<div class="two-column">
-  <section>
-    <h2>閱讀建議與判斷來源</h2>
-    {editorial_triage_html(item, reject_action='/candidates/dismiss' if is_rss_candidate else '/items/reject')}
-    <div class="card">
-      <h2>關鍵字第一層判斷</h2>
-      <p class="help">建議：{h(recommendation_label(candidate_recommendation(item)))}<br>理由：{h(triage.get('reason', '未標示'))}<br>命中：{h('、'.join(triage.get('matched_keywords') or []) or '無')}<br>排除：{h('、'.join(triage.get('skip_keywords') or []) or '無')}</p>
-    </div>
-    {skill_rows}
-  </section>
-  <aside>
-    <div class="card">
-      <h2>原始網址</h2>
-      <p class="muted break-anywhere"><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('url') or '尚未填寫')}</a></p>
-      <form method="post" action="/items/update-url">
-        <input type="hidden" name="id" value="{h(item_id)}">
-        <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
-        <label>編輯原始網址</label>
-        <input name="url" value="{h(item.get('url', ''))}" placeholder="https://example.com/article">
-        <div class="button-row">
-          <button type="submit" name="action" value="save">儲存網址</button>
-          <button type="submit" name="action" value="resolve" class="secondary">帶入跳轉後網址</button>
-        </div>
-      </form>
-      <p class="help">Google 快訊或追蹤網址如果會先跳轉，可先按「帶入跳轉後網址」，再展開全文。</p>
-    </div>
-    {tag_panel}
-    {metadata_form}
-    {'' if is_rss_candidate else f'''
-    <div class="card" id="personal-note-panel">
-      <h2>我的關鍵紀錄</h2>
-      <p class="muted">寫你自己的判斷、疑問或想補的觀點。之後按重新送 skill 時，agent 要用這段重新檢視文章。</p>
-      <form method="post" action="/items/personal-note">
-        <input type="hidden" name="id" value="{h(item_id)}">
-        <textarea name="note" placeholder="例如：這篇和 OCF 的資料治理倡議有關，但要補台灣案例。">{h(note)}</textarea>
-        <button type="submit">儲存我的紀錄</button>
-      </form>
-      {note_updated}
-    </div>
-    <div class="card">
-      <h2>重新送 skill</h2>
-      <p class="muted">如果讀完覺得這篇超值得整理，先寫好你的觀點，再按這顆。它會回到候選清單，等待用你的觀點跑撰稿 skill。</p>
-      <form method="post" action="/items/requeue-skill">
-        <input type="hidden" name="id" value="{h(item_id)}">
-        <button type="submit">用我的觀點重新送 skill</button>
-      </form>
-      <p class="help">這不會自動發 PR，只會留下「重送 skill」紀錄並把狀態放回待跑 skill。</p>
-    </div>
-    '''}
-  </aside>
-</div>
+<section class="article-detail-stack">
+  <h2>閱讀建議與判斷來源</h2>
+  {editorial_triage_html(item, reject_action='/candidates/dismiss' if is_rss_candidate else '/items/reject')}
+  <div class="card">
+    <h2>關鍵字第一層判斷</h2>
+    <p class="help">建議：{h(recommendation_label(candidate_recommendation(item)))}<br>理由：{h(triage.get('reason', '未標示'))}<br>命中：{h('、'.join(triage.get('matched_keywords') or []) or '無')}<br>排除：{h('、'.join(triage.get('skip_keywords') or []) or '無')}</p>
+  </div>
+  {skill_rows}
+</section>
 </div>
 {action_dock}
 </div>
@@ -6961,11 +7226,18 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         item_id = form_value(data, "id")
         redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
         tags = self.selected_tag_values(data)
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
         found = self.update_tags_record(ITEMS, item_id, tags)
         if not found:
             found = self.update_tags_record(CANDIDATES, item_id, tags)
         if not found:
+            if wants_json:
+                self.send_json({"ok": False, "error": "找不到可更新 tag 的項目"}, HTTPStatus.NOT_FOUND)
+                return
             self.send_html("找不到項目", "<h1>找不到可更新 tag 的項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        if wants_json:
+            self.send_json({"ok": True, "id": item_id, "tags": tags})
             return
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=tags")
@@ -7542,11 +7814,15 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         field = form_value(data, "field")
         value = form_value(data, "value")
         redirect_to = safe_redirect_path(form_value(data, "redirect"), "/sources")
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
         allowed_values = {
             "status": SOURCE_STATUSES,
             "fetch_frequency": FETCH_FREQUENCIES,
         }
         if field not in allowed_values or value not in allowed_values[field]:
+            if wants_json:
+                self.send_json({"ok": False, "error": "欄位不允許"}, HTTPStatus.BAD_REQUEST)
+                return
             self.send_html("欄位不允許", "<h1>欄位不允許</h1>", HTTPStatus.BAD_REQUEST)
             return
         sources = load_jsonl(SOURCES)
@@ -7561,9 +7837,15 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             updated_sources.append(updated)
             found = True
         if not found:
+            if wants_json:
+                self.send_json({"ok": False, "error": "找不到來源"}, HTTPStatus.NOT_FOUND)
+                return
             self.send_html("找不到來源", "<h1>找不到來源</h1><p><a class='button' href='/sources'>回 RSS 來源</a></p>", HTTPStatus.NOT_FOUND)
             return
         write_jsonl(SOURCES, updated_sources)
+        if wants_json:
+            self.send_json({"ok": True, "id": source_id, "field": field, "value": value})
+            return
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=source_quick")
 
@@ -8201,12 +8483,12 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             hint = "點一下暫停抓取" if status == "active" else "點一下恢復啟用"
             active_class = " is-on" if status == "active" else ""
             return f"""
-<form class="source-toggle-form" method="post" action="/sources/quick-update">
+<form class="source-toggle-form" method="post" action="/sources/quick-update" data-source-toggle-form>
   <input type="hidden" name="id" value="{h(source_id)}">
   <input type="hidden" name="field" value="status">
-  <input type="hidden" name="value" value="{h(next_status)}">
+  <input type="hidden" name="value" value="{h(next_status)}" data-source-toggle-value>
   <input type="hidden" name="redirect" value="{h(redirect_path)}">
-  <button type="submit" class="source-toggle{active_class}" title="{h(hint)}" aria-label="{h(hint)}"><span></span>{h(label)}</button>
+  <button type="submit" class="source-toggle{active_class}" title="{h(hint)}" aria-label="{h(hint)}" data-source-toggle-button><span></span>{h(label)}</button>
 </form>
 """
 
@@ -8787,8 +9069,35 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             self.send_html(str(config["label"]), body)
             return
         command = config["command"]
-        result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=600)
+        write_json(
+            COMMAND_STATUS,
+            {
+                "command": command_name,
+                "state": "running",
+                "message": f"正在執行：{config['label']}",
+                "started_at": now_iso(),
+            },
+        )
+        try:
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=600)
+        except subprocess.TimeoutExpired as exc:
+            result = subprocess.CompletedProcess(
+                command,
+                124,
+                stdout=clean_text(exc.stdout or ""),
+                stderr=(clean_text(exc.stderr or "") + "\n指令逾時。").strip(),
+            )
         output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
+        write_json(
+            COMMAND_STATUS,
+            {
+                "command": command_name,
+                "state": "done" if result.returncode == 0 else "failed",
+                "message": "完成" if result.returncode == 0 else "執行失敗",
+                "returncode": result.returncode,
+                "finished_at": now_iso(),
+            },
+        )
         if wants_json:
             self.send_json(
                 {
