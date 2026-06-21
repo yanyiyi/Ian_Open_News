@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>研究者以數位方式保存全球最瀕危海洋哺乳動物小頭鼠海豚</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">尚未載入全文</span>
       <span class="badge">2026-06-17 08:00</span>
     </div>
-    <h2>研究者以數位方式保存全球最瀕危海洋哺乳動物小頭鼠海豚</h2>
+    <h2><a class="article-title-link" href="https://www.openaccessgovernment.org/vaquita-researchers-digitally-preserve-the-worlds-most-endangered-marine-mammal/210618/" target="_blank" rel="noreferrer" title="開啟原始連結">研究者以數位方式保存全球最瀕危海洋哺乳動物小頭鼠海豚</a></h2>
     <p class="lede">佛羅里達大西洋大學研究者建立了小頭鼠海豚的高細節數位檔案。小頭鼠海豚被描述為世界上最小且最瀕危的海洋哺乳動物；目前摘要只看得出數位保存成果，還不能判斷其開放性。</p>
 
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://www.openaccessgovernment.org/vaquita-researchers-digitally-preserve-the-worlds-most-endangered-marine-mammal/210618/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></section>
   </article>

@@ -462,37 +462,11 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     .story-body {{ padding: 14px; }}
     .summary {{ white-space: pre-wrap; }}
     .actions {{ display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }}
-    .story-card .actions {{ gap: 6px; margin-top: 8px; }}
-    .story-card .actions {{ justify-content: flex-end; }}
-    .story-card .actions .reader-action-button {{
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {{
+      text-decoration: none;
     }}
-    .story-card .actions svg {{
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }}
-    .reader-action-label {{
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {{
+      text-decoration: underline;
     }}
     .news-list {{ display: grid; gap: 10px; margin-top: 12px; }}
     .news-item {{
@@ -617,6 +591,14 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       padding: 16px;
     }}
     .article-body {{ max-width: 760px; }}
+    .article-title-link {{
+      color: var(--ink);
+      text-decoration: none;
+    }}
+    .article-title-link:hover {{
+      color: var(--link);
+      text-decoration: underline;
+    }}
     .article-body img {{ max-width: 100%; height: auto; }}
     .article-body pre {{ white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }}
     .article-body blockquote {{ border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }}
@@ -672,10 +654,6 @@ def item_card(item: dict) -> str:
     <h2><a href="{h(article_href(item))}">{h(item_display_title(item))}</a></h2>
     <p class="summary">{h(summary)}</p>
     {public_tag_chips(item)}
-    <div class="actions">
-      <a class="button secondary reader-action-button" href="{h(article_href(item))}" aria-label="閱讀單篇" title="閱讀單篇">{action_icon("read")}{action_label("閱讀單篇")}</a>
-      {f'<a class="button quiet reader-action-button" href="{h(clean_text(item.get("url")))}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{action_icon("external")}{action_label("原始連結")}</a>' if clean_text(item.get("url")) else ''}
-    </div>
   </div>
 </article>
 """
@@ -744,6 +722,12 @@ def article_page(item: dict, repo_url: str, branch: str) -> str:
     article_html = markdown_to_html(body_markdown) if body_markdown else "<p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p>"
     note_key = h(clean_text(item.get("id")))
     source_url = clean_text(item.get("url"))
+    title = item_display_title(item)
+    title_html = (
+        f'<a class="article-title-link" href="{h(source_url)}" target="_blank" rel="noreferrer" title="開啟原始連結">{h(title)}</a>'
+        if source_url
+        else h(title)
+    )
     side = f"""
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>
@@ -776,13 +760,11 @@ document.getElementById("note-save").addEventListener("click", () => {{
       {'<span class="badge">已載入本機全文</span>' if body_markdown else '<span class="badge">尚未載入全文</span>'}
       <span class="badge">{h(item_date(item))}</span>
     </div>
-    <h2>{h(item_display_title(item))}</h2>
+    <h2>{title_html}</h2>
     <p class="lede">{h(item_zh_summary(item, 520))}</p>
     {public_tag_chips(item, 8)}
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      {f'<a class="button quiet" href="{h(source_url)}" target="_blank" rel="noreferrer">原始連結</a>' if source_url else ''}
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) {{ history.back(); return false; }}">返回</a>
     </div>
     <section class="article-body">{article_html}</section>
   </article>
@@ -814,7 +796,6 @@ def index_page(items: list[dict]) -> str:
 <section>
   <h2>最新小消息 {public_help_dot("小消息改成列表，適合快速掃過；完整列表在下一頁。")}</h2>
   {news_preview}
-  <div class="actions"><a class="button secondary" href="news.html">看全部小消息</a></div>
 </section>
 <div class="empty" data-time-empty hidden>這個時間範圍沒有可顯示的項目。</div>
 """

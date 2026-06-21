@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>推薦資源：掌握 WSIS 2026 核心議題</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-19 08:00</span>
     </div>
-    <h2>推薦資源：掌握 WSIS 2026 核心議題</h2>
+    <h2><a class="article-title-link" href="https://www.apc.org/en/news/recommended-resources-explore-issues-core-wsis-2026" target="_blank" rel="noreferrer" title="開啟原始連結">推薦資源：掌握 WSIS 2026 核心議題</a></h2>
     <p class="lede">APC 為 2026 年 7 月 5 至 9 日在日內瓦舉行的 WSIS Forum 2026 整理一份會前閱讀資源。這份清單聚焦 APC 及其網絡在 WSIS 場域會推動的議題，包括社群中心連網、社群網路監管、數位落差融資、農村與原住民族 ICT 培訓、WSIS+20 審查、公民社會與全球南方觀點、多方利害關係人參與，以及 AI 治理中的性別與人權議題。它比較像政策背景資料入口，不是事件深度報導。</p>
     <div class="tag-chip-list"><span class="tag-chip">OCF</span><span class="tag-chip">開放文化基金會</span></div>
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://www.apc.org/en/news/recommended-resources-explore-issues-core-wsis-2026" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>Recommended resources: Explore issues at the core of WSIS 2026</h1>
 <p>The World Summit on the Information Society (WSIS) Forum 2026 will take place from 5 to 9 July 2026 in Geneva, Switzerland. This hybrid event is hosted by the International Telecommunication Union (ITU) and Switzerland. APC staff, members and partners will once again use this important event to amplify the voices of our network, exploring emerging issues and digital priorities (<a href="https://www.apc.org/en/news/apc-world-summit-information-society-wsis-forum-2026" target="_blank" rel="noreferrer">find out more about APC&#x27;s participation here</a>). To prepare for the upcoming forum, we recommend the following resources for background on APC’s engagement at WSIS, as well as context on some of the key issues we are focusing on.</p>

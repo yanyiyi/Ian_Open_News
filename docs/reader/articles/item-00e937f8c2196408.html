@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>42dot 通過 ISO/IEC 5230 開源合規認證</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:56+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-19 08:00</span>
     </div>
-    <h2>42dot 通過 ISO/IEC 5230 開源合規認證</h2>
+    <h2><a class="article-title-link" href="https://openchainproject.org/news/2026/06/19/42dot-achieves-conformance-with-iso-iec-5230" target="_blank" rel="noreferrer" title="開啟原始連結">42dot 通過 ISO/IEC 5230 開源合規認證</a></h2>
     <p class="lede">標題顯示 42dot 已達成 ISO/IEC 5230 的符合性要求，應是一則 OpenChain 相關的企業開源合規公告。就目前資訊來看，它比較像開源治理標準採用的小消息，而不是可直接寫成深度分析的材料。</p>
     <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://openchainproject.org/news/2026/06/19/42dot-achieves-conformance-with-iso-iec-5230" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>42dot Achieves Conformance with ISO/IEC 5230 – OpenChain</h1>
 <p>42dot has achieved conformance with ISO/IEC 5230, the international standard for open source license compliance developed through the OpenChain Project. ISO/IEC 5230 provides a framework for organizations to establish and maintain effective open source compliance programs. Conformance demonstrates that an organization has implemented the processes and controls needed to manage open source software and associated license obligations in a consistent and reliable manner. As part of this effort, 42dot strengthened its open source governance framework and enhanced collaboration across engineering, legal, and other key functions. The result is a scalable compliance program that supports the responsible use of open source software throughout the organization. Open source software plays a critical role in modern mobility solutions, including software-defined vehicles and connected mobility platforms. As these technologies continue to evolve, effective governance helps organizations manage software supply chain risks while enabling innovation and collaboration. “Achieving ISO/IEC 5230 conformance marks an important milestone for 42dot,” said a company representative. “The work involved in reaching this standard has helped us further mature our internal processes and establish a strong foundation for the continued growth of our open source activities.” This achievement also reinforces the importance of transparency, accountability, and effective software supply chain management as open source software continues to power the next generation of mobility technologies. 42dot joins a growing community of organizations around the world that have adopted ISO/IEC 5230 as a benchmark for open source compliance and software supply chain management.</p></section>

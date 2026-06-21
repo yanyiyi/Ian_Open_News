@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>Git worktrees 是什麼？為什麼該使用？</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:56+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">尚未載入全文</span>
       <span class="badge">2026-06-16 08:00</span>
     </div>
-    <h2>Git worktrees 是什麼？為什麼該使用？</h2>
+    <h2><a class="article-title-link" href="https://github.blog/ai-and-ml/github-copilot/what-are-git-worktrees-and-why-should-i-use-them/" target="_blank" rel="noreferrer" title="開啟原始連結">Git worktrees 是什麼？為什麼該使用？</a></h2>
     <p class="lede">這篇 GitHub Blog 介紹 git worktrees 的概念、使用方式，以及為什麼近年重新受到關注。從摘要看，它主要是開發者工具教學，可能有助於理解多分支或多工作區開發流程，但目前看不出明確的開放科技公共議題角度。</p>
     <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span></div>
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://github.blog/ai-and-ml/github-copilot/what-are-git-worktrees-and-why-should-i-use-them/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></section>
   </article>

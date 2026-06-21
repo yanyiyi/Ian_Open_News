@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>《Governing the Future》：愛丁堡 Data and AI Exchange 的 AI 治理建議</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-17 08:00</span>
     </div>
-    <h2>《Governing the Future》：愛丁堡 Data and AI Exchange 的 AI 治理建議</h2>
+    <h2><a class="article-title-link" href="https://thelivinglib.org/governing-the-future/" target="_blank" rel="noreferrer" title="開啟原始連結">《Governing the Future》：愛丁堡 Data and AI Exchange 的 AI 治理建議</a></h2>
     <p class="lede">這是一份由愛丁堡大學相關單位提出的報告介紹，主題是如何讓 AI 的開發與使用建立信任並帶來實際利益。摘要指出，報告彙整給蘇格蘭與英國政府的 AI 治理建議，但沒有列出具體政策內容。</p>
 
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://thelivinglib.org/governing-the-future/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>Governing The Future</h1>
 <p><a href="https://www.sps.ed.ac.uk/news-events/news/citizens-assembly-public-voice-ai-report" target="_blank" rel="noreferrer">Report</a> by the University of Edinburgh: “… has recommendations for the Scottish and UK governments on steps that can be taken to ensure AI is developed and used in ways that create trust and deliver real benefits. The report, Governing the Future: Recommendations from the Edinburgh Data and AI Exchange, brings together proposals on AI skills, national infrastructure, health data governance and democratic oversight… A key recommendation for the UK Government is to establish a standing citizens’ assembly on AI and society. A citizens’ assembly is a group made up of members of the public, selected through a process of random sampling designed to reflect the demographic makeup of the wider population, to explore societal issues and make policy recommendations. The report argues this should be a permanent, properly resourced mechanism through which the public has a genuine and continuing role in shaping decisions about AI. This mirrors the findings of a 2025 Ada Lovelace Institute survey, which found that 60 per cent of UK adults do not feel they have meaningful input on government decisions about AI. Dr Morgan Currie, Senior Lecturer in Data and Society at the School of Social and Political Science, spoke at the event. She said: “This report reflects what I heard at the Exchange and over and over again in my own research – that people want a say in the governance of technologies affecting them in their daily life, at their work, and increasingly in their interactions with government services. They want to reimagine technology for socially and environmental beneficial ends, beyond the narrow visions on offer by foreign-owned Big Tech.”..(<a href="https://www.sps.ed.ac.uk/news-events/news/citizens-assembly-public-voice-ai-report" target="_blank" rel="noreferrer">More</a>)”.</p>

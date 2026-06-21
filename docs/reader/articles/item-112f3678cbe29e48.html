@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scientists Propose Black Holes Don’t Exist, Are Something Much Stranger - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>Scientists Propose Black Holes Don’t Exist, Are Something Much Stranger</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">純新聞 / 小消息</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-20 08:00</span>
+    </div>
+    <h2><a class="article-title-link" href="https://www.404media.co/scientists-propose-black-holes-dont-exist-are-something-much-stranger/" target="_blank" rel="noreferrer" title="開啟原始連結">Scientists Propose Black Holes Don’t Exist, Are Something Much Stranger</a></h2>
+    <p class="lede">A seismic wave from the 2011 Tohoku-Oki earthquake bounced off the Earth’s core and hit Japan from below, shifting the entire mainland a quarter-inch eastward.</p>
+    <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
+    </div>
+    <section class="article-body"><h1>科學家提出：黑洞可能不存在，而是更奇異的東西</h1>
+<p>歡迎回到 The Abstract！本週的故事震動了地球、孕育了一個宇宙、在太空中爆發，還追尋了鱗翅目昆蟲的青春之泉。 首先，一道來自毀滅性地震的波動一路傳到地心又折返回來，揭露了前所未見的現象。接著：一份重力星的生成配方、一場天體火葬後的輕柔灰燼雨，以及蝴蝶長者的祕密。</p>
+<h2><strong>一道真的移動了一個國家的波</strong></h2>
+<p><a href="https://www.science.org/doi/10.1126/science.aec4190?ref=404media.co" target="_blank" rel="noreferrer">Park, Sunyoung et al. “ScS-triggered slip on megathrust interfaces after the 2011 MW 9.0 Tohoku-Oki earthquake.” Science.</a> 根據一項新研究，2011 年發生在日本東部的毀滅性東北地方太平洋近海地震，產生了一道威力強大的地震「剪切」波。這道波從地核反彈，13 分鐘後再次撞上地表，使日本本州整體永久向東偏移約四分之一英吋。 地震波從地核反彈並不罕見，但科學家過去從未偵測到反彈波再次撞擊地殼。研究指出，當全球導航衛星系統（GNSS）的測量結果持續顯示，日本在地震後似乎略微向東移動，科學家才「驚訝」地意識到，從地核反射回來的波很可能就是這次「滑移事件」的原因。 芝加哥大學 Sunyoung Park 領導的研究團隊表示：「我們報告了一項非凡的觀測：在東北地方太平洋近海地震之後，日本出現的地面運動，可歸因於一道傳到地核又返回的剪切波所觸發的多板塊界面滑移事件。」 團隊接著說：「這次滑移事件橫跨兩個板塊邊界，是目前已記錄單一事件中破裂範圍最廣的一次。其總長度與日本本州相近（約 3000 公里），比主震破裂長度長六到七倍，也超過 2004 年蘇門答臘大地震的兩倍。」 雖然這記地震「上鉤拳」的強度遠低於原本的地震，但這道波幾乎同時抵達如此廣大的區域，導致大陸板塊邊界之間發生滑移。結果是，日本本州朝太平洋方向移動約 6 毫米。這聽起來不多，但科學家從未觀測過單一地震事件以這種方式移動大片陸地。 這項發現不只揭露了一個令人難以想像的新現象，也提醒人們在準備未來超大型地震、評估其後果時需要納入考量。團隊總結，地核反射波「是一種過去未被認識到的地震危害來源，可能重新活化主震區域以及周邊更廣大的巨型逆衝斷層界面」。</p>
+<h2><strong>塌縮的物質還能做出什麼？</strong></h2>
+<p><a href="https://journals.aps.org/prd/abstract/10.1103/c6lw-nx7k?ref=404media.co" target="_blank" rel="noreferrer">Jampolski, Daniel, and Rezzolla, Luciano et al. “Formation of gravastars.” Physical Review D.</a> 當你以為黑洞已經夠迷幻時，「重力星」（gravastar）又登場了。這類天體是假想中的黑洞替代物，不包含奇點，也沒有事件視界；在事件視界之外，正常物理會失效。相反地，物理學家推論，一顆大質量恆星可能塌縮成另一種由暗能量主導的緻密天體，並可能在其中觸發一個迷你宇宙的誕生；這是一項新研究提出的說法。 德國理論物理研究所的作者 Daniel Jampolski 與 Luciano Rezzolla 表示：「由於重力星既沒有奇點，也沒有事件視界，而且其緻密程度可以任意接近黑洞，長久以來人們一直認為，要把它與黑洞區分開來會很困難。」 <em>黑洞與重力星的比較。圖片：</em><a href="https://en.wikipedia.org/wiki/Gravastar?ref=404media.co#/media/File:Gravastar.png" target="_blank" rel="noreferrer">Finq</a> 團隊補充：「我們在此首次提出一個模型，描述球形物質雲在重力塌縮後如何形成靜態重力星。」 這項研究透過想像一團均勻的塵埃雲朝中心一個稱為「德西特區域」（de Sitter region）的點塌縮，來模擬重力星形成的路徑；這個德西特區域會開始膨脹。塵埃雲向內塌縮，德西特區域向外排斥；後者本質上是一個膨脹中的迷你宇宙。兩者作用後會達到一種平衡狀態，對我們這樣的外部觀測者而言，幾乎無法與黑洞區分。 終於，對那些覺得黑洞還不夠奇怪的人來說，有了一種假想天體。這篇研究還有不少腦力十足的插曲值得加分，例如這句：「顯然，如果量子重力的描述是可能的，零尺寸的德西特泡泡自然會被普朗克尺度的泡泡取代。」</p>
+<h2><strong>星塵歸於星塵，放射性灰燼歸於放射性灰燼</strong></h2>
+<p><a href="https://www.nature.com/articles/s41550-026-02841-6?ref=404media.co" target="_blank" rel="noreferrer">Koll, Dominik et al. “The timing of the last r-process event near Earth from interstellar 60Fe, 244Pu and 247Cm deposition on Earth.” Nature Astronomy.</a> 說到大質量恆星留下的奇異屍骸，地球其實一直被它們的放射性殘留物輕輕灑落。這是一項研究的發現：科學家從太平洋海面下近 16,000 英尺處撈起一塊深海岩石，發現它鑲滿了死去恆星的灰燼。 這塊岩石是一塊鐵錳結殼，形成於海水中沉澱出的礦物質在海床上的堆積。這些岩石也會捕捉稀有重元素，例如鈽、鐵與鋦的同位素；這些元素只可能來自災難性的宇宙事件，例如爆炸性的超新星，或稱為中子星的既有恆星屍骸彼此碰撞。 透過這份罕見紀錄，科學家偵測到放射性同位素，顯示地球一直穿越一場遠古「千新星」（kilonova）的殘留物。那場事件發生在超過 1 億年前，由兩顆中子星合併而成。這類千新星合併也稱為「r-過程事件」，會留下遙遠的同位素特徵，其中包括放射性同位素鈽-244；研究團隊就在岩石中偵測到了它。 德勒斯登-羅森多夫亥姆霍茲中心 Dominik Koll 領導的研究團隊表示：「我們測得的星際特徵顯示，曾發生一次古老且罕見的 r-過程事件，導致本地泡內外出現一個擴散的［鈽-244］背景。」本地泡指的是我們所在的銀河系區域。團隊說：「太陽系穿越銀河系的軌跡，可能會影響地球或月球上記錄到的 r-過程放射性核種豐度。」 換句話說，我們繞著銀河中心運行時，其實都只是若無其事地飄過恆星火葬柴堆的煙霧。希望這為你的一天增添一點宇宙風味。</p>
+<h2><strong>願你活到一歲高齡</strong></h2>
+<p><a href="https://www.nature.com/articles/s41467-026-73635-7?ref=404media.co" target="_blank" rel="noreferrer">Foley, Jessica et al. “Evolution of increased longevity and slowed ageing in a genus of tropical butterfly.” Nature Communications.</a> 最後，我們要以蝴蝶界的瑪土撒拉作結，世間萬物都該如此。為了更了解驅動老化與長壽的過程，科學家把目光轉向 <em>Heliconius</em> 蝴蝶家族，也就是袖蝶。牠們已知比近親活得久得多，不過過去並未深入檢視其壽命。 團隊驚訝地發現，這些蝴蝶可以活將近一年，而同一「族」中的近親壽命只有短短幾週。根據這項新研究，這代表「整個族群中已記錄的最長壽命相差達 25 倍」。 布里斯托大學 Jessica Foley 領導的研究團隊表示：「這個範圍遠遠超過先前估計，也是在如此近緣分類群中曾記錄過的最大差異之一；可相比的差異只曾在兩類魚中報告過：岩魚與胸棘鯛。」的確，如果人類也展現這種壽命多樣性，我們之中會有很多人活超過 1000 歲。 團隊也發現，並非袖蝶的 <em>Myscelia cyaniris</em> 是「根據蝴蝶展示業者資料，目前最長壽的蝴蝶物種，通報最長壽命為 380 天」，證實許多蝴蝶家族都演化出了極端長壽。 不同於牠們的近親，袖蝶以花粉為食，這顯示這種特殊飲食是牠們成功老化的祕訣之一。雖然這項發現聽起來很適合被拿去包裝成抗老產業的詐財話術，但先說清楚：吃花粉只有對蝴蝶才是長生藥。花粉不能讓你永生。死亡終會來到每個人身邊。夏至快樂！ 感謝閱讀！下週見。</p></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-112f3678cbe29e48.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：direct-pr-small-news / 2026-06-21T18:20:34+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-21T18:20:34+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Scientists Propose Black Holes Don’t Exist, Are Something Much Stranger</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：科學家提出：黑洞可能不存在，而是更奇異的東西（Codex）</li><li><strong>原始作者</strong>：@beckyferreira（twitter:creator）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-112f3678cbe29e48";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

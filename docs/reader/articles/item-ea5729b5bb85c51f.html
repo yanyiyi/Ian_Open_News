@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>當健康被量化：親子運動走向數據治理實驗</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-17 08:00</span>
     </div>
-    <h2>當健康被量化：親子運動走向數據治理實驗</h2>
+    <h2><a class="article-title-link" href="https://news.pchome.com.tw/society/pronews/20260618/index-78171335180032353002.html" target="_blank" rel="noreferrer" title="開啟原始連結">當健康被量化：親子運動走向數據治理實驗</a></h2>
     <p class="lede">這則同樣以親子運動與健康量化為主題，但摘錄比另一則更明確指出數據化的雙面性：科技讓健康狀態更可見，也可能讓焦慮更精準、讓管理更方便，甚至削弱人對身體直覺的感受。</p>
     <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://news.pchome.com.tw/society/pronews/20260618/index-78171335180032353002.html" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>當健康被量化：親子運動正在走向一場數據治理實驗 - 社會新聞 - PChome Online 新聞</h1>
 <p>【創新聞記者陳光蘊 / 採訪報導】當運動逐漸從單一的身體活動，轉化為一種可被理解、可被記錄、甚至可被重新定義的生活語言時，我們其實正站在一個觀念轉型的臨界點上。由 Nu Skin 攜手奧會所推動的「小小英雄運動會」，表面看似一場親子嘉年華，實則更像是一場關於健康價值再建構的公共實驗——讓運動、教育與科技在同一個場域中交會，重新回答「健康從何而來」這個老問題。▲Nu Skin 共襄盛舉奧會「小小英雄運動會」，讓孩子透過寓教於樂的方式接觸多元運動項目，從小培養運動習慣與健康生活觀念。(圖/創新聞記者陳光蘊翻攝2026.06.18)奧會長期推動「運動從小開始」的理念，在制度層面建立起運動教育的基礎工程，而本屆移師高雄、集結13項奧運運動體驗的升級規模，更讓這場活動呈現出近似「微型奧運」的社會場景。孩子在體操、田徑、射箭與球類之間奔跑探索，看似是遊戲與體驗的集合，但更深層的意義在於：運動不再只是競技的起點，而是生活習慣的起點，是一種從童年開始被培養的身體素養與價值認知。▲家長於活動現場體驗 Prysm iO 高光譜智慧掃描儀，透過 15 秒快速量測了解自身健康生活狀態。(圖/創新聞記者陳光蘊翻攝2026.06.18)真正讓這場活動產生時代感轉折的，是健康科技的進場。現場導入 Prysm iO 高光譜智慧掃描儀，透過短時間量測將身體狀態轉譯為數據資訊，使「健康」從抽象感受變為具體指標。當家長在陪伴孩子參與運動之餘，也能同步理解自身生活狀態時，家庭健康管理便不再只是醫療或檢查的延伸，而是日常生活中即時發生的一種自我覺察。這種「量化健康」的普及，正在悄然改寫人們與身體之間的關係。▲Nu Skin 將 Prysm iO 帶進「第 4 屆小小英雄運動會」，讓親子在運動體驗中接觸量化健康觀念。(圖/創新聞記者陳光蘊翻攝2026.06.18)然而，當健康逐步被數據化、視覺化，我們也必須保留一份理性距離。科技讓健康更可見，但也可能讓焦慮更精準；讓管理更便利，但也可能讓身體失去原本的直覺感受。Nu Skin 長年以「善的力量」推動健康與教育，其角色不僅是品牌參與者，更像是價值推動者——試圖在運動、科技與家庭之間建立新的平衡。然而，這條路如何避免讓「數據成為唯一標準」，仍是整個健康產業必須持續面對的課題。</p></section>

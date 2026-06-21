@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>從阿根廷證據看知情公民如何推動參與式智慧城市</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:56+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-15 08:00</span>
     </div>
-    <h2>從阿根廷證據看知情公民如何推動參與式智慧城市</h2>
+    <h2><a class="article-title-link" href="https://thelivinglib.org/building-participatory-smart-cities-through-aware-citizens-evidence-from-argentina/" target="_blank" rel="noreferrer" title="開啟原始連結">從阿根廷證據看知情公民如何推動參與式智慧城市</a></h2>
     <p class="lede">這篇介紹一篇以阿根廷中型城市調查資料為基礎的研究，討論市民是否知道政府的參與式倡議，和他們實際參與公共事務、以及如何看待市府推動參與的努力之間有何關聯。研究指出，知道相關倡議的市民和不知道的市民，在參與傾向與對市政推廣的感受上有統計上顯著差異；作者也用傾向分數配對來減少兩群人原本條件不同造成的比較偏誤。整體看來，它比較像一篇值得收進治理與智慧城市資料庫的研究摘要，而不是需要立刻延伸成新聞稿的材料。</p>
 
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://thelivinglib.org/building-participatory-smart-cities-through-aware-citizens-evidence-from-argentina/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>Building Participatory Smart Cities Through Aware Citizens: Evidence from Argentina</h1>
 <p><a href="https://journals.sagepub.com/doi/10.1177/15701255261459765" target="_blank" rel="noreferrer">Paper</a> by María Verónica Alderete: “A smart city approach places citizens at the center of decision-making. However, only a small proportion of citizens actually engage in participatory initiatives. Although citizen participation has been extensively studied, limited empirical evidence exists on how citizens’ awareness of participatory initiatives relates to both their participation and their perception of municipal efforts to promote participation. This paper analyses these relationships using a Propensity Score Matching (PSM) approach based on survey data from a medium-sized city in Argentina. Since the factors associated with participation and perceptions of municipal promotion may also shape citizens’ awareness of government programs, PSM is used to improve comparability between aware and non-aware citizens and to examine the association between awareness of participatory initiatives and participation outcomes. The results show statistically significant differences in both participation propensity and perceptions of municipal promotion between citizens who are aware of these initiatives and those who are not. Awareness is positively associated with prior civic engagement, visiting the municipal website and age, and negatively associated with being a woman. Policy implications highlight the importance of disseminating successful participatory experiences and strengthening communication strategies to encourage broader citizen engagement…(<a href="https://journals.sagepub.com/doi/10.1177/15701255261459765" target="_blank" rel="noreferrer">More</a>)”.</p>

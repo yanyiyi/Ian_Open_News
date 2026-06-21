@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>CRA 準備度的現實 2025-2026</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-19 08:00</span>
     </div>
-    <h2>CRA 準備度的現實 2025-2026</h2>
+    <h2><a class="article-title-link" href="https://www.linuxfoundation.org/blog/the-cra-readiness-reality-what-changed-and-what-didnt-between-2025-and-2026" target="_blank" rel="noreferrer" title="開啟原始連結">CRA 準備度的現實 2025-2026</a></h2>
     <p class="lede">這篇文章回顧 Linux Foundation 相關單位在 2025 與 2026 年對 EU Cyber Resilience Act 準備度的調查結果。核心訊息是：距離關鍵期限更近，開源生態的認知與實務準備卻沒有明顯進步。2026 年調查中，不熟悉 CRA 的比例從 62% 上升到 66%，北美受訪者的不熟悉比例更高；即使是知道 CRA 的組織，仍有相當多人不確定法規是否適用、何時需要完全合規，以及自己屬於製造商還是開源 steward。文章也指出，SBOM 普及與上游安全責任分攤沒有顯著推進，許多組織仍依賴上游修補或維持私有 fork，長期會帶來高昂維護成本。作者的編輯重點很清楚：CRA 會迫使企業把軟體來源、漏洞處理與安全責任變成可證明的流程，上游貢獻不再只是公益姿態，而是降低合規與維護成本的理性選擇。</p>
     <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">CRA</span><span class="tag-chip">cybersecurity</span></div>
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://www.linuxfoundation.org/blog/the-cra-readiness-reality-what-changed-and-what-didnt-between-2025-and-2026" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>CRA 準備度的現實：2025 到 2026 年之間改變了什麼，又有哪些沒變？</h1>
 <h3>Angelah Liu｜2026 年 6 月 19 日</h3>

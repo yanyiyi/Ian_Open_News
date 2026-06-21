@@ -296,7 +296,7 @@ COMMANDS = {
     },
     "render_ghpages_reader": {
         "label": "產生 GitHub Pages 閱讀版",
-        "description": "輸出 docs/reader/index.html，只顯示開放科技主線的精選文章、小消息與觀點文章，可交給 GitHub Pages 發布。",
+        "description": "輸出 docs/reader/index.html，只顯示開放科技主線的精選文章、小消息與觀點文章；完成後會直接送一個線上版 commit。",
         "button": "更新線上閱讀版",
         "command": [sys.executable, str(ROOT / "scripts" / "render_ghpages_reader.py")],
     },
@@ -709,8 +709,17 @@ def data_commit_message(dt: datetime | None = None) -> str:
     return f"閱讀資料庫自訂紀錄 {local_time_label(dt)} 的更新"
 
 
+def online_reader_commit_message(dt: datetime | None = None) -> str:
+    current = dt.astimezone(LOCAL_TIMEZONE) if dt else datetime.now(LOCAL_TIMEZONE)
+    return f"產出 {current.month} 月 {current.day} 日 {current.hour}時{current.minute}分{current.second}秒 線上版"
+
+
 def data_autocommit_file_labels() -> list[str]:
     return [str(path.relative_to(ROOT)) for path in DATA_AUTOCOMMIT_FILES]
+
+
+def online_reader_file_labels() -> list[str]:
+    return ["docs/reader"]
 
 
 def data_autocommit_status(state: str, message: str = "", **extra: object) -> dict:
@@ -797,6 +806,87 @@ def commit_database_state(trigger: str = "manual") -> dict:
                 trigger=trigger,
                 files=data_autocommit_file_labels(),
             )
+
+
+def commit_online_reader_output() -> dict:
+    labels = online_reader_file_labels()
+    started_at = datetime.now(LOCAL_TIMEZONE)
+    try:
+        status = subprocess.run(
+            ["git", "status", "--porcelain", "--", *labels],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=20,
+        )
+        if status.returncode != 0:
+            return {
+                "state": "failed",
+                "message": "線上版 commit 前檢查 git 狀態失敗。",
+                "files": labels,
+                "output": status.stderr.strip() or status.stdout.strip(),
+                "returncode": status.returncode,
+            }
+        if not status.stdout.strip():
+            return {
+                "state": "no-changes",
+                "message": "線上版沒有需要 commit 的變更。",
+                "files": labels,
+                "returncode": 0,
+            }
+
+        add = subprocess.run(
+            ["git", "add", "--", *labels],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+        if add.returncode != 0:
+            return {
+                "state": "failed",
+                "message": "線上版 git add 沒有成功。",
+                "files": labels,
+                "output": add.stdout + ("\nSTDERR:\n" + add.stderr if add.stderr else ""),
+                "returncode": add.returncode,
+            }
+
+        message = online_reader_commit_message(started_at)
+        commit = subprocess.run(
+            ["git", "commit", "-m", message, "--", *labels],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=120,
+        )
+        output = commit.stdout + ("\nSTDERR:\n" + commit.stderr if commit.stderr else "")
+        if commit.returncode != 0:
+            return {
+                "state": "failed",
+                "message": "線上版 commit 沒有成功。",
+                "files": labels,
+                "commit_message": message,
+                "output": output,
+                "returncode": commit.returncode,
+            }
+        rev = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, text=True, capture_output=True, timeout=20)
+        commit_id = clean_text(rev.stdout)
+        return {
+            "state": "committed",
+            "message": f"已送出線上版 commit {commit_id}。",
+            "files": labels,
+            "commit": commit_id,
+            "commit_message": message,
+            "output": output,
+            "returncode": 0,
+        }
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {
+            "state": "failed",
+            "message": f"線上版 commit 發生錯誤：{exc}",
+            "files": labels,
+            "returncode": 1,
+        }
 
 
 def start_data_autocommit_worker() -> None:
@@ -9209,23 +9299,48 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 stderr=(clean_text(exc.stderr or "") + "\n指令逾時。").strip(),
             )
         output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
+        ok = result.returncode == 0
+        response_returncode = result.returncode
+        status_extra: dict[str, object] = {}
+        if ok and command_name == "render_ghpages_reader":
+            online_commit = commit_online_reader_output()
+            commit_output = "\n".join(
+                line
+                for line in [
+                    clean_text(online_commit.get("message")),
+                    f"commit: {clean_text(online_commit.get('commit'))}" if online_commit.get("commit") else "",
+                    f"message: {clean_text(online_commit.get('commit_message'))}" if online_commit.get("commit_message") else "",
+                    clean_text(online_commit.get("output")),
+                ]
+                if line
+            )
+            output = "\n\n".join(part for part in [output.strip(), "線上版 commit：\n" + (commit_output or "(沒有變更需要 commit)")] if part)
+            status_extra = {
+                "online_reader_commit_state": online_commit.get("state"),
+                "online_reader_commit": online_commit.get("commit"),
+                "online_reader_commit_message": online_commit.get("commit_message"),
+            }
+            if online_commit.get("state") == "failed":
+                ok = False
+                response_returncode = int(online_commit.get("returncode") or 1)
         write_json(
             COMMAND_STATUS,
             {
                 "command": command_name,
-                "state": "done" if result.returncode == 0 else "failed",
-                "message": "完成" if result.returncode == 0 else "執行失敗",
-                "returncode": result.returncode,
+                "state": "done" if ok else "failed",
+                "message": "完成" if ok else "執行失敗",
+                "returncode": response_returncode,
                 "finished_at": now_iso(),
+                **status_extra,
             },
         )
         if wants_json:
             self.send_json(
                 {
-                    "ok": result.returncode == 0,
+                    "ok": ok,
                     "label": config["label"],
                     "command": command,
-                    "returncode": result.returncode,
+                    "returncode": response_returncode,
                     "output": output,
                 },
                 HTTPStatus.OK,
@@ -9233,7 +9348,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             return
         body = f"""
 <h1>{h(config['label'])}</h1>
-<p class="muted">Exit code: {result.returncode}</p>
+<p class="muted">Exit code: {response_returncode}</p>
 <p><code>{h(' '.join(command))}</code></p>
 <pre>{h(output)}</pre>
 <p><a href="/">回總覽</a></p>

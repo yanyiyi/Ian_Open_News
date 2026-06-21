@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>義大利競爭主管機關對 Apple 展開 DMA 互通性調查</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:56+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-16 08:00</span>
     </div>
-    <h2>義大利競爭主管機關對 Apple 展開 DMA 互通性調查</h2>
+    <h2><a class="article-title-link" href="https://www.siliconrepublic.com/business/italian-watchdog-launches-dma-probe-into-apple" target="_blank" rel="noreferrer" title="開啟原始連結">義大利競爭主管機關對 Apple 展開 DMA 互通性調查</a></h2>
     <p class="lede">義大利競爭主管機關 AGCM 對 Apple 展開新一輪調查，焦點是 iOS 與 iPadOS 是否讓第三方雲端服務取得與 iCloud 同等、免費且有效的互通能力。AGCM 指出，第三方雲端儲存似乎無法使用完整裝置資料備份等系統功能，而這些功能提供給 Apple 自家的 iCloud。Apple 回應稱，這項關於 iCloud 的疑慮此前未曾在與歐盟的互通性討論中被提出，並表示會與義大利主管機關溝通。文章也補充 Apple 先前因 App Tracking Transparency 與 App Store 限制在義大利及歐盟面臨處分的背景。</p>
 
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://www.siliconrepublic.com/business/italian-watchdog-launches-dma-probe-into-apple" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>Italian watchdog launches DMA probe into Apple</h1>
 <p><a href="https://www.siliconrepublic.com/author/suhasini-srinivasaragavan/" target="_blank" rel="noreferrer">by Suhasini Srinivasaragavan</a> Image: © misu/Stock.adobe.com Last year, the AGCM found that Apple abused its market dominance with its treatment of third-party developers. Months after being <a href="https://www.siliconrepublic.com/business/italy-agcm-apple-e98-6m-fine-market-dominance-abuse-app-store" target="_blank" rel="noreferrer">hit with a nearly €100m penalty</a>, Apple is once again under investigation by Italy’s competition authority – this time over concerns around its interoperability obligations under the EU’s Digital Markets Act (DMA). The Autorità Garante della Concorrenza e del Mercato (AGCM)’s second probe into Apple concerns iOS and iPadOS, which it said might be unfairly treating third-party cloud providers. According to the DMA, companies with the gatekeeper designation must ensure that third-party sellers receive the same free and effective interoperability with their operating systems as the company’s own services. The Italian authority pointed to “indications” of an apparent lack of access that third-party cloud providers have to the same features that are available to Apple’s own iCloud. The global technology giant holds more than 40pc of the mobile operating system market share in Europe. “For example, it appears that Apple does not allow alternative cloud storage services to use the iOS and iPadOS features enabling end users to perform a full backup of their devices’ data, while those same features are available to Apple’s iCloud,” the AGCM said in a statement. Apple told SiliconRepublic.com that this “new concern” related to iCloud “has never been raised” in its discussions with the EU on interoperability. “We look forward to engaging with the Italian authority to discuss and address their concerns in detail,” a company spokesperson said. Italy’s competition authority hit Apple with a penalty of more than €98.6m last December after finding that the company abused its “super-dominant position” in the app distribution market with its App Store. The probe stemmed from Apple’s 2021 policy on App Tracking Transparency (ATT) on iOS which forced third-party app developers to double user consent requests for the same purposes. The AGCM concluded that the policy did not comply with the bloc’s privacy requirements. Apple, at the time, said that it disagreed with the AGCM’s decision and planned to appeal. This also isn’t Apple’s first encounter with the DMA. Last year, the company – alongside Meta – became the <a href="https://www.siliconrepublic.com/business/apple-meta-dma-eu-fines" target="_blank" rel="noreferrer">first to receive penalties under the DMA</a>, with Apple alone receiving a €500m fine for restricting app developers from informing customers of alternative offers outside its App Store. A few months later, the company introduced <a href="https://www.siliconrepublic.com/business/apple-dma-eu-app-store-apps-policies" target="_blank" rel="noreferrer">changes to its App Store policies</a> to comply with the law, which carries fines of up to 10pc of a company’s total annual worldwide turnover. For Apple, this could be as much as $41.6bn. Last year, the EU considered whether to designate <a href="https://www.siliconrepublic.com/business/eu-apple-ads-maps-dma-gatekeeper-digital-markets-act-european-union" target="_blank" rel="noreferrer">Apple’s Maps and Ads services as gatekeepers under DMA</a>, but determined in February that the two services should not designated as gatekeepers. <strong>Don’t miss out on the knowledge you need to succeed. Sign up for the</strong><a href="http://eepurl.com/hIdNrT" target="_blank" rel="noreferrer">Daily Brief</a><strong>, Silicon Republic’s digest of need-to-know sci-tech news.</strong> <strong>Updated, 5.30pm, 16 June 2026:</strong><em>This article was amended to ensure updated information on previous EU investigations.</em> *<strong>Updated, 8:40am, 17 June 2026:</strong>**This article was updated with a statement from Apple.* Related: <a href="https://www.siliconrepublic.com/topics/legal/" target="_blank" rel="noreferrer">legal</a>, <a href="https://www.siliconrepublic.com/topics/ipad/" target="_blank" rel="noreferrer">iPad</a>, <a href="https://www.siliconrepublic.com/topics/ios/" target="_blank" rel="noreferrer">iOS</a>, <a href="https://www.siliconrepublic.com/topics/eu/" target="_blank" rel="noreferrer">EU</a>, <a href="https://www.siliconrepublic.com/topics/italy/" target="_blank" rel="noreferrer">Italy</a>, <a href="https://www.siliconrepublic.com/topics/apple/" target="_blank" rel="noreferrer">Apple</a> Suhasini Srinivasaragavan is a sci-tech reporter for Silicon Republic editorial@siliconrepublic.com</p>

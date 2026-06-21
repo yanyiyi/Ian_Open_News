@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>用 LoRa Mesh 找物的 SenseCAP T1000-E 追蹤卡實測</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-18 08:00</span>
     </div>
-    <h2>用 LoRa Mesh 找物的 SenseCAP T1000-E 追蹤卡實測</h2>
+    <h2><a class="article-title-link" href="https://www.zdnet.com/article/sensecap-t1000-e-tracker-card-airtag-alternative-review/" target="_blank" rel="noreferrer" title="開啟原始連結">用 LoRa Mesh 找物的 SenseCAP T1000-E 追蹤卡實測</a></h2>
     <p class="lede">這篇是 SenseCAP T1000-E 追蹤卡的實測心得。作者把它放在 AirTag 與其他藍牙追蹤器的脈絡下比較，重點在於 T1000-E 不只靠手機藍牙，也能連到 LoRaWAN、Meshtastic、Amazon Sidewalk、Helium 等網路；其中 Meshtastic/LoRa mesh 的賣點是低功耗、長距離、可離線、點對點，不一定仰賴電信或大型平台公司的基礎設施。作者肯定它的定位能力、戶外耐用性與 GPS 表現，也提醒實務缺點：電池續航只有幾天、專用磁吸充電線容易脫落、App 說明與介面體驗不夠好。整體而言，它可作為開源 mesh 技術進入消費硬體的觀察案例，但文章本身偏產品評測，不是深入的開放技術分析。</p>
     <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://www.zdnet.com/article/sensecap-t1000-e-tracker-card-airtag-alternative-review/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>這款藍牙追蹤器用 LoRa Mesh 找東西，精準度讓我難以置信</h1>
 <p>我以前說過，現在還是要再說一次：這類追蹤標籤對我來說真的徹底改變了使用體驗。能夠在世界各地精準定位鑰匙、錢包這類物品，替我省下了無數心痛、頭痛和浪費掉的時間。第三方標籤越來越多，也代表現在已經有適合各種用途的追蹤標籤。 但這些標籤有一個缺點：它們都仰賴行動網路和 Wi-Fi 網路。如果有一種追蹤標籤，可以在自己的網路上運作，不必依靠那些由市值數十億美元企業建起來的網路呢？這正是這款產品提供的能力。 好，那它到底怎麼運作？和多數產品一樣，T1000-E 有很多我喜歡的地方，也有幾點我不喜歡。不過在繼續往下講之前，我得先提醒你，這張卡很可能會成為讓你跌進 LoRa Mesh 廣大世界的入門毒物。LoRa 是 Long Range Radio 的縮寫，是一種長距離無線電協定，可以用來建立 Mesh 網狀網路。 什麼是 Mesh？它是一種開源、離網、去中心化的網狀網路，設計用來在小型、低功耗裝置上運作。它不需要基地台，也不需要網際網路。這是一套完全獨立、點對點的無線電系統。如果你有點像我，喜歡鑽研奇奇怪怪的東西，很快就會深陷各種 Mesh 收發器，開始架設自己的節點。為什麼？因為你可以。 注意：請確認你買的是 T1000-E，而不是 A 或 B 版本。只有 E 版是設計來搭配點對點 Mesh 使用；A 版和 B 版則會使用、也需要各自的網路閘道器。 回到 T1000-E。這是一張卡片大小的追蹤器，和其他同類產品差不多。它的大小像信用卡，厚度則約等於一疊卡片。裡面有一顆 700 mAh 電池，足以讓這張卡運作幾天；另外也塞進了所有用於通訊與定位的技術元件。 它有一個音量很大的蜂鳴器、一盞 LED 狀態燈，以及一顆按鈕，可用來開關裝置，並控制藍牙等功能。</p>

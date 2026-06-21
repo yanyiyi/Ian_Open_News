@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>新 Commons Incubator 支援原住民主導的語言與文化資料共享</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-18 08:00</span>
     </div>
-    <h2>新 Commons Incubator 支援原住民主導的語言與文化資料共享</h2>
+    <h2><a class="article-title-link" href="https://thelivinglib.org/new-commons-incubator-launches-to-support-indigenous-led-language-and-cultural-data-commons-in-the-age-of-ai/" target="_blank" rel="noreferrer" title="開啟原始連結">新 Commons Incubator 支援原住民主導的語言與文化資料共享</a></h2>
     <p class="lede">這則新聞稿介紹一個新的 Commons Incubator，目標是支援原住民主導的語言與文化資料 commons。摘要指出，AI 越來越依賴語言與文化資料，原住民社群既可能參與塑造更包容的數位未來，也面臨資料被蒐集、治理、使用與分享時缺乏影響力的風險。</p>
 
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://thelivinglib.org/new-commons-incubator-launches-to-support-indigenous-led-language-and-cultural-data-commons-in-the-age-of-ai/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>New Commons Incubator Launches to Support Indigenous-Led Language and Cultural Data Commons in the Age of AI</h1>
 <p><a href="https://newcommons.ai/" target="_blank" rel="noreferrer">Press Release</a>: “As artificial intelligence increasingly relies on language and cultural data, Indigenous communities face unprecedented opportunities and significant risks. While Indigenous languages and cultural knowledge can help shape more inclusive digital futures, too often communities have limited influence over how their data is collected, governed, used, or shared. To address this challenge, The GovLab, Microsoft, and UNESCO are launching the <a href="https://newcommons.ai/" target="_blank" rel="noreferrer">New Commons Incubator for Indigenous Languages and Culture</a>, a new initiative designed to support Indigenous-led efforts to develop data commons that preserve, steward, and responsibly govern language and cultural resources in the AI era. <a href="https://incubator.opendatapolicylab.org/files/data-commons-for-ai-blueprint.pdf" target="_blank" rel="noreferrer">Data commons</a> are shared governance frameworks that enable communities to collectively decide how their data is managed, accessed, and used while ensuring that benefits flow back to the communities themselves. By supporting the development of Indigenous-led data commons, the Incubator seeks to strengthen community agency, support language revitalization, and ensure that Indigenous peoples can participate in shaping the future of AI on their own terms. The Incubator is a capacity-building initiative that provides mentorship, training, technical guidance, and proposal development support. Participants will receive an in-person opportunity to collaborate and network with other participants, followed by six months of workshops, one-on-one clinics, expert mentorships, and peer learning opportunities. The program is designed to help teams prepare stronger proposals and will end with a final showcase where participants present these to potential funders, partners, and collaborators…(<a href="https://newcommons.ai/" target="_blank" rel="noreferrer">More</a>)”.</p>

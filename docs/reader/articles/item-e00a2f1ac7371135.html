@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>《What’s the Question?》：先釐清真正想知道什麼</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-17 08:00</span>
     </div>
-    <h2>《What’s the Question?》：先釐清真正想知道什麼</h2>
+    <h2><a class="article-title-link" href="https://thelivinglib.org/whats-the-question-deciding-what-you-really-want-to-know/" target="_blank" rel="noreferrer" title="開啟原始連結">《What’s the Question?》：先釐清真正想知道什麼</a></h2>
     <p class="lede">這是 David Hand 書籍的介紹，主旨是統計與資料科學在使用工具前，必須先清楚界定想知道什麼或想達成什麼。摘要強調，模糊的目標會導致錯誤結論與錯誤行動，書中探討如何提出清楚問題。</p>
 
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://thelivinglib.org/whats-the-question-deciding-what-you-really-want-to-know/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>What’s the Question? Deciding What You Really Want to Know</h1>
 <p><a href="https://www.taylorfrancis.com/books/mono/10.1201/9781003726821/question-david-hand" target="_blank" rel="noreferrer">Book</a>by David Hand: “Statistics and data science aim to extract understanding from data and guide decision-making. However, before applying any analytical tools, we need absolute clarity about what we want to know or accomplish. Ambiguous objectives inevitably lead to mistaken conclusions and flawed actions. This book investigates the deeper challenges of formulating clear questions and matching analytical methods to those questions – issues that apply as much to elementary statistical tools as to sophisticated techniques. Rather than focusing on standard statistical misuses or data provenance issues, this work examines the critical step of ensuring your analysis actually answers the question you mean to ask. Drawing from collaborative work across finance, medicine, government, manufacturing, defence, and other fields, the book deliberately emphasises basic and familiar tools so the fundamental issues are accessible to everyone. Following John Tukey’s insight about the simplest problems of data analysis, the most detailed discussions centre on averages and comparisons between distributions, though the principles apply with even greater force to advanced methods that fewer people fully understand. • Focusses on question formulation rather than computational techniques, addressing the step that precedes all successful data analysis • Emphasises basic statistical tools (averages, comparisons) to make fundamental challenges visible to all practitioners • Contains 130 text boxes presenting essential ideas in non-technical language, creating a “two-in-one” book accessible to both mathematical and non-mathematical readers • Provides real-world examples drawn from diverse fields including finance, healthcare, government, manufacturing, and defence • Offers a deep-dive analysis of a specific comparison method to illustrate the care required for precise statistical reasoning • Presents a progression from general principles through detailed mathematical exploration to practical applications across various analytical scenarios This book serves as an essential guide for statisticians, data scientists, researchers, and anyone who uses data to make decisions. Whether you’re a practitioner seeking to improve your analytical approach or a student learning to think critically about statistical questions, this work will help you use data analytical tools more effectively and avoid the costly mistakes that arise from asking the wrong questions of your data…(<a href="https://www.taylorfrancis.com/books/mono/10.1201/9781003726821/question-david-hand" target="_blank" rel="noreferrer">More</a>)”.</p>

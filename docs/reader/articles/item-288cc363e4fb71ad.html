@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>「代理就是 LLM 加上外掛框架」：Nvidia 如何看待 OpenClaw</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-21 08:00</span>
     </div>
-    <h2>「代理就是 LLM 加上外掛框架」：Nvidia 如何看待 OpenClaw</h2>
+    <h2><a class="article-title-link" href="https://thenewstack.io/nvidia-openclaw-agent-blueprints/" target="_blank" rel="noreferrer" title="開啟原始連結">「代理就是 LLM 加上外掛框架」：Nvidia 如何看待 OpenClaw</a></h2>
     <p class="lede">這篇訪談聚焦 Nvidia 如何理解並參與 OpenClaw 這類 agent 開源專案。受訪者 Nader Khalil 將 agent 定義為「LLM 加上一套 harness」，重點不只在模型本身，而在每一輪互動如何利用工具、記憶、檔案與回饋逐步逼近目標。文章也把 Nvidia 的策略連到 CUDA X 與技能化的產品思維：若要進入快速成長的 agent 市場，產品需要能被 agent 使用。較有價值的是，文中談到 Nvidia 對 OpenClaw 的貢獻關係、社群支援，以及大型開源專案在大量 PR 之下真正的瓶頸可能不是寫程式，而是閱讀、審查與合併。</p>
     <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://thenewstack.io/nvidia-openclaw-agent-blueprints/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>「代理就是 LLM 加上一套操作框架」：Nvidia 真正怎麼看 OpenClaw</h1>
 <h2>「代理就是 LLM 加上一套操作框架」：Nvidia 真正怎麼看 OpenClaw</h2>
@@ -348,8 +328,9 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-288cc363e4fb71ad.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>編輯紀錄</h2>
-  <ul><li>本機決定：accepted-for-editing / 2026-06-21T17:52:07+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
-2026-06-21T17:52:07+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。</li></ul>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-21T18:16:43+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-21T17:52:07+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。
+2026-06-21T18:16:43+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。</li></ul>
   <h2>原始 metadata</h2>
   <ul><li><strong>原始網站標題</strong>：&quot;An agent is an LLM and a harness&quot;: What Nvidia really thinks about OpenClaw</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：「代理就是 LLM 加上一套操作框架」：Nvidia 真正怎麼看 OpenClaw（Codex）</li><li><strong>原始作者</strong>：David Eastman（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
 </aside>

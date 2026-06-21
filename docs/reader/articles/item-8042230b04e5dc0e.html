@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>拉脫維亞試辦公民參與研究補助審查</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-17 08:00</span>
     </div>
-    <h2>拉脫維亞試辦公民參與研究補助審查</h2>
+    <h2><a class="article-title-link" href="https://thelivinglib.org/latvia-pilots-citizen-engagement-in-research-grant-evaluations/" target="_blank" rel="noreferrer" title="開啟原始連結">拉脫維亞試辦公民參與研究補助審查</a></h2>
     <p class="lede">拉脫維亞在國家資助研究補助的評估中加入公民參與元素，希望拉近科學與社會的距離，也改善評估品質。摘要指出，這個做法放在歐洲研究資助機構嘗試改良評選流程的脈絡下，但沒有交代公民如何參與、權重多高或目前試辦結果。</p>
 
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://thelivinglib.org/latvia-pilots-citizen-engagement-in-research-grant-evaluations/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>Latvia pilots citizen engagement in research grant evaluations</h1>
 <p><a href="https://sciencebusiness.net/news/research-and-innovation-gap/latvia-pilots-citizen-engagement-research-grant-evaluations" target="_blank" rel="noreferrer">Article</a> by Thomas Brent: “Latvia has introduced an element of citizen engagement to the evaluation of nationally funded research grants. The aim is to both create more connections between science and society, and to improve the quality of its evaluations. The move comes as research funders across Europe are experimenting with ways to improve evaluation processes in the face of a sharpened focus on science’s impact on society. Evaluators of grant applications submitted to Latvia’s Fundamental and Applied Research Programme (FLPP), the country’s main research funder, will this year have the option of consulting citizen feedback on challenges the public thinks science should focus on to inform their decisions. “In recent years, both public discussions and policy-level debates in Latvia have highlighted the importance of demonstrating how publicly funded research contributes to society, the economy and the resolution of real-world challenges,” said a source at the Latvian Council of Science (LCS), which manages the FLPP. “At the same time, research institutions themselves expressed interest in improving the project evaluation framework while continuing to ensure that funding is awarded to the highest-quality projects,” the source added. The citizen input comes from a survey that was conducted between 25 February and 16 March 2025, to which 1,737 people responded. It gathered information on what the public views as problem areas for Latvia, and the role of science and technology in providing solutions to these problems. A summary of these responses has been included as an annex to the FLPP 2026 call for proposals that evaluators can refer to, purely in an advisory manner, when judging proposals. Results from the survey show that the main problem areas identified by the public were in healthcare and public health, followed by the development of new treatment methods and medicines, and then digital technology, data security and cyber security. At the bottom of the list was research aimed at acquiring new knowledge about the universe, matter and the laws of nature…(<a href="https://sciencebusiness.net/news/research-and-innovation-gap/latvia-pilots-citizen-engagement-research-grant-evaluations" target="_blank" rel="noreferrer">More</a>)”.</p>

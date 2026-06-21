@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>Baseten 以開源 AI 推論押注 130 億美元估值</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-19 08:00</span>
     </div>
-    <h2>Baseten 以開源 AI 推論押注 130 億美元估值</h2>
+    <h2><a class="article-title-link" href="https://www.opensourceforu.com/2026/06/baseten-hits-13-billion-bet-on-open-source-ai-inference/" target="_blank" rel="noreferrer" title="開啟原始連結">Baseten 以開源 AI 推論押注 130 億美元估值</a></h2>
     <p class="lede">Baseten 正在完成一輪 15 億美元募資，估值最高可達 130 億美元。文章指出，投資人看好的不是 Baseten 自己訓練基礎模型，而是它押注企業採用成熟開源模型後，會更需要低成本、高效率的推論與部署基礎設施。Baseten 透過整合約 20 家雲端供應商的算力，提供模型部署、推論軟體與微調能力，讓企業能在自有資料上使用 AI 模型。文章也提到，部分客戶因轉向開源模型而降低成本，顯示開源模型在某些企業任務上已能替代較昂貴的專有模型。整體來看，這篇報導把 Baseten 的高估值放在開源 AI 採用、AI 推論成本下降與基礎設施價值轉移的脈絡中。</p>
     <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://www.opensourceforu.com/2026/06/baseten-hits-13-billion-bet-on-open-source-ai-inference/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>Baseten Hits $13 Billion Bet on Open Source AI Inference - Open Source For You</h1>
 <ul>

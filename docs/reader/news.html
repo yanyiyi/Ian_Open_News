@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>開放科技小消息</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="index.html">精選與觀點</a>
@@ -335,9 +317,45 @@
 <details class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-3" open>
   <summary>
     <h2><span class="reader-period-heading-label">2026 年 6 月 Week 3</span></h2>
-    <p class="reader-period-count">59 筆</p>
+    <p class="reader-period-count">63 筆</p>
   </summary>
   <div class="news-list">
+<article class="news-item" data-reader-item data-item-date="2026-06-20T00:00:00+00:00">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2026-06-20 08:00</span>
+  </div>
+  <h3><a href="articles/item-eeea7c487a8f61ad.html">數位金融標準化：台灣應加速接軌國際制度競爭</a></h3>
+  <p class="summary">這則內容看起來討論數位金融標準化與國際制度競爭，指出治理架構與規則建構會影響各國在金融科技發展中的位置。摘要也提到 AI 與區塊鏈應用到金融與數據治理後，制度調適與整合會成為關鍵問題。</p>
+  <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
+</article>
+
+<article class="news-item" data-reader-item data-item-date="2026-06-20T00:00:00+00:00">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+
+    <span class="badge">2026-06-20 08:00</span>
+  </div>
+  <h3><a href="articles/item-e2022b7fcbfb5346.html">嘉義縣科技運動館啟用：智慧健身設備蒐集運動數據</a></h3>
+  <p class="summary">嘉義縣啟用科技運動館，摘要提到館內智慧健身設備可蒐集並即時分析使用者的肌力與運動數據，作為健康評估與治理參考。從現有資訊看，重點不是技術突破，而是地方政府把運動設施數據化後，可能如何用於公共服務與政策決策。</p>
+  <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
+</article>
+
+<article class="news-item" data-reader-item data-item-date="2026-06-20T00:00:00+00:00">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+    <span class="badge">已載入本機全文</span>
+    <span class="badge">2026-06-20 08:00</span>
+  </div>
+  <h3><a href="articles/item-112f3678cbe29e48.html">Scientists Propose Black Holes Don’t Exist, Are Something Much Stranger</a></h3>
+  <p class="summary">A seismic wave from the 2011 Tohoku-Oki earthquake bounced off the Earth’s core and hit Japan from below, shifting the entire mainland a quarter-inch eastward.</p>
+  <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
+</article>
+
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div>
     <span class="badge">純新聞 / 小消息</span>
@@ -372,6 +390,18 @@
   <h3><a href="articles/item-441697e34ee53289.html">「該清理人類低品質產出」：為什麼 AI 現在比同事更會審程式碼</a></h3>
   <p class="summary">可見摘要只說 AI 模型開始接手寫程式後，討論焦點轉向 AI 是否能有效審查程式碼。標題主張 AI 現在可能比同事更會做 code review，但 RSS 摘要沒有說明依據、案例或方法。</p>
 
+</article>
+
+<article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
+  <div>
+    <span class="badge">純新聞 / 小消息</span>
+
+
+    <span class="badge">2026-06-19 08:00</span>
+  </div>
+  <h3><a href="articles/item-1f81f2ccf328063c.html">OCF 前進 Sony 總部：台灣開源治理經驗如何與亞洲接軌？</a></h3>
+  <p class="summary">來源文字是一段 OCF 的通用組織介紹，說明基金會由台灣開源社群發起，服務範圍包含開放源碼、開放資料、開放政府、社群支援、組織合作、海外交流與顧問諮詢。它沒有提供本篇文章的活動細節、治理觀點或案例內容。</p>
+  <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源治理</span><span class="tag-chip">OSPO</span><span class="tag-chip">開放資料</span><span class="tag-chip">OCF</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">

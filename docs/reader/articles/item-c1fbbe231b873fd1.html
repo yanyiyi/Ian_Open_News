@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>加拿大新法如何衝擊全球電商的演算法定價</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-19 08:00</span>
     </div>
-    <h2>加拿大新法如何衝擊全球電商的演算法定價</h2>
+    <h2><a class="article-title-link" href="https://technews.tw/ai-agent/canada-user-personal-data-prices/15366/" target="_blank" rel="noreferrer" title="開啟原始連結">加拿大新法如何衝擊全球電商的演算法定價</a></h2>
     <p class="lede">文章主張加拿大數位服務稅與線上新聞相關法制，加上美國小額商品免稅政策變化，正在提高跨境電商成本，迫使平台與賣家調整原本較統一的定價模型。它把這種轉變解讀為「定價治理」的興起：企業利用 AI 與數據分析，依地區與客群敏感度進行更細緻的動態定價，以維持利潤並降低市場流失。對 Ian 來說，這篇的價值不在單一新聞，而在於可連到數據治理、演算法透明度與數位主權下的商業策略。</p>
     <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://technews.tw/ai-agent/canada-user-personal-data-prices/15366/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>加拿大新法對全球電商演算法定價策略有何衝擊？</h1>
 <p>加拿大推動的《數位服務稅法案》（DST）與《線上新聞法》正引發全球電商定價策略的連鎖反應。DST 針對大型科技公司在加國境內營收徵收 3% 稅率，加上美國終止小額商品免稅政策，使得亞馬遜等平台上的跨境賣家面臨沉重的成本壓力。為了應對稅負與關稅波動，電商巨頭已開始調整演算法，將原本統一的定價模型拆解為針對不同區域的差異化方案。目前已有品牌因應新制將售價調漲 20% 以上，顯示過往依賴免稅紅利的低價競爭模式已難以為繼，全球電商正進入高成本、高波動的新常態。 這一波法規衝擊迫使企業從被動吸收成本轉向主動的「定價治理」。電商平台與賣家不再追求一次到位的統一調價，而是利用 AI 演算法建立滾動式的動態定價機制，精準估算各客群對漲價的敏感度。這種策略轉變的核心動機在於維護利潤率，同時避免因大幅漲價導致市場份額流失。隨著各國數位主權意識抬頭，全球貿易正演變為區域化的「友岸外包」格局，演算法定價將不再只是技術工具，而是企業在複雜地緣政治下主導金流向的戰略核心。未來，誰能透過數據治理實現更細緻的成本拆解與價格推升，誰就能在洗牌後的電商市場中生存。</p></section>

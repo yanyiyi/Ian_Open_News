@@ -114,37 +114,11 @@
     .story-body { padding: 14px; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-    .story-card .actions { gap: 6px; margin-top: 8px; }
-    .story-card .actions { justify-content: flex-end; }
-    .story-card .actions .reader-action-button {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      padding: 0;
-      border-radius: 6px;
-      gap: 0;
-      font-size: 0;
-      line-height: 1;
+    .story-card h2 a {
+      text-decoration: none;
     }
-    .story-card .actions svg {
-      width: 15px;
-      height: 15px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .reader-action-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
+    .story-card h2 a:hover {
+      text-decoration: underline;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -269,6 +243,14 @@
       padding: 16px;
     }
     .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
     .article-body img { max-width: 100%; height: auto; }
     .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
@@ -292,7 +274,7 @@
     <div class="masthead">
       <h1>為「知情真相權」辯護</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:11:55+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:21:31+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -311,13 +293,11 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-17 08:00</span>
     </div>
-    <h2>為「知情真相權」辯護</h2>
+    <h2><a class="article-title-link" href="https://thelivinglib.org/the-case-for-a-right-to-truth/" target="_blank" rel="noreferrer" title="開啟原始連結">為「知情真相權」辯護</a></h2>
     <p class="lede">文章主張，在充滿謊言、扭曲與錯假資訊的環境中，應該重新思考人民是否擁有被告知真相，或至少不被欺騙的權利。摘要特別把問題指向政府發布統計、報告或警示時，是否應有權利保障其依據可靠。</p>
 
     <div class="actions">
-      <a class="button secondary" href="../index.html">回精選與觀點</a>
-      <a class="button secondary" href="../news.html">看小消息</a>
-      <a class="button quiet" href="https://thelivinglib.org/the-case-for-a-right-to-truth/" target="_blank" rel="noreferrer">原始連結</a>
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
     <section class="article-body"><h1>The case for a right to truth</h1>
 <p><a href="https://www.geoffmulgan.com/blog/blog-post-title-two-p722w" target="_blank" rel="noreferrer">Article</a> by Geoff Mulgan: “We live in a world full of lies, distortions and misinformation. Should we have rights to be told the truth, or at least not to be lied to? If a government issues a statistic, a report, or a warning to its citizens, should any rights guarantee that it’s based on the best available information? Should there be penalties if a company or a political party, knowingly lies? If a doctor gives you a diagnosis, should it be your right that the diagnosis is based on the best possible medical knowledge? If a company has your pension invested in it, should any rights guarantee that their accounts are as accurate as possible? It might seem reasonable that any institution which claims to serve us should give us the respect of telling the truth. Yet no constitution guarantees that right. The US constitution protects rights of free speech, but no rights to truth. British law supports many rights, but not this one. Nor does the European Convention on Human Rights, which supports freedom of thought and expression, but no rights to information or truth. In this piece I set out why such rights are needed, and what they might mean. I show why existing laws in finance and consumer advertising can be built on, as well as recent ones designed to address the problems of deception on social media. I show why some of the assumptions of liberalism have become a barrier to action, and why freedom depends on truth. And I show why rights to truth could help harness the populist anger against the deceit and self-serving of powerful institutions in a more constructive direction. Finally, I address the main counter-arguments, which essentially say that no-one, and especially governments, can be trusted to determine truths of any kind…(<a href="https://www.geoffmulgan.com/blog/blog-post-title-two-p722w" target="_blank" rel="noreferrer">More</a>)”.</p>
