@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import html
 import json
@@ -200,6 +201,21 @@ def category_terms(element: ET.Element) -> list[str]:
     return terms
 
 
+BARE_AMPERSAND_RE = re.compile(r"&(?!#\d+;|#x[0-9a-fA-F]+;|[A-Za-z][A-Za-z0-9_.:-]*;)")
+INVALID_XML_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def parse_xml_root(content: bytes) -> ET.Element:
+    cleaned = content.lstrip(b"\xef\xbb\xbf \t\r\n")
+    try:
+        return ET.fromstring(cleaned)
+    except ET.ParseError:
+        text = cleaned.decode("utf-8", errors="replace")
+        text = INVALID_XML_CHAR_RE.sub(" ", text)
+        text = BARE_AMPERSAND_RE.sub("&amp;", text)
+        return ET.fromstring(text.encode("utf-8"))
+
+
 def parse_date(value: str) -> datetime | None:
     value = clean_text(value)
     if not value:
@@ -247,7 +263,7 @@ class FeedEntry:
 
 
 def parse_feed_entries(content: bytes) -> list[FeedEntry]:
-    root = ET.fromstring(content.lstrip(b"\xef\xbb\xbf \t\r\n"))
+    root = parse_xml_root(content)
     root_name = local_name(root.tag)
     entries: list[FeedEntry] = []
 
@@ -332,7 +348,11 @@ def read_feed_bytes(url: str, timeout: int, user_agent: str) -> bytes:
         },
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.read()
+        content = response.read()
+        encoding = clean_text(response.headers.get("Content-Encoding")).casefold()
+        if encoding == "gzip" or content.startswith(b"\x1f\x8b"):
+            return gzip.decompress(content)
+        return content
 
 
 def default_review() -> dict:
@@ -445,6 +465,20 @@ def source_last_fetch(source: dict) -> datetime | None:
     return None
 
 
+def source_has_successful_fetch(source: dict) -> bool:
+    health = source.get("rss_health") if isinstance(source.get("rss_health"), dict) else {}
+    for value in [source.get("last_fetched_at"), health.get("last_success_at")]:
+        if parse_date(clean_text(value)):
+            return True
+    return False
+
+
+def source_since_days(source: dict, args: argparse.Namespace) -> int:
+    if source_has_successful_fetch(source):
+        return args.since_days
+    return args.initial_since_days
+
+
 def source_due_for_fetch(source: dict, now: datetime) -> tuple[bool, str]:
     frequency = source_frequency(source)
     if frequency == "paused":
@@ -516,6 +550,8 @@ def build_report(
     if source_stats:
         lines.extend(["## Source handling summary", ""])
         for stats in source_stats.values():
+            window = f", window {stats.get('since_days')}d" if stats.get("since_days") else ""
+            initial = ", initial" if stats.get("initial_fetch") else ""
             lines.append(
                 "- "
                 f"{stats.get('source_name') or stats.get('source_id')} (`{stats.get('source_id')}`): "
@@ -524,7 +560,7 @@ def build_report(
                 f"old {stats.get('skipped_old', 0)}, "
                 f"duplicate recent {stats.get('skipped_duplicate_recent', 0)}, "
                 f"source keyword excluded {stats.get('skipped_source_keywords', 0)}, "
-                f"status {stats.get('last_fetch_status', 'unknown')}"
+                f"status {stats.get('last_fetch_status', 'unknown')}{initial}{window}"
             )
         lines.append("")
     if new_items:
@@ -565,6 +601,12 @@ def main() -> None:
     parser.add_argument("--include-unclassified", action="store_true")
     parser.add_argument("--source-id", action="append", default=[])
     parser.add_argument("--since-days", type=int, default=7)
+    parser.add_argument(
+        "--initial-since-days",
+        type=int,
+        default=90,
+        help="Use this window for sources that have not had a successful fetch yet.",
+    )
     parser.add_argument("--duplicate-lookback-days", type=int, default=7)
     parser.add_argument("--max-per-source", type=int, default=10)
     parser.add_argument("--timeout", type=int, default=20)
@@ -602,7 +644,8 @@ def main() -> None:
     keyword_config = load_json(args.triage_keywords)
     history_items = [*existing_items, *rejected_items]
     editorial_context = build_editorial_context(history_items, keyword_config)
-    duplicate_cutoff = datetime.now(timezone.utc) - timedelta(days=args.duplicate_lookback_days)
+    duplicate_lookback_days = max(args.duplicate_lookback_days, args.initial_since_days)
+    duplicate_cutoff = datetime.now(timezone.utc) - timedelta(days=duplicate_lookback_days)
     duplicate_history = recent_records(
         [*existing_items, *rejected_items, *existing_candidates, *dismissed_candidates],
         duplicate_cutoff,
@@ -639,7 +682,6 @@ def main() -> None:
         },
     )
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=args.since_days)
     captured_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     failures: list[tuple[dict, str]] = []
     new_items: list[dict] = []
@@ -688,6 +730,8 @@ def main() -> None:
             fetched_sources += 1
             stats["last_fetch_status"] = "ok"
             stats["entries_seen"] = len(entries)
+            stats["initial_fetch"] = not source_has_successful_fetch(source)
+            stats["since_days"] = source_since_days(source, args)
         except (urllib.error.URLError, TimeoutError, ET.ParseError, ValueError, OSError) as exc:
             failures.append((source, str(exc)))
             stats["last_fetch_status"] = "failed"
@@ -711,6 +755,7 @@ def main() -> None:
             continue
 
         added_for_source = 0
+        cutoff = datetime.now(timezone.utc) - timedelta(days=source_since_days(source, args))
         for entry in entries:
             published = parse_date(entry.published_at)
             if published and published < cutoff:

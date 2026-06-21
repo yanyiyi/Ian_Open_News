@@ -119,7 +119,7 @@ python3 scripts/codex_enrich_reviews.py --target both --workflow-scope --limit 1
 1. 讀 `database/sources.jsonl`。
 2. 抓 `status: active` 且 `source_type` 為 `rss`、`google-alert`、`youtube`、`podcast` 的來源。
 3. 預設只處理兩條主線，不抓 `unclassified` 來源。
-4. 把近 7 天的新項目新增到 `.cache/rss-candidates.jsonl`。
+4. 把新項目新增到 `.cache/rss-candidates.jsonl`；一般來源抓近 7 天，第一次成功抓取前的新來源會先回補近 90 天。
 5. 用 `database/triage-keywords.json` 標示「建議收」或「建議不要看」。
 6. 用 Codex CLI 補閱讀建議與摘要。
 7. 你在本機網頁「RSS 待整理」按確認收或直接送 PR 後，才會寫進 `database/items.jsonl` 並套用決定。

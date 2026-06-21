@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM-gen-AI - Software Freedom Conservancy - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card .actions { gap: 6px; margin-top: 8px; }
+    .story-card .actions { justify-content: flex-end; }
+    .story-card .actions .reader-action-button {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
+    }
+    .story-card .actions svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .reader-action-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>LLM-gen-AI - Software Freedom Conservancy</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-20T16:54:51+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">精選文章 / 待跑 skill</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-18 08:00</span>
+    </div>
+    <h2>LLM-gen-AI - Software Freedom Conservancy</h2>
+    <p class="lede">The Software Freedom Conservancy provides a non-profit home and services to Free, Libre and Open Source Software (FLOSS) projects.</p>
+
+    <div class="actions">
+      <a class="button secondary" href="../index.html">回精選與觀點</a>
+      <a class="button secondary" href="../news.html">看小消息</a>
+      <a class="button quiet" href="https://sfconservancy.org/llm-gen-ai/llm-backed-generative-ai-recommendations.html" target="_blank" rel="noreferrer">原始連結</a>
+    </div>
+    <section class="article-body"><h1>LLM-gen-AI - Software Freedom Conservancy</h1>
+<h2>Recommendations</h2>
+<p>When Using LLM-backed Generative AI Systems for FOSS Contributions</p>
+<h3>Preamble</h3>
+<p>The entire community of computer users, which quickly approaches every human, faces the growing conundrum of generative artificial intelligence systems backed by Large Language Models (“LLM-gen-AI”)<a href="https://sfconservancy.org/llm-gen-ai/llm-backed-generative-ai-recommendations.html#footnote-which-systems" target="_blank" rel="noreferrer">1</a>. Software freedom activists face particularly difficult challenges in this regard; these LLM-gen-AI systems have been applied in earnest to the endeavors of software creation and modification. We cannot sufficiently mitigate this tricky problem with merely one statement or a few blog posts. In 2022, Software Freedom Conservancy began our journey on this particular issue when our policy fellow, Bradley M. Kühn, published <a href="https://sfconservancy.org/blog/2022/feb/03/github-copilot-copyleft-gpl/" target="_blank" rel="noreferrer">If Software is My Copilot, Who Programmed My Software?</a>. In the last year, that journey grew in complexity and urgency when some of SFC’s member projects and supporters began to regularly request moral and ethical guidance on these matters. SFC spent these months in almost-daily internal discussions about the plethora of dilemmas presented by LLM-gen-AI systems. In 2024, <a href="https://sfconservancy.org/news/2024/oct/25/aspirational-on-llm-generative-ai-programming/" target="_blank" rel="noreferrer">SFC published an aspirational statement</a>, a thought experiment rather than a definition. We now make urgent recommendations to those ordered by their employers to use LLM-gen-AI code assistants to contribute to Free and Open Source Software (“FOSS”). Some FOSS project leaders have taken a zero-tolerance approach to any LLM-gen-AI contributions to their projects. We support leaders who make such decisions. FOSS project leaders deserve our sympathy and understanding regarding the volumous onslaught of new contributions. Patch evaluation has always required careful analysis (after all, humans write bad code too). Now, that analysis demand (reasonably) feels daunting to maintainers. Everyone should respect their decisions. Nevertheless, we cannot and must not ignore the many FOSS contributors who decide to explore these tools for the betterment of FOSS. Software freedom activism only succeeds when we admit that we are at least decades away from universal software freedom. Proprietary systems will continue to exist; there is a real danger they will continue to leapfrog FOSS. We should resist the use of proprietary systems, which include the most popular LLM-gen-AI systems, but we should also remain willing (<a href="https://sfconservancy.org/blog/2026/jun/02/ethical-use-proprietary-develop-free-software-foss/" target="_blank" rel="noreferrer">as we always have</a>) to utilize such systems when they can advance software freedom. After much study, consideration, collaboration, and consultation with many FOSS leaders, SFC formulated the following recommendations for FOSS contributors who have decided to use LLM-gen-AI systems to augment their FOSS work. We expect to update these recommendations periodically. These are not mandates, demands, conclusions, nor definitions; rather, they are best practices that we have formulated after careful study of the undeniable reality that some FOSS contributors do want to use these LLM-gen-AI systems. In the months following the announcement of these recommendations, SFC plans an ongoing engagement campaign, including documents, online tutorials, public Q&amp;As, and other community engagement, on these matters. SFC does not make these recommendations in isolation; rather, we offer sustained assistance to the community, particularly to FOSS projects working with proprietary LLM-gen-AI systems. The long term goal of software freedom is to eliminate the harm of proprietary technology. While we work toward that greater goal, we should seek to mitigate the harms that we cannot immediately eliminate. These recommendations aim to abate the damage of these systems, and also consider how these tools might counter-intuitively <em>help</em> us advance FOSS.</p>
+<h2>Recommendations</h2>
+<p>These recommendations are listed in order of our view of their relative importance (most important first).</p>
+<ul>
+<li>**The FOSS community should support, not just tolerate,</li>
+</ul>
+<p>those who outright reject LLM-gen-AI systems.** There are many intersecting ethical and moral issues regarding these systems, many of which are not currently fully understood. Anyone who chooses to avoid them deserves our support and assistance.</p>
+<ul>
+<li>**Every FOSS contributor deserves self-determination</li>
+</ul>
+<p>regarding LLM-gen-AI.** No one should be <em>required</em> to use these systems under duress. We make special note here of the increasing reports from technology workers who have been ordered by their management (often under penalty of termination) to use these systems for all their work: FOSS and proprietary. Such mandates are unconscionable and we call on the industry to make use of LLM-gen-AI fully optional, and adopt non-discrimination policies regarding those who opt out.</p>
+<ul>
+<li>**FOSS projects should not shun contributors who choose to</li>
+</ul>
+<p>use LLM-gen-AI systems.** Even FOSS projects that have chosen a zero-tolerance policy should make an effort to welcome contributors who submit a contribution that includes content or who received assistance from an LLM-gen-AI system. Such contributions should be treated no differently than a technically inadequate “first patch”: such submitters should be welcomed to the community and receive a gentle (albeit perhaps form language) response thanking them for their interest and explaining gently why the project will not accept their contribution.</p>
+<ul>
+<li>**Before submission, FOSS Contributors must invest</li>
+</ul>
+<p>substantial time reviewing LLM-gen-AI -assisted and/or -generated contributions.<strong> Such contributions need curation. Contributors should acquire an in-depth understanding of their contribution. FOSS processes yield software systems that are resilient, highly maintainable, and contributor-friendly. Human contributors engage with FOSS projects (even as volunteers) because of the enjoyment and satisfaction available in FOSS projects. </strong>LLM-gen-AI contributions could erode the best aspects of FOSS if an unsolicited onslaught of unvetted, prompt-generated contributions become commonplace.**</p>
+<ul>
+<li>**Full disclosure of how and when an LLM-gen-AI system was</li>
+</ul>
+<p>utilized to assist in creation of a contribution is a moral imperative.** FOSS project leaders cannot make good decisions about LLM-gen-AI policy if they cannot survey which contributions were assisted, and how much they are assisted. Part of the contribution process should (at least) include a disclosure of what LLM-gen-AI system was used, its version (as these system change over time), and a brief description of how the system assisted the contributor. This information should be included in a machine-readable format in commit logs.</p>
+<ul>
+<li>**Contributors should only submit “unattended”<a href="https://sfconservancy.org/llm-gen-ai/llm-backed-generative-ai-recommendations.html#footnote-unattended-means" target="_blank" rel="noreferrer">2</a> LLM-gen-AI contributions in an area</li>
+</ul>
+<p>explicitly designated for such. If none exists, such contributions should be assumed unwelcome.** FOSS maintainers are often volunteers, or permitted to work only a limited amount of time on their upstream projects. Maintainers’ time is precious, and is best used in human-to-human interactions with new and existing human contributors. New contributors should respect existing decisions about “unattended” LLM-gen-AI. Maintainers should think carefully about the types of unattended LLM-gen-AI contributions that may be useful. We encourage project leaders to flexibly and regularly (but also slowly and deliberately) consider policy changes on unattended contributions when new contributors present new ideas.</p>
+<ul>
+<li>**LLM-gen-AI users should keep detailed and accurate</li>
+</ul>
+<p>records of their interaction and save those meta-artifacts for posterity.** LLM-gen-AI systems excel at automation of users’ logs of prompts, notes, and other written details of the interaction that led to the creation of an artifact. FOSS contributors should keep such meta-artifacts, and <em>regardless of license</em> they should be archived as if they are part of the Corresponding Source for the contribution. (In the coming weeks, SFC will publish tutorials and templates to assist in automating this important process.)</p>
+<ul>
+<li>**Avoid jumping to conclusions about the legal significance</li>
+</ul>
+<p>of generated contributions and whether they are “copyright-washing-machines that ruin copyleft”.** There remain many unanswered legal questions, and experts are actively working on solutions. SFC will publish more on this issue in the coming months.</p>
+<ul>
+<li><strong>Inputs impact the licensing of the artifacts</strong>.</li>
+</ul>
+<p>The question of licensing obligations for material passed through the process called “training” remains undecided. Nevertheless, most LLM-gen-AI sessions don’t begin <em>only</em> with a prompt. By contrast, most commonly, the user points the LLM-gen-AI at a codebase and receives its assistance to generate a patch for that codebase. If that codebase is under a copyleft license, your changes <em>must</em> be licensed under the project’s license, due to both copyright and contractual terms of that license.</p>
+<ul>
+<li>**“Copyleft Everything” remains the best viable and safest</li>
+</ul>
+<p>approach** Certainly those who want to release FOSS under non-copyleft licenses have more to worry about when using these tools. It’s apparent that every widely used LLM-gen-AI was trained on much well-known copylefted code. Courts need years to deliver guidance on many relevant legal questions. In the meantime, <em>nothing</em> stops you from using a copyleft license for the work you generate, particularly a license that is widely compatible with other copyleft licenses. SFC will make its staff time available to the <a href="https://next.copyleft.org" target="_blank" rel="noreferrer">copyleft-next</a> project to eventually offer a license that is widely compatible with other copylefts and extremely suitable as a copyleft for LLM-gen-AI outputs.</p>
+<ul>
+<li>**When LLM-gen-AI systems (including proprietary ones) can</li>
+</ul>
+<p>massively accelerate FOSS improvements, use of such tools is an appropriate strategic compromise**. Most FOSS developers are not experts in the area of creation and training of LLM-gen-AI systems. Those developers should feel comfortable making the strategic choice to use LLM-gen-AI systems in these cases. We detest using proprietary tools and we are never comfortable recommending them. Yet <a href="https://sfconservancy.org/blog/2026/jun/02/ethical-use-proprietary-develop-free-software-foss/" target="_blank" rel="noreferrer">for nearly fifty years, FOSS contributors have used proprietary tools</a> to create and advance software freedom. <em>Writing</em> proprietary systems is undoubtedly an anti-social act that we all should avoid. <em>Using</em> proprietary systems, particularly when they can forward FOSS, is a highly fact-dependent tactical decision. <strong>Warning</strong>: do take great care to fully understand the implications of any proprietary license. SFC will publish in the coming weeks some guidance on how to approach such analysis.</p>
+<ul>
+<li>**Those with skills and interest in making FOSS-friendlier</li>
+</ul>
+<p>LLM-gen-AI systems should do so as a matter of high priority**. While no system meets the (currently) <a href="https://sfconservancy.org/news/2024/oct/25/aspirational-on-llm-generative-ai-programming/" target="_blank" rel="noreferrer">Impossible Dream of our aspirational system</a>, there are obvious avenues of pursuit that will make progress in that direction. SFC will highlight on our blog in the coming months individuals working in these directions.</p>
+<ul>
+<li>**Do not overuse LLM-gen-AI, or allow your skills to</li>
+</ul>
+<p>atrophy**. In our discussions with the FOSS community about LLM-gen-AI, there seems to be one universal conclusion: the systems are most effective and help the most when a very experienced FOSS developer sits at the prompting helm. LLM-gen-AI systems should <em>complement</em> existing skills and tools, not <em>replace</em> them. Developers should remain <em>curious</em> about why software acts the way it does, and this curiosity should extend to the LLM-gen-AI outputs — and even the system itself.</p>
+<ul>
+<li><strong>Think carefully about your usage</strong>. As software</li>
+</ul>
+<p>technologists, we have for decades made complex choices regarding resource consumption vs. convenience. The advent of CI, as just one example, led to massive increases in computing time, while at the same time simplified contribution workflows. As individual FOSS developers, we are unlikely to change the bad behavior of these proprietary software companies who are either focusing on the creation of, or mandating the excessive use of, LLM-gen-AI. There are hundreds of intersectional issues of societal significance and social justice that are touched by these technologies, including the environmental impact of the development and use of these systems. Our focus and expertise centers on the implications for software; here we assess user freedom and add our ideas to the overall social conversations about how this technology should be used, controlled, and distributed in the context of FOSS. On matters unrelated to software freedom, we defer to experts that focus on environmental and other intersectional issues. In our experience, FOSS contributors are historically much more mindful and concerned about how their actions impact others than developers of proprietary software and systems. Bring that mindfulness to your use of LLM-gen-AI. As just two examples: don’t run to an LLM-gen-AI immediately for every problem,</p>
+<ul>
+<li>pay attention to the LLM-gen-AI when it is clearly doing useless</li>
+</ul>
+<p>processing, and quickly redirect it to something more useful.</p>
+<h3>The Road Ahead</h3>
+<p>Most new technologies have some adverse outcomes. We must carefully recognize and mitigate them. Social justice movements (including the software freedom and software right-to-repair movements) succeed when well-intentioned individuals act sustainably and consistently to bring needed change. In FOSS, those individuals constantly invent and improve new technologies that respect users’ rights and freedoms. The recommendations above are a start. We’re ready for revision and further explanation as facts change. Our community has successfully deployed our unique acumen, and will again to shift this current imbalance of power. We must creatively act as we always have; the FOSS community excels at strategems that counteract proprietary software with ingenuity. SFC walks with you on this multi-generational journey to universal software freedom and rights. Expect (but embrace) the trepidation as we take this next step together now. SFC’s goal is steadfast: empower consumers and users to advance and exercise software freedom, and their right to software repair. Remember these strategies have worked and <strong>will continue to work</strong> when we remain vigilant, mindful, and focused.</p>
+<h3>Acknowledgments</h3>
+<p>Software Freedom Conservancy publishes this statement after months of internal deliberation and discussions with a group of volunteers, including John Sullivan, Stefano Zacchiroli, and many anonymous contributors. The statement was drafted by SFC in collaboration with that group.</p>
+<h3>Footnotes</h3>
+<p><a href="https://sfconservancy.org/llm-gen-ai/llm-backed-generative-ai-recommendations.html#return-which-systems" target="_blank" rel="noreferrer">1</a> These Recommendations are made specifically for systems (most of which are currently proprietary), such as Claude Code, Copilot CLI, Antigravity, and OpenCode. These systems utilize an LLM to generate textual artifacts that assist software project contributors. There is no known shorthand for referring to these systems, so we refer to them here as “LLM-gen-AI” to remind the reader throughout that these recommendations are not necessarily intended to apply to other forms of AI nor other uses of LLMs<a href="https://sfconservancy.org/llm-gen-ai/llm-backed-generative-ai-recommendations.html#return-which-systems" target="_blank" rel="noreferrer">↩</a> <a href="https://sfconservancy.org/llm-gen-ai/llm-backed-generative-ai-recommendations.html#return-unattended-means" target="_blank" rel="noreferrer">2</a> By “unattended”, we mean prompt-generated contributions that received no further human vetting.<a href="https://sfconservancy.org/llm-gen-ai/llm-backed-generative-ai-recommendations.html#return-unattended-means" target="_blank" rel="noreferrer">↩</a></p></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-8191aa203b82ad22.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-20T08:15:23+00:00</li><li>審稿備註：很關鍵該怎貢獻
+2026-06-20T08:15:23+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：LLM-gen-AI - Software Freedom Conservancy</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：sfconservancy.org（RSS）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-8191aa203b82ad22";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+</body>
+</html>

@@ -75,8 +75,10 @@ RSS 待整理會依 `database/triage-keywords.json` 標示：
 
 打開 `http://127.0.0.1:8765/reader`，可以閱讀已確認收下的精選文章與小消息。閱讀區會盡量使用資料中的 `image`、`image_url`、`thumbnail`、`og_image` 或摘要內圖片 URL 來產生文章卡片；沒有圖片時會用主線色塊。
 
-每篇文章點進單篇頁後可以做兩件事：
+每篇文章點進單篇頁後可以做幾件事：
 
+- 概念標籤：用單篇頁補上自動關鍵字沒有抓到的抽象概念。建議 tag 由本機資料、既有 tag、命中關鍵字與已抓摘要推斷，不會額外呼叫 Codex。
+- 標記近期正在讀 / 想分享：把文章寫入 `reader_flags.current_reading` 與 `reader_flags.share_intent`；閱讀區會出現「優先正在閱讀區」，標記超過 2 天後，未指定項目時會優先進入 skill 候選排序。
 - 我的關鍵紀錄：寫下你自己的判斷、疑問、想補的台灣/OCF 脈絡或後續角度，會存進 `personal_notes`。
 - 用我的觀點重新送 skill：把文章狀態放回 `triaged`，並在 `skill_requests` 與 `review-events.jsonl` 留下紀錄。後續跑撰稿 skill 時，應該把 `personal_notes` 當成新的檢視角度。
 - 閱讀更多：連到原始網址抓 `og:image`、標題、描述、canonical URL、段落摘錄、`article_text` 原始主文與 `article_markdown` Markdown 閱讀版，寫進 `reading_metadata`。如果抓到封面圖，閱讀卡片會使用它；如果抓到主文，單篇頁會以 Markdown 排版顯示成比較好讀的文章版。

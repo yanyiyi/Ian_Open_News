@@ -115,6 +115,10 @@ def validate() -> list[str]:
                 errors.append(f"{items_path}:{item['_line']}: reference must be an object")
             if not isinstance(item.get("review"), dict):
                 errors.append(f"{items_path}:{item['_line']}: review must be an object")
+            if "reader_flags" in item and not isinstance(item.get("reader_flags"), dict):
+                errors.append(f"{items_path}:{item['_line']}: reader_flags must be an object")
+            if "tag_metadata" in item and not isinstance(item.get("tag_metadata"), dict):
+                errors.append(f"{items_path}:{item['_line']}: tag_metadata must be an object")
         except ValueError as exc:
             errors.append(str(exc))
 
@@ -141,6 +145,10 @@ def validate() -> list[str]:
                 errors.append(f"{rejected_items_path}:{item['_line']}: reference must be an object")
             if not isinstance(item.get("review"), dict):
                 errors.append(f"{rejected_items_path}:{item['_line']}: review must be an object")
+            if "reader_flags" in item and not isinstance(item.get("reader_flags"), dict):
+                errors.append(f"{rejected_items_path}:{item['_line']}: reader_flags must be an object")
+            if "tag_metadata" in item and not isinstance(item.get("tag_metadata"), dict):
+                errors.append(f"{rejected_items_path}:{item['_line']}: tag_metadata must be an object")
             decision = item.get("local_decision")
             if not isinstance(decision, dict) or decision.get("action") != "rejected":
                 errors.append(f"{rejected_items_path}:{item['_line']}: local_decision.action must be rejected")

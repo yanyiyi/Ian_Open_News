@@ -15,12 +15,15 @@ from local_web import (
     clean_text,
     content_kind_label,
     h,
+    item_current_reading_age_days,
     item_display_time,
     item_display_title,
+    item_is_current_reading,
     is_reader_item,
     item_display_kind,
     item_image_url,
     item_sort_time,
+    item_visible_tags,
     item_zh_summary,
     load_jsonl,
     markdown_to_html,
@@ -232,6 +235,21 @@ def item_is_public_reader(item: dict) -> bool:
     return item_display_kind(item) in PUBLIC_KINDS
 
 
+def public_reader_badges(item: dict) -> str:
+    if not item_is_current_reading(item):
+        return ""
+    age = item_current_reading_age_days(item)
+    aged = f'<span class="badge badge--reading">已標記 {h(str(age))} 天</span>' if age >= 2 else ""
+    return f'<span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span>{aged}'
+
+
+def public_tag_chips(item: dict, limit: int = 6) -> str:
+    tags = item_visible_tags(item, limit)
+    if not tags:
+        return ""
+    return '<div class="tag-chip-list">' + "".join(f'<span class="tag-chip">{h(tag)}</span>' for tag in tags) + "</div>"
+
+
 def kind_order(item: dict) -> tuple[int, str, str, str]:
     kind = item_display_kind(item)
     order = {"featured-article": 0, "opinion-article": 1, "small-news": 2}.get(kind, 9)
@@ -317,6 +335,21 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       font-weight: 850;
       display: inline-flex;
       margin: 0 4px 4px 0;
+    }}
+    .badge--reading {{ background: #fff8db; color: #7a5a00; }}
+    .tag-chip-list {{ display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }}
+    .tag-chip {{
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
     }}
     .card-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }}
     .story-card {{
@@ -478,11 +511,13 @@ def item_card(item: dict) -> str:
     <div>
       <span class="badge">開放科技</span>
       <span class="badge">{h(content_kind_label(kind))}</span>
+      {public_reader_badges(item)}
       {'<span class="badge">已載入本機全文</span>' if has_body else ''}
       <span class="badge">{h(item_date(item))}</span>
     </div>
     <h2><a href="{h(article_href(item))}">{h(item_display_title(item))}</a></h2>
     <p class="summary">{h(summary)}</p>
+    {public_tag_chips(item)}
     <div class="actions">
       <a class="button secondary reader-action-button" href="{h(article_href(item))}" aria-label="閱讀單篇" title="閱讀單篇">{action_icon("read")}{action_label("閱讀單篇")}</a>
       {f'<a class="button quiet reader-action-button" href="{h(clean_text(item.get("url")))}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{action_icon("external")}{action_label("原始連結")}</a>' if clean_text(item.get("url")) else ''}
@@ -500,11 +535,13 @@ def news_row(item: dict, depth: int = 0) -> str:
 <article class="news-item" data-reader-item data-item-date="{h(item_data_date(item))}">
   <div>
     <span class="badge">{h(content_kind_label(item_display_kind(item)))}</span>
+    {public_reader_badges(item)}
     {'<span class="badge">已載入本機全文</span>' if has_body else ''}
     <span class="badge">{h(item_date(item))}</span>
   </div>
   <h3><a href="{h(prefix + article_href(item))}">{h(item_display_title(item))}</a></h3>
   <p class="summary">{h(summary)}</p>
+  {public_tag_chips(item, 5)}
 </article>
 """
 
@@ -581,11 +618,13 @@ document.getElementById("note-save").addEventListener("click", () => {{
     <div>
       <span class="badge">開放科技</span>
       <span class="badge">{h(content_kind_label(kind))}</span>
+      {public_reader_badges(item)}
       {'<span class="badge">已載入本機全文</span>' if body_markdown else '<span class="badge">尚未載入全文</span>'}
       <span class="badge">{h(item_date(item))}</span>
     </div>
     <h2>{h(item_display_title(item))}</h2>
     <p class="lede">{h(item_zh_summary(item, 520))}</p>
+    {public_tag_chips(item, 8)}
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -600,12 +639,21 @@ document.getElementById("note-save").addEventListener("click", () => {{
 
 
 def index_page(items: list[dict]) -> str:
-    primary = [item for item in items if item_display_kind(item) in PRIMARY_KINDS]
-    small_news = [item for item in items if item_display_kind(item) == "small-news"]
+    current = [item for item in items if item_is_current_reading(item)]
+    primary = [item for item in items if item_display_kind(item) in PRIMARY_KINDS and not item_is_current_reading(item)]
+    small_news = [item for item in items if item_display_kind(item) == "small-news" and not item_is_current_reading(item)]
+    current_cards = "\n".join(item_card(item) for item in current[:12])
     cards = "\n".join(item_card(item) for item in primary[:120]) or "<p class='empty'>目前沒有精選文章或觀點文章。</p>"
     news_preview = "\n".join(news_row(item) for item in small_news[:8]) or "<p class='empty'>目前沒有小消息。</p>"
     body = f"""
 {time_filter_controls()}
+{f'''
+<section>
+  <h2>Ian 近期正在閱讀</h2>
+  <p class="lede">最近特別想讀完、整理或分享給大家的文章。</p>
+  <div class="card-grid">{current_cards}</div>
+</section>
+''' if current_cards else ''}
 <section>
   <h2>精選文章與觀點文章</h2>
   <p class="lede">這裡優先呈現需要細讀、可能延伸撰稿或觀點整理的內容。</p>

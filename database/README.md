@@ -26,13 +26,15 @@
 - `published_at`：原始發布日期，格式盡量使用 `YYYY-MM-DD`。
 - `captured_at`：被 Inoreader、Excel 或 repo 收錄的日期。
 - `summary`：摘要或舊資料描述。
-- `tags`：來源 label、sheet 名稱或人工標籤。
+- `tags`：來源 label、sheet 名稱、自動關鍵字之外的人工概念標籤；本機閱讀區與卡片會把非雜訊 tag 顯示出來，也可用來篩選。
+- `tag_metadata`：單篇頁更新 tag 時留下的來源、更新時間與前一版 tag，方便追蹤人工補標。
 - `origin`：`inoreader-starred`、`rss-fetch`、`manual-web`、`xlsx:<sheet>` 或 `manual`。
 - `reference`：原始檔案、原始 record id、舊欄位等。
 - `review`：審查狀態、切角、查核與備註。
 - `triage`：關鍵字第一層判斷，標示建議收、建議不要看、命中與排除關鍵字。
 - `editorial_triage`：本機規則初篩欄位，綜合關鍵字、過去不收紀錄、過去收錄類型，產生「為什麼建議看」與下一步建議；若有 `codex_review`，代表由 Codex 另行閱讀主文後生成的閱讀建議。
 - `personal_notes`：閱讀區的「我的關鍵紀錄」，用來讓重送 skill 時依個人觀點重新檢視文章。
+- `reader_flags`：閱讀區的人工旗標，例如 `current_reading`、`share_intent`、`started_at`；標記 2 天以上的文章在未指定項目時會優先進入 skill 候選排序。
 - `reading_metadata`：按「閱讀更多」或批次補資料時，從原始網址抓回的 `og:image`、title、description、canonical URL、摘錄、`article_text` 原始主文與 `article_markdown` Markdown 閱讀版。
 
 ## Source 欄位
@@ -60,6 +62,8 @@ python3 scripts/import_reference_data.py
 ```bash
 python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --dismissed .cache/rss-dismissed.jsonl --report .cache/rss-fetch-report.md
 ```
+
+預設一般來源只抓近 7 天；還沒有成功抓取紀錄的新來源，第一次會先用近 90 天作為回補窗口。
 
 排程使用的完整本機流程會在抓完 RSS 後補 Codex 建議與摘要：
 

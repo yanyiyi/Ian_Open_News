@@ -25,6 +25,7 @@ Treat `database/items.jsonl` as the active editorial source of truth. Do not ski
 5. For small news, prepare one PR containing a list of items, fact-check notes, and minimal database/brief updates.
 6. For selected articles, run angle, source research, structure, line, target reader, then fact-check. Open a PR only after the local skill pass produces useful material.
 7. After reading published/ready material, use `personal_notes` and `skill_requests` to re-enter the skill workflow when the user adds a new viewpoint.
+8. When no exact item id, URL, or title is specified, prefer items with `reader_flags.current_reading` or `reader_flags.share_intent`; if the flag has been active for 2+ days, treat it as the first writing-skill queue before ordinary `triaged` items.
 
 ## Track Judgment
 
@@ -74,6 +75,8 @@ For selected articles, produce:
 - Suggested next GitHub change.
 
 If `personal_notes.body` exists, treat it as the user's editorial brief. Explicitly say how the notes changed the angle or priority.
+
+If `reader_flags.current_reading` or `reader_flags.share_intent` exists, treat it as Ian's current reading priority. Items marked for 2+ days should be considered before other eligible candidates when the user asks for the next article without naming one.
 
 ## Rejection Notes
 

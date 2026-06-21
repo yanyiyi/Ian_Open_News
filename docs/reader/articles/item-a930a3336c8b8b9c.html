@@ -65,6 +65,21 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
     .story-card {
       background: var(--panel);
@@ -201,7 +216,7 @@
     <div class="masthead">
       <h1>社群徵求維護 1Panel 分支的人選</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-20T03:56:13+00:00</p>
+      <p class="generated">產生時間：2026-06-20T16:54:51+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -216,11 +231,13 @@
     <div>
       <span class="badge">開放科技</span>
       <span class="badge">純新聞 / 小消息</span>
+
       <span class="badge">尚未載入全文</span>
       <span class="badge">2026-06-17 08:00</span>
     </div>
     <h2>社群徵求維護 1Panel 分支的人選</h2>
     <p class="lede">這則 Ubuntu Community Hub 貼文提到 1Panel 這個開源 VPS 控制面板，發文者希望有人 fork 並維護一個分支，原因是官方團隊不願支援建立網站時的自訂路徑，導致 PHP 開發環境路徑過長。就摘要來看，這比較像單一使用者對專案功能路線的不滿與徵人請求，尚未看到明確的 fork 成果或更大規模社群動員。</p>
+    <div class="tag-chip-list"><span class="tag-chip">COSCUP 開源人年會</span><span class="tag-chip">Lounge</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -234,7 +251,7 @@
   <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
   <div class="actions">
     <button type="button" id="note-save">儲存到這台瀏覽器</button>
-    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/codex/l10n/reader-notes?filename=item-a930a3336c8b8b9c.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-a930a3336c8b8b9c.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>編輯紀錄</h2>
   <ul><li>本機決定：direct-pr-small-news / 2026-06-18T13:16:53+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

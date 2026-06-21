@@ -577,16 +577,26 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
     return metadata
 
 
+PLACEHOLDER_ZH_TITLE_RE = re.compile(r"^關於[^：:\n]{1,120}的(?:英文|外文|外語|非中文)?資料[：:]\s*(?P<title>.+)$")
+
+
+def usable_zh_title(value: object, limit: int = 260) -> str:
+    title = clean_text(value, limit)
+    if PLACEHOLDER_ZH_TITLE_RE.match(title):
+        return ""
+    return title
+
+
 def codex_zh_title(item: dict) -> str:
     editorial = item.get("editorial_triage")
     if not isinstance(editorial, dict):
         return ""
     codex_review = editorial.get("codex_review")
     if isinstance(codex_review, dict):
-        title = clean_text(codex_review.get("zh_title"), 260)
+        title = usable_zh_title(codex_review.get("zh_title"), 260)
         if title:
             return title
-    return clean_text(editorial.get("zh_title"), 260)
+    return usable_zh_title(editorial.get("zh_title"), 260)
 
 
 def complete_item_metadata(item: dict) -> tuple[dict, bool]:

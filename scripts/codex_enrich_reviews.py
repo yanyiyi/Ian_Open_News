@@ -19,6 +19,7 @@ REPORT = ROOT / ".cache" / "codex-review-report.md"
 
 READER_STATUSES = {"triaged", "researching", "drafting", "reviewing", "fact-checking", "ready", "published"}
 READER_ACTIONS = {"accepted-for-editing", "direct-pr-small-news", "revisit-with-personal-notes"}
+CURRENT_READING_PRIORITY_DAYS = 2
 
 
 def clean_text(value: object, limit: int | None = None) -> str:
@@ -76,6 +77,47 @@ def local_decision_action(record: dict[str, Any]) -> str:
     if not isinstance(decision, dict):
         return ""
     return str(decision.get("action") or "")
+
+
+def parse_datetime(value: object) -> datetime | None:
+    text = clean_text(value)
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def reader_flags(record: dict[str, Any]) -> dict[str, Any]:
+    flags = record.get("reader_flags")
+    return flags if isinstance(flags, dict) else {}
+
+
+def current_reading_rank(record: dict[str, Any]) -> int:
+    flags = reader_flags(record)
+    active = bool(flags.get("current_reading") or flags.get("share_intent"))
+    if not active:
+        return 2
+    started = parse_datetime(flags.get("started_at") or flags.get("flagged_at"))
+    if started and (datetime.now(timezone.utc) - started).days >= CURRENT_READING_PRIORITY_DAYS:
+        return 0
+    return 1
+
+
+def target_recency(record: dict[str, Any]) -> str:
+    flags = reader_flags(record)
+    decision = record.get("local_decision") if isinstance(record.get("local_decision"), dict) else {}
+    return clean_text(
+        flags.get("updated_at")
+        or flags.get("started_at")
+        or decision.get("decided_at")
+        or record.get("captured_at")
+        or record.get("published_at")
+    )
 
 
 def in_item_scope(record: dict[str, Any], tracks: set[str], statuses: set[str], workflow_scope: bool) -> bool:
@@ -344,6 +386,7 @@ def collect_targets(records: list[dict[str, Any]], args: argparse.Namespace, kin
     tracks = set(args.track or [])
     statuses = set(args.status or [])
     ids = set(args.id or [])
+    recommendations = set(args.recommendation or [])
     selected: list[dict[str, Any]] = []
     for record in records:
         if ids:
@@ -361,7 +404,13 @@ def collect_targets(records: list[dict[str, Any]], args: argparse.Namespace, kin
         else:
             if not in_candidate_scope(record, tracks):
                 continue
+        triage = record.get("triage") if isinstance(record.get("triage"), dict) else {}
+        if recommendations and triage.get("recommendation") not in recommendations:
+            continue
         selected.append(record)
+    if kind == "items" and not ids:
+        selected.sort(key=target_recency, reverse=True)
+        selected.sort(key=current_reading_rank)
     return selected[: args.limit] if args.limit else selected
 
 
@@ -392,6 +441,7 @@ def main() -> None:
     parser.add_argument("--candidates", type=Path, default=CANDIDATES)
     parser.add_argument("--track", action="append", default=[])
     parser.add_argument("--status", action="append", default=["inbox"])
+    parser.add_argument("--recommendation", action="append", default=[], help="Only enrich candidates with this local triage recommendation. Can be repeated.")
     parser.add_argument("--id", action="append", default=[], help="Only enrich the record with this id. Can be repeated.")
     parser.add_argument("--workflow-scope", action="store_true", help="For items, include inbox plus reader/workflow statuses.")
     parser.add_argument("--limit", type=int, default=24)

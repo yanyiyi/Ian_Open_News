@@ -289,10 +289,7 @@ def zh_title_for(record: dict[str, Any], triage: dict[str, Any]) -> str:
         return "未命名資料"
     if has_cjk(title):
         return title
-    lower = normalized(title)
-    hints = [zh for en, zh in ENGLISH_TITLE_HINTS.items() if en in lower]
-    hint_text = "、".join(list(dict.fromkeys(hints))[:3]) or keyword_topic(record, triage)
-    return f"關於{hint_text}的英文資料：{title}"
+    return title
 
 
 def zh_summary_for(record: dict[str, Any], triage: dict[str, Any], kind: str, zh_title: str) -> str:

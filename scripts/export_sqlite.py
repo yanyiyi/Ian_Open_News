@@ -71,8 +71,8 @@ def main() -> None:
                 INSERT INTO items
                 (id, track, status, priority, title, url, source_id, source_name, author,
                  published_at, captured_at, summary, tags_json, origin, reference_json, review_json,
-                 editorial_triage_json, personal_notes_json, reading_metadata_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 editorial_triage_json, personal_notes_json, reader_flags_json, reading_metadata_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item["id"],
@@ -93,6 +93,7 @@ def main() -> None:
                     json.dumps(item.get("review", {}), ensure_ascii=False),
                     json.dumps(item.get("editorial_triage", {}), ensure_ascii=False),
                     json.dumps(item.get("personal_notes", {}), ensure_ascii=False),
+                    json.dumps(item.get("reader_flags", {}), ensure_ascii=False),
                     json.dumps(item.get("reading_metadata", {}), ensure_ascii=False),
                 ),
             )
