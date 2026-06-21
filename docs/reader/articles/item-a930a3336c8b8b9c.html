@@ -80,6 +80,18 @@
       font-weight: 800;
       line-height: 1.25;
     }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
     .story-card {
       background: var(--panel);
@@ -188,6 +200,11 @@
     .reader-period {
       margin: 0 0 24px;
     }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
     .reader-period h2 {
       position: relative;
       display: grid;
@@ -210,11 +227,32 @@
       background: linear-gradient(90deg, transparent, var(--line), transparent);
       z-index: 0;
     }
-    .reader-period h2 span {
+    .reader-period-heading-label {
       position: relative;
       z-index: 1;
       padding: 0 14px;
       background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }
     .reader-period[hidden] {
       display: none !important;
@@ -254,7 +292,7 @@
     <div class="masthead">
       <h1>社群徵求維護 1Panel 分支的人選</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T17:42:14+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:08:14+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>

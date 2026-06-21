@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LLM-gen-AI - Software Freedom Conservancy - Ian Open News</title>
+  <title>SFC：使用 LLM 生成式 AI 參與 FOSS 貢獻的建議 - Ian Open News</title>
   <style>
     :root {
       --ink: #111827;
@@ -79,6 +79,18 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
     }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
     .story-card {
@@ -188,6 +200,11 @@
     .reader-period {
       margin: 0 0 24px;
     }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
     .reader-period h2 {
       position: relative;
       display: grid;
@@ -210,11 +227,32 @@
       background: linear-gradient(90deg, transparent, var(--line), transparent);
       z-index: 0;
     }
-    .reader-period h2 span {
+    .reader-period-heading-label {
       position: relative;
       z-index: 1;
       padding: 0 14px;
       background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }
     .reader-period[hidden] {
       display: none !important;
@@ -252,9 +290,9 @@
 <body>
   <header>
     <div class="masthead">
-      <h1>LLM-gen-AI - Software Freedom Conservancy</h1>
+      <h1>SFC：使用 LLM 生成式 AI 參與 FOSS 貢獻的建議</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T17:42:14+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:08:14+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -273,8 +311,8 @@
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-18 08:00</span>
     </div>
-    <h2>LLM-gen-AI - Software Freedom Conservancy</h2>
-    <p class="lede">The Software Freedom Conservancy provides a non-profit home and services to Free, Libre and Open Source Software (FLOSS) projects.</p>
+    <h2>SFC：使用 LLM 生成式 AI 參與 FOSS 貢獻的建議</h2>
+    <p class="lede">Software Freedom Conservancy 針對使用 LLM 生成式 AI 系統參與 FOSS 貢獻提出建議。文章承認這類工具帶來倫理、授權、維護者負擔與工作自主權等難題，也反對把單一立場強加給整個社群。SFC 支持專案領導者拒收 AI 輔助貢獻的權利，同時也主張不應排斥想使用這些工具的貢獻者。它特別強調，任何 FOSS 貢獻者都不應被雇主強迫使用 LLM 工具，社群應保障選擇不用的人，也以最佳實務降低無法立即消除的傷害。</p>
 
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>

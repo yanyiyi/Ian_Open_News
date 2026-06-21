@@ -253,6 +253,11 @@ def public_tag_chips(item: dict, limit: int = 6) -> str:
     return '<div class="tag-chip-list">' + "".join(f'<span class="tag-chip">{h(tag)}</span>' for tag in tags) + "</div>"
 
 
+def public_help_dot(text: str) -> str:
+    text = clean_text(text, 500)
+    return f'<span class="help-dot" title="{h(text)}">?</span>' if text else ""
+
+
 def kind_order(item: dict) -> tuple[int, str, str, str]:
     kind = item_display_kind(item)
     order = {"featured-article": 0, "opinion-article": 1, "small-news": 2}.get(kind, 9)
@@ -284,11 +289,13 @@ def period_sections(items: list[dict], renderer, container_class: str, empty: st
         hidden = " hidden" if item_month_index >= 1 else ""
         sections.append(
             f"""
-<section class="reader-period" data-reader-period data-month-index="{item_month_index}" id="{h(reader_period_key(records[0]))}"{hidden}>
-  <h2><span>{h(label)}</span></h2>
-  <p class="lede">{len(records)} 筆</p>
+<details class="reader-period" data-reader-period data-month-index="{item_month_index}" id="{h(reader_period_key(records[0]))}" open{hidden}>
+  <summary>
+    <h2><span class="reader-period-heading-label">{h(label)}</span></h2>
+    <p class="reader-period-count">{len(records)} 筆</p>
+  </summary>
   <div class="{h(container_class)}">{''.join(renderer(item) for item in records)}</div>
-</section>
+</details>
 """
         )
     more = ""
@@ -420,6 +427,18 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       font-weight: 800;
       line-height: 1.25;
     }}
+    .help-dot {{
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }}
     .card-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }}
     .story-card {{
       background: var(--panel);
@@ -528,6 +547,11 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     .reader-period {{
       margin: 0 0 24px;
     }}
+    .reader-period > summary {{
+      cursor: pointer;
+      list-style: none;
+    }}
+    .reader-period > summary::-webkit-details-marker {{ display: none; }}
     .reader-period h2 {{
       position: relative;
       display: grid;
@@ -550,11 +574,32 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       background: linear-gradient(90deg, transparent, var(--line), transparent);
       z-index: 0;
     }}
-    .reader-period h2 span {{
+    .reader-period-heading-label {{
       position: relative;
       z-index: 1;
       padding: 0 14px;
       background: var(--bg);
+    }}
+    .reader-period-heading-label::after {{
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }}
+    .reader-period:not([open]) .reader-period-heading-label::after {{
+      content: "展開";
+    }}
+    .reader-period-count {{
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }}
     .reader-period[hidden] {{
       display: none !important;
@@ -757,19 +802,16 @@ def index_page(items: list[dict]) -> str:
 {time_filter_controls()}
 {f'''
 <section>
-  <h2>Ian 近期正在閱讀</h2>
-  <p class="lede">最近特別想讀完、整理或分享給大家的文章。</p>
+  <h2>Ian 近期正在閱讀 {public_help_dot("最近特別想讀完、整理或分享給大家的文章。")}</h2>
   <div class="card-grid">{current_cards}</div>
 </section>
 ''' if current_cards else ''}
 <section>
-  <h2>精選文章與觀點文章</h2>
-  <p class="lede">這裡優先呈現需要細讀、可能延伸撰稿或觀點整理的內容。</p>
+  <h2>精選文章與觀點文章 {public_help_dot("這裡優先呈現需要細讀、可能延伸撰稿或觀點整理的內容。")}</h2>
   {cards}
 </section>
 <section>
-  <h2>最新小消息</h2>
-  <p class="lede">小消息改成列表，適合快速掃過；完整列表在下一頁。</p>
+  <h2>最新小消息 {public_help_dot("小消息改成列表，適合快速掃過；完整列表在下一頁。")}</h2>
   {news_preview}
   <div class="actions"><a class="button secondary" href="news.html">看全部小消息</a></div>
 </section>
@@ -784,8 +826,7 @@ def news_page(items: list[dict]) -> str:
     body = f"""
 {time_filter_controls()}
 <section>
-  <h2>小消息列表</h2>
-  <p class="lede">純新聞消息用列表呈現，保留快速掃讀與點進單篇的入口。</p>
+  <h2>小消息列表 {public_help_dot("純新聞消息用列表呈現，保留快速掃讀與點進單篇的入口。")}</h2>
   {rows}
 </section>
 <div class="empty" data-time-empty hidden>這個時間範圍沒有可顯示的小消息。</div>

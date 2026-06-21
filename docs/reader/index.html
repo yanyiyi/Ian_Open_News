@@ -80,6 +80,18 @@
       font-weight: 800;
       line-height: 1.25;
     }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
     .story-card {
       background: var(--panel);
@@ -188,6 +200,11 @@
     .reader-period {
       margin: 0 0 24px;
     }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
     .reader-period h2 {
       position: relative;
       display: grid;
@@ -210,11 +227,32 @@
       background: linear-gradient(90deg, transparent, var(--line), transparent);
       z-index: 0;
     }
-    .reader-period h2 span {
+    .reader-period-heading-label {
       position: relative;
       z-index: 1;
       padding: 0 14px;
       background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }
     .reader-period[hidden] {
       display: none !important;
@@ -254,7 +292,7 @@
     <div class="masthead">
       <h1>開放科技閱讀版</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T17:42:14+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:08:13+00:00</p>
 
 <nav>
   <a class="is-active" href="index.html">精選與觀點</a>
@@ -293,8 +331,7 @@
 
 
 <section>
-  <h2>Ian 近期正在閱讀</h2>
-  <p class="lede">最近特別想讀完、整理或分享給大家的文章。</p>
+  <h2>Ian 近期正在閱讀 <span class="help-dot" title="最近特別想讀完、整理或分享給大家的文章。">?</span></h2>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div class="thumb"><img src="https://www.linuxfoundation.org/hubfs/Research%20Reports/Web%20Assets_2026_CRA_Awareness%26Readiness_Report_Featured%20Image-gradient-light.png" alt=""></div>
@@ -361,13 +398,34 @@
 </section>
 
 <section>
-  <h2>精選文章與觀點文章</h2>
-  <p class="lede">這裡優先呈現需要細讀、可能延伸撰稿或觀點整理的內容。</p>
+  <h2>精選文章與觀點文章 <span class="help-dot" title="這裡優先呈現需要細讀、可能延伸撰稿或觀點整理的內容。">?</span></h2>
 
-<section class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-3">
-  <h2><span>2026 年 6 月 Week 3</span></h2>
-  <p class="lede">86 筆</p>
+<details class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-3" open>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 6 月 Week 3</span></h2>
+    <p class="reader-period-count">87 筆</p>
+  </summary>
   <div class="card-grid">
+<article class="story-card" data-reader-item data-item-date="2026-06-21T00:00:00+00:00">
+  <div class="thumb"><img src="https://cdn.thenewstack.io/media/2026/06/d5474265-osarugue-igbinoba-2-vgt1x9jbc-unsplash-scaled.jpg" alt=""></div>
+  <div class="story-body">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">精選文章 / 待跑 skill</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-21 08:00</span>
+    </div>
+    <h2><a href="articles/item-288cc363e4fb71ad.html">「代理就是 LLM 加上外掛框架」：Nvidia 如何看待 OpenClaw</a></h2>
+    <p class="summary">這篇訪談聚焦 Nvidia 如何理解並參與 OpenClaw 這類 agent 開源專案。受訪者 Nader Khalil 將 agent 定義為「LLM 加上一套 harness」，重點不只在模型本身，而在每一輪互動如何利用工具、記憶、檔案與回饋逐步逼近目標。文章也把 Nvidia 的策略連到 CUDA X 與技能化的產品思維：若要進入快速成長的 agent 市場，產品需要能被 agent 使用。較有價值的是，文中談到 Nvidia 對 OpenClaw 的貢獻關係、社群支援，以及大型開源專案在大量 PR 之下真正的瓶頸可能不是寫程式，而是閱讀、審查與合併。</p>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
+    <div class="actions">
+      <a class="button secondary reader-action-button" href="articles/item-288cc363e4fb71ad.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thenewstack.io/nvidia-openclaw-agent-blueprints/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
+    </div>
+  </div>
+</article>
+
 <article class="story-card" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-8cf762c31e26f1a7-44de4e19967b.jpg" alt=""></div>
   <div class="story-body">
@@ -789,6 +847,26 @@
 </article>
 
 <article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
+  <div class="thumb"><span>開放科技</span></div>
+  <div class="story-body">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">精選文章 / 待跑 skill</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-18 08:00</span>
+    </div>
+    <h2><a href="articles/item-8191aa203b82ad22.html">SFC：使用 LLM 生成式 AI 參與 FOSS 貢獻的建議</a></h2>
+    <p class="summary">Software Freedom Conservancy 針對使用 LLM 生成式 AI 系統參與 FOSS 貢獻提出建議。文章承認這類工具帶來倫理、授權、維護者負擔與工作自主權等難題，也反對把單一立場強加給整個社群。SFC 支持專案領導者拒收 AI 輔助貢獻的權利，同時也主張不應排斥想使用這些工具的貢獻者。它特別強調，任何 FOSS 貢獻者都不應被雇主強迫使用 LLM 工具，社群應保障選擇不用的人，也以最佳實務降低無法立即消除的傷害。</p>
+
+    <div class="actions">
+      <a class="button secondary reader-action-button" href="articles/item-8191aa203b82ad22.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://sfconservancy.org/llm-gen-ai/llm-backed-generative-ai-recommendations.html" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
+    </div>
+  </div>
+</article>
+
+<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
   <div class="thumb"><img src="https://sfconservancy.org/static/img/conservancy-logo.png" alt=""></div>
   <div class="story-body">
     <div>
@@ -844,26 +922,6 @@
     <div class="actions">
       <a class="button secondary reader-action-button" href="articles/item-9b6307834dcfaf4c.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
       <a class="button quiet reader-action-button" href="https://huggingface.co/blog/ServiceNow/mosaicleaks" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
-    </div>
-  </div>
-</article>
-
-<article class="story-card" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div class="thumb"><span>開放科技</span></div>
-  <div class="story-body">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">精選文章 / 待跑 skill</span>
-
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2026-06-18 08:00</span>
-    </div>
-    <h2><a href="articles/item-8191aa203b82ad22.html">LLM-gen-AI - Software Freedom Conservancy</a></h2>
-    <p class="summary">The Software Freedom Conservancy provides a non-profit home and services to Free, Libre and Open Source Software (FLOSS) projects.</p>
-
-    <div class="actions">
-      <a class="button secondary reader-action-button" href="articles/item-8191aa203b82ad22.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
-      <a class="button quiet reader-action-button" href="https://sfconservancy.org/llm-gen-ai/llm-backed-generative-ai-recommendations.html" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1858,12 +1916,12 @@
 
       <span class="badge">2026-06-16 08:00</span>
     </div>
-    <h2><a href="articles/item-d9cba534d2214510.html">How AI Companies Can Pay Fair Rates for the Content They Need</a></h2>
-    <p class="summary">Article by E. Glen Weyl and Raul Castro Fernandez: “The fight over the data that trains artificial intelligence has become one of the defining economic conflicts of the decade. Publishers, authors, and visual artists argue that their work was taken without permission or payment. AI companies counter that training on available data constitutes fair use and that even if […]</p>
-
+    <h2><a href="articles/item-9cba95f7fd2a1492.html">CDT 帶領聯盟反對現行版本 NO FAKES Act</a></h2>
+    <p class="summary">CDT 帶領一批自由表達與數位權利組織致函美國參議院司法委員會，要求不要推進現行版本的 NO FAKES Act。摘要顯示 CDT 同意應保護人們免於欺騙性、有害的 AI 仿冒內容，但認為目前草案會威脅大量受憲法保障的表達。</p>
+    <div class="tag-chip-list"><span class="tag-chip">digital rights</span><span class="tag-chip">數位人權</span></div>
     <div class="actions">
-      <a class="button secondary reader-action-button" href="articles/item-d9cba534d2214510.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
-      <a class="button quiet reader-action-button" href="https://thelivinglib.org/how-ai-companies-can-pay-fair-rates-for-the-content-they-need/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
+      <a class="button secondary reader-action-button" href="articles/item-9cba95f7fd2a1492.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://cdt.org/insights/cdt-leads-coalition-opposing-the-no-fakes-act/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1878,12 +1936,12 @@
 
       <span class="badge">2026-06-16 08:00</span>
     </div>
-    <h2><a href="articles/item-9cba95f7fd2a1492.html">CDT 帶領聯盟反對現行版本 NO FAKES Act</a></h2>
-    <p class="summary">CDT 帶領一批自由表達與數位權利組織致函美國參議院司法委員會，要求不要推進現行版本的 NO FAKES Act。摘要顯示 CDT 同意應保護人們免於欺騙性、有害的 AI 仿冒內容，但認為目前草案會威脅大量受憲法保障的表達。</p>
-    <div class="tag-chip-list"><span class="tag-chip">digital rights</span><span class="tag-chip">數位人權</span></div>
+    <h2><a href="articles/item-d9cba534d2214510.html">AI 公司如何為所需內容支付公平費率</a></h2>
+    <p class="summary">文章聚焦 AI 公司訓練資料引發的內容補償爭議。出版商、作者與視覺藝術家認為作品被未經允許或未付費使用；AI 公司則主張使用公開可得資料訓練屬於合理使用。摘要暗示文章會討論如何讓 AI 公司以較公平的方式為所需內容付費。</p>
+
     <div class="actions">
-      <a class="button secondary reader-action-button" href="articles/item-9cba95f7fd2a1492.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
-      <a class="button quiet reader-action-button" href="https://cdt.org/insights/cdt-leads-coalition-opposing-the-no-fakes-act/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
+      <a class="button secondary reader-action-button" href="articles/item-d9cba534d2214510.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thelivinglib.org/how-ai-companies-can-pay-fair-rates-for-the-content-they-need/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -1978,27 +2036,6 @@
 
       <span class="badge">2026-06-15 08:00</span>
     </div>
-    <h2><a href="articles/item-04e44138f4f07914.html">The Anthropic Fable mess, explained</a></h2>
-    <p class="summary">The Anthropic-Mythos-Fable story has been The Topic since Friday, and it moved fast enough to lose anyone who blinked. Here’s my opinionated
-The post The Anthropic Fable mess, explained appeared first on The New Stack .</p>
-
-    <div class="actions">
-      <a class="button secondary reader-action-button" href="articles/item-04e44138f4f07914.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
-      <a class="button quiet reader-action-button" href="https://thenewstack.io/anthropic-fable-mess-explained/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
-    </div>
-  </div>
-</article>
-
-<article class="story-card" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
-  <div class="thumb"><span>開放科技</span></div>
-  <div class="story-body">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">精選文章 / 待跑 skill</span>
-
-
-      <span class="badge">2026-06-15 08:00</span>
-    </div>
     <h2><a href="articles/item-bc6892d9341d30d9.html">TPG 週刊 222：當 AI 成了廣告房東，你的點擊去哪了？</a></h2>
     <p class="summary">這期週刊討論 AI 平台與內容方之間的收入分配問題。摘要指出，OpenAI 在 WAN-IFRA 大會上表示目前不分享廣告營收，既有授權合約也不包含廣告分潤；相較之下，其他 AI 搜尋或內容服務至少曾把分潤模式放上檯面。文章也提到多數 Google 搜尋沒有產生點擊，AI Overviews 進一步讓使用者在平台頁面內取得答案，使內容方失去可放廣告的頁面與流量。</p>
 
@@ -2050,26 +2087,6 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
 </article>
 
 <article class="story-card" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
-  <div class="thumb"><span>開放科技</span></div>
-  <div class="story-body">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">精選文章 / 待跑 skill</span>
-
-
-      <span class="badge">2026-06-15 08:00</span>
-    </div>
-    <h2><a href="articles/item-0430171d6d394a0d.html">Could AI Supercharge the Government Surveillance Stack?</a></h2>
-    <p class="summary">Article by Logan Kugler: “…Traditional surveillance historically has been limited by the silo problem. Data was fragmented across different systems: license plate readers, facial recognition databases, and social media dragnets were separate tools requiring manual labor to connect. Multimodal frontier models change this dynamic by collapsing these independent signals into a single, unified layer of […]</p>
-
-    <div class="actions">
-      <a class="button secondary reader-action-button" href="articles/item-0430171d6d394a0d.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
-      <a class="button quiet reader-action-button" href="https://thelivinglib.org/could-ai-supercharge-the-government-surveillance-stack/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
-    </div>
-  </div>
-</article>
-
-<article class="story-card" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
   <div class="thumb"><img src="https://cdn.thenewstack.io/media/2026/06/60ec81c1-rizki-ardia-6pkdqrnh7ls-unsplash-scaled.jpg" alt=""></div>
   <div class="story-body">
     <div>
@@ -2088,12 +2105,54 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
     </div>
   </div>
 </article>
-</div>
-</section>
 
-<section class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-2">
-  <h2><span>2026 年 6 月 Week 2</span></h2>
-  <p class="lede">11 筆</p>
+<article class="story-card" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
+  <div class="thumb"><span>開放科技</span></div>
+  <div class="story-body">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">精選文章 / 待跑 skill</span>
+
+
+      <span class="badge">2026-06-15 08:00</span>
+    </div>
+    <h2><a href="articles/item-04e44138f4f07914.html">Anthropic、Mythos 與 Fable 風波解析</a></h2>
+    <p class="summary">摘要只顯示這是一篇整理 Anthropic、Mythos、Fable 相關風波的評論式解釋文，並指出事件在短時間內快速發展。現有資訊不足以判斷爭議焦點、影響對象或是否具有長期參考價值。</p>
+
+    <div class="actions">
+      <a class="button secondary reader-action-button" href="articles/item-04e44138f4f07914.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thenewstack.io/anthropic-fable-mess-explained/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
+    </div>
+  </div>
+</article>
+
+<article class="story-card" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
+  <div class="thumb"><span>開放科技</span></div>
+  <div class="story-body">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">精選文章 / 待跑 skill</span>
+
+
+      <span class="badge">2026-06-15 08:00</span>
+    </div>
+    <h2><a href="articles/item-0430171d6d394a0d.html">AI 會強化政府監控技術堆疊嗎？</a></h2>
+    <p class="summary">文章摘要主張，傳統監控受限於資料分散：車牌辨識、人臉資料庫、社群媒體蒐集等工具各自運作，需要人力串接。多模態前沿模型可能改變這點，把不同訊號合併成單一分析層，讓政府監控能力更容易擴張。</p>
+
+    <div class="actions">
+      <a class="button secondary reader-action-button" href="articles/item-0430171d6d394a0d.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://thelivinglib.org/could-ai-supercharge-the-government-surveillance-stack/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
+    </div>
+  </div>
+</article>
+</div>
+</details>
+
+<details class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-2" open>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 6 月 Week 2</span></h2>
+    <p class="reader-period-count">11 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-06-14T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
@@ -2125,8 +2184,8 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
 
       <span class="badge">2026-06-14 08:00</span>
     </div>
-    <h2><a href="articles/item-31601df2c923c496.html">Open Laws Foundation</a></h2>
-    <p class="summary">About: ” Most legal-data projects scrape statutes and dump them into a convenient format. That throws away the structure: cross-references, temporal validity, the relationships between acts. And that structure is the part that actually makes legislation useful to machines. We do the opposite.  Principles: 1. Normalize metadata, never content This is the rule everything else follows […]</p>
+    <h2><a href="articles/item-31601df2c923c496.html">Open Laws Foundation：保留法律資料結構的開放法律資料計畫</a></h2>
+    <p class="summary">Open Laws Foundation 的核心主張是，法律資料不應只被爬取後轉成方便格式，因為這會丟失法規之間的結構，例如交叉引用、時間效力與法案關係。它主張保留並正規化 metadata，而不是任意改寫內容，使法律資料更適合機器使用。不過目前提供的摘要只露出概念與第一項原則，還不足以判斷完整價值。</p>
 
     <div class="actions">
       <a class="button secondary reader-action-button" href="articles/item-31601df2c923c496.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
@@ -2165,8 +2224,8 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
 
       <span class="badge">2026-06-13 08:00</span>
     </div>
-    <h2><a href="articles/item-37b429a55c528e67.html">Pokémon Go data trained AI that could assist military drones in war zones</a></h2>
-    <p class="summary">Article by Josh Taylor: “An AI model trained on data collected from users of Pokémon Go will potentially help military drones find their location in war zones. Pokémon Go, a 2016 augmented reality mobile game, allowed players to find and catch Pokémon in the real world using the cameras on their mobile phones, and exploded in popularity. […]</p>
+    <h2><a href="articles/item-37b429a55c528e67.html">Pokémon Go 資料訓練的 AI 可能協助戰區軍用無人機定位</a></h2>
+    <p class="summary">摘要指出，有 AI 模型使用 Pokémon Go 玩家在現實世界中產生的資料進行訓練，未來可能協助軍用無人機在戰區定位。這個題目牽涉 AR 遊戲蒐集的空間資料、民用平台資料再利用，以及 AI 技術進入軍事場景的治理風險。</p>
 
     <div class="actions">
       <a class="button secondary reader-action-button" href="articles/item-37b429a55c528e67.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
@@ -2315,11 +2374,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-1">
-  <h2><span>2026 年 6 月 Week 1</span></h2>
-  <p class="lede">10 筆</p>
+<details class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-1" open>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 6 月 Week 1</span></h2>
+    <p class="reader-period-count">10 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-06-07T00:00:00+00:00">
   <div class="thumb"><img src="https://pics.fsfe.org/uploads/medium/4b/bf/c68b9f6f939bdd245bfec7648994.png" alt=""></div>
@@ -2431,12 +2492,12 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
 
       <span class="badge">2026-06-02 08:00</span>
     </div>
-    <h2><a href="articles/item-9f1f756f1218069d.html">十字路口上的資料系統</a></h2>
-    <p class="summary">這篇文章或論文主張全球統計社群正面臨路線選擇，並提出一個討論框架，讓各方能從合法性、資金、風險與公平等面向，思考如何走向更永續且包容的資料系統。以摘要來看，這是偏架構與政策辯論的資料治理材料。</p>
-    <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span></div>
+    <h2><a href="articles/item-f5eca8e2a106e9f5.html">歐盟科技主權套案：Public Code 的里程碑，關鍵在落實</a></h2>
+    <p class="summary">歐盟執委會在 2026 年 6 月 3 日發布科技主權套案，其中包含新的開源策略。FSFE 認為，如果真正落實，這可能代表歐盟在公共程式碼方向上的重要轉折，接近「公共資金，公共程式碼」的主張。不過摘要也提醒，重點不在宣示本身，而在是否有具約束力的規則、穩定資金，以及公民社會能否實質參與。</p>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">free software</span><span class="tag-chip">public code</span><span class="tag-chip">FSF</span></div>
     <div class="actions">
-      <a class="button secondary reader-action-button" href="articles/item-9f1f756f1218069d.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
-      <a class="button quiet reader-action-button" href="https://opendatawatch.com/publications/data-festival-discussion-data-systems-at-a-crossroads/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
+      <a class="button secondary reader-action-button" href="articles/item-f5eca8e2a106e9f5.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://fsfe.org/news/2026/news-20260603-01.en.html" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -2451,12 +2512,12 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
 
       <span class="badge">2026-06-02 08:00</span>
     </div>
-    <h2><a href="articles/item-f5eca8e2a106e9f5.html">EU Tech Sovereignty: A milestone for Public Code? Now implementation is key</a></h2>
-    <p class="summary">The European Commission published its Technological Sovereignty Package on 3 June 2026, containing the new &quot;Open Source Strategy&quot;. If implemented, it could mark a paradigm shift by adopting the Free Software Foundation Europe’s “Public Money? Public Code!” principle. Its success will depend on binding rules, long-term funding, and meaningful civil society involvement.Support FSFE: https://my.fsfe.org/support</p>
-    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">free software</span><span class="tag-chip">public code</span><span class="tag-chip">FSF</span></div>
+    <h2><a href="articles/item-9f1f756f1218069d.html">十字路口上的資料系統</a></h2>
+    <p class="summary">這篇文章或論文主張全球統計社群正面臨路線選擇，並提出一個討論框架，讓各方能從合法性、資金、風險與公平等面向，思考如何走向更永續且包容的資料系統。以摘要來看，這是偏架構與政策辯論的資料治理材料。</p>
+    <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span></div>
     <div class="actions">
-      <a class="button secondary reader-action-button" href="articles/item-f5eca8e2a106e9f5.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
-      <a class="button quiet reader-action-button" href="https://fsfe.org/news/2026/news-20260603-01.en.html" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
+      <a class="button secondary reader-action-button" href="articles/item-9f1f756f1218069d.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
+      <a class="button quiet reader-action-button" href="https://opendatawatch.com/publications/data-festival-discussion-data-systems-at-a-crossroads/" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7"></path><path d="M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg><span class="reader-action-label">原始連結</span></a>
     </div>
   </div>
 </article>
@@ -2521,11 +2582,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-4" hidden>
-  <h2><span>2026 年 5 月 Week 4</span></h2>
-  <p class="lede">3 筆</p>
+<details class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-4" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 5 月 Week 4</span></h2>
+    <p class="reader-period-count">3 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-05-28T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
@@ -2587,11 +2650,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-3" hidden>
-  <h2><span>2026 年 5 月 Week 3</span></h2>
-  <p class="lede">5 筆</p>
+<details class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-3" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 5 月 Week 3</span></h2>
+    <p class="reader-period-count">5 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-05-21T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
@@ -2693,11 +2758,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-2" hidden>
-  <h2><span>2026 年 5 月 Week 2</span></h2>
-  <p class="lede">4 筆</p>
+<details class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-2" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 5 月 Week 2</span></h2>
+    <p class="reader-period-count">4 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-05-14T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
@@ -2779,11 +2846,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-1" hidden>
-  <h2><span>2026 年 5 月 Week 1</span></h2>
-  <p class="lede">5 筆</p>
+<details class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-1" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 5 月 Week 1</span></h2>
+    <p class="reader-period-count">5 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-05-07T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
@@ -2875,8 +2944,8 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
 
       <span class="badge">2026-05-03 08:00</span>
     </div>
-    <h2><a href="articles/item-d2dfad50644d6f89.html">FSFE: NHS England should not hide public code behind closed doors</a></h2>
-    <p class="summary">England’s National Health Service (NHS England) is preparing to make most of its public source code repositories private by default, according to recent reports. The move appears to be based on concerns that public code repositories could be scanned by AI systems to identify vulnerabilities. The reported internal guidance, referred to as “SDLC-8”, would require public repositories to be made private unless an explicit exception is appro...</p>
+    <h2><a href="articles/item-d2dfad50644d6f89.html">FSFE：英格蘭 NHS 不應把公共程式碼藏到閉門之後</a></h2>
+    <p class="summary">FSFE 指出，英格蘭 NHS 據報準備將多數公共原始碼儲存庫改為預設私有，理由似乎是擔心公開程式碼會被 AI 系統掃描並找出漏洞。摘要提到內部指引「SDLC-8」可能要求公開儲存庫除非獲得明確例外批准，否則都應改為私有。這個案例的重點在於公共程式碼透明度、資安治理與 AI 風險想像之間的衝突。</p>
     <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">public code</span><span class="tag-chip">FSF</span></div>
     <div class="actions">
       <a class="button secondary reader-action-button" href="articles/item-d2dfad50644d6f89.html" aria-label="閱讀單篇" title="閱讀單篇"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M8 7h8"></path><path d="M8 11h7"></path></svg><span class="reader-action-label">閱讀單篇</span></a>
@@ -2885,11 +2954,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-4" hidden>
-  <h2><span>2026 年 4 月 Week 4</span></h2>
-  <p class="lede">3 筆</p>
+<details class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-4" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 4 月 Week 4</span></h2>
+    <p class="reader-period-count">3 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-04-28T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
@@ -2951,11 +3022,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-3" hidden>
-  <h2><span>2026 年 4 月 Week 3</span></h2>
-  <p class="lede">3 筆</p>
+<details class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-3" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 4 月 Week 3</span></h2>
+    <p class="reader-period-count">3 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-04-20T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
@@ -3017,11 +3090,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-2" hidden>
-  <h2><span>2026 年 4 月 Week 2</span></h2>
-  <p class="lede">2 筆</p>
+<details class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-2" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 4 月 Week 2</span></h2>
+    <p class="reader-period-count">2 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-04-09T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
@@ -3063,11 +3138,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-1" hidden>
-  <h2><span>2026 年 4 月 Week 1</span></h2>
-  <p class="lede">1 筆</p>
+<details class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-1" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 4 月 Week 1</span></h2>
+    <p class="reader-period-count">1 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-04-07T00:00:00+00:00">
   <div class="thumb"><span>開放科技</span></div>
@@ -3089,11 +3166,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="3" id="2024-年-1-月-Week-3" hidden>
-  <h2><span>2024 年 1 月 Week 3</span></h2>
-  <p class="lede">1 筆</p>
+<details class="reader-period" data-reader-period data-month-index="3" id="2024-年-1-月-Week-3" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2024 年 1 月 Week 3</span></h2>
+    <p class="reader-period-count">1 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-eee66b505e99ed5a-9f59ee0da2db.jpg" alt=""></div>
@@ -3115,11 +3194,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="3" id="2024-年-1-月-Week-1" hidden>
-  <h2><span>2024 年 1 月 Week 1</span></h2>
-  <p class="lede">1 筆</p>
+<details class="reader-period" data-reader-period data-month-index="3" id="2024-年-1-月-Week-1" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2024 年 1 月 Week 1</span></h2>
+    <p class="reader-period-count">1 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2024-01-07T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-928d1ad0e95fadae-3dda354087c9.jpg" alt=""></div>
@@ -3141,11 +3222,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="4" id="2023-年-11-月-Week-3" hidden>
-  <h2><span>2023 年 11 月 Week 3</span></h2>
-  <p class="lede">1 筆</p>
+<details class="reader-period" data-reader-period data-month-index="4" id="2023-年-11-月-Week-3" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2023 年 11 月 Week 3</span></h2>
+    <p class="reader-period-count">1 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2023-11-15T00:00:00+00:00">
   <div class="thumb"><img src="https://webfile.rti.org.tw/web/rti.org.tw/tw/code/public/assets/images/2023/10/26/701db677635ec8181226b273ea630459.png" alt=""></div>
@@ -3167,11 +3250,13 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="5" id="2023-年-8-月-Week-4" hidden>
-  <h2><span>2023 年 8 月 Week 4</span></h2>
-  <p class="lede">1 筆</p>
+<details class="reader-period" data-reader-period data-month-index="5" id="2023-年-8-月-Week-4" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2023 年 8 月 Week 4</span></h2>
+    <p class="reader-period-count">1 筆</p>
+  </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2023-08-24T00:00:00+00:00">
   <div class="thumb"><img src="assets/images/item-6bcf7a23a8cf2d2b-64b3ecb6cd58.jpg" alt=""></div>
@@ -3193,16 +3278,17 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
   </div>
 </article>
 </div>
-</section>
+</details>
 <div class="actions reader-more-row"><button type="button" class="secondary" data-reader-more-months>more：再載入 1 個月</button></div>
 </section>
 <section>
-  <h2>最新小消息</h2>
-  <p class="lede">小消息改成列表，適合快速掃過；完整列表在下一頁。</p>
+  <h2>最新小消息 <span class="help-dot" title="小消息改成列表，適合快速掃過；完整列表在下一頁。">?</span></h2>
 
-<section class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-3">
-  <h2><span>2026 年 6 月 Week 3</span></h2>
-  <p class="lede">59 筆</p>
+<details class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-3" open>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 6 月 Week 3</span></h2>
+    <p class="reader-period-count">59 筆</p>
+  </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
   <div>
@@ -3823,9 +3909,8 @@ The post The Anthropic Fable mess, explained appeared first on The New Stack .</
 
     <span class="badge">2026-06-16 08:00</span>
   </div>
-  <h3><a href="articles/item-b527e48dbc95d747.html">Anthropic pauses Claude Agent SDK subscription change on day it was due to take effect</a></h3>
-  <p class="summary">Anthropic has hit pause on a billing change affecting developers who use its Claude Agent SDK through a paid subscription
-The post Anthropic pauses Claude Agent SDK subscription change on day it was due to take effect ap...</p>
+  <h3><a href="articles/item-b527e48dbc95d747.html">Anthropic 暫停 Claude Agent SDK 訂閱制變更</a></h3>
+  <p class="summary">摘要指出 Anthropic 原本有一項影響付費訂閱用戶使用 Claude Agent SDK 的帳務變更，但在預定生效當天按下暫停。現有資訊不足以判斷改動內容、開發者反應或後續政策走向。</p>
 
 </article>
 
@@ -3913,11 +3998,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-2">
-  <h2><span>2026 年 6 月 Week 2</span></h2>
-  <p class="lede">1 筆</p>
+<details class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-2" open>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 6 月 Week 2</span></h2>
+    <p class="reader-period-count">1 筆</p>
+  </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-10T00:00:00+00:00">
   <div>
@@ -3931,11 +4018,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-1">
-  <h2><span>2026 年 6 月 Week 1</span></h2>
-  <p class="lede">1 筆</p>
+<details class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-1" open>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 6 月 Week 1</span></h2>
+    <p class="reader-period-count">1 筆</p>
+  </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-02T00:00:00+00:00">
   <div>
@@ -3949,11 +4038,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-4" hidden>
-  <h2><span>2026 年 5 月 Week 4</span></h2>
-  <p class="lede">1 筆</p>
+<details class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-4" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 5 月 Week 4</span></h2>
+    <p class="reader-period-count">1 筆</p>
+  </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-26T00:00:00+00:00">
   <div>
@@ -3967,11 +4058,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-3" hidden>
-  <h2><span>2026 年 5 月 Week 3</span></h2>
-  <p class="lede">8 筆</p>
+<details class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-3" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 5 月 Week 3</span></h2>
+    <p class="reader-period-count">8 筆</p>
+  </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-21T00:00:00+00:00">
   <div>
@@ -4069,11 +4162,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">open technology</span></div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-2" hidden>
-  <h2><span>2026 年 5 月 Week 2</span></h2>
-  <p class="lede">3 筆</p>
+<details class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-2" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 5 月 Week 2</span></h2>
+    <p class="reader-period-count">3 筆</p>
+  </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-14T00:00:00+00:00">
   <div>
@@ -4082,8 +4177,8 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
 
     <span class="badge">2026-05-14 08:00</span>
   </div>
-  <h3><a href="articles/item-5bcdda3ed4969683.html">SFP#51: Policy and EU: The challenges for public code in public administration!</a></h3>
-  <p class="summary">In this monthly Software Freedom Podcast episode we are talking with the Nordic Institute for Interoperability Solutions (NIIS) and their X-Road, a Free Software well-used in public institutions. Together with Johannes N...</p>
+  <h3><a href="articles/item-5bcdda3ed4969683.html">SFP 第 51 集：政策、歐盟與公共行政中的公共程式碼挑戰</a></h3>
+  <p class="summary">這集 FSFE 的 Software Freedom Podcast 討論公共行政中的公共程式碼挑戰，受訪者包括 Nordic Institute for Interoperability Solutions 與 FSFE 相關成員，並以 X-Road 這套在公共機構使用的自由軟體作為案例。摘要顯示重點會放在自由與開源專案進入公共機構時面臨的政策、制度與實務挑戰。它適合和其他 public code 新聞搭配閱讀，但單靠摘要還不能判斷內...</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">free software</span><span class="tag-chip">software freedom</span><span class="tag-chip">public code</span></div>
 </article>
 
@@ -4111,11 +4206,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span></div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-1" hidden>
-  <h2><span>2026 年 5 月 Week 1</span></h2>
-  <p class="lede">3 筆</p>
+<details class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-1" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 5 月 Week 1</span></h2>
+    <p class="reader-period-count">3 筆</p>
+  </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-07T00:00:00+00:00">
   <div>
@@ -4153,11 +4250,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-4" hidden>
-  <h2><span>2026 年 4 月 Week 4</span></h2>
-  <p class="lede">2 筆</p>
+<details class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-4" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 4 月 Week 4</span></h2>
+    <p class="reader-period-count">2 筆</p>
+  </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-04-27T00:00:00+00:00">
   <div>
@@ -4183,11 +4282,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-3" hidden>
-  <h2><span>2026 年 4 月 Week 3</span></h2>
-  <p class="lede">1 筆</p>
+<details class="reader-period" data-reader-period data-month-index="2" id="2026-年-4-月-Week-3" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2026 年 4 月 Week 3</span></h2>
+    <p class="reader-period-count">1 筆</p>
+  </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-04-16T00:00:00+00:00">
   <div>
@@ -4201,11 +4302,13 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span></div>
 </article>
 </div>
-</section>
+</details>
 
-<section class="reader-period" data-reader-period data-month-index="3" id="2024-年-1-月-Week-3" hidden>
-  <h2><span>2024 年 1 月 Week 3</span></h2>
-  <p class="lede">1 筆</p>
+<details class="reader-period" data-reader-period data-month-index="3" id="2024-年-1-月-Week-3" open hidden>
+  <summary>
+    <h2><span class="reader-period-heading-label">2024 年 1 月 Week 3</span></h2>
+    <p class="reader-period-count">1 筆</p>
+  </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
   <div>
@@ -4219,7 +4322,7 @@ The post Anthropic pauses Claude Agent SDK subscription change on day it was due
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 </div>
-</section>
+</details>
 <div class="actions reader-more-row"><button type="button" class="secondary" data-reader-more-months>more：再載入 1 個月</button></div>
   <div class="actions"><a class="button secondary" href="news.html">看全部小消息</a></div>
 </section>

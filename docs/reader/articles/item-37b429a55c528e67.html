@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pokémon Go data trained AI that could assist military drones in war zones - Ian Open News</title>
+  <title>Pokémon Go 資料訓練的 AI 可能協助戰區軍用無人機定位 - Ian Open News</title>
   <style>
     :root {
       --ink: #111827;
@@ -79,6 +79,18 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
     }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
     .story-card {
@@ -188,6 +200,11 @@
     .reader-period {
       margin: 0 0 24px;
     }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
     .reader-period h2 {
       position: relative;
       display: grid;
@@ -210,11 +227,32 @@
       background: linear-gradient(90deg, transparent, var(--line), transparent);
       z-index: 0;
     }
-    .reader-period h2 span {
+    .reader-period-heading-label {
       position: relative;
       z-index: 1;
       padding: 0 14px;
       background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }
     .reader-period[hidden] {
       display: none !important;
@@ -252,9 +290,9 @@
 <body>
   <header>
     <div class="masthead">
-      <h1>Pokémon Go data trained AI that could assist military drones in war zones</h1>
+      <h1>Pokémon Go 資料訓練的 AI 可能協助戰區軍用無人機定位</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T17:42:14+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:08:14+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -273,8 +311,8 @@
       <span class="badge">尚未載入全文</span>
       <span class="badge">2026-06-13 08:00</span>
     </div>
-    <h2>Pokémon Go data trained AI that could assist military drones in war zones</h2>
-    <p class="lede">Article by Josh Taylor: “An AI model trained on data collected from users of Pokémon Go will potentially help military drones find their location in war zones. Pokémon Go, a 2016 augmented reality mobile game, allowed players to find and catch Pokémon in the real world using the cameras on their mobile phones, and exploded in popularity. […]</p>
+    <h2>Pokémon Go 資料訓練的 AI 可能協助戰區軍用無人機定位</h2>
+    <p class="lede">摘要指出，有 AI 模型使用 Pokémon Go 玩家在現實世界中產生的資料進行訓練，未來可能協助軍用無人機在戰區定位。這個題目牽涉 AR 遊戲蒐集的空間資料、民用平台資料再利用，以及 AI 技術進入軍事場景的治理風險。</p>
 
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>

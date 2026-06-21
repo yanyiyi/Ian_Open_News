@@ -2322,6 +2322,11 @@ def action_label(label: str) -> str:
     return f'<span class="reader-action-label">{h(label)}</span>'
 
 
+def help_dot(text: str) -> str:
+    text = clean_text(text, 500)
+    return f'<span class="help-dot" title="{h(text)}">?</span>' if text else ""
+
+
 def layout_toggle(section_id: str, current: str = "list") -> str:
     current = current if current in LAYOUT_MODES else "list"
     buttons = []
@@ -3657,10 +3662,21 @@ def page(title: str, body: str) -> bytes:
     .reader-category > h2 {{
       margin-bottom: 0;
     }}
+    .reader-period-details {{
+      display: grid;
+      gap: 10px;
+      margin: 4px 0 18px;
+    }}
+    .reader-period-details > summary {{
+      cursor: pointer;
+      list-style: none;
+    }}
+    .reader-period-details > summary::-webkit-details-marker {{ display: none; }}
     .reader-period-heading {{
       position: relative;
       display: grid;
       place-items: center;
+      gap: 2px;
       margin: 22px 0 2px;
       color: #a3abb8;
       font-size: 20px;
@@ -3679,11 +3695,31 @@ def page(title: str, body: str) -> bytes:
       background: linear-gradient(90deg, transparent, var(--line), transparent);
       z-index: 0;
     }}
-    .reader-period-heading span {{
+    .reader-period-heading-label {{
       position: relative;
       z-index: 1;
       padding: 0 14px;
       background: var(--bg);
+    }}
+    .reader-period-count {{
+      position: relative;
+      z-index: 1;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-shadow: none;
+    }}
+    .reader-period-heading-label::after {{
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }}
+    .reader-period-details:not([open]) .reader-period-heading-label::after {{
+      content: "展開";
     }}
     .reader-more-row {{
       display: flex;
@@ -5958,7 +5994,7 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
                 )
             body = f"""
 <h1>Tag 索引</h1>
-<p class="lede">點一個 tag 就能看到同一個概念底下的待整理、已收與不收紀錄。</p>
+<p class="lede">點一個 tag 就能看到同一個概念底下的待整理與已收內容。</p>
 <section class="card">
   <h2>常用 tag</h2>
   <div class="tag-chip-list">{''.join(rows) or '<p class="muted">目前沒有可用 tag。</p>'}</div>
@@ -5969,89 +6005,140 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
 
         matching_items = [item for item in all_items if item_matches_tag(item, selected_tag)]
         matching_candidates = [item for item in candidates if item_matches_tag(item, selected_tag)]
-        matching_rejected = [item for item in rejected_items if item_matches_tag(item, selected_tag)]
-        matching_dismissed = [item for item in dismissed_items if item_matches_tag(item, selected_tag)]
 
         def sort_records(records: list[dict]) -> list[dict]:
             return sorted(records, key=lambda item: (item_sort_time(item), item_display_title(item)), reverse=True)
 
-        pending = sort_records([item for item in matching_items if item.get("status") == "inbox"] + matching_candidates)
-        reader_records = sort_records([item for item in matching_items if is_reader_item(item)])
-        other_records = sort_records(
-            [
-                item
-                for item in matching_items
-                if item.get("status") != "inbox" and not is_reader_item(item)
-            ]
-        )
-        rejected_records = sort_records([*matching_rejected, *matching_dismissed])
-
         related_counter: Counter[str] = Counter()
-        for item in [*matching_items, *matching_candidates, *matching_rejected, *matching_dismissed]:
+        for item in [*matching_items, *matching_candidates]:
             for tag in item_triage_keywords(item):
                 if tag_key(tag) != tag_key(selected_tag):
                     related_counter[tag] += 1
         related_html = tag_chips_html([tag for tag, _count in related_counter.most_common(18)], "tag-chip-list tag-chip-list--related")
 
-        def record_row(item: dict, *, archived: bool = False) -> str:
+        def tag_summary(item: dict, limit: int = 260) -> str:
+            return item_zh_summary(item, limit)
+
+        def tag_list_row(item: dict) -> str:
             title = item_display_title(item)
-            item_url = clean_text(item.get("url"))
-            title_html = (
-                f'<a href="{h(item_url)}" target="_blank" rel="noreferrer">{h(title)}</a>'
-                if archived and item_url
-                else f'<a href="{h(item_detail_href(item))}">{h(title)}</a>'
-            )
-            summary = (
-                clean_text(item.get("reason") or (item.get("local_decision") or {}).get("reason") or item.get("notes"), 300)
-                if archived
-                else item_zh_summary(item, 360)
-            )
             return f"""
 <article class="reader-list-card">
   <div class="reader-list-meta">
-    {badge("不收紀錄", "suggest-skip") if archived else badge(status_label(item.get("status", "RSS 新進")), "neutral")}
-    {badge(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'), "neutral")}
-    {reader_flag_badges(item) if not archived else ''}
+    {badge(status_label(item.get("status", "RSS 新進")), "neutral")}
+    {badge(content_kind_label(item_display_kind(item)), "neutral")}
+    {badge(item_display_time(item, 'published_at', 'captured_at'), "neutral")}
+    {reader_flag_badges(item)}
   </div>
-  <h3>{title_html}</h3>
-  <p class="zh-summary">{h(summary)}</p>
+  <h3><a href="{h(item_detail_href(item))}">{h(title)}</a></h3>
+  <p class="zh-summary">{h(tag_summary(item, 360))}</p>
   {tag_chips_html(item_visible_tags(item, 8))}
 </article>
 """
 
-        def section(section_id: str, title: str, records: list[dict], empty: str, *, archived: bool = False) -> str:
-            rows = "".join(record_row(item, archived=archived) for item in records)
+        def tag_compact_row(item: dict) -> str:
             return f"""
-<section class="reader-layout-section" id="{h(section_id)}" data-layout="list">
-  <div class="layout-bar">
+<article class="reader-compact-row">
+  <span class="reader-dot" aria-hidden="true"></span>
+  <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
+  <div class="reader-row-time">{h(item_display_time(item, 'published_at', 'captured_at'))}</div>
+</article>
+"""
+
+        def tag_card(item: dict) -> str:
+            image = item_image_url(item)
+            css_class = track_class(item.get("track", "unclassified"))
+            thumb = (
+                f"<div class='reader-thumb'><img src='{h(image)}' alt=''></div>"
+                if image
+                else f"<div class='reader-thumb reader-thumb--{h(css_class)}'><span>{h(track_meta(item.get('track', 'unclassified'))['short'])}</span></div>"
+            )
+            kind = item_display_kind(item)
+            item_url = clean_text(item.get("url"))
+            return f"""
+<article class="card reader-card">
+  {thumb}
+  <div class="reader-body">
     <div>
-      <h2>{h(title)}</h2>
-      <p class="muted">{len(records)} 筆</p>
+      {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
+      {badge(status_label(item.get("status", "RSS 新進")), "neutral")}
+      {badge(content_kind_label(kind), "neutral")}
+      {reader_flag_badges(item)}
     </div>
+    <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
+    <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
+    <p class="zh-summary">{h(tag_summary(item, 260))}</p>
+    {tag_chips_html(item_visible_tags(item, 6))}
+    {f'<div class="button-row reader-card-actions" aria-label="文章操作"><a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{icon_span("read", "O", "icon reader-action-icon")}{action_label("閱讀 / 記錄")}</a><a class="button secondary reader-action-button" href="{h(item_url)}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{icon_span("external", "L", "icon reader-action-icon")}{action_label("原始連結")}</a></div>' if item_url else ''}
   </div>
-  <div class="reader-list">{rows or f'<div class="card"><p class="muted">{h(empty)}</p></div>'}</div>
+</article>
+"""
+
+        featured = sort_records([item for item in matching_items if item_display_kind(item) in {"featured-article", "opinion-article"}])
+        small_news = sort_records([item for item in matching_items if item_display_kind(item) == "small-news" and item.get("status") != "inbox"])
+        inbox = sort_records([item for item in matching_items if item.get("status") == "inbox"])
+        pending = sort_records(matching_candidates)
+        other_records = sort_records([item for item in matching_items if item not in featured and item not in small_news and item not in inbox])
+
+        def section(section_id: str, title: str, description: str, records: list[dict], empty: str, default_layout: str = "list") -> str:
+            empty_html = f'<div class="card"><p class="muted">{h(empty)}</p></div>'
+            period_html = ""
+            if records:
+                period_groups: list[tuple[str, list[dict]]] = []
+                period_index: dict[str, int] = {}
+                for item in records:
+                    label = reader_period_label(item)
+                    if label not in period_index:
+                        period_index[label] = len(period_groups)
+                        period_groups.append((label, []))
+                    period_groups[period_index[label]][1].append(item)
+                rendered_periods = []
+                for label, period_records in period_groups:
+                    cards_html = "".join(tag_card(item) for item in period_records)
+                    list_html = "".join(tag_list_row(item) for item in period_records)
+                    compact_html = "".join(tag_compact_row(item) for item in period_records)
+                    rendered_periods.append(
+                        f"""
+<details class="reader-period-details" id="{h(section_id)}-{h(reader_period_key(period_records[0]))}" open>
+  <summary class="reader-period-heading">
+    <span class="reader-period-heading-label">{h(label)}</span>
+    <span class="reader-period-count">{len(period_records)} 筆</span>
+  </summary>
+  <div class="reader-grid">{cards_html}</div>
+  <div class="reader-list">{list_html}</div>
+  <div class="reader-compact-list">{compact_html}</div>
+</details>
+"""
+                    )
+                period_html = "".join(rendered_periods)
+            return f"""
+<section class="reader-layout-section reader-category" id="{h(section_id)}" data-layout="{h(default_layout)}">
+  <div class="layout-bar">
+    <h2>{h(title)} {help_dot(description)}</h2>
+    {layout_toggle(section_id, default_layout)}
+  </div>
+  {period_html or empty_html}
 </section>
 """
 
         body = f"""
 <h1>Tag：{h(selected_tag)}</h1>
-<p class="lede">這裡集中同一個 tag 及同義系列的文章，方便回頭看待整理、已收與不收紀錄。</p>
+<p class="lede">這裡集中同一個 tag 及同義系列的文章，方便回頭看待整理與已收內容。</p>
 <div class="button-row top-back-row">
   <a class="button quiet" href="/tags">{icon_span("back", "", "icon")}所有 tag</a>
   <a class="button secondary" href="{h(href_with_query('/items', [('keyword', selected_tag)]))}">回 RSS 待整理篩選</a>
   <a class="button secondary" href="{h(href_with_query('/reader', [('time', 'all'), ('keyword', selected_tag)]))}">回閱讀區篩選</a>
 </div>
 <div class="metric-row">
-  {metric_tile(len(pending), "待整理", "#tag-pending", "看區塊")}
-  {metric_tile(len(reader_records), "閱讀區", "#tag-reader", "看區塊")}
+  {metric_tile(len(featured), "精選 / 觀點", "#tag-featured", "看區塊")}
+  {metric_tile(len(small_news), "小消息", "#tag-small-news", "看區塊")}
+  {metric_tile(len(inbox) + len(pending), "待整理", "#tag-inbox", "看區塊")}
   {metric_tile(len(other_records), "其他已收", "#tag-other", "看區塊")}
-  {metric_tile(len(rejected_records), "不收紀錄", "#tag-rejected", "看區塊")}
 </div>
 {f'<section class="card"><h2>相關 tag</h2>{related_html}</section>' if related_html else ''}
-{section("tag-pending", "待整理 / RSS 新進", pending, "這個 tag 目前沒有待整理項目。")}
-{section("tag-reader", "閱讀區", reader_records, "這個 tag 目前沒有閱讀區項目。")}
-{section("tag-other", "其他已收項目", other_records, "這個 tag 目前沒有其他已收項目。")}
-{section("tag-rejected", "不收紀錄", rejected_records, "這個 tag 目前沒有不收紀錄。", archived=True)}
+{section("tag-featured", "精選文章與觀點文章", "已確認值得細讀、可能後續撰稿或觀點整理的內容。", featured, "這個 tag 目前沒有精選文章或觀點文章。", "card")}
+{section("tag-small-news", "純新聞 / 小消息", "可以快速掃過、查核後短訊處理的內容。", small_news, "這個 tag 目前沒有小消息。", "list")}
+{section("tag-inbox", "待整理 / RSS 新進", "還沒完成收或不收判斷的內容，包含已入庫 inbox 和 RSS 新進。", [*inbox, *pending], "這個 tag 目前沒有待整理項目。", "list")}
+{section("tag-other", "其他已收項目", "已收但尚未歸入精選、觀點或小消息的內容。", other_records, "這個 tag 目前沒有其他已收項目。", "list")}
 """
         self.send_html(f"Tag：{selected_tag}", body)
 
@@ -6219,12 +6306,22 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
             list_html = "".join(reader_list_row(item) for item in section_items)
             compact_html = "".join(reader_compact_row(item) for item in section_items)
             empty = '<div class="card"><p class="muted">目前沒有符合這個區塊的文章。</p></div>'
-            period_heading = f'<div class="reader-period-heading"><span>{h(title)}</span></div>' if timeline else ""
+            if timeline:
+                return f"""
+<details class="reader-period-details" id="{h(section_id)}" open>
+  <summary class="reader-period-heading">
+    <span class="reader-period-heading-label">{h(title)}</span>
+    <span class="reader-period-count">{h(description)}</span>
+  </summary>
+  <div class="reader-grid">{cards_html or empty}</div>
+  <div class="reader-list">{list_html or empty}</div>
+  <div class="reader-compact-list">{compact_html or empty}</div>
+</details>
+"""
             header_title = "" if timeline else f"<h3>{h(title)}</h3>"
             description_html = f'<p class="muted">{h(description)}</p>' if description else ""
             return f"""
 <section class="reader-layout-section" id="{h(section_id)}" data-layout="{h(default_layout)}">
-  {period_heading}
   <div class="layout-bar">
     <div>
       {header_title}
@@ -6284,10 +6381,13 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
                             timeline=True,
                         )
                     )
+                category_layout = view_mode if view_mode != "auto" else default_layout
                 return f"""
-<section class="reader-category" id="{h(category_id)}">
-  <h2>{h(title)}</h2>
-  <p class="muted">{h(description)}</p>
+<section class="reader-layout-section reader-category" id="{h(category_id)}" data-layout="{h(category_layout)}">
+  <div class="layout-bar">
+    <h2>{h(title)} {help_dot(description)}</h2>
+    {layout_toggle(category_id, category_layout)}
+  </div>
   {''.join(period_html)}
 </section>
 """
@@ -8801,22 +8901,43 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             can_open: bool = True,
             archived: bool = False,
         ) -> str:
-            cards_html = "".join(source_card(item, can_open=can_open, archived=archived) for item in records)
-            list_html = "".join(source_list_row(item, can_open=can_open, archived=archived) for item in records)
-            compact_html = "".join(source_compact_row(item, can_open=can_open, archived=archived) for item in records)
             empty_html = f'<div class="card"><p class="muted">{h(empty)}</p></div>'
+            period_html = ""
+            if records:
+                period_groups: list[tuple[str, list[dict]]] = []
+                period_index: dict[str, int] = {}
+                for item in records:
+                    label = reader_period_label(item)
+                    if label not in period_index:
+                        period_index[label] = len(period_groups)
+                        period_groups.append((label, []))
+                    period_groups[period_index[label]][1].append(item)
+                rendered_periods = []
+                for label, period_records in period_groups:
+                    cards_html = "".join(source_card(item, can_open=can_open, archived=archived) for item in period_records)
+                    list_html = "".join(source_list_row(item, can_open=can_open, archived=archived) for item in period_records)
+                    compact_html = "".join(source_compact_row(item, can_open=can_open, archived=archived) for item in period_records)
+                    rendered_periods.append(
+                        f"""
+<details class="reader-period-details" id="{h(section_id)}-{h(reader_period_key(period_records[0]))}" open>
+  <summary class="reader-period-heading">
+    <span class="reader-period-heading-label">{h(label)}</span>
+    <span class="reader-period-count">{len(period_records)} 筆</span>
+  </summary>
+  <div class="reader-grid">{cards_html}</div>
+  <div class="reader-list">{list_html}</div>
+  <div class="reader-compact-list">{compact_html}</div>
+</details>
+"""
+                    )
+                period_html = "".join(rendered_periods)
             return f"""
-<section class="reader-layout-section" id="{h(section_id)}" data-layout="{h(default_layout)}">
+<section class="reader-layout-section reader-category" id="{h(section_id)}" data-layout="{h(default_layout)}">
   <div class="layout-bar">
-    <div>
-      <h2>{h(title)}</h2>
-      <p class="muted">{h(description)}</p>
-    </div>
+    <h2>{h(title)} {help_dot(description)}</h2>
     {layout_toggle(section_id, default_layout)}
   </div>
-  <div class="reader-grid">{cards_html or empty_html}</div>
-  <div class="reader-list">{list_html or empty_html}</div>
-  <div class="reader-compact-list">{compact_html or empty_html}</div>
+  {period_html or empty_html}
 </section>
 """
 

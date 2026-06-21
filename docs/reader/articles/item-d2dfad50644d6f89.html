@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FSFE: NHS England should not hide public code behind closed doors - Ian Open News</title>
+  <title>FSFE：英格蘭 NHS 不應把公共程式碼藏到閉門之後 - Ian Open News</title>
   <style>
     :root {
       --ink: #111827;
@@ -79,6 +79,18 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
     }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
     .story-card {
@@ -188,6 +200,11 @@
     .reader-period {
       margin: 0 0 24px;
     }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
     .reader-period h2 {
       position: relative;
       display: grid;
@@ -210,11 +227,32 @@
       background: linear-gradient(90deg, transparent, var(--line), transparent);
       z-index: 0;
     }
-    .reader-period h2 span {
+    .reader-period-heading-label {
       position: relative;
       z-index: 1;
       padding: 0 14px;
       background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }
     .reader-period[hidden] {
       display: none !important;
@@ -252,9 +290,9 @@
 <body>
   <header>
     <div class="masthead">
-      <h1>FSFE: NHS England should not hide public code behind closed doors</h1>
+      <h1>FSFE：英格蘭 NHS 不應把公共程式碼藏到閉門之後</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T17:42:14+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:08:14+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -273,8 +311,8 @@
       <span class="badge">尚未載入全文</span>
       <span class="badge">2026-05-03 08:00</span>
     </div>
-    <h2>FSFE: NHS England should not hide public code behind closed doors</h2>
-    <p class="lede">England’s National Health Service (NHS England) is preparing to make most of its public source code repositories private by default, according to recent reports. The move appears to be based on concerns that public code repositories could be scanned by AI systems to identify vulnerabilities. The reported internal guidance, referred to as “SDLC-8”, would require public repositories to be made private unless an explicit exception is approved.Support FSFE: https://my.fsfe.org/support</p>
+    <h2>FSFE：英格蘭 NHS 不應把公共程式碼藏到閉門之後</h2>
+    <p class="lede">FSFE 指出，英格蘭 NHS 據報準備將多數公共原始碼儲存庫改為預設私有，理由似乎是擔心公開程式碼會被 AI 系統掃描並找出漏洞。摘要提到內部指引「SDLC-8」可能要求公開儲存庫除非獲得明確例外批准，否則都應改為私有。這個案例的重點在於公共程式碼透明度、資安治理與 AI 風險想像之間的衝突。</p>
     <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">public code</span><span class="tag-chip">FSF</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>

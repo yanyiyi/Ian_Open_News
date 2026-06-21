@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>The Anthropic Fable mess, explained - Ian Open News</title>
+  <title>Anthropic、Mythos 與 Fable 風波解析 - Ian Open News</title>
   <style>
     :root {
       --ink: #111827;
@@ -79,6 +79,18 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
     }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
     .story-card {
@@ -188,6 +200,11 @@
     .reader-period {
       margin: 0 0 24px;
     }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
     .reader-period h2 {
       position: relative;
       display: grid;
@@ -210,11 +227,32 @@
       background: linear-gradient(90deg, transparent, var(--line), transparent);
       z-index: 0;
     }
-    .reader-period h2 span {
+    .reader-period-heading-label {
       position: relative;
       z-index: 1;
       padding: 0 14px;
       background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }
     .reader-period[hidden] {
       display: none !important;
@@ -252,9 +290,9 @@
 <body>
   <header>
     <div class="masthead">
-      <h1>The Anthropic Fable mess, explained</h1>
+      <h1>Anthropic、Mythos 與 Fable 風波解析</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T17:42:14+00:00</p>
+      <p class="generated">產生時間：2026-06-21T18:08:14+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -273,9 +311,8 @@
       <span class="badge">尚未載入全文</span>
       <span class="badge">2026-06-15 08:00</span>
     </div>
-    <h2>The Anthropic Fable mess, explained</h2>
-    <p class="lede">The Anthropic-Mythos-Fable story has been The Topic since Friday, and it moved fast enough to lose anyone who blinked. Here’s my opinionated
-The post The Anthropic Fable mess, explained appeared first on The New Stack .</p>
+    <h2>Anthropic、Mythos 與 Fable 風波解析</h2>
+    <p class="lede">摘要只顯示這是一篇整理 Anthropic、Mythos、Fable 相關風波的評論式解釋文，並指出事件在短時間內快速發展。現有資訊不足以判斷爭議焦點、影響對象或是否具有長期參考價值。</p>
 
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
