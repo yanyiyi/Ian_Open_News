@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>跨越兩岸，開源人遇見 COSCUP</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>跨越兩岸，開源人遇見 COSCUP</h2>
     <p class="lede">這篇文章介紹 COSCUP 作為台灣自由與開放原始碼社群年度研討會的背景，並從開源社參與者角度描述 2023 年活動規模與交流情況。摘要中特別提到 COSCUP 聚集開發者、使用者與推廣者，也記錄開源社因簽證問題部分講者改以遠端參與，但仍透過即時問答與台下觀眾互動。整體看起來是帶有社群觀察與活動紀錄性質的文章。</p>
-    <div class="tag-chip-list"><span class="tag-chip">COSCUP 年會</span><span class="tag-chip">COSCUP Media</span><span class="tag-chip">Open Source</span><span class="tag-chip">COSCUP</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -269,6 +275,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

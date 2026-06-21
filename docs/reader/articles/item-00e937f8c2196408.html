@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>42dot 通過 ISO/IEC 5230 開源合規認證</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -232,18 +238,19 @@
       <span class="badge">開放科技</span>
       <span class="badge">純新聞 / 小消息</span>
 
-      <span class="badge">尚未載入全文</span>
+      <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-19 08:00</span>
     </div>
     <h2>42dot 通過 ISO/IEC 5230 開源合規認證</h2>
     <p class="lede">標題顯示 42dot 已達成 ISO/IEC 5230 的符合性要求，應是一則 OpenChain 相關的企業開源合規公告。就目前資訊來看，它比較像開源治理標準採用的小消息，而不是可直接寫成深度分析的材料。</p>
-    <div class="tag-chip-list"><span class="tag-chip">COSCUP 開源人年會</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
       <a class="button quiet" href="https://openchainproject.org/news/2026/06/19/42dot-achieves-conformance-with-iso-iec-5230" target="_blank" rel="noreferrer">原始連結</a>
     </div>
-    <section class="article-body"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></section>
+    <section class="article-body"><h1>42dot Achieves Conformance with ISO/IEC 5230 – OpenChain</h1>
+<p>42dot has achieved conformance with ISO/IEC 5230, the international standard for open source license compliance developed through the OpenChain Project. ISO/IEC 5230 provides a framework for organizations to establish and maintain effective open source compliance programs. Conformance demonstrates that an organization has implemented the processes and controls needed to manage open source software and associated license obligations in a consistent and reliable manner. As part of this effort, 42dot strengthened its open source governance framework and enhanced collaboration across engineering, legal, and other key functions. The result is a scalable compliance program that supports the responsible use of open source software throughout the organization. Open source software plays a critical role in modern mobility solutions, including software-defined vehicles and connected mobility platforms. As these technologies continue to evolve, effective governance helps organizations manage software supply chain risks while enabling innovation and collaboration. “Achieving ISO/IEC 5230 conformance marks an important milestone for 42dot,” said a company representative. “The work involved in reaching this standard has helped us further mature our internal processes and establish a strong foundation for the continued growth of our open source activities.” This achievement also reinforces the importance of transparency, accountability, and effective software supply chain management as open source software continues to power the next generation of mobility technologies. 42dot joins a growing community of organizations around the world that have adopted ISO/IEC 5230 as a benchmark for open source compliance and software supply chain management.</p></section>
   </article>
 
 <aside class="side-panel">
@@ -257,7 +264,7 @@
   <ul><li>本機決定：direct-pr-small-news / 2026-06-19T16:16:50+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
 2026-06-19T16:16:50+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：42dot Achieves Conformance with ISO/IEC 5230（RSS/頁面標題）</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：egarcia（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+  <ul><li><strong>原始網站標題</strong>：42dot Achieves Conformance with ISO/IEC 5230 – OpenChain（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：42dot 通過 ISO/IEC 5230 開源合規認證（Codex）</li><li><strong>原始作者</strong>：By（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-00e937f8c2196408";
@@ -270,6 +277,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

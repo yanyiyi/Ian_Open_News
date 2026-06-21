@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>推薦資源：掌握 WSIS 2026 核心議題</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:03+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>推薦資源：掌握 WSIS 2026 核心議題</h2>
     <p class="lede">APC 為 2026 年 7 月 5 至 9 日在日內瓦舉行的 WSIS Forum 2026 整理一份會前閱讀資源。這份清單聚焦 APC 及其網絡在 WSIS 場域會推動的議題，包括社群中心連網、社群網路監管、數位落差融資、農村與原住民族 ICT 培訓、WSIS+20 審查、公民社會與全球南方觀點、多方利害關係人參與，以及 AI 治理中的性別與人權議題。它比較像政策背景資料入口，不是事件深度報導。</p>
-    <div class="tag-chip-list"><span class="tag-chip">OCF 開放文化基金會</span><span class="tag-chip">OCF</span><span class="tag-chip">開放文化基金會</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">OCF</span><span class="tag-chip">開放文化基金會</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -303,6 +309,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

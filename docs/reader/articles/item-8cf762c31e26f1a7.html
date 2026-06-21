@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>攻擊者利用 JetBrains 惡意外掛竊取 AI 服務 API 金鑰</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:03+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>攻擊者利用 JetBrains 惡意外掛竊取 AI 服務 API 金鑰</h2>
     <p class="lede">Aikido Security 研究人員發現 JetBrains Marketplace 上至少有 15 個惡意 AI coding 外掛，偽裝成 DeepSeek 或其他大型語言模型相關的程式助理，表面上提供聊天、code review、bug 偵測、commit message 與單元測試生成等功能，但會暗中把使用者輸入的 AI provider API key 傳到攻擊者控制的伺服器。報導指出這波活動至少自 2025 年 10 月底開始，直到 2026 年 6 月仍有新外掛發布，其中部分外掛下載數超過 25,000 次，但研究者也提醒下載數可能被灌水。這則新聞凸顯 AI 開發工具正在成為攻擊者切入開發者環境與軟體供應鏈的新入口。</p>
-    <div class="tag-chip-list"><span class="tag-chip">Open Source</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -275,6 +281,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

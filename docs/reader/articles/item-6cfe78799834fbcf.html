@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>John Edwards 辭職後，英國有機會任命更有力的監管者 - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card .actions { gap: 6px; margin-top: 8px; }
+    .story-card .actions { justify-content: flex-end; }
+    .story-card .actions .reader-action-button {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
+    }
+    .story-card .actions svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .reader-action-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>John Edwards 辭職後，英國有機會任命更有力的監管者</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">純新聞 / 小消息</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-19 08:00</span>
+    </div>
+    <h2>John Edwards 辭職後，英國有機會任命更有力的監管者</h2>
+    <p class="lede">Open Rights Group 回應 John Edwards 辭任 Information Commissioner，稱政府應把這次人事空缺視為任命更有執行力監管者的機會。摘要提到他的離任發生在一項職場調查之後，但未說明指控內容，文章看起來偏向即時聲明與監管倡議。</p>
+    <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html">回精選與觀點</a>
+      <a class="button secondary" href="../news.html">看小消息</a>
+      <a class="button quiet" href="https://www.openrightsgroup.org/press-releases/john-edwards-resignation-is-opportunity-to-appoint-a-regulator-with-teeth/" target="_blank" rel="noreferrer">原始連結</a>
+    </div>
+    <section class="article-body"><h1>John Edwards 辭職後，英國有機會任命更有力的監管者</h1>
+<h2>John Edwards 辭職後，英國有機會任命更有力的監管者</h2>
+<p>在 <a href="https://www.linkedin.com/feed/update/urn:li:activity:7473590282803052544/" target="_blank" rel="noreferrer">John Edwards 宣布</a>辭去資訊專員（Information Commissioner）一職後，Open Rights Group 呼籲英國政府「任命一位有實權的監管者」。他的辭職發生在一項針對未公開指控的職場調查之後。 Open Rights Group 執行長 Jim Killock 表示： 「John Edwards 離任，是英國政府任命一位有實權的監管者、重新設定監管機關做法的機會。過去的做法只是名義上提供資料保護。」 「國會必須確保未來的委員會由真正希望法律被執行的專業人士來運作，包括針對政府的資料失誤執法。」 「Edwards 接下來可能會像許多他的高階幕僚與前任一樣，獲得科技巨頭、資料產業，以及代表這些企業的大型法律事務所延攬。Edwards 應該樹立榜樣，拒絕這種『旋轉門』提供的優渥薪資；英國政府也應立法防止這種情況發生，讓監管機關與科技巨頭保持適當距離。」</p>
+<h2>重新設定 ICO</h2>
+<p>Open Rights Group 最近呼籲<a href="https://www.openrightsgroup.org/campaign/reset-the-ico/" target="_blank" rel="noreferrer">重新設定 ICO</a>，原因是在 Edwards 掌舵期間，ICO 出現多項失職。其中包括在執法上導入<a href="https://ico.org.uk/about-the-ico/our-information/policies-and-procedures/public-sector-approach/" target="_blank" rel="noreferrer">所謂的公共部門做法</a>；在這套做法下，ICO 開始高度依賴不具強制力的書面通知，只指出法律遭到違反，卻沒有採取任何監管行動來補救侵害，也沒有追究違法者責任。 正如 ORG 的 2023-24 年替代版 ICO 年度報告所示，這些<a href="https://www.openrightsgroup.org/publications/ico-alternative-annual-report-2023-24/" target="_blank" rel="noreferrer">申誡缺乏</a><a href="https://www.openrightsgroup.org/publications/ico-alternative-annual-report-2023-24/" target="_blank" rel="noreferrer">效果與嚇阻力</a>。ICO 自己後來對公共部門做法所做的<a href="https://ico.org.uk/about-the-ico/research-reports-impact-and-evaluation/impact-and-evaluation/evaluations/post-implementation-review-public-sector-approach-trial-september-2024/" target="_blank" rel="noreferrer">實施後檢討</a>也顯示，英國居民針對公共部門組織使用其資料所提出的申訴量，因此大幅增加。 在一場據報導導致塔利班接管阿富汗後<a href="https://www.theguardian.com/uk-news/2025/oct/27/afghan-data-leak-families-colleagues-killed" target="_blank" rel="noreferrer">至少 49 人死亡</a>的資料外洩事件後，Edwards 未對國防部展開調查。這項決定引發 DSIT 特別委員會的<a href="https://committees.parliament.uk/work/9372/information-and-data-security-across-government-and-the-work-of-the-information-commissioner/publications/" target="_blank" rel="noreferrer">國會調查</a>，也促成 70 多位資料保護專家發出公開信，感嘆<a href="https://www.openrightsgroup.org/press-releases/70-organisations-and-experts-demand-action-over-failing-ico/" target="_blank" rel="noreferrer">執法行動崩解</a>。該委員會主席 Dame Chi Onwurah 承認，導致這起外洩事件的是一場<a href="https://committees.parliament.uk/publications/50560/documents/275905/default/" target="_blank" rel="noreferrer">「制度性失靈」</a>，這也「對政府以及 ICO 這類監管機關提出嚴肅問題」。 Edwards 也支持英國政府的資料保護改革，而這些改革削弱了公眾的權利，以及<strong>掌控</strong>自己個人資料的能力。儘管<a href="https://www.equalityhumanrights.com/media-centre/blogs/personal-data-rights-data-protection-and-digital-information-bill" target="_blank" rel="noreferrer">平等與人權委員會</a>、<a href="https://assets.publishing.service.gov.uk/media/619b84dde90e070445fd75ef/NDG_Data_A_New_Direction_Consultation_Response_v1.pdf" target="_blank" rel="noreferrer">國家資料守護者</a>、<a href="https://www.gov.uk/government/publications/data-a-new-direction-commissioners-response/dcms-consultation-data-a-new-direction-response-by-the-biometrics-and-surveillance-camera-commissioner-accessible-version" target="_blank" rel="noreferrer">生物辨識委員</a>、<a href="https://www.biometricscommissioner.scot/news/commissioner-reiterates-concerns-about-data-protection-and-digital-information-no-2-bill-to-scottish-mp-on-westminster-committee/" target="_blank" rel="noreferrer">蘇格蘭生物辨識委員</a>，以及<a href="https://nihrc.org/publication/detail/nihrc-briefing-on-the-data-protection-and-digital-information-bill" target="_blank" rel="noreferrer">北愛爾蘭人權委員會</a>都提出疑慮，ICO 仍成為唯一完全支持政府提案的監管機關。 閱讀：<a href="https://www.openrightsgroup.org/blog/the-ico-isnt-doing-its-job-why-the-data-watchdog-needs-to-be-reset/" target="_blank" rel="noreferrer">ICO 沒有做好它的工作：為什麼資料監管機關需要被重新設定</a></p></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-6cfe78799834fbcf.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：direct-pr-small-news / 2026-06-21T12:15:25+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-21T12:15:25+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：John Edwards resignation is opportunity to appoint a regulator with teeth | Open Rights Group</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：John Edwards 辭職後，英國有機會任命更有力的監管者（Codex）</li><li><strong>原始作者</strong>：@openrightsgroup（twitter:creator）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-6cfe78799834fbcf";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

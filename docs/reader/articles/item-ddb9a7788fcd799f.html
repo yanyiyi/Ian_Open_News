@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>Fox 220 億美元買 Roku，是在買一億家戶的身分識別</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>Fox 220 億美元買 Roku，是在買一億家戶的身分識別</h2>
     <p class="lede">文章主張 Fox 併購 Roku 表面上是補齊串流與連網電視入口，實際價值在於 Roku 掌握的全球串流家戶、Roku OS、The Roku Channel、Roku Exchange，以及家戶帳號層級的第一方資料。摘要也把這件事和 Publicis 併購 LiveRamp 相比，指出即使 AI Agent 讓交易更自動化，真正稀缺的仍是可驗證、可對照、可衡量的第一方資料。</p>
-    <div class="tag-chip-list"><span class="tag-chip">Connected TV(CTV) 連網電視</span></div>
+
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -270,6 +276,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

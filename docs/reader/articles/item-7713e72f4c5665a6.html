@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>Cohere 推出首款開放權重程式碼模型，將主權 AI 賣點轉向開發者</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>Cohere 推出首款開放權重程式碼模型，將主權 AI 賣點轉向開發者</h2>
     <p class="lede">Cohere 推出首款程式碼模型 North Mini Code，主打開放權重、Apache 2.0 授權，以及可在私有基礎設施或單張 Nvidia H100 上運行。文章把這項產品放在「主權 AI」的延伸脈絡中：過去 Cohere 向受監管產業強調資料與模型運算的可控性，現在類似需求也出現在開發者與企業工程團隊身上。文中同時提醒，Cohere 的跑分說法主要來自自家測試，部分基準仍有其他模型領先，因此較適合看作開放權重程式碼模型市場競爭的產業訊號，而不是單純的性能勝利宣傳。</p>
-    <div class="tag-chip-list"><span class="tag-chip">AI</span><span class="tag-chip">AI Agents</span><span class="tag-chip">AI Engineering</span><span class="tag-chip">AI Models</span></div>
+
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -285,6 +291,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

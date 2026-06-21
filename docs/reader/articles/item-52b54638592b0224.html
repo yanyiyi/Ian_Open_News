@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>OpenSSF Podcast：IBM Jamie Thomas 談企業安全、職涯成長與開源</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>OpenSSF Podcast：IBM Jamie Thomas 談企業安全、職涯成長與開源</h2>
     <p class="lede">這集 podcast 由主持人訪問 IBM 的 Jamie Thomas，談企業開源工程、開源採用演進、從開源核心走向商業價值，以及職涯成長等議題。摘要顯示它偏訪談型內容，可能有開源安全與企業採用的經驗談，但目前可讀到的資訊不足以確認亮點。</p>
-    <div class="tag-chip-list"><span class="tag-chip">Career Growth</span><span class="tag-chip">Enterprise Security</span><span class="tag-chip">Open Source Security</span><span class="tag-chip">OpenSSF</span><span class="tag-chip">Supply Chain Security</span><span class="tag-chip">Open Source</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -287,6 +293,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

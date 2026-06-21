@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>數位發展部開放原始碼推廣活動與 COSCUP 參與資訊</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>數位發展部開放原始碼推廣活動與 COSCUP 參與資訊</h2>
     <p class="lede">這則轉知說明 COSCUP 是台灣開放原始碼社群共同推動的年度大會，也是自由軟體運動的重要場域；數位發展部為鼓勵民眾參與 2023 年 7 月底的 COSCUP，並支持開放原始碼運動，提到 OCF 與弗里德里西諾曼自由基金會自 7 月中起辦理線上講座、現場導覽與工作坊等活動。</p>
-    <div class="tag-chip-list"><span class="tag-chip">COSCUP 年會</span><span class="tag-chip">COSCUP Media</span><span class="tag-chip">Open Source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span><span class="tag-chip">開放文化基金會</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span><span class="tag-chip">開放文化基金會</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -269,6 +275,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

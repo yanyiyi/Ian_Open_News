@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>Vercel 開源 AI Agent 框架 eve，押注 Agentic AI 基礎設施</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:03+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>Vercel 開源 AI Agent 框架 eve，押注 Agentic AI 基礎設施</h2>
     <p class="lede">Vercel 宣布開源內部 AI agent 框架 eve，主打讓開發者建立、執行、評估與擴充 AI agents。這項發布與 Vercel 的 agentic AI 基礎設施擴張一起出現，包括 Agent Stack、Vercel Agent、企業應用與 agent 相關服務。文章也引用 Vercel 的說法，指出平台上的 AI 輔助開發活動快速增加，coding agents 觸發的部署比例與 AI Gateway 的 token 用量都有明顯成長。整體來看，這篇適合作為「雲端部署平台把 agent 開發流程產品化、並以開源框架吸引開發者」的產業觀察，不像是需要深讀的分析文。</p>
-    <div class="tag-chip-list"><span class="tag-chip">Open Source</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -272,6 +278,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

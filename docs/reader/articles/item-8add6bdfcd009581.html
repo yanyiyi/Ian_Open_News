@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>Ubuntu 2026-06-16 變更分流：chrony、qemu 與 systemd 服務強化</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>Ubuntu 2026-06-16 變更分流：chrony、qemu 與 systemd 服務強化</h2>
     <p class="lede">這則 Ubuntu triage 摘要列出多個 Launchpad 議題：chrony 未透過 networkd-dispatcher 處理 DHCP 提供的 NTP server，作者傾向需要上游討論；qemu 有多個相關合併請求但仍缺 reviewer；另有 virt-manager 無法重現、open-vm-tools 已修正、postfix systemd 服務安全設定可能需要強化等狀態更新。</p>
-    <div class="tag-chip-list"><span class="tag-chip">COSCUP 開源人年會</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -283,6 +289,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 import xml.etree.ElementTree as ET
 
 from editorial_triage import build_editorial_context, evaluate_editorial_triage
@@ -207,6 +207,12 @@ INVALID_XML_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 def parse_xml_root(content: bytes) -> ET.Element:
     cleaned = content.lstrip(b"\xef\xbb\xbf \t\r\n")
+    first_xml = min(
+        [index for index in [cleaned.find(marker) for marker in [b"<rss", b"<feed", b"<rdf:RDF", b"<RDF"]] if index >= 0],
+        default=-1,
+    )
+    if first_xml > 0:
+        cleaned = cleaned[first_xml:]
     try:
         return ET.fromstring(cleaned)
     except ET.ParseError:
@@ -353,6 +359,26 @@ def read_feed_bytes(url: str, timeout: int, user_agent: str) -> bytes:
         if encoding == "gzip" or content.startswith(b"\x1f\x8b"):
             return gzip.decompress(content)
         return content
+
+
+LINK_ATTR_RE = re.compile(r"""([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(['"])(.*?)\2""", re.S)
+
+
+def discover_feed_url_from_html(content: bytes, base_url: str) -> str:
+    text = content.decode("utf-8", errors="replace")
+    if "<html" not in text.casefold() and "<link" not in text.casefold():
+        return ""
+    for match in re.finditer(r"(?is)<link\b[^>]*>", text):
+        attrs = {
+            name.casefold(): html.unescape(value.strip())
+            for name, _quote, value in LINK_ATTR_RE.findall(match.group(0))
+        }
+        href = attrs.get("href", "")
+        rel = attrs.get("rel", "").casefold()
+        media_type = attrs.get("type", "").casefold()
+        if href and "alternate" in rel and any(token in media_type for token in ["rss", "atom", "xml"]):
+            return urljoin(base_url, href)
+    return ""
 
 
 def default_review() -> dict:
@@ -610,7 +636,10 @@ def main() -> None:
     parser.add_argument("--duplicate-lookback-days", type=int, default=7)
     parser.add_argument("--max-per-source", type=int, default=10)
     parser.add_argument("--timeout", type=int, default=20)
-    parser.add_argument("--user-agent", default="IanOpenNewsBot/1.0 (+https://github.com/)")
+    parser.add_argument(
+        "--user-agent",
+        default="Mozilla/5.0 (compatible; IanOpenNewsBot/1.0; +https://github.com/)",
+    )
     parser.add_argument("--report", type=Path)
     parser.add_argument("--status-file", type=Path, default=DEFAULT_STATUS_FILE)
     parser.add_argument("--force", action="store_true", help="Fetch matching sources even if their frequency is not due yet.")
@@ -726,7 +755,15 @@ def main() -> None:
         )
         try:
             content = read_feed_bytes(source["feed_url"], args.timeout, args.user_agent)
-            entries = parse_feed_entries(content)
+            try:
+                entries = parse_feed_entries(content)
+            except (ET.ParseError, ValueError):
+                discovered_feed_url = discover_feed_url_from_html(content, source["feed_url"])
+                if not discovered_feed_url or discovered_feed_url == source["feed_url"]:
+                    raise
+                stats["discovered_feed_url"] = discovered_feed_url
+                content = read_feed_bytes(discovered_feed_url, args.timeout, args.user_agent)
+                entries = parse_feed_entries(content)
             fetched_sources += 1
             stats["last_fetch_status"] = "ok"
             stats["entries_seen"] = len(entries)

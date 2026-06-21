@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>企業導入 AI 代理的四個原則：快速實驗，但高度謹慎</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:03+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>企業導入 AI 代理的四個原則：快速實驗，但高度謹慎</h2>
     <p class="lede">這篇整理兩位企業 AI 負責人在導入 AI agents 時的經驗：速度與謹慎不是二選一。文章主張企業應從使用者痛點與可重複流程出發，保留人的主導角色，透過短週期實驗找出真正有價值的應用；但在擴大前，必須先處理乾淨資料、清楚流程、權責歸屬與可用資料邊界。文章也強調 governance 與 guardrails 要依風險高低調整，低風險個人工具不需要過度控管，但面向消費者或會自動發送訊息的 agentic use case 則需要更高層級的監督。整體重點不是介紹某個新工具，而是企業如何把 AI agent 納入可控、可擴張的營運架構。</p>
-    <div class="tag-chip-list"><span class="tag-chip">Open Source</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -271,6 +277,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>EFFecting Change：LGBTQ+ 社群如何在監控浪潮中彼此支援</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>EFFecting Change：LGBTQ+ 社群如何在監控浪潮中彼此支援</h2>
     <p class="lede">這則內容介紹 EFF 的線上直播活動，主題是 LGBTQ+ 社群如何面對日益升高的審查與定向監控。活動預計討論更安全的虛擬空間如何建立、平台政策與政府壓力如何改變數位環境，以及平台問責可以如何實踐。摘要也提到講者會分享直接行動與社群可帶回使用的具體策略，但目前提供的文字主要仍是活動宣傳與講者介紹開頭。</p>
-    <div class="tag-chip-list"><span class="tag-chip">數位人權</span><span class="tag-chip">Social Media Surveillance</span><span class="tag-chip">LGBTQ+</span><span class="tag-chip">Privacy</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -270,6 +276,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

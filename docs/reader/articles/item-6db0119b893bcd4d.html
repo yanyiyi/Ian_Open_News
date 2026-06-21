@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>Baseten 以開源 AI 推論押注 130 億美元估值</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:03+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>Baseten 以開源 AI 推論押注 130 億美元估值</h2>
     <p class="lede">Baseten 正在完成一輪 15 億美元募資，估值最高可達 130 億美元。文章指出，投資人看好的不是 Baseten 自己訓練基礎模型，而是它押注企業採用成熟開源模型後，會更需要低成本、高效率的推論與部署基礎設施。Baseten 透過整合約 20 家雲端供應商的算力，提供模型部署、推論軟體與微調能力，讓企業能在自有資料上使用 AI 模型。文章也提到，部分客戶因轉向開源模型而降低成本，顯示開源模型在某些企業任務上已能替代較昂貴的專有模型。整體來看，這篇報導把 Baseten 的高估值放在開源 AI 採用、AI 推論成本下降與基礎設施價值轉移的脈絡中。</p>
-    <div class="tag-chip-list"><span class="tag-chip">Open Source</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -275,6 +281,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

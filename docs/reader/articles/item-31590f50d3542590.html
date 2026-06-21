@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>新的 Ubuntu MATE 維護者團隊向社群報到</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>新的 Ubuntu MATE 維護者團隊向社群報到</h2>
     <p class="lede">新的 Ubuntu MATE Reboot 成員在社群發文說明，他們是在 Martin Wimpress 退出 Ubuntu MATE 之後自願協助專案復甦的一群人。摘要列出多位成員背景，包括 upstream MATE 開發者、Ubuntu Unity 維護者與熱心使用者，也提到他們正在獲得其他 Ubuntu flavors 與核心團隊的協助。發文同時提醒，這個團隊目前不是正式選舉或選任產生，而是先以志工方式讓專案恢復運作，並歡迎更多人加入。</p>
-    <div class="tag-chip-list"><span class="tag-chip">COSCUP 開源人年會</span><span class="tag-chip">Ubuntu MATE</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
+    <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -270,6 +276,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

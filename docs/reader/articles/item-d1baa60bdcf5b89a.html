@@ -185,6 +185,12 @@
     .reader-time-filter .generated {
       margin: 0 0 7px;
     }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
     .article-panel, .side-panel {
       background: #fff;
@@ -216,7 +222,7 @@
     <div class="masthead">
       <h1>義大利競爭主管機關對 Apple 展開 DMA 互通性調查</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -237,7 +243,7 @@
     </div>
     <h2>義大利競爭主管機關對 Apple 展開 DMA 互通性調查</h2>
     <p class="lede">義大利競爭主管機關 AGCM 對 Apple 展開新一輪調查，焦點是 iOS 與 iPadOS 是否讓第三方雲端服務取得與 iCloud 同等、免費且有效的互通能力。AGCM 指出，第三方雲端儲存似乎無法使用完整裝置資料備份等系統功能，而這些功能提供給 Apple 自家的 iCloud。Apple 回應稱，這項關於 iCloud 的疑慮此前未曾在與歐盟的互通性討論中被提出，並表示會與義大利主管機關溝通。文章也補充 Apple 先前因 App Tracking Transparency 與 App Store 限制在義大利及歐盟面臨處分的背景。</p>
-    <div class="tag-chip-list"><span class="tag-chip">Business</span><span class="tag-chip">Apple</span><span class="tag-chip">EU</span><span class="tag-chip">iOS</span><span class="tag-chip">iPad</span><span class="tag-chip">Italy</span><span class="tag-chip">legal</span></div>
+
     <div class="actions">
       <a class="button secondary" href="../index.html">回精選與觀點</a>
       <a class="button secondary" href="../news.html">看小消息</a>
@@ -378,6 +384,31 @@ document.getElementById("note-save").addEventListener("click", () => {
 
 </div>
 </main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
 
 </body>
 </html>

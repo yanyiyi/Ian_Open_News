@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Open and Closed: The Pursuit of Frontier Models - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card .actions { gap: 6px; margin-top: 8px; }
+    .story-card .actions { justify-content: flex-end; }
+    .story-card .actions .reader-action-button {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
+    }
+    .story-card .actions svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .reader-action-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>Open and Closed: The Pursuit of Frontier Models</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-21T10:53:03+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">精選文章 / 待跑 skill</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-05-15 08:00</span>
+    </div>
+    <h2>Open and Closed: The Pursuit of Frontier Models</h2>
+    <p class="lede">In the beginning, software was open. Not because that was thought to be the correct strategic approach, but rather because software was an afterthought. Hardware was what mattered. Less than two decades later, the hardware was cheaper and consequently mattered less. In search of greater returns on capital, the focus swung back to software. To</p>
+    <div class="tag-chip-list"><span class="tag-chip">開源AI</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html">回精選與觀點</a>
+      <a class="button secondary" href="../news.html">看小消息</a>
+      <a class="button quiet" href="https://redmonk.com/sogrady/2026/05/15/open-ai-models/" target="_blank" rel="noreferrer">原始連結</a>
+    </div>
+    <section class="article-body"><h1>Open and Closed: The Pursuit of Frontier Models</h1>
+<h3><a href="https://redmonk.com/sogrady" target="_blank" rel="noreferrer">tecosystems</a></h3>
+<p>By <a href="https://redmonk.com/sogrady/author/sogrady/" target="_blank" rel="noreferrer">Stephen O&#x27;Grady</a> | <a href="https://twitter.com/sogrady" target="_blank" rel="noreferrer">@sogrady</a> | May 15, 2026 Share via Twitter Share via Facebook Share via Linkedin Share via Reddit In the beginning, software was open. Not because that was thought to be the correct strategic approach, but rather because <a href="https://redmonk.com/sogrady/2011/05/24/the-age-of-data/" target="_blank" rel="noreferrer">software was an afterthought</a>. Hardware was what mattered. Less than two decades later, the hardware was cheaper and consequently mattered less. In search of greater returns on capital, the focus swung back to software. To maximize those returns, software was turned from open to closed. Ever since, software has been in constant tug of war between open and closed. With operating systems, virtualization software, mobile and other categories, closed software led the way and open gave chase. For big data, containers, programming languages and web servers, the roles were reversed. Open source typically led, while closed and proprietary models have had to keep up. Models, for all that they are built and utterly dependent on a foundation of open source, are very much in the former camp. What <a href="https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf" target="_blank" rel="noreferrer">began open</a> became closed. “Frontier” models – which is to say models that push the “frontier” – are universally proprietary or closed, OpenAI’s name notwithstanding. Ever since Chat-GPT was unleashed on the world on the 22nd of November, 2022, however, there have been – inevitably – efforts to counter the dominance of proprietary models with “open” alternatives (we’ll come back to what open means in this context). The technology industry has a long history of both dominant players, and federated resistance to those dominant players. At a recent industry event, an AI executive likened the open models chasing their closed frontier counterparts to a “pack of wolves.” Casual observers of the industry could be forgiven for not knowing open alternatives existed, because almost all of the media’s attention is consumed by coverage of Anthropic and OpenAI’s latest achievements – though arguably that is in part because of the latter’s notable tendency to strategically time its releases around Google AI announcements to minimize their impact. Whether open will compete with closed, then, is not the interesting question. It always has, it always will. The question to ask is instead: how well? Put another way, will the “pack of wolves” ever catch their prey, and if so, how quickly? Evaluation of AI models is challenging for many reasons. Anecdotal experimentation is useful – anyone who used models before and after November of last year would be struck by the difference in capability – but it obviously doesn’t scale. The only real standardized quantitative measurement available, however, is industry benchmarks. Given that benchmarks were gamed almost to the point of irrelevance decades ago during the TPC-C wars, they would not otherwise be the first choice for evaluation, but at this point they are the least worst method of measuring performance model vs model. That being said, there are many other specific concerns for benchmarks generally and those selected here. Among them:</p>
+<ul>
+<li><strong>Contamination</strong>: models can be trained on data that includes benchmark test questions, either accidentally or deliberately.</li>
+<li><strong>Self-Reporting</strong>: models are typically self-reported by the labs that created them.</li>
+<li><strong>No Standardized Approach</strong>: benchmark scores can vary widely depending on scaffold, prompt, number of attempts, etc, and benchmarks typically don’t standardize the approach</li>
+<li><strong>Specificity</strong>: as will be seen momentarily, benchmarks typically have a specific area of focus. None can adequately cover or represent the breadth of actual real world use cases, and notably the benchmarks here are text in, text out – not multi-modal.</li>
+<li><strong>Difficulty</strong>: to measure progress over time, the benchmarks selected for this analysis had to have actual history. This means that more difficult or challenging benchmarks that have emerged more recently and may be more strenuous tests of ability are not represented here because they would not reveal any real trendlines worth noting.</li>
+</ul>
+<p>In addition to those caveats, it’s important to note that there are dozens of potential benchmarks – some general, some specialized – that could be used. The selection process here prioritized consistently available scores across a wide variety of models and a reasonable history to evaluate. This, in other words, is a snapshot of benchmarks and other selections might produce different results. One last necessary clarification before proceeding is the definition of “open.” This analysis includes both closed and open models. Closed is closed, but open includes two distinct subsets of models: open weight, and fully open. Fully open refers simply to models that are licensed according to a known and OSI-approved open source license: Apache, MIT, etc. “Open weight,” on the other hand, refers to the emerging <a href="https://www.linkedin.com/feed/update/urn:li:activity:7402729193228324864/?originTrackingId=bagLRp%2FvRfOk8qseYxY0%2FA%3D%3D" target="_blank" rel="noreferrer">industry consensus</a> term for models that are <em>mostly</em> open, but include some restrictions on use that prevent them from being called open source – the most common example of which in this dataset is Llama. With that context out of the way, let’s start with a simple glossary of the benchmarks selected. Notably, the benchmarks here are arranged in an order of most to least “saturated.” Saturated refers to benchmarks that have effectively been solved by all or most models, and thus are no longer useful at measuring relative capabilities. In spite of their lack of utility today, saturated benchmarks are included in this analysis because they demonstrate the historical progress open models have made in catching up with their proprietary counterparts. We’ll begin by examining one of these fully saturated benchmarks, GSM8K. From GPT-3.5’s performance in December of 2022, within 16 months GSM8K’s grade school math problems were effectively solved. And importantly, by both open and closed models. By late 2024, fully open Deepseek effectively matched Claude Sonnet’s ~96% score. It’s also notable that the 7B Llama released in July of 2023 was basically guessing at 15%, but the 8B Granite model released in May of 2026 was at 93% – meaning that even small models performance was improving rapidly. Next, we’ll look at a slightly less saturated benchmark, HumanEval. The “Pass@1” in the above means the model only gets one shot at the question, and it’s excluding other related benchmarks like LiveCodeBench. Again, we see the same pattern playing out, with both open and closed models alike largely solving HumanEval, though the scores are slightly lower than GSM8K. Also worth noting is that the 30B Granite 4.1 matches the 405B Llama 3.1 from two years ago, proving that open but restricted license models are not outperforming purely open alternatives – regardless of size. Slightly less saturated than HumanEval is MMLU. Smaller models aren’t faring as well with the broader set of 14,000 questions: 7B Mixtral represents the peak a bit over 70% and that hasn’t been exceeded since. The larger tier, 70B+, has for its part stalled around a GPT-4o level of capability. The larger open models like Deepseek have peformed well, though nothing close to the closed Opus 4.6. It’s also worth noting while open weight models lead the way performance-wise, fully open models follow quickly after and now claim the highest scores. This is whether things begin to separate. The frontier models score around 90%, while the best open models tap out at 83%. Some of this admittedly might be an artifact of the fact that newer models are more commonly reporting against the AIME and MATH-500 benchmarks rather than classic MATH. Two other things to note: model size doesn’t seem to play a major role in performance, and the older fully open Qwen model still outperforms newer open weight Llama alternatives. Now we’ll see even more separation in GPQA Diamond. There are a number of interesting takeaways here. For one, Deepseek R1 was ahead of all models, open or closed, when it debuted. But closed models made a big jump in the form of Gemini a few months later, and it took almost a year for open models to close the gap. Earlier this year, Deepseek, GLM, Kimi and Qwen have approached the performance of Anthropic and OpenAI, but not quite matched it. Lastly, let’s look at SWE-bench Verified – 500 human-validated real GitHub issues. From May of last year through early this year, all progress came from closed models. In February, however, things began to speed up. Both open and closed – Gemini, GLM, Kimi, MiniMax, Opus, Sonnet, etc – models all landed within 73-81%. Opus 4.7, for all of its other launch issues, jumped to ~88%, while the Deepseek V4 Pro leads the open contingent at ~81%. The pattern here is clear and consistent: closed leaps forward, open is hot on its heels. And the cycle appears to be getting faster. To explore that, let’s look at the time it took open models to match the capabilities of saturated benchmarks we examined earlier. It took 18 months for Qwen to match GPT-4’s capabilties within the MMLU benchmark, and 13 months for Llama to do the same for HumanEval and MATH. The longest it took an open model to match GPT-4o’s capabilities on any of those benchmarks, however, was seven months, and Llama matched its peformance on HumanEval in two. But what about the harder, non-saturated benchmarks? It’s more of the same. Deepseek caught up to Opus 4.6’s capabilities on GPQA in three months, and MiniMax did the same on SWE-Bench in one. None have matched Opus 4.7 as yet, but it’s been less than a month.</p>
+<h2>Takeaways</h2>
+<p>There are any number of different conclusions to be drawn from this dataset – with the caveats noted above – but here are five that stand out.</p>
+<ul>
+<li>Closed models are setting the pace of innovation, and constantly breaking new ground from a capabilities standpoint.</li>
+<li>Open models are chasing them, and the cycle times seem to be getting shorter. There are no clear capability moats, and what is frontier today is table stakes tomorrow.</li>
+<li>Closed beats open today, but there is effectively no advantage to restricted open weight vs fully open models.</li>
+<li>Small models are extremely competitive in specialized disciplines, but lag behind on general performance.</li>
+<li>The United States has the largest contingent of surveyed models (42), and the largest proportion of closed models (64%). China, by contrast, features 17 models, and every single one is either open weight or fully open.</li>
+</ul>
+<p>Having performed this base level analysis, it will be necessary to track how these models continue to evolve and how the benchmarks evolve with them. <strong>Disclosure</strong>: Amazon (Nova), Google (Gemini, Gemma) and IBM (Granite) are all RedMonk clients. 01.AI (Yi), Alibaba (Qwen), Anthropic (Opus, Sonnet), DeepSeek, Mistral (Mistral, Mixtral), Meta (Llama), MiniMax, Moonshot (Kimi), OpenAI (GPT) and Zhipu (GLM) are not currently RedMonk customers.</p>
+<h3>About</h3>
+<h3>The Book</h3>
+<h3>Archives</h3>
+<h3>Search</h3>
+<h3>Recent Posts</h3>
+<ul>
+<li><a href="https://redmonk.com/sogrady/2026/06/11/open-source-spectrum/" target="_blank" rel="noreferrer">The Open Source Maturity Spectrum</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/10/paas-unbundling/" target="_blank" rel="noreferrer">The Unbundling and Bundling of the PaaS Market</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/04/bun-two-lessons/" target="_blank" rel="noreferrer">What Bun Can Tell Us About AI, Open Source and Anthropic</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/02/g7-open-weights/" target="_blank" rel="noreferrer">The G7 on Open Source vs Open Weights</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/05/19/oss-summit-2026/" target="_blank" rel="noreferrer">What the OSS Summit Says About OSS in 2026</a></li>
+</ul>
+<h3>Categories</h3>
+<h3>Archives</h3></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-fde8504e1b0163e8.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-19T20:35:02+00:00</li><li>審稿備註：開源怎選擇模型呢？思路、想法。
+2026-06-19T20:35:02+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Open and Closed: The Pursuit of Frontier Models（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：redmonk.com（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-fde8504e1b0163e8";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+</body>
+</html>

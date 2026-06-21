@@ -27,6 +27,9 @@ from local_web import (
     item_zh_summary,
     load_jsonl,
     markdown_to_html,
+    reader_month_key,
+    reader_period_key,
+    reader_period_label,
     track_meta,
 )
 from page_metadata import text_to_markdown
@@ -256,6 +259,72 @@ def kind_order(item: dict) -> tuple[int, str, str, str]:
     return (order, item_sort_time(item), item_display_title(item), clean_text(item.get("id")))
 
 
+def period_sections(items: list[dict], renderer, container_class: str, empty: str) -> str:
+    if not items:
+        return f"<p class='empty'>{h(empty)}</p>"
+    month_keys: list[str] = []
+    for item in items:
+        key = reader_month_key(item)
+        if key not in month_keys:
+            month_keys.append(key)
+    month_index = {key: index for index, key in enumerate(month_keys)}
+    groups: list[tuple[str, int, list[dict]]] = []
+    group_index: dict[str, int] = {}
+    for item in items:
+        label = reader_period_label(item)
+        item_month_index = month_index.get(reader_month_key(item), 999)
+        if label not in group_index:
+            group_index[label] = len(groups)
+            groups.append((label, item_month_index, []))
+        label_text, current_month_index, records = groups[group_index[label]]
+        records.append(item)
+        groups[group_index[label]] = (label_text, min(current_month_index, item_month_index), records)
+    sections = []
+    for label, item_month_index, records in groups:
+        hidden = " hidden" if item_month_index >= 2 else ""
+        sections.append(
+            f"""
+<section class="reader-period" data-reader-period data-month-index="{item_month_index}" id="{h(reader_period_key(records[0]))}"{hidden}>
+  <h2>{h(label)}</h2>
+  <p class="lede">{len(records)} 筆</p>
+  <div class="{h(container_class)}">{''.join(renderer(item) for item in records)}</div>
+</section>
+"""
+        )
+    more = ""
+    if len(month_keys) > 2:
+        more = '<div class="actions"><button type="button" class="secondary" data-reader-more-months>more：再載入 2 個月</button></div>'
+    return "".join(sections) + more
+
+
+def period_more_script() -> str:
+    return """
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+"""
+
+
 def note_pr_url(item: dict, repo_url: str, branch: str) -> str:
     return f"{repo_url}/new/{branch}/reader-notes?filename={clean_text(item.get('id')) or 'item'}.md"
 
@@ -456,6 +525,12 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     .reader-time-filter .generated {{
       margin: 0 0 7px;
     }}
+    .reader-period {{
+      margin: 0 0 24px;
+    }}
+    .reader-period[hidden] {{
+      display: none !important;
+    }}
     .article-layout {{ display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }}
     .article-panel, .side-panel {{
       background: #fff;
@@ -492,6 +567,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     </div>
   </header>
   <main>{body}</main>
+  {period_more_script()}
   {time_filter_script() if include_time_filter else ""}
 </body>
 </html>
@@ -643,8 +719,8 @@ def index_page(items: list[dict]) -> str:
     primary = [item for item in items if item_display_kind(item) in PRIMARY_KINDS and not item_is_current_reading(item)]
     small_news = [item for item in items if item_display_kind(item) == "small-news" and not item_is_current_reading(item)]
     current_cards = "\n".join(item_card(item) for item in current[:12])
-    cards = "\n".join(item_card(item) for item in primary[:120]) or "<p class='empty'>目前沒有精選文章或觀點文章。</p>"
-    news_preview = "\n".join(news_row(item) for item in small_news[:8]) or "<p class='empty'>目前沒有小消息。</p>"
+    cards = period_sections(primary[:180], item_card, "card-grid", "目前沒有精選文章或觀點文章。")
+    news_preview = period_sections(small_news[:80], news_row, "news-list", "目前沒有小消息。")
     body = f"""
 {time_filter_controls()}
 {f'''
@@ -657,12 +733,12 @@ def index_page(items: list[dict]) -> str:
 <section>
   <h2>精選文章與觀點文章</h2>
   <p class="lede">這裡優先呈現需要細讀、可能延伸撰稿或觀點整理的內容。</p>
-  <div class="card-grid">{cards}</div>
+  {cards}
 </section>
 <section>
   <h2>最新小消息</h2>
   <p class="lede">小消息改成列表，適合快速掃過；完整列表在下一頁。</p>
-  <div class="news-list">{news_preview}</div>
+  {news_preview}
   <div class="actions"><a class="button secondary" href="news.html">看全部小消息</a></div>
 </section>
 <div class="empty" data-time-empty hidden>這個時間範圍沒有可顯示的項目。</div>
@@ -672,13 +748,13 @@ def index_page(items: list[dict]) -> str:
 
 def news_page(items: list[dict]) -> str:
     small_news = [item for item in items if item_display_kind(item) == "small-news"]
-    rows = "\n".join(news_row(item) for item in small_news) or "<p class='empty'>目前沒有小消息。</p>"
+    rows = period_sections(small_news, news_row, "news-list", "目前沒有小消息。")
     body = f"""
 {time_filter_controls()}
 <section>
   <h2>小消息列表</h2>
   <p class="lede">純新聞消息用列表呈現，保留快速掃讀與點進單篇的入口。</p>
-  <div class="news-list">{rows}</div>
+  {rows}
 </section>
 <div class="empty" data-time-empty hidden>這個時間範圍沒有可顯示的小消息。</div>
 """
