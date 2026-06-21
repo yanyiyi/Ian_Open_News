@@ -5,3 +5,5 @@ __pycache__/
 *.pyc
 *.sqlite
 *.sqlite3
+docs/reader/articles/* [0-9].html
+docs/reader/articles/* [0-9][0-9].html

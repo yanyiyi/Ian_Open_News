@@ -39,6 +39,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "docs" / "reader" / "index.html"
 PUBLIC_KINDS = {"featured-article", "small-news", "opinion-article"}
 PRIMARY_KINDS = {"featured-article", "opinion-article"}
+CONFLICT_COPY_RE = re.compile(r" .*\d+\.html$")
 TIME_FILTER_OPTIONS = [
     ("three-days", "這三天（-3 天）"),
     ("week", "這一週"),
@@ -838,7 +839,20 @@ def write_clean(path: Path, html: str) -> None:
     html = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", html)
     html = "\n".join(line.rstrip() for line in html.splitlines()) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.read_text(encoding="utf-8") == html:
+        return
     path.write_text(html, encoding="utf-8")
+
+
+def cleanup_conflict_copies(articles_dir: Path) -> int:
+    removed = 0
+    if not articles_dir.exists():
+        return removed
+    for path in articles_dir.glob("*.html"):
+        if CONFLICT_COPY_RE.search(path.name):
+            path.unlink()
+            removed += 1
+    return removed
 
 
 def main() -> None:
@@ -858,11 +872,16 @@ def main() -> None:
     write_clean(args.output, index_page(items))
     write_clean(output_dir / "news.html", news_page(items))
     articles_dir.mkdir(parents=True, exist_ok=True)
+    removed_conflicts = cleanup_conflict_copies(articles_dir)
+    expected_files = {article_filename(item) for item in items}
     for stale in articles_dir.glob("*.html"):
-        stale.unlink()
+        if stale.name not in expected_files:
+            stale.unlink()
     for item in items:
         write_clean(articles_dir / article_filename(item), article_page(item, repo_url, branch))
-    print(f"wrote {output_dir} ({len(items)} items, {len(items)} article pages)")
+    removed_conflicts += cleanup_conflict_copies(articles_dir)
+    conflict_note = f", removed {removed_conflicts} duplicate copies" if removed_conflicts else ""
+    print(f"wrote {output_dir} ({len(items)} items, {len(items)} article pages{conflict_note})")
 
 
 if __name__ == "__main__":
