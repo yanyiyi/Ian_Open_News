@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRA 準備度的現實 2025-2026 - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card .actions { gap: 6px; margin-top: 8px; }
+    .story-card .actions { justify-content: flex-end; }
+    .story-card .actions .reader-action-button {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
+    }
+    .story-card .actions svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .reader-action-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>CRA 準備度的現實 2025-2026</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-21T16:50:03+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">精選文章 / 待跑 skill</span>
+      <span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span>
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-19 08:00</span>
+    </div>
+    <h2>CRA 準備度的現實 2025-2026</h2>
+    <p class="lede">這篇文章回顧 Linux Foundation 相關單位在 2025 與 2026 年對 EU Cyber Resilience Act 準備度的調查結果。核心訊息是：距離關鍵期限更近，開源生態的認知與實務準備卻沒有明顯進步。2026 年調查中，不熟悉 CRA 的比例從 62% 上升到 66%，北美受訪者的不熟悉比例更高；即使是知道 CRA 的組織，仍有相當多人不確定法規是否適用、何時需要完全合規，以及自己屬於製造商還是開源 steward。文章也指出，SBOM 普及與上游安全責任分攤沒有顯著推進，許多組織仍依賴上游修補或維持私有 fork，長期會帶來高昂維護成本。作者的編輯重點很清楚：CRA 會迫使企業把軟體來源、漏洞處理與安全責任變成可證明的流程，上游貢獻不再只是公益姿態，而是降低合規與維護成本的理性選擇。</p>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">CRA</span><span class="tag-chip">cybersecurity</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html">回精選與觀點</a>
+      <a class="button secondary" href="../news.html">看小消息</a>
+      <a class="button quiet" href="https://www.linuxfoundation.org/blog/the-cra-readiness-reality-what-changed-and-what-didnt-between-2025-and-2026" target="_blank" rel="noreferrer">原始連結</a>
+    </div>
+    <section class="article-body"><h1>CRA 準備度的現實：2025 到 2026 年之間改變了什麼，又有哪些沒變？</h1>
+<h3>Angelah Liu｜2026 年 6 月 19 日</h3>
+<p>2025 年，Linux Foundation Research、Linux Foundation Europe 與 Open Source Security Foundation（OpenSSF）發布了《<a href="https://www.linuxfoundation.org/research/cra-readiness?hsLang=en" target="_blank" rel="noreferrer">Unaware and Uncertain: The Stark Realities of Cyber Resilience Act Readiness in Open Source</a>》。這份以問卷為基礎的研究，觀察開源生態系對於<a href="https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act" target="_blank" rel="noreferrer">歐盟網路韌性法（European Union&#x27;s Cyber Resilience Act, EU CRA）</a>的準備程度。最主要的發現相當直接：62% 的受訪者對這項將重塑全球供應鏈中軟體建置、交付與維護方式的法規，幾乎不熟悉或完全不熟悉。當時的期待是，距離 CRA 生效還有一年，社群教育倡議與日益增加的指引文件，能推動準備度向前進。 最新的《<a href="https://openssf.org/resources/publications/2026-cra-awareness-and-readiness-report/?hsLang=en" target="_blank" rel="noreferrer">2026 CRA Awareness and Readiness Report</a>》於 6 月初發布，由 LF Research、OpenSSF、Balena、Ericsson 與 Revanite 共同製作；它帶來了一個令人警醒的更新。</p>
+<h2>全球生態系的認知有改變嗎？</h2>
+<p>認知落差不但沒有縮小，反而擴大了：不熟悉這項法規的受訪者比例從一年前的 62% 上升到 66%（2026 年報告，第 7 頁）。2026 年的調查觸及更廣泛的對象，特別是在美國與加拿大；在這些地區，72% 的受訪者不熟悉這項法規，但如果他們具數位元素的產品進入歐盟市場，就可能需要遵循它（2026 年報告，第 8 頁）。如今，這個地理上的落差比一年前更重要：2026 年 9 月是製造商面臨的第一個硬性期限，屆時他們必須開始通報已被主動利用的漏洞與嚴重資安事件。</p>
+<h2>已知 CRA 的組織，法規理解是否更成熟？</h2>
+<p>在已經知道 CRA 的受訪者當中，知識落差看起來幾乎與 2025 年相同。兩次調查中，約每 10 人就有 4 人仍未判斷這項法規是否適用於自己的組織（2026 年報告，第 9 頁）。不確定合規期限的人比例小幅下降，從 51% 降至 46%；但只有 34% 正確指出 2027 年 12 月是全面合規日期（2026 年報告，第 9 頁）。「製造商」與「steward」之間的區別，是判斷你或你的組織如何符合這項法規基本要求的基礎概念；但在知道 CRA 的受訪者中，仍有 54% 對此不清楚，只比前一年的 57% 略微下降（2026 年報告，第 9 頁；2025 年報告，第 8 頁）。 時間正在流逝，但只有 41% 的製造商預期能在 2027 年 12 月期限前達到完全合規。幾乎同樣比例的 39%，則對自己是否能滿足這些要求仍完全不確定（2026 年報告，第 15 頁）。這凸顯在最終期限不到 18 個月之際，產業準備度仍持續不足。</p>
+<h2>製造商是否正在轉向營運層面的準備？</h2>
+<p>數字停滯不前。為所有產品產出軟體物料清單（Software Bill of Materials, SBOM）的受訪者比例維持在 32%；而被動仰賴上游專案提供安全修補的比例，反而從 46% 上升到 51%（2026 年報告，第 13 頁）。 資料顯示，若把上游安全視為外部依賴，而不是共同責任，會導致一個代價高昂的陷阱：為了在本地修補而產生大量彼此隔離的私有分支。期待生態系在沒有企業策略性投入的情況下提供交鑰匙式合規，是不可持續的策略；最終只會迫使組織獨自承擔驚人的營運負擔與成本。 一項引用 LF Research《<a href="https://www.linuxfoundation.org/research/contribution-roi?hsLang=en" target="_blank" rel="noreferrer">ROI for Open Source Software Contribution</a>》的分析發現，維護這些私有分支的組織，平均持有 86 個分支；每個分支在每次發布週期約需 60 個工時，合計每次發布約產生 258,000 美元的人力成本。對於員工超過 5,000 人的組織，這個數字會超過 11,000 個工時（2026 年報告，第 14 頁）。 這正是歐盟 CRA 改變遊戲規則之處。這部法律基本上是在說：你不能再躲在混亂、未經驗證的私有副本後面；你必須證明你的軟體是安全且可追蹤的。 CRA 對透明度與來源證明的要求，使這些各自為政的私有分支越來越難作為合規策略持續下去。這也意味著，對上游的貢獻不再只是可有可無的善意，而是經濟上更合理的路徑。</p>
+<h2>2026 年有哪些 2025 年沒有的新發現？</h2>
+<p>今年報告中有兩項發現，在 2025 年沒有直接對應的結果。 第一是 CVE 激增：在 LFX 索引的 14,000 多個開源專案中，2026 年第一季公布的 CVE 數量年增 394%，高嚴重性漏洞則增加 811%（2026 年報告，第 24 頁）。報告指出，部分原因是 AI 驅動的自動化掃描揭露了潛藏問題；但數量是真實存在的，而仰賴這些專案的製造商也暴露在其中。 第二項發現，與組織多樣性作為資安狀態預測因子有關。對 12,863 個 LFX 索引專案的分析顯示，參與某個專案的不同組織數量，與該專案的安全分數之間有明顯相關性，Spearman 係數為 0.57（2026 年報告，第 23 頁）。用可量測的方式來說，投資上游專案，就是投資自己的合規狀態。</p>
+<h2>非商業貢獻者受到什麼影響？</h2>
+<p>非商業貢獻者仍陷在與去年相同的不確定循環中。2025 年，59% 不確定 CRA 是否適用於自己的貢獻。2026 年，這個數字為 61%（2026 年報告，第 20 頁；2025 年報告，第 15 頁）。CRA 明確將非商業開發排除在適用範圍之外；而歐盟執委會在 2026 年 3 月發布的指引草案，是在本次調查結束後才公布，朝著為這群人提供他們一直要求的情境式明確性邁出一步。</p>
+<h2>接下來該往哪裡走？</h2>
+<p>2026 年報告值得和 2025 年報告一起閱讀。兩者共同指出，單靠認知宣導並未縮小落差；下一階段的工作需要發生在開發者所在的空間，包括會議、OSS 工具文件與社群管道，因為在知道 CRA 的受訪者中，有 48% 正是在這些地方得知 CRA。官方歐盟管道只觸及 25%（2026 年報告，第 8 頁）。 歸根究柢，核心挑戰在於推動認知。相關材料與倡議已經到位。可以先從免費課程《<a href="https://training.linuxfoundation.org/express-learning/understanding-the-eu-cyber-resilience-act-cra-lfel1001/" target="_blank" rel="noreferrer">Understanding the EU Cyber Resilience Act (CRA) (LFEL1001)</a>》開始，並加入 <a href="https://github.com/ossf/wg-globalcyberpolicy/" target="_blank" rel="noreferrer">Global Cyber Policy Working Group</a> 及其 SIG。也可以查看 <a href="https://openssf.org/projects/osps-baseline/?hsLang=en" target="_blank" rel="noreferrer">OpenSSF Open Source Project Security Baseline（OSPS Baseline）</a>，它為開源軟體專案提供一組最低限度的資安相關最佳實務。 為了支撐這些努力，<a href="https://policy.openssf.org/CRA/" target="_blank" rel="noreferrer">OpenSSF CRA Policy Page</a> 是我們持續提供政策更新與合規框架的中心樞紐。在這個基礎上，社群成員可以透過加入 Global Cyber Policy Working Group 及其特定的 Special Interest Groups（SIG），直接參與更廣泛的生態系。 對於正在面對這個變動中法規環境的中小企業、開源軟體 steward 與獨立貢獻者而言，善用這些專門資源，可以大幅降低合規負擔。<a href="https://policy.openssf.org/CRA/" target="_blank" rel="noreferrer">OpenSSF CRA Portal</a> 收錄了重要的產業文件庫，包括：</p>
+<ul>
+<li><a href="https://policy.openssf.org/CRA/stewards-playbook.html" target="_blank" rel="noreferrer">The Linux Foundation CRA Stewards Playbook</a>：為專案經理設計的專門工具包。</li>
+<li><a href="https://policy.openssf.org/CRA/stewards-one-pager.html" target="_blank" rel="noreferrer">The CRA Stewards One Pager</a>：高層次的策略概覽。</li>
+<li><a href="https://policy.openssf.org/CRA/maintainers.html" target="_blank" rel="noreferrer">The CRA Readiness Guide for Maintainers and Developers</a>：量身設計的實作步驟。</li>
+<li><a href="https://best.openssf.org/CRA-Brief-Guide-for-OSS-Developers" target="_blank" rel="noreferrer">The Cyber Resilience Act (CRA) Brief Guide for OSS Developers</a>：精簡且可行的資訊，用來加速生態系準備。</li>
+</ul>
+<p>重要的是，因為這些社群資源都是為了配合不斷演進的法規文字而建立，所以追蹤官方執行時程、標準化進展與立法常見問答時，最重要的基礎資源仍是<a href="https://digital-strategy.ec.europa.eu/en/factpages/cyber-resilience-act-implementation" target="_blank" rel="noreferrer">歐盟執委會 CRA Implementation Page</a>。 當然，也請務必閱讀完整的《<a href="https://openssf.org/resources/publications/2026-cra-awareness-and-readiness-report/?hsLang=en" target="_blank" rel="noreferrer">2026 CRA Awareness and Readiness Report</a>》與 2025 年報告《<a href="https://www.linuxfoundation.org/research/cra-readiness?hsLang=en" target="_blank" rel="noreferrer">Unaware and Uncertain: The Stark Realities of Cyber Resilience Act Readiness in Open Source</a>》，以了解前方道路的全貌。</p></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-630cb244d0aae6da.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-20T05:01:53+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-20T05:01:53+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。
+2026-06-20T17:05:30+00:00 標記為近期正在閱讀 / 想分享；若持續 2 天以上，後續未指定項目時優先跑 skill。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The CRA Readiness Reality: What Changed (and What Didn’t) Between 2025 and 2026?</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：CRA 準備度的現實：2025 到 2026 年之間改變了什麼，又有哪些沒變？（Codex）</li><li><strong>原始作者</strong>：Angelah Liu（json-ld）</li><li><strong>原始網站授權</strong>：著作權保護（頁面文字推斷）（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-630cb244d0aae6da";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

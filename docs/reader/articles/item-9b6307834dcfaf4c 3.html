@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MosaicLeaks：你的研究代理能保守秘密嗎？ - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card .actions { gap: 6px; margin-top: 8px; }
+    .story-card .actions { justify-content: flex-end; }
+    .story-card .actions .reader-action-button {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
+    }
+    .story-card .actions svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .reader-action-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>MosaicLeaks：你的研究代理能保守秘密嗎？</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-21T16:50:03+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">精選文章 / 待跑 skill</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-18 08:00</span>
+    </div>
+    <h2>MosaicLeaks：你的研究代理能保守秘密嗎？</h2>
+    <p class="lede">標題顯示這篇可能討論名為 MosaicLeaks 的議題，並以「研究代理是否能保守秘密」切入 AI agent 的資訊保護問題。不過目前只有標題，不能確認文章的研究內容、方法或結論。</p>
+    <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html">回精選與觀點</a>
+      <a class="button secondary" href="../news.html">看小消息</a>
+      <a class="button quiet" href="https://huggingface.co/blog/ServiceNow/mosaicleaks" target="_blank" rel="noreferrer">原始連結</a>
+    </div>
+    <section class="article-body"><h1>MosaicLeaks：你的研究代理能保守秘密嗎？</h1>
+<h2>TL;DR</h2>
+<p>深度研究代理越來越常把私有的本機文件與網路檢索等外部工具結合使用，這帶來一項隱私風險：代理對外發出的查詢可能洩漏敏感資訊。<strong>MosaicLeaks</strong> 提出一項新的深度研究任務，使用交錯結合公開資訊與私有資訊的多跳問題。在我們測試的模型中，代理經常洩漏私有資訊；而且只針對任務表現訓練，情況反而更糟。我們提出一種具備馬賽克式外洩意識的強化學習訓練方法：<strong>Privacy-Aware Deep Research（PA-DR）</strong>。它把嚴格鏈成功率（每一跳都答對的鏈所占比例）從 48.7% 提高到 58.7%，同時把答案／完整資訊外洩從 34.0% 降到 9.9%。</p>
+<h2>深度研究代理中的隱私外洩</h2>
+<p>一家醫療保健公司的研究代理正在處理一個例行問題，過程中發出幾個看起來很普通的網路搜尋。其中一個提到雲端遷移里程碑，一個提到 2024 年 1 月的安全揭露，另一個則縮小到哪一家供應商遭到影響。單獨看任何一筆查詢，都不一定會洩漏整個秘密。但任何能觀察代理對外流量的人，都可以把這些碎片重新拼起來：MediConn 到 2025 年 1 月已將 70% 的基礎架構遷移到雲端，而這項事實原本只存在於私有文件中。這就是馬賽克效應，也是 MosaicLeaks 關注的核心失敗模式。 MosaicLeaks 把這些網路查詢視為外洩通道：攻擊者看不到私有文件，也看不到代理的推理過程，只看得到累積的查詢紀錄，並試圖從中推斷企業的私有資訊。 我們依照攻擊者能從觀察到的查詢推斷出什麼，從三個面向衡量外洩： 這三者代表逐漸升高的風險層級。意圖外洩會暴露<em>代理正在調查什麼</em>。答案外洩表示查詢紀錄中已有足夠資訊，可以回答某個攻擊者已知的私有問題。完整資訊外洩則是最強的情境：觀察者不需要事先被告知要找什麼，就能發現並陳述可驗證為真的私有事實。 <em>馬賽克效應如何推動 MosaicLeaks 的三種外洩衡量方式：<strong>意圖</strong>（預測研究問題）、<strong>答案</strong>（回答關於私有文件的既有問題），以及<strong>完整資訊</strong>（陳述可驗證為真的私有主張）。在這裡，代理針對 Lee&#x27;s Market 2020 年流量成長搜尋了兩次，洩漏...</em></p>
+<h2>建構 MosaicLeaks</h2>
+<p>MosaicLeaks 包含 1,001 條多跳研究鏈，涵蓋本機企業文件與受控的網路語料庫。目標是建立高度可能誘發企業文件隱私外洩的任務，但這些任務仍然可以在不外洩的情況下解決。 每條鏈都交錯本機與網路子問題。一個子問題的答案會成為下一題的橋接實體，因此代理必須先擷取本機資訊，才能形成下一個有用的網路查詢。本機文件來自 DRBench 風格的企業任務，網路文件則來自 BrowseComp-Plus。最終切分包含 559 條訓練鏈、98 條驗證鏈，以及 344 條保留公司測試鏈。</p>
+<h3>範例鏈</h3>
+<p><strong>MediConn 雲端遷移鏈</strong> 最後一個網路跳本身不一定包含任何私有資訊，也可以從公開網路文件中回答。不過，因為抵達這一步的路徑仰賴私有的本機事實，一筆帶有「MediConn」、「70%」與「January」的查詢，就會給攻擊者足夠脈絡來還原內部資訊。</p>
+<h2>代理測試框架</h2>
+<p>我們使用改編自 DRBench 的簡化代理測試框架。模型會用簡短答案與理由回答每個子問題，讓我們能以正規化字串比對逐一評估每一跳。 在每次迭代中，模型可以使用四種工具。<strong>Plan</strong> 會產生本機與網路搜尋查詢，系統執行後回傳文件卡片。<strong>Choose</strong> 會選擇要閱讀哪些檢索到的文件。<strong>Read</strong> 會平行嘗試從每份選定文件回答目前這一跳。<strong>Resolve</strong> 會決定是否作答、閱讀更多文件，或規劃另一輪搜尋。 <em>一次代理執行過程。每一列是一跳，標示為本機（<strong>L</strong>）或網路（<strong>W</strong>），並附上其被接受的答案。彩色區塊顯示該跳在規劃、檢索、選擇、閱讀與解析上花費的實際時間。</em></p>
+<h2>不能直接叫代理不要洩漏嗎？</h2>
+<p>最直覺的修法就是直接要求它。只要在 Plan 提示詞中加上一行，告訴代理不要發出會洩漏本機資訊的網路查詢，然後觀察對表現、外洩與查詢行為的影響。 這個提示對某些模型稍有幫助，但效果不一致，而且仍然有顯著外洩。它也常常對任務表現造成負面影響。以 Qwen3-4B 為例，這個提示把答案／完整資訊外洩從 34.0% 降到 25.5%，但嚴格鏈成功率也從 48.7% 降到 44.5%。主要行為變化似乎是網路查詢變少，而不是查詢建構方式穩定變得更安全。 <em>加入與未加入提示時的嚴格鏈成功率與隱私外洩。該提示會讓某些模型的外洩略微下降，但仍然存在大量外洩。</em></p>
+<h2>讓代理變得更會做任務，反而讓它洩漏更多</h2>
+<p>在進行隱私訓練之前，我們先試了最直覺的做法：只訓練代理正確解出更多鏈。這確實有效。嚴格鏈成功率從 48.7% 提高到 59.3%。但答案／完整資訊外洩也一路上升，從 34.0% 增加到 51.7%。模型學會在網路查詢中塞入更多脈絡，這有助於找回正確文件，卻傷害隱私，因為每一筆更豐富的查詢都會給觀察者另一個碎片。 這正是 MosaicLeaks 揭示的核心張力。資訊量更高的查詢，通常對任務更有利，對隱私卻更糟。PA-DR 的設計就是要同時訓練這兩面。</p>
+<h2>教代理安全搜尋：PA-DR</h2>
+<p>第一項是<em>情境式</em>任務獎勵。單一研究軌跡可能包含數十次模型呼叫，因此把同一個最終軌跡分數套用到所有呼叫，是非常薄弱的歸因方式：一次成功執行可能強化了會外洩的搜尋；一次失敗執行也可能懲罰了本來合理的本機決策。相對地，我們會把每次呼叫與同一階段、同一跳、且可用資訊相同的其他呼叫相比。Plan 呼叫如果搜尋了正確來源並檢索到正確文件，就會得到獎勵；如果那份文件已經在手上，則不再搜尋也會得到獎勵。Choose 呼叫如果選中持有答案的文件，就會得到獎勵。我們訓練這些階段，是因為其理想行為可以被直接檢查。 第二項是<em>學得的隱私獎勵</em>。每當代理產生網路查詢時，一個 Qwen3-4B 分類器會估計兩種風險：目前查詢是否直接洩漏私有資訊，以及把這些查詢加入既有查詢紀錄後，是否造成新的馬賽克式外洩。PA-DR 會懲罰兩者中較大的風險，因此隱私成本會落在那個讓查詢紀錄變得更具揭露性的精確規劃決策上。 <em>只針對任務的強化學習會改善研究表現，但也會增加外洩。PA-DR 保留了幾乎所有表現提升，同時大幅降低外洩。</em> 這個 9.9% 低於未訓練基礎模型本身的 34.0%。隱私訓練並不只是抵消了表現訓練帶來的外洩。它讓代理最後的外洩程度比一開始還低。 而且它不是靠單純減少搜尋來變得更安全。PA-DR 實際上發出的網路查詢比基礎模型更多，但這些查詢會拿掉揭露性細節：像是「15%」或「2024」這類具體指標，以及關於它正在尋找哪種答案的線索。代理仍然能找到正確的公開文件，只是不再把私有碎片帶進查詢文字中。</p>
+<h2>更近一步看：情境式獎勵與樣本效率</h2>
+<p>情境式獎勵在訓練本身也帶來第二層效益。因為它比較的是相匹配的呼叫，而不是只對整個執行過程打一次分數，所以能更精準地分配功勞；不需要額外的價值模型，也不需要在不同執行過程之間對齊步驟索引。它的樣本效率也高得多：情境式任務獎勵只需要約少 5 到 6 倍的生成訓練樣本，就能達到與只用結果獎勵的強化學習相同的任務表現；PA-DR 則在加入隱私增益的同時，保留了這種效率。 <em>訓練效率。最後一欄是每種方法需要多少生成樣本，才能達到約 55% 的嚴格鏈成功率。數字越低越好。</em> <em>情境式獎勵使用約少 5 到 6 倍的生成樣本，就能達到結果獎勵層級的任務成功率。PA-DR 保留了樣本效率優勢，同時大幅降低外洩。</em></p>
+<h2>這項研究說明了什麼，又沒有說明什麼</h2>
+<p>MosaicLeaks 是受控基準，不是對已部署系統外洩情況的量測。企業文件是合成的，網路語料庫是固定的，鏈橫跨三個公司情境，而且所有結果都來自單一代理測試框架，執行的是多跳問答，而不是開放式研究。正是這樣的控制讓外洩能逐跳衡量，但更廣泛的任務、真實部署與其他代理設計，仍需要各自研究。 重點很簡單。隱私不是用提示詞叫出來的，而是要訓練出來。告訴代理小心一點，幾乎改變不了結果；但獎勵它<em>如何</em>建構每一筆查詢，能把外洩降低超過 3 倍，並讓任務成功率幾乎維持不變。馬賽克效應來自代理隨時間搜尋的方式，而事實證明，這是可以衡量、可以歸因，也可以透過訓練壓低的。</p></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-9b6307834dcfaf4c.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-20T22:34:12+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-20T22:34:12+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：MosaicLeaks: Can your research agent keep a secret?</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：MosaicLeaks：你的研究代理能保守秘密嗎？（Codex）</li><li><strong>原始作者</strong>：Alexander Gurung（json-ld）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-9b6307834dcfaf4c";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

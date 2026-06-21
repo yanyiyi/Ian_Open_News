@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Helion 中可攜式 vLLM 模型推論核心 - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card .actions { gap: 6px; margin-top: 8px; }
+    .story-card .actions { justify-content: flex-end; }
+    .story-card .actions .reader-action-button {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
+    }
+    .story-card .actions svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .reader-action-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>Helion 中可攜式 vLLM 模型推論核心</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">純新聞 / 小消息</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-10 08:00</span>
+    </div>
+    <h2>Helion 中可攜式 vLLM 模型推論核心</h2>
+    <p class="lede">這篇摘要說明 Helion kernels 被整合到 vLLM，用於 Qwen3 模型的 FP8 推論，並在 NVIDIA H100 與 B200 GPU 上評估。文章主軸看起來是用 PyTorch 原生方式開發可攜的推論 kernel，同時兼顧生產力與效能。</p>
+    <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html">回精選與觀點</a>
+      <a class="button secondary" href="../news.html">看小消息</a>
+      <a class="button quiet" href="https://pytorch.org/blog/portable-vllm-model-inference-kernels-in-helion/" target="_blank" rel="noreferrer">原始連結</a>
+    </div>
+    <section class="article-body"><h1>Portable vLLM Model Inference Kernels in Helion – PyTorch</h1>
+<h3>Featured projects</h3>
+<h3>TL;DR</h3>
+<p><em>Helion kernels were integrated into vLLM for FP8 inference using Qwen3 models and evaluated across NVIDIA H100 and B200 GPUs. The experiments show that Helion provides a productive PyTorch-native workflow for developing fused GPU kernels while delivering performance improvements for many quantization, normalization, an...</em></p>
+<h2>Brief Background on vLLM and Helion</h2>
+<p><a href="https://docs.vllm.ai/en/latest/" target="_blank" rel="noreferrer">vLLM</a> is a high-performance inference and serving framework for large language models (LLMs). It is widely used for production LLM serving due to its strong throughput performance, efficient KV-cache management, continuous batching architecture, and support for advanced inference features such as speculative decoding, quantization, and distributed serving. Internally, vLLM relies heavily on custom GPU kernels, TorchInductor fusion, and optimized GEMM backends such as CUTLASS and DeepGEMM to achieve high inference efficiency across different hardware platforms. <a href="https://helionlang.com/index.html" target="_blank" rel="noreferrer">Helion</a> is a PyTorch-native hardware agnostic kernel DSL designed for writing high-performance kernels using a tile-programming model. Unlike lower-level CUDA programming, Helion provides a more natural PyTorch-syntax-centric development experience while still exposing low-level control over memory layout, tiling strategy, and kernel scheduling. You can think of it as PyTorch with tiles. If you know PyTorch or Triton, you already know most of Helion. Other than smooth authoring experience, another strength of Helion is its powerful ahead-of-time (AOT) autotuning infrastructure, which can explore a large kernel configuration space and automatically select optimized implementations for specific workloads and hardware targets.</p>
+<h2>vLLM Model Inference with Helion Kernels</h2>
+<p>We began by focusing on tensor-parallel-free inference using the Qwen3 model family with FP8 activation quantization enabled. Our goal was to evaluate whether Helion kernels can improve inference performance compared to the existing vLLM implementations. For this experiment, we replaced nearly all forward-pass kernels involved in quantized inference with Helion implementations and benchmarked them at both kernel level and end-to-end serving level.</p>
+<h3>vLLM Forward Pass Fusion Pattern</h3>
+<p>For Qwen3 models, the unfused forward pass in vLLM executes the following sequence of kernels:</p>
+<ul>
+<li>scaled_mm (qkv_proj)</li>
+<li>scaled_mm (out_proj)</li>
+<li>post_attention_norm</li>
+<li>scaled_mm (gate_up)</li>
+<li>silu_and_mul</li>
+<li>scaled_mm (down_proj)</li>
+</ul>
+<p><strong>Dynamic Per-Token Activation Quantization</strong> After torch.compile and TorchInductor fusion passes are applied, the execution pattern becomes:</p>
+<ul>
+<li>rms_norm + fp8_quant</li>
+<li>scaled_mm (qkv_proj)</li>
+<li>split_qkv +  q_norm + v_norm</li>
+<li>scaled_mm (out_proj)</li>
+<li>rms_norm + fp8_quant</li>
+<li>scaled_mm (gate_up)</li>
+<li>silu_and_mul + fp8_quant</li>
+<li>scaled_mm (down_proj)</li>
+</ul>
+<p>Note that both <code>scaled_mm</code> and attention are registered as <a href="https://docs.pytorch.org/tutorials/advanced/custom_ops_landing_page.html" target="_blank" rel="noreferrer">PyTorch Custom Operators</a> . Since these operators are opaque to TorchInductor, they form hard boundaries that prevent further compiler-side fusion. <strong>Dynamic Per-Group Activation Quantization</strong> When dynamic per-group activation quantization is enabled and DeepGEMM is selected for <code>scaled_mm_blockwise</code> , the execution pattern changes to:</p>
+<ul>
+<li>fp8_quant (ue8m0)</li>
+<li>scaled_mm (qkv_proj, DeepGEMM)</li>
+<li>split_qkv +  q_norm + v_norm</li>
+<li>fp8_quant (ue8m0)</li>
+<li>scaled_mm (out_proj, DeepGEMM)</li>
+<li>fp8_quant (ue8m0)</li>
+<li>scaled_mm (gate_up, DeepGEMM)</li>
+<li>silu_and_mul</li>
+<li>fp8_quant (ue8m0)</li>
+<li>scaled_mm (down_proj, DeepGEMM)</li>
+</ul>
+<p>DeepGEMM uses UE8M0 activation quantization internally. In the current vLLM implementation, <code>fuse_act_quant</code> and <code>fuse_norm_quant</code> passes are not supported for UE8M0 quantization, which prevents these additional fusions from occurring. If DeepGEMM is unavailable and CUTLASS-based kernels are used instead, the execution pattern becomes similar to the dynamic per-token quantization case.</p>
+<h3>Helion Kernels Implementation</h3>
+<p>For this work, we implemented the following Helion kernels:</p>
+<ul>
+<li>dynamic_per_token_scaled_fp8_quant</li>
+<li>rms_norm_dynamic_per_token_quant</li>
+<li>silu_and_mul_dynamic_per_token_quant</li>
+<li>fused_qk_norm_rope</li>
+<li>per_token_group_fp8_quant</li>
+<li>rms_norm_per_block_quant</li>
+<li>silu_and_mul_per_block_quant</li>
+<li>scaled_mm_blockwise</li>
+</ul>
+<p>The <code>scaled_mm</code> and <code>scaled_mm_blockwise</code> kernels follow the existing Triton implementations in vLLM ( <a href="https://github.com/vllm-project/vllm/blob/v0.21.1rc0/vllm/model_executor/layers/quantization/compressed_tensors/triton_scaled_mm.py#L141" target="_blank" rel="noreferrer">triton_scaled_mm</a> , <a href="https://github.com/vllm-project/vllm/blob/v0.21.1rc0/vllm/model_executor/layers/quantization/utils/fp8_utils.py#L835" target="_blank" rel="noreferrer">w8a8_triton_block_scaled_mm</a> ). <code>silu_and_mul_dynamic_per_token_quant</code> is a new fused kernel that combines <code>silu_and_mul</code> and <code>dynamic_per_token_quant</code> into a single kernel launch. The remaining kernels are Helion reimplementations of the existing <code>torch.ops._C</code> CUDA kernels used by vLLM.</p>
+<h3>vLLM Helion Kernel Integration</h3>
+<p>We integrated these kernels using the <a href="https://github.com/vllm-project/vllm/issues/32219" target="_blank" rel="noreferrer">vLLM Helion kernel integration framework</a> which provided:</p>
+<ul>
+<li>Autotuning infrastructure</li>
+<li>Config management</li>
+<li>Kernel registration</li>
+<li>Runtime dispatching</li>
+</ul>
+<p>To enable the Helion kernels, we manually updated vLLM fusion passes to replace the corresponding kernels with corresponding Helion fused kernels. After fusion, the forward-pass execution patterns became the following: For per-token activation quantization:</p>
+<ul>
+<li>rms_norm_dynamic_per_token_quant (helion)</li>
+<li>scaled_mm (helion)</li>
+<li>fused_qk_norm_rope (helion)</li>
+<li>attention (default)</li>
+<li>dynamic_per_token_scaled_fp8_quant (helion)</li>
+<li>scaled_mm (helion)</li>
+<li>rms_norm_dynamic_per_token_quant (helion)</li>
+<li>scaled_mm (helion)</li>
+<li>silu_and_mul_dynamic_per_token_quant (helion)</li>
+<li>scaled_mm (helion)</li>
+</ul>
+<p>For per-group activation quantization:</p>
+<ul>
+<li>rms_norm_per_block_quant (helion)</li>
+<li>scaled_mm_blockwise (helion)</li>
+<li>fused_qk_norm_rope (helion)</li>
+<li>attention (default)</li>
+<li>per_token_group_fp8_quant (helion)</li>
+<li>scaled_mm_blockwise (helion)</li>
+<li>rms_norm_per_block_quant (helion)</li>
+<li>scaled_mm_blockwise (helion)</li>
+<li>silu_and_mul_per_block_quant  (helion)</li>
+<li>scaled_mm_blockwise (helion)</li>
+</ul>
+<h3>Autotuning</h3>
+<p>We used the Helion’s default <a href="https://helionlang.com/api/autotuner.html#helion.autotuner.surrogate_pattern_search.LFBOTreeSearch" target="_blank" rel="noreferrer">LFBOTreeSearch</a> algorithm with the following configuration: To maximize performance, we autotuned kernels using shapes that exactly match the compile-time static dimensions of each model, such as hidden size and intermediate size. This is the advantage of vLLM-Helion integration – it  allows Helion to autotune/store/dispatch configs for many different shapes, the same advantage would apply to real world production use cases too. For the dynamic dimension ( <code>num_tokens</code> ), we autotuned across power-of-two values ranging from 1 to 8192. For example, we autotuned  <code>scaled_mm</code> kernel for input tensors <code>[M, K] x [K, N]</code> , where</p>
+<ul>
+<li>M ranges from 1 to 8192</li>
+<li>(K, N) pairs correspond to the projection layers of each Qwen3 model.</li>
+</ul>
+<p><em>Tab. 1: Projection layer [K, N] dimensions for each Qwen3 model.</em> We independently autotuned all kernels  for each hardware platform under test.</p>
+<h3>Runtime Dispatching</h3>
+<p>At runtime, the <a href="https://github.com/vllm-project/vllm/issues/32219" target="_blank" rel="noreferrer">Helion integration framework</a> dispatched requests to the autotuned config most appropriate for the input shape. For example, scaled_mm dispatching is performed based on shapes of two input matrices (M, K, N), where M is rounded up to the next power of two  according to runtime <code>num_tokens</code> of each batch of requests . Similar strategy is applied to other kernels as well.</p>
+<h2>Performance Evaluation – Kernel Level</h2>
+<p>Kernel level benchmarking aims to evaluate the local speedups produced by each individual Helion kernel against their baselines. Specifically, we used CUTLASS as the baseline for <code>scaled_mm</code> and <code>scaled_mm_blockwise</code> . While other ops are compared against torch.compile ‘ed vLLM implementation and existing <code>torch.ops._C</code> kernels. This is because:</p>
+<ul>
+<li>per-token quantization in vLLM uses <code>torch.compile</code> by default,</li>
+<li>per-group quantization uses <code>torch.ops._C</code> CUDA implementations by default due to this <a href="https://github.com/vllm-project/vllm/issues/25094" target="_blank" rel="noreferrer">performance issue</a> .</li>
+</ul>
+<p>For the torch.compile baseline, we matched the vLLM compilation setup: Notably, enabling  <code>&#x27;combo_kernels&#x27;: True</code> is important because it allows TorchInductor to fuse multiple independent kernels into a single launch For kernel-level benchmarking, we enabled <code>CudaGraph</code> mode via <code>triton.testing.do_bench_cudagraph</code> with proper warmup and repetitive testing to get rid of noises like dispatch overhead or cold cache and variations in timing. (B200) Speedup against CUTLASS (B200) dynamic_per_token_scaled_fp8_quant 1.237x 1.405x N/A 1.311x 1.495x N/A rms_norm_dynamic_per_token_quant 1.180x 1.802x N/A 1.240x 1.969x N/A silu_and_mul_dynamic_per_token_quant 1.256x N/A N/A 1.420x N/A N/A fused_qk_norm_rope 1.383x 1.204x N/A 1.133x 1.155x N/A per_token_group_fp8_quant 1.423x 1.408x N/A 1.150x 1.446x N/A rms_norm_per_block_quant 1.674x 2.055x N/A 1.424x 2.128x N/A silu_and_mul_per_block_quant 1.731x 2.269x N/A 1.483x 2.325x N/A scaled_mm N/A N/A 1.080x N/A N/A 0.739x scaled_mm_blockwise N/A N/A 0.957x N/A N/A 0.782x <em>Tab. 2: A summary of the geometric-mean speedups achieved by Helion kernels.</em> For non-GEMM kernels, Helion consistently demonstrates strong performance and outperforms both TorchInductor-generated kernels and the existing vLLM CUDA implementations. For GEMM workloads ( <code>scaled_mm</code> and <code>scaled_mm_blockwise</code> ), results were more mixed:</p>
+<ul>
+<li>On H100, scaled_mm outperformed CUTLASS.</li>
+<li>On B200, both GEMM kernels currently lagged behind CUTLASS</li>
+</ul>
+<p>The primary limiting factor for B200 is the performance of Triton-generated GEMM kernels on Blackwell GPUs rather than the Helion programming model itself. Helion currently relies on Triton code generation for these kernels, and the observed performance gap largely reflects the current state of Triton GEMM performance on Blackwell hardware. Ongoing work on Helion’s CuteDSL backend is expected to further improve GEMM performance on Blackwell.</p>
+<h2>Performance Evaluation – End-to-End Model Level</h2>
+<p>End-to-end model level benchmarking, on the other hand, highlights the user-visible impact of Helion kernels. We picked 3 different variants of Qwen3 models for this purpose: <code>CudaGraph</code> is enabled for all model-level benchmarking traffic patterns, which varies num_tokens values ranging from 1 to 8192 at power-of-two intervals for all three Qwen3 models. To construct the traffic pattern, we used the built-in vLLM serving benchmark with the random input data. To minimize noise from prefix caching effects, we:</p>
+<ul>
+<li>disabled prompt shuffling,</li>
+<li>restarted the vLLM server before each benchmark run.</li>
+</ul>
+<p><code>max_cudagraph_capture_size</code> was set to 8192 to match the default <code>max_num_batched_tokens</code> , ensuring all execution paths were CUDA-graph captured. All workloads are evaluated on two NVidia GPU platforms: To gain more insight into where performance improvements come from, we grouped the Helion kernels into three categories and benchmarked them independently as well as in combinations.</p>
+<ul>
+<li><strong>fp8_quant</strong> : fp8 quantization kernels and fused quant kernels</li>
+<li><strong>qk_norm_rope</strong> : <code>fused_qk_norm_rope</code> kernel</li>
+<li><strong>scaled_mm</strong> : <code>scaled_mm</code> or <code>scaled_mm_blockwise</code> kernel.</li>
+</ul>
+<h3>Dynamic per-token activation quantization</h3>
+<p>We used the following checkpoints:</p>
+<ul>
+<li>RedHatAI/Qwen3-1.7B-FP8-dynamic</li>
+<li>RedHatAI/Qwen3-8B-FP8-dynamic</li>
+<li>RedHatAI/Qwen3-32B-FP8-dynamic</li>
+</ul>
+<p><em>Fig. 1: Total throughput speedup on H100 with per-token activation quantization enabled, using the default vLLM setup as the baseline.</em> For the 1.7B model, the results show approximately 1.05x end-to-end throughput improvement on H100 when all Helion kernel groups are enabled. For the 8B model, the improvement is most pronounced around batch size 32, which aligns with the kernel-level observations where Helion scaled_mm achieves its strongest performance around <code>num_tokens = 32</code> . We also evaluated speculative decoding scenarios where the effective decode-phase <code>num_tokens</code> naturally falls into this performance sweet spot.</p>
+<ul>
+<li>RedHatAI/Qwen3-8B-speculator.eagle3</li>
+<li>RedHatAI/Qwen3-32B-speculator.eagle3</li>
+</ul>
+<p>we observed up to approximately 1.09x end-to-end throughput improvement when all Helion kernels were enabled. (mean, ms) <strong>TTFT Speedup</strong> Helion TPOT (mean, ms) Default TPOT (mean, ms) <strong>TPOT Speedup</strong> Helion Total Throughput (tok/s) Default Total Throughput (tok/s) <strong>Total Throughput Speedup</strong> 16 Qwen3-8B 1 (47%) 34.75 39.93 <strong>1.15x</strong> 4.63 5.01 <strong>1.08x</strong> 6,314.86 5817.23 <strong>1.09x</strong> 16 Qwen3-8B 3 (35%, 25%, 15%) 38.46 51.18 <strong>1.33x</strong> 4.40 4.63 <strong>1.05x</strong> 6,616.60 6261.1 <strong>1.06x</strong> 8 Qwen3-32B 2 (24%, 10%) 81.92 100.93 <strong>1.23x</strong> 13.29 14.37 <strong>1.08x</strong> 1,101.61 1018.32 <strong>1.08x</strong> 8 Qwen3-32B 3 (24%, 10%, 4%) 83.01 104.73 <strong>1.26x</strong> 13.33 14.21 <strong>1.07x</strong> 1,100.04 1030.51 <strong>1.07x</strong> <em>Tab. 3: End-to-end benchmark results on H100 with per-token activation quantization and speculative decoding enabled. Acceptance rates for speculative tokens are reported in parentheses.</em> On NVIDIA B200, we enabled only the <code>fp8_quant</code> kernel group during end-to-end evaluation. The remaining kernel groups either:</p>
+<ul>
+<li>underperformed relative to the baseline (Triton limitation for Blackwell GEMMs)</li>
+<li>or showed inconsistent gains across traffic patterns.</li>
+</ul>
+<p>Even with only the quantization-related kernels enabled, we still observed meaningful throughput improvements across all tested Qwen3 model sizes. <em>Fig. 2: Total throughput speedup on B200 with per-token activation quantization enabled, using the default vLLM setup as the baseline.</em></p>
+<h3>Dynamic per-group activation quantization</h3>
+<p>For per-group activation quantization, we used the following checkpoints:</p>
+<ul>
+<li>Qwen/Qwen3-1.7B-FP8</li>
+<li>Qwen/Qwen3-8B-FP8</li>
+<li>Qwen/Qwen3-32B-FP8</li>
+</ul>
+<p>For per-group activation quantization, DeepGEMM is the default backend for blockwise FP8 GEMM on both H100 and B200. However, our current per-group Helion quantization kernels are not yet compatible with the UE8M0 quantization format required by DeepGEMM. Therefore, for this experiment, we forced vLLM to use CUTLASS as the linear backend. This means the baseline in this section is <strong>not</strong> the default vLLM configuration. However, the comparison is still meaningful because we are able to use consistent CUTLASS kernels for the linear layer for all runs. As a result, the measured differences come from the non-GEMM kernels being evaluated, such as FP8 quantization and fused quantization kernels, rather than from changes in the linear backend. The following figures show enabling only the small Helion kernels still produced approximately 1.05x end-to-end throughput improvement across all workloads. <em>Fig. 3: Total throughput speedup on H100 and B200 with per-group activation quantization enabled, using the default vLLM setup with the linear layer backend replaced by CUTLASS as the baseline.</em></p>
+<h2>Resources</h2>
+<p>For reproducibility and further exploration, all Helion kernel implementations discussed in this post are linked in the corresponding GitHub <a href="https://github.com/vllm-project/vllm/issues/32962" target="_blank" rel="noreferrer">issue</a> . The same issue also includes the vLLM branches used in our experiments for reproducing the reported end-to-end benchmark results.</p>
+<h2>Caveats</h2>
+<p>During our experiments, the majority of engineering time was spent on kernel autotuning. For large kernels such as scaled_mm , running a full-effort autotuning sweep across all three model sizes, covering a total of <a href="https://github.com/xiaohongchen1991/vllm/blob/91142591ec0b2da967c600599421ee60fed4f6ca/vllm/kernels/helion/ops/scaled_mm.py#L33-L50" target="_blank" rel="noreferrer">168</a> distinct input shapes, can take an entire day, as Helion automatically generates and benchmarks thousands of candidate kernel implementations for each shape. Initial <a href="https://github.com/vllm-project/vllm/commit/5bc478ccee9bae4056aeae9953861fe587265e3f#diff-be77e79f35962c7bc20c44638613a5fdca7bb745b987888b4c63dd7557dd4207" target="_blank" rel="noreferrer">research</a> suggests that exhaustive per-shape autotuning and dispatching may not always be necessary, and that reducing the number of specialization buckets may achieve a better tradeoff between autotuning cost and runtime performance with minimal performance degradation. The Helion team is actively exploring additional techniques to further reduce tuning time, including search-space reduction strategies and LLM-guided autotuning approaches. Another caveat is that Helion runtime dispatching itself introduces tens of microseconds of CPU overhead per kernel launch. For small kernels, this overhead can dominate the end-to-end latency. As a result, CUDA graph capture and replay are essential for achieving optimal performance with Helion kernels. The Helion team is actively reducing the dispatch latency without CudaGraph mode.</p>
+<h2>Conclusion</h2>
+<p>Helion provides a natural, PyTorch-syntax-centric approach for writing kernels in a tile-programming style. It significantly simplifies kernel development and reduces implementation effort. In our experiments, most kernels could be implemented and validated within a single day, demonstrating that Helion is a practical DSL for rapidly developing new kernels and exploring kernel fusion opportunities. Combined with its powerful AOT autotuning capability, Helion demonstrated strong potential for achieving high performance. Our experiments show that Helion kernels deliver strong performance for many kernels and consistently outperform the default vLLM implementations in most cases. For GEMM kernels, there is still room for improvement to match or exceed CUTLASS performance, particularly on Blackwell GPUs, the teams are actively working to improve it by improving Triton code gen and introducing alternative backends like CuteDSL.</p>
+<h2>Acknowledgments</h2>
+<p>This work was supported by many contributors across the OCTO and vLLM teams at Red Hat, as well as the Helion team at Meta. In particular, we would like to thank our colleagues: Luka Govedič, Richard Zou and Will Feng for their feedback and support throughout this work.</p></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-970f1d7e11f2dede.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：direct-pr-small-news / 2026-06-20T22:20:32+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-20T22:20:32+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Portable vLLM Model Inference Kernels in Helion – PyTorch</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：Helion 中可攜式 vLLM 模型推論核心（Codex）</li><li><strong>原始作者</strong>：By（頁面 byline）</li><li><strong>原始網站授權</strong>：著作權保護（頁面文字推斷）（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-970f1d7e11f2dede";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

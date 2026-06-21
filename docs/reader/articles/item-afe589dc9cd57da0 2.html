@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Linux Foundation 2026 年 6 月電子報 - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card .actions { gap: 6px; margin-top: 8px; }
+    .story-card .actions { justify-content: flex-end; }
+    .story-card .actions .reader-action-button {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      padding: 0;
+      border-radius: 6px;
+      gap: 0;
+      font-size: 0;
+      line-height: 1;
+    }
+    .story-card .actions svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .reader-action-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>Linux Foundation 2026 年 6 月電子報</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-21T16:50:04+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">純新聞 / 小消息</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-18 08:00</span>
+    </div>
+    <h2>Linux Foundation 2026 年 6 月電子報</h2>
+    <p class="lede">這篇是 Linux Foundation 2026 年 6 月電子報，內容以社群動態、研究調查、活動、訓練促銷與專案更新為主。最有資訊價值的部分不是促銷或活動清單，而是 LF Research 正在徵集的多項調查，包括生成式 AI 與開源開發、OSPO 與開源管理、AI 安全，以及全球開源現況；另外也提到 CRA 準備度、歐洲技術人才報告、Agentic AI Foundation 的 agentgateway 與 goose 更新，以及機密運算在 GDPR 實務防護上的應用討論。整體比較像線索彙整，不適合直接當成一篇重點文章處理。</p>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">OSPO</span><span class="tag-chip">cybersecurity</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html">回精選與觀點</a>
+      <a class="button secondary" href="../news.html">看小消息</a>
+      <a class="button quiet" href="https://www.linuxfoundation.org/blog/linux-foundation-newsletter-june-2026" target="_blank" rel="noreferrer">原始連結</a>
+    </div>
+    <section class="article-body"><h1>Linux Foundation Newsletter: June 2026</h1>
+<ul>
+<li><a href="https://www.linuxfoundation.org/?hsLang=en" target="_blank" rel="noreferrer">Home</a></li>
+<li><a href="https://www.linuxfoundation.org/blog" target="_blank" rel="noreferrer">Blog</a></li>
+</ul>
+<h3>The Linux Foundation | 18 June 2026</h3>
+<p>June is a big month for learning, certification, and career growth across the Linux Foundation community. The <a href="https://hubs.ly/Q04kHR060" target="_blank" rel="noreferrer">Prime Time to Save</a> promotion is here, bringing massive opportunities for professional development with savings of up to 75% on vendor-neutral training, certifications, bundles, and subscriptions across Linux, cloud native, cybersecurity, AI, and more. Offer runs June 23–26.</p>
+<h2>Here are this month&#x27;s Highlights</h2>
+<ul>
+<li><strong>AAIF advances agentic AI infrastructure:</strong> The Agentic AI Foundation is growing rapidly, welcoming <a href="https://agentgateway.dev/" target="_blank" rel="noreferrer">agentgateway</a> as a hosted project and releasing <a href="https://github.com/aaif-goose/goose" target="_blank" rel="noreferrer">goose</a> v1.36.0 with a new hooks system. Meanwhile, the MLOps Community joins as an official affiliated user community. — <a href="https://aaif.io/blog/agentgateway-joins-aaif-as-an-open-gateway-for-agentic-ai-infrastructure/?hsLang=en" target="_blank" rel="noreferrer">agentgateway Hosted</a> , <a href="https://aaif.io/blog/goose-doubles-down-on-open-in-latest-two-releases/?hsLang=en" target="_blank" rel="noreferrer">goose v1.36.0 Release</a></li>
+<li><strong>Confidential Computing secures the AI era:</strong> Sweden&#x27;s Data Protection Authority issued landmark GDPR guidance confirming TEEs as a technical safeguard in real operational deployments. The CCC also released the &quot;3 Degrees of Confidential Computing&quot; white paper and announced a new webinar on Agentic AI. — <a href="https://confidentialcomputing.io/2026/05/25/swedens-data-protection-authority-issues-landmark-gdpr-guidance-on-trusted-execution-environments/" target="_blank" rel="noreferrer">GDPR Guidance on TEEs</a> , <a href="https://confidentialcomputing.io/resources/white-papers-reports/" target="_blank" rel="noreferrer">3 Degrees of CC White Paper</a></li>
+<li><strong>Events season continues across the globe:</strong> LF communities are gathering worldwide with Open Source Summit Korea, the Confidential Computing Summit in San Francisco, and three flagship AGNTCon + MCPCon gatherings coming to Tokyo, Amsterdam, and San Jose. — <a href="https://events.linuxfoundation.org/open-source-summit-korea/" target="_blank" rel="noreferrer">Open Source Summit Korea</a>, <a href="https://events.linuxfoundation.org/aaif-events/" target="_blank" rel="noreferrer">AGNTCon + MCPCon Fall Events</a></li>
+</ul>
+<p>&gt;&gt;   Read on for even more news, research, and opportunities from across the Linux Foundation.</p>
+<h2>Contents</h2>
+<h2>Edu cation Opportunities</h2>
+<h2>📦Save the Date: Prime Time to Save</h2>
+<p>Get ready for one of our biggest promotions of the year. From June 23–26, <a href="https://hubs.ly/Q04kHR060" target="_blank" rel="noreferrer">save up to 75%</a> on Linux Foundation Education training, certifications, bundles, and subscriptions. Whether you&#x27;re planning your next certification or expanding your skills in cloud native, cybersecurity, AI, Linux, and more, now is the time to start building your wishlist.</p>
+<h2>LF Event Highlight</h2>
+<p><a href="https://events.linuxfoundation.org/open-source-summit-korea/" target="_blank" rel="noreferrer">Open Source Summit Korea</a> <strong>goes LIVE August 11-12 in Seoul!</strong> Don’t miss the premier event for open source developers, technologists, and community leaders to collaborate, share information, solve problems, and gain knowledge - furthering open source innovation and ensuring a sustainable ecosystem for all. View the <a href="https://events.linuxfoundation.org/open-source-summit-korea/program/schedule/" target="_blank" rel="noreferrer">full schedule</a> + <a href="https://events.linuxfoundation.org/open-source-summit-korea/register/" target="_blank" rel="noreferrer">register!</a></p>
+<h2>LF Europe: Community Updates</h2>
+<ul>
+<li>Linux Foundation Europe hosted the first ever Open Source Policy &amp; Ecosystem Forum on 8 June in Brussels. The event gathered policymakers, industry leaders, and open source communities in key sectors relevant to Europe’s digital sovereignty. <a href="https://www.linkedin.com/feed/update/urn:li:activity:7469732281138712576" target="_blank" rel="noreferrer">See photos of the event</a>.</li>
+<li>A new blog, <a href="https://linuxfoundation.eu/newsroom/ai-open-source-and-the-skills-imperative-unpacking-the-2026-state-of-tech-talent-europe-report?hsLang=en" target="_blank" rel="noreferrer">AI, Open Source, and the Skills Imperative: Unpacking the 2026 State of Tech Talent Europe Report</a>, highlights key findings of the new research report from LF Europe, LF Education, and LF Research exploring the state of tech hiring in Europe, and the impact of open source and AI.</li>
+<li>The Linux Foundation Member European Forum is an annual regional gathering for Linux Foundation European members, along with invited speakers, sponsors and media. This event cultivates collaboration, open innovation, and partnerships among those in the private and public sectors working to drive digital transformation through open collaboration. It is a must-attend for business and technical leaders looking to advance a Europe-wide open source strategy and shape how European organisations participate in the global technology commons. <a href="https://events.linuxfoundation.org/lf-member-european-forum/" target="_blank" rel="noreferrer">Learn more or apply to attend here</a>.</li>
+</ul>
+<h2>LF Research: Four surveys in the field!</h2>
+<h3>Pick one, pick two, or take them all – we need your help!</h3>
+<h3>Survey on Generative AI and Open Source Software Development</h3>
+<p>Generative AI is transforming open source software development at an incredible pace. At LF Research, we want to know: how are you leveraging these tools and level-ups? How is your role evolving in this AI-driven era? What challenges are you facing, and what opportunities are you taking advantage of? Don&#x27;t miss your chance to lead the conversation—take the survey now!</p>
+<h3>The 2026 State of OSPOs and Open Source Management Survey</h3>
+<p>How does your organization manage its open source activities? <strong>Your insight will help shape this year’s story!</strong> LF Research and the TODO Group are launching the 9th annual <a href="https://www.research.net/r/DSMRHHG" target="_blank" rel="noreferrer">OSPO Survey</a> , and we need your input. This year&#x27;s survey, in partnership with CNCF and FinOps, dives deep into the evolving role of your Open Source Program Office (OSPO). We are specifically exploring how OSPOs are currently driving AI governance, InnerSource, security and compliance, and cloud strategy.</p>
+<h3>AI Security Survey</h3>
+<p>Are you aware of your organization’s or project’s security practices? If so, we would like to hear from you! As generative AI reshapes threat landscapes, development workflows, and the security responsibilities of those who build and maintain OSS, LF Research and OpenSSF are fielding a survey to capture how practices are shifting to meet security needs, new challenges and risks introduced by AI, and the opportunities AI presents for improving security outcomes.</p>
+<h3>The annual World of Open Source survey!</h3>
+<p>The Linux Foundation invites you to participate in the 2026 World of Open Source Survey. Your insights are vital to our mission of understanding the global dynamics of open source and quantifying its real-world business value. Influence trends by sharing your perspective on critical topics like AI integration, digital sovereignty, and OSS security.</p>
+<h2>Two new Research Reports: CRA awareness + Europe’s tech talent market</h2>
+<p>We are at a critical juncture: the December 2027 deadline for the Cyber Resilience Act (CRA) is rapidly approaching, yet readiness is stagnating. The new <a href="https://www.linuxfoundation.org/research/cra-readiness-2026?hsLang=en" target="_blank" rel="noreferrer">2026 CRA Awareness and Readiness Report</a> provides essential data on the global software ecosystem’s preparedness, offering a wake-up call for every manufacturer, steward, and developer. Europe’s strategic dependency in the digital space demands a critical resource: local tech talent. The <a href="https://www.linuxfoundation.org/research/tech-talent-europe-2026?hsLang=en" target="_blank" rel="noreferrer">2026 Tech Talent Europe report</a> is an essential read, uncovering myths and truths about the impacts of AI and the strategies of hiring and training managers.</p>
+<h2>Linux Foundation Projects: Featured news</h2>
+<h3>Academy Software Foundation (ASWF)</h3>
+<ul>
+<li>We&#x27;re thrilled to welcome MoonRay as the newest ASWF project. Developed by DreamWorks Animation, MoonRay is the open-source path-tracing renderer behind every DreamWorks feature since 2019. It supports photorealistic to strongly stylized looks and includes a USD Hydra render delegate for OpenUSD-based pipelines. Visit<a href="https://openmoonray.org" target="_blank" rel="noreferrer">openmoonray.org</a> and read the full announcement<a href="https://www.aswf.io/news/moonray-dreamworks-animations-open-source-production-renderer-joins-the-academy-software-foundation/" target="_blank" rel="noreferrer">here&gt;&gt;</a>.</li>
+<li><a href="https://events.linuxfoundation.org/open-source-days/" target="_blank" rel="noreferrer">Open Source Days</a> returns July 19–20 in Los Angeles, co-located with SIGGRAPH. July 19 is open to all; July 20 continues inside SIGGRAPH with Birds of a Feather sessions. This year&#x27;s keynote comes from Bill Ballew, Chief Technology Officer at DreamWorks, who brings more than 20 years of experience building mission-critical tools for VFX and animation production. The registration is live, check out<a href="https://events.linuxfoundation.org/open-source-days/program/schedule-at-a-glance/" target="_blank" rel="noreferrer">the schedule</a>, and <a href="https://events.linuxfoundation.org/open-source-days/register/" target="_blank" rel="noreferrer">register here&gt;&gt;</a>.</li>
+</ul>
+<h3>Agentic AI Foundation (AAIF)</h3>
+<ul>
+<li><a href="https://agentgateway.dev/" target="_blank" rel="noreferrer">agentgateway</a> has become an AAIF-hosted project under the Linux Foundation. agentgateway is a unified gateway control plane and proxy data plane designed for AI and agent workloads, including MCP, A2A, LLM inference, HTTP, and gRPC traffic. It is open source under Apache 2.0, <a href="https://aaif.io/blog/agentgateway-joins-aaif-as-an-open-gateway-for-agentic-ai-infrastructure/?hsLang=en" target="_blank" rel="noreferrer">Read the blog</a> .</li>
+<li><a href="https://github.com/block/goose/releases/tag/v1.36.0" target="_blank" rel="noreferrer">goose v1.36.0</a> ships a new hooks system for policy and extensibility, a plugin system built on the OpenPlugins standard, and a TUI diff viewer. The release also adds unified thinking-effort control across providers, proactive OAuth token refresh, and new provider support including NEAR AI Cloud, Scaleway, and Vercel AI Gateway. This is goose maturing as a runtime, not just a coding assistant.</li>
+<li>MLOps Community joined AAIF as an official affiliated user community, The MLOps Community brings one of the most active practitioner networks in AI into the AAIF ecosystem, deepening the connection between production ML teams and the open agentic standards being built here.<a href="https://mlops.community/blog/mlops-community-2-0" target="_blank" rel="noreferrer">MLOps Community joins AAIF</a></li>
+<li>Angie Jones published a detailed breakdown of the latest MCP RC changes: statelessness, feature lifecycle, deprecated features, and conformance testing, and what implementers need to do to prepare. If your team is building on MCP and hasn&#x27;t read this yet, it should be required reading before your next sprint. The spec is moving fast and the conformance expectations are tightening.<a href="https://aaif.io/blog/mcp-is-growing-up/?hsLang=en" target="_blank" rel="noreferrer">Read the blog</a></li>
+<li>Three flagship AGNTCon + MCPCon gatherings are coming up this fall. Tokyo (September 10–11), Amsterdam (September 17–18), and San Jose (October 22–23). These events bring together the organizations building production agentic systems, the people moving past proof of concept and into the hard work of making agents reliable, secure, and interoperable at scale.<a href="https://events.linuxfoundation.org/aaif-events/" target="_blank" rel="noreferrer">See the full 2026 events lineup</a></li>
+</ul>
+<h3>Alliance for OpenUSD (AOUSD)</h3>
+<ul>
+<li><a href="https://aousd.org/" target="_blank" rel="noreferrer">Alliance for OpenUSD (AOUSD)</a> has announced the release of <a href="https://aousd.org/blog/announcing-openusd-v26-05-key-features-and-improvements/" target="_blank" rel="noreferrer">OpenUSD v26.05</a>, a production-focused update that delivers improvements across build and deployment workflows, composition performance, validation tooling, and authoring workflows. Highlights include expanded support for iOS and visionOS simulators, reduced memory usage in composition-heavy scenes, enhanced prototype traversal capabilities, continued maturation of the UsdValidation framework, new particle field conversion tools, and a new guide for working with time and animated values. The release also adds Python 3.14 support and advances ongoing ecosystem modernization efforts. Read the <a href="https://github.com/PixarAnimationStudios/OpenUSD/tree/v26.05" target="_blank" rel="noreferrer">full release notes</a> and learn what&#x27;s new in <a href="https://aousd.org/blog/announcing-openusd-v26-05-key-features-and-improvements/" target="_blank" rel="noreferrer">OpenUSD v26.05</a>.</li>
+<li>AOUSD will be at <a href="https://aousd.org/event/siggraph-2026/" target="_blank" rel="noreferrer">SIGGRAPH 2026</a> in Los Angeles, July 19–23, engaging with the global graphics, simulation, AI, XR, and digital content communities. Stop by <a href="https://s2026.conference-schedule.org/" target="_blank" rel="noreferrer">AOUSD sessions</a> to connect with the OpenUSD ecosystem, learn about the latest developments from AOUSD, and explore how OpenUSD is advancing interoperable 3D workflows across industries.</li>
+</ul>
+<h3>Automotive Grade Linux (AGL)</h3>
+<ul>
+<li><strong>Automotive Grade Linux Releases Open Source SoDeV Reference Platform for Software-Defined Vehicles and Welcomes Five New Members</strong> Automotive Grade Linux has officially launched the initial version of its open source SoDeV reference platform via the latest Unified Code Base (UCB) release, “Ultimate Unagi.”</li>
+</ul>
+<p><strong>Hardware Decoupled Development:</strong> The release enables software first development utilizing Linux containers, VirtIO, Xen, and Zephyr RTOS. Read more</p>
+<ul>
+<li><strong>Ecosystem Expansion:</strong> AGL welcomes five new members to the community: EMQ, Lineo Solutions, MediaTek, VA Linux Systems Japan, and Very Good Ventures. <a href="https://www.automotivelinux.org/announcements/automotive-grade-linux-releases-open-source-sodev-reference-platform-for-software-defined-vehicles-and-welcomes-five-new-members/" target="_blank" rel="noreferrer">Read more&gt;&gt;</a> <a href="https://www.automotivelinux.org/" target="_blank" rel="noreferrer">Read the full Announcement&gt;&gt;</a></li>
+<li><strong>AGL All Member Meeting Europe 2026 – Call for Proposals Now Open</strong> Members, developers, and industry experts are invited to submit speaking proposals for the upcoming European event in Berlin, taking place from September 30 to October 1, 2026.</li>
+</ul>
+<p>Suggested Topics: Technical presentations focusing on V2X, infotainment, functional safety, AI, or open source adoption.</p>
+<ul>
+<li>Submission Deadline: All proposals must be submitted via Sessionize by July 12, 2026. <a href="https://sessionize.com/agl_amm_europe_2026" target="_blank" rel="noreferrer">Submit your proposal&gt;&gt;</a></li>
+<li><strong>Developing next-generation SDVs and autonomous vehicles with Automotive Grade Linux SoDeV</strong> AGL will be presenting at the Autonomous Vehicle Tech Expo in Stuttgart, Germany, running from June 23 through June 25, 2026.</li>
+</ul>
+<p><strong>Featured Session:</strong> Led by AGL Executive Director Dan Cauchy.</p>
+<ul>
+<li><strong>Key Focus Areas:</strong> An overview of the SoDeV architecture, recent community milestones, and collaborative strategies to scale software defined vehicle development. <a href="https://autonomousvehicletechnologyexpo.com/avtdc26-autonomous-vehicle-test-development/tbc-3" target="_blank" rel="noreferrer">Register for the event&gt;&gt;</a></li>
+</ul>
+<h3>CAMARA</h3>
+<ul>
+<li><a href="https://camaraproject.org/wp-content/uploads/sites/12/2026/06/CAMARA-wp_api_diff_060126a.pdf" target="_blank" rel="noreferrer">New whitepaper: “CAMARA APIs Functional Differences”:</a> How can APIs evolve without losing consistency and interoperability? This new whitepaper examines API differences and the role of consistency, interoperability, and evolution across network APIs. Focusing on SIM Swap, Device Swap, Tenure, and Number Recycling APIs, the paper provides a comparative analysis of current approaches and highlights opportunities to improve alignment across the ecosystem while supporting continued innovation.</li>
+<li><strong>CAMARA at Industry Events:</strong></li>
+<li><a href="https://www.telecomtv.com/content/dsp-leaders-forum/" target="_blank" rel="noreferrer">Telecom TV’s DSP Leaders World Forum</a><strong>:</strong> <a href="https://www.linkedin.com/in/nathanrader/" target="_blank" rel="noreferrer">Nathan Rader</a> , Chair of the CAMARA Governing Board and VP Service and Capability Exposure at <a href="https://www.linkedin.com/company/telekom/" target="_blank" rel="noreferrer">Deutsche Telekom</a> , highlights why making network APIs consistently available across markets is critical for developers, partners, and operators alike. <a href="https://www.linkedin.com/posts/rethinking-apis-for-agentic-operations-with-ugcPost-7469773065405755392-2fVI/?utm_source=share&amp;utm_medium=member_desktop&amp;rcm=ACoAADLKDI0B9lH0vQN7zvaM5HhmOD0cBtQa9UU" target="_blank" rel="noreferrer">Watch here &gt;&gt;</a></li>
+<li><a href="https://www.linkedin.com/company/networkxevent/" target="_blank" rel="noreferrer">Network X Americas Dallas :</a> <a href="https://www.linkedin.com/in/nicholasvenezia/" target="_blank" rel="noreferrer">Nick Venezia</a> , CAMARA End User Council Representative to the TSC, joined industry leaders for conversations on how open network APIs are moving from standardization to real-world enterprise adoption. Across sessions on NaaS, network API monetization, MCP servers, and AI-enabled applications, one message came through clearly: the next phase of digital infrastructure depends on making network capabilities easier for developers and enterprises to discover, use, and scale.</li>
+<li><a href="https://aecc.org/membership/aecc-member-meetings/" target="_blank" rel="noreferrer">Automotive Edge Computing Consortium (AECC) member meeting</a>: Markus Kummerle (CAMARA Outreach chair) Christer Boberg (Aduna Global), and Ryokichi Onishi, Ph.D. attended the meeting in Gothenburg. Of note, several automotive and telecom PoCs were demoed, including &quot;Emergency Driver Assistance using CAMARA APIs,&quot; which received a contributor award and highlighted the growing impact of collaboration between the automotive and telecom industries.</li>
+<li><strong>Upcoming event: TM Forum’s</strong><a href="https://www.tmforum.org/events/dtw" target="_blank" rel="noreferrer">DTW Ignite (June 23-25)</a> Copenhagen: CAMARA will join other industry leaders with a booth adjacent to GSMA Open Gateway, optimizing for greater collaborative conversations with industry attendees. Visit the CAMARA booth to meet the community, learn what&#x27;s new across the ecosystem, and pick up some exclusive SWAG.</li>
+</ul>
+<h3>CHIPS Alliance</h3>
+<ul>
+<li>CHIPS Alliance sponsored the FOSSi Foundation&#x27;s Latch-Up 2026 conference, where community contributors presented updates on the SV Tools project, Verilator&#x27;s progress toward four-state logic and UVM compatibility, the VeeR and Guineveer projects, and IHP&#x27;s open source PDK and MPW program. <a href="https://www.chipsalliance.org/news/latch-up2026/" target="_blank" rel="noreferrer">Read the recap and watch the sessions &gt;&gt;</a></li>
+<li>CHIPS Alliance participated in OCP EMEA 2026 in Barcelona alongside the <a href="https://sonicfoundation.dev/" target="_blank" rel="noreferrer">SONiC Foundation</a> and <a href="https://opiproject.org/" target="_blank" rel="noreferrer">Open Programmable Infrastructure (OPI)</a>. Antmicro demonstrated Guineveer, a CHIPS Alliance-hosted RISC-V reference design based on the VeeR EL2 core, and community contributors presented sessions covering OpenPRoT, Caliptra, and trusted infrastructure. <a href="https://youtube.com/playlist?list=PLWm-dtUGVJtDrlp3GGgvsN_6kiJ4xYOSU&amp;si=wnnI6PzDllf4x24Q" target="_blank" rel="noreferrer">Watch the CHIPS Alliance session playlist &gt;&gt;</a></li>
+</ul>
+<h3>Cloud Native Computing Foundation (CNCF)</h3>
+<ul>
+<li><a href="https://www.cncf.io/announcements/2026/05/18/cncf-welcomes-cvs-health-as-a-platinum-member-to-expand-cloud-native-collaboration/" target="_blank" rel="noreferrer">CNCF Welcomes CVS Health as a Platinum Member To Expand Cloud Native Collaboration</a> : CVS Health will contribute its expertise in modernizing infrastructure to the cloud native community through its CNCF platinum membership. By joining as a platinum member, CVS Health now serves on the CNCF Governing Board.</li>
+<li><a href="https://www.cncf.io/announcements/2026/05/21/cloud-native-computing-foundation-announces-opentelemetrys-graduation-solidifying-status-as-the-de-facto-observability-standard/" target="_blank" rel="noreferrer">Cloud Native Computing Foundation Announces OpenTelemetry’s Graduation, Solidifying Status as the De Facto Observability Standard:</a> From a community-driven project to the de facto standard for cloud native observability, OpenTelemetry is helping organizations unify metrics, logs, and traces across their platforms and applications.</li>
+<li><a href="https://www.cncf.io/blog/2026/05/05/announcing-kyverno-release-1-18/" target="_blank" rel="noreferrer">Announcing Kyverno release 1.18!</a> The first release since CNCF graduation brings stronger security, enhanced CLI capabilities, improved scalability, and continued momentum toward CEL-powered policy management for Kubernetes.</li>
+<li><a href="https://www.cncf.io/blog/2026/05/07/microcks-becomes-a-cncf-incubating-project/" target="_blank" rel="noreferrer">Microcks becomes a CNCF incubating project</a> : The CNCF Technical Oversight Committee (TOC) has voted to accept Microcks as a CNCF incubating project.</li>
+<li><strong>Case Study:</strong> <a href="https://www.cncf.io/case-studies/swisscom/" target="_blank" rel="noreferrer">Swisscom</a> - Swisscom pioneers sovereign cloud with open source Kubernetes service, powered by KubeVirt and Kube-OVN.</li>
+<li><strong>Case Study:</strong><a href="https://www.cncf.io/case-studies/cncf-and-expert-support/" target="_blank" rel="noreferrer">CNCF and Expert Support</a> - Scaling documentation quality across CNCF projects through best practice education, expert analysis, and writing assistance</li>
+<li><strong>Case Study:</strong> <a href="https://www.cncf.io/case-studies/snow-corp/" target="_blank" rel="noreferrer">SNOW Corp.</a> - Scaling GenAI for 200M users: How SNOW Corp. orchestrates 1000+ GPUs to handle 700% viral traffic spikes</li>
+<li><strong>Tutorial:</strong> <a href="https://www.cncf.io/blog/2026/05/27/gpu-autoscaling-on-kubernetes-with-keda-building-an-external-scaler/" target="_blank" rel="noreferrer">GPU autoscaling on Kubernetes with KEDA: Building an external scaler:</a> This deep dive shows how to build a custom KEDA external scaler that uses real GPU metrics for smarter Kubernetes autoscaling—improving utilization, reducing latency, and cutting wasted accelerator spend.</li>
+<li><strong>End User Post :</strong><a href="https://www.cncf.io/blog/2026/05/21/how-netease-games-achieved-30-second-llm-cold-starts-on-kubernetes/" target="_blank" rel="noreferrer">How NetEase Games achieved 30-second LLM cold starts on Kubernetes</a></li>
+</ul>
+<h3>Confidential Computing Consortium (CCC)</h3>
+<ul>
+<li><a href="https://confidentialcomputing.io/2026/05/25/swedens-data-protection-authority-issues-landmark-gdpr-guidance-on-trusted-execution-environments/" target="_blank" rel="noreferrer">Sweden&#x27;s Data Protection Authority Issues Landmark GDPR Guidance on Trusted Execution Environments</a></li>
+<li>Sweden&#x27;s IMY (Integritetsskyddsmyndigheten) has published the first European regulatory assessment of TEEs grounded in a real operational deployment scenario, conducted in collaboration with Volvo Group, Ericsson, and CCC member CanaryBit. The report confirms TEEs qualify as a technical safeguard under GDPR Article 32, providing actionable guidance for architects designing TEE-based systems in regulated industries.</li>
+<li><a href="https://confidentialcomputing.io/2026/05/20/your-ai-agents-are-already-in-production-your-security-architecture-isnt-ready/" target="_blank" rel="noreferrer">Your AI Agents Are Already in Production. Your Security Architecture Isn&#x27;t Ready.</a></li>
+<li>A new CCC blog post examines the growing security gap as AI agents operate autonomously across enterprise environments, querying databases, calling APIs, and combining sensitive datasets without direct human oversight. The post makes the case for Confidential Computing as the hardware-rooted trust layer that agentic AI deployments require, drawing on IDC research showing 75% of organizations are already piloting or deploying CC.</li>
+<li><a href="https://confidentialcomputing.io/resources/white-papers-reports/" target="_blank" rel="noreferrer">&quot;3 Degrees of Confidential Computing&quot; White Paper</a></li>
+<li>The CCC released a new white paper defining a practical three-level maturity model to help organizations roadmap their confidential computing adoption, from basic hardware isolation to full zero-trust workloads. The paper was lead edited by Dan Middleton, NVIDIA Principal Software Architect and CCC Technical Advisory Council Chair.</li>
+<li><a href="https://bit.ly/4v3ETPQ" target="_blank" rel="noreferrer">Upcoming Webinar: Agentic AI in the Wild — Rethinking Trust When Your AI Has the Keys</a></li>
+<li>Join CCC and the Linux Foundation for a free live webinar on Tuesday, June 16 at 8:00 AM PT. Experts from Edgeless Systems, Intel, and NVIDIA will discuss how confidential computing, hardware-based isolation, confidential GPU execution, confidential containers, and cryptographic attestation, can secure agentic AI across the full stack.</li>
+<li><a href="https://events.linuxfoundation.org/confidential-computing-summit/" target="_blank" rel="noreferrer">Confidential Computing Summit 2026</a></li>
+</ul>
+<p>June 23–24, 2026 · San Francisco, CA</p>
+<ul>
+<li>As a Diamond Sponsor, CCC is going to Confidential Computing Summit this month! CCC Executive Director Mike Bursell will deliver a keynote on where the industry needs to go next on agentic AI security.<a href="https://events.linuxfoundation.org/confidential-computing-summit/" target="_blank" rel="noreferrer">Register now</a>, use code CCS25CCC for 25% off.</li>
+</ul>
+<h3>DPDK</h3>
+<ul>
+<li><a href="https://youtu.be/jPhQ9DXlJWM" target="_blank" rel="noreferrer">Governing Board Chair Opens Summit Stockholm</a> : Tim O&#x27;Driscoll looks at who&#x27;s kept DPDK running. Original maintainers like Stephen Hemminger and Bruce Richardson are still active, and Tim covers the 2026 progress and a shift toward end-user talks.</li>
+<li><a href="https://youtu.be/j5r41ccd3fE" target="_blank" rel="noreferrer">DPDK at CERN</a> : Computing engineer Roland Sipos explains how DPDK handles data acquisition across multiple physics experiments. DPDK has run NA62 in production since 2016, and DUNE is targeting 15 Tbit/s per detector supermodule across roughly 40 readout nodes.</li>
+<li><a href="https://youtu.be/kLdIXVPKT1I" target="_blank" rel="noreferrer">The Case for DPDK on Wi-Fi</a> : Robert McMahon, founder and CTO of Umber Networks, argues Wi-Fi needs the same deterministic forwarding plane DPDK gives wired networks. The 802.11 MAC layer is stochastic and firmware owned, and collision probability hits 50 percent with just five active transmitters.</li>
+</ul>
+<h3>eBPF Foundation</h3>
+<ul>
+<li><strong>🎓 eBPF 2026 Academic Research Grants Open Now</strong></li>
+</ul>
+<p>T he eBPF Foundation launched its 2026 Academic Research Grant Program, offering unrestricted grants of up to $50,000 for faculty pursuing original eBPF research (verification, security, and networking optimization). How to Apply: Submit a 2-page project summary, a 1-page budget, and CVs to support@ebpf.foundation. Apply <a href="https://ebpf.foundation/funding-opportunities/research-fund/" target="_blank" rel="noreferrer">here</a> Deadline: July 15, 2026</p>
+<ul>
+<li><strong>🔬 Research Update: Isolated Execution Environment for eBPF (Part 3)</strong></li>
+</ul>
+<p>Researchers Zhe Wang (CAS) and Patrick Peihua Zhang (Tencent) have dropped Part 3 of their isolated execution environment series, focusing on how HIVE isolates &quot;exclusive type pointers&quot; (dynamic kernel structures like struct sk_buff) without relying on the verifier&#x27;s heavy full-path analysis. <a href="https://ebpf.foundation/research-update-isolated-execution-environment-for-ebpf-part-3/" target="_blank" rel="noreferrer">Read more</a></p>
+<h3>Enabling Linux in Safety Applications (ELISA) Project</h3>
+<ul>
+<li><strong>How can Xen, Zephyr RTOS, and Linux work together in safety-critical systems?</strong></li>
+</ul>
+<p><a href="https://elisa.tech/ambassadors/2026/05/27/recap-elisa-seminar-functional-safety-with-xen-zephyr-and-linux-for-avionics-automotive-and-industrial/" target="_blank" rel="noreferrer">This recap</a> highlights the May 13, 2026 ELISA Seminar featuring Ayan Kumar Halder of AMD and Matthew Weber of Boeing, who discussed functional safety, mixed-criticality architectures, open source safety certification efforts, and collaboration between the Xen community and the ELISA Project across avionics, automotive, and industrial domains.</p>
+<ul>
+<li><strong>What happens when “probably safe” is not safe enough?</strong></li>
+</ul>
+<p><a href="https://elisa.tech/ambassadors/2026/05/20/when-probably-safe-is-not-safe-enough/" target="_blank" rel="noreferrer">In this blog</a> , Alessandro Carminati of NVIDIA explores Linux memory isolation from a functional safety perspective, showing how kernel and user pages can be physically adjacent and why virtual separation alone may not satisfy a safety case. The post walks through observations, tooling, controlled fragmentation, and a proof of concept demonstrating that a system can continue running while behaving incorrectly, highlighting why physical separation must be explicitly addressed when required for safety-critical systems.</p>
+<ul>
+<li><strong>What role can Linux and open source play in the future of railway safety?</strong></li>
+</ul>
+<p>Henrik Brändle, Chair of the new Railways SIG, introduces ELISA’s latest Special Interest Group, focused on bringing ELISA’s methodology to the rail industry. The SIG will align Linux development with railway standards, represent the sector’s safety and certification needs, and help stakeholders understand what open source already offers for safety-critical systems. Join upcoming meetings and help shape the future of safety-critical Linux for railway infrastructure. <a href="https://elisa.tech/announcement/2026/05/13/all-aboard-the-new-railways-sig/" target="_blank" rel="noreferrer">Learn more</a> .</p>
+<ul>
+<li>Meet the ELISA Project community online and onsite at several upcoming events focused on Linux in safety-critical systems, requirements traceability, and open source collaboration.</li>
+<li><a href="https://elisa.tech/event/elisa-seminar-avionix-infrastructure-as-code-for-linux-in-avionics/" target="_blank" rel="noreferrer">ELISA Seminar – AvioNix: Infrastructure as Code for Linux in Avionics</a> - June 23, 2026</li>
+<li><a href="https://elisa.tech/event/elisa-seminar-what-why-how-a-practical-model-for-understanding-software-requirements/" target="_blank" rel="noreferrer">ELISA Seminar – WHAT-WHY-HOW: A practical model for understanding software requirements</a> - July 23, 2026</li>
+<li><a href="https://elisa.tech/event/open-source-summit-2026-seoul-korea/" target="_blank" rel="noreferrer">Open Source Summit: Seoul, Korea</a> - August 11 &amp; 12, 2026</li>
+<li><a href="https://elisa.tech/event/elisa-project-at-linux-plumbers-conference-2026-safe-systems-with-linux-mc/" target="_blank" rel="noreferrer">ELISA Project at Linux Plumbers Conference 2026: Safe Systems with Linux MC</a> - October 5-7,2026</li>
+<li><a href="https://elisa.tech/event/embedded-linux-conference-open-source-summit-europe-2026/" target="_blank" rel="noreferrer">Embedded Linux Conference &amp; Open Source Summit Europe</a> - October 7-9,2026</li>
+</ul>
+<h3>FINOS</h3>
+<ul>
+<li><strong>What’s been happening at FINOS?</strong> Get all the latest foundation updates, project news, TOC priorities, and upcoming events, by checking out our recent <a href="https://www.finos.org/blog/2026-q2-finos-all-community-call" target="_blank" rel="noreferrer">All Community Call replay and slides</a>.</li>
+<li><strong>Ready to move AI from experimentation to safe, compliant production?</strong> Join us on June 24th for the half-day, hands-on AI Governance Framework Leader Training. Designed for financial services leaders in risk, compliance, and technology, this session will help you align AI programs with emerging regulatory expectations. <a href="https://www.finos.org/hosted-events/2026-06-24-ai-governance-framework-training-workshop" target="_blank" rel="noreferrer">Apply to join</a> in person in London or register for the global virtual livestream.</li>
+<li><strong>Want to meet the community driving open source in finance?</strong> Open Source in Finance Forum (OSFF) London is just around the corner. <a href="https://www.finos.org/hubfs/OSFF%202026%20(Open%20Source%20in%20Finance%20Forum" target="_blank" rel="noreferrer">Join the community from June 23-25</a>/OSFF%202026%20London/OSFF_London_Week_2026_public.html) for three days of world-class keynotes, summits, and technical workshops. Can’t make it to London, or want to share your own open-source innovations? Our <a href="https://events.linuxfoundation.org/open-source-finance-forum-new-york/program/cfp/" target="_blank" rel="noreferrer">Call for Proposals for OSFF New York</a> is officially open. Tune in to the latest <a href="https://www.finos.org/open-source-in-finance-podcast" target="_blank" rel="noreferrer">Open Source in Finance Podcast</a> for an exclusive content preview, and secure your spot or submit your talk today!</li>
+</ul>
+<h3>High Performance Software Foundation (HPSF)</h3>
+<ul>
+<li><strong>Debunking common myths about joining HPSF:</strong> Curious whether your open source project is a fit for the High Performance Software Foundation? <a href="https://lnkd.in/emjB535Y" target="_blank" rel="noreferrer">A new blog</a> addresses six common misconceptions and explains how HPSF supports projects with open governance, community growth, collaboration opportunities, and shared resources while maintainers retain control of technical direction.</li>
+<li><strong>ORNL researchers highlight the value of open source HPC collaboration:</strong> A recent feature from <a href="https://lnkd.in/dsZ8n_-h" target="_blank" rel="noreferrer">HPCwire</a> spotlights presentations at the HPSF Conference, where researchers from Oak Ridge National Laboratory discussed how community-driven software development helps advance high performance computing and improve accessibility across current and emerging computing platforms.</li>
+<li><strong>HPSF to host minisymposium at PASC:</strong> Join researchers, developers, and industry leaders at <a href="https://bit.ly/4x0LKuL" target="_blank" rel="noreferrer">PASC</a> for a discussion on addressing the growing complexity of modern hardware and building sustainable, portable software for the future of high performance computing.</li>
+<li><strong>Meet HPSF at ISC 2026:</strong> The High Performance Software Foundation will be <a href="https://lnkd.in/gh-5Q-z7" target="_blank" rel="noreferrer">attending ISC in Hamburg</a> , Germany, June 22–26, bringing together members of the high performance computing community to connect, collaborate, and discuss the future of open source software for HPC.</li>
+</ul>
+<h3>Jupyter</h3>
+<ul>
+<li>The Jupyter Foundation has launched a brief user experience survey to gather feedback on the current state of Jupyter and help prioritize future investment. It takes about three minutes to complete and closes June 28. <a href="https://linuxfoundation.surveymonkey.com/r/jupyter-user-survey" target="_blank" rel="noreferrer">Take the survey</a> .</li>
+<li>The Jupyter Foundation has welcomed Jason Grout as part-time Community Manager, a new role created to strengthen the Foundation and help deliver more value to Project Jupyter. Jason brings years of service to the project, including time on Jupyter&#x27;s Executive Council and the Foundation Board. <a href="https://medium.com/jupyter-blog/our-new-jupyter-foundation-community-manager-61129cf288b1" target="_blank" rel="noreferrer">Read the announcement</a> .</li>
+<li>JupyterLab Plugin Playground has reached its 1.0 release, making it possible to build, iterate, and export JupyterLab extensions entirely in the browser: no local Node.js or Python setup required. The tool supports both manual and AI-assisted authoring, live reload on save, and export as installable .whl or .zip . <a href="https://blog.jupyter.org/a-users-journey-with-plugin-playground-from-first-idea-to-installable-jupyterlab-extension-697021dd6fb9" target="_blank" rel="noreferrer">Try it on Binder or JupyterLite</a> .</li>
+<li>nb-cli is a new Rust-based command-line interface designed for AI agents and automation scripts that need to work with Jupyter notebooks programmatically. It supports reading, writing, executing, and searching notebooks without a running Jupyter server, and introduces an AI-optimized sentinel format to reduce token overhead when feeding notebook content to language models. <a href="https://github.com/jupyter-ai-contrib/nb-cli" target="_blank" rel="noreferrer">Explore nb-cli on GitHub</a> .</li>
+</ul>
+<h3>LF AI &amp; Data</h3>
+<ul>
+<li><strong>Launch of</strong><a href="https://doclang.ai/" target="_blank" rel="noreferrer">DocLang Specification Working Group</a><strong>:</strong> LF AI &amp; Data announced the formation of the DocLang Specification Working Group, a new open standards initiative to develop DocLang, an AI-native document format designed to help enterprises prepare, exchange, and govern document data for AI systems. Founded by LF AI &amp; Data premier members IBM, NVIDIA, and Red Hat, with contributors including ABBYY and HumanSignal, DocLang complements the Docling open source project and helps advance a more interoperable document AI stack for generative AI and agentic workflows. <a href="https://www.linuxfoundation.org/press/lf-ai-data-foundation-launches-doclang-specification-working-group-to-advance-an-open-standard-for-ai-native-documents?hsLang=en" target="_blank" rel="noreferrer">Read the announcement</a> | Coverage from<a href="https://www.cio.com/article/4183187/working-group-formed-to-develop-standard-for-ai-native-docs.html" target="_blank" rel="noreferrer">CIO.com</a>, <a href="https://www.hpcwire.com/bigdatawire/this-just-in/lf-ai-data-foundation-launches-doclang-specification-working-group/" target="_blank" rel="noreferrer">HPCwire</a>,<a href="https://www.computerweekly.com/blog/Open-Source-Insider/ABBYY-IBM-Red-Hat-announce-DocLang-open-source-universal-document-format" target="_blank" rel="noreferrer">ComputerWeekly</a>, and <a href="https://www.opensourceforu.com/2026/04/abbyy-ibm-red-hat-push-open-source-ai-document-standard/" target="_blank" rel="noreferrer">OpenSourceForYou</a>.</li>
+<li><strong>Docling Project momentum:</strong></li>
+<li><strong>LF AI &amp; Data project, Docling, has surpassed 500,000 package downloads per day,</strong>marking a major milestone for the open source document AI community. Daily downloads have been doubling approximately every 90 days, reflecting strong adoption among developers, researchers, and enterprises building AI-powered document workflows. Check out the <a href="https://www.linkedin.com/posts/markcollier_docling-has-consistently-grown-at-an-insane-share-7469765039760207872-TB2f/?utm_source=share&amp;utm_medium=member_desktop&amp;rcm=ACoAAAC1hnoB64ZFi-8rzMNjh5XA0JZePK-Vlj8" target="_blank" rel="noreferrer">LinkedIn post</a> to learn more about Docling&#x27;s continued growth and community momentum.</li>
+<li><strong>The May 2026 Docling Community Office Hours recording is now available.</strong>Dr. Anna Seranti of Ringana shared how her team uses Docling to build a conversational AI assistant for chemical safety sheets, using RAG and AI-powered document understanding to help employees quickly access critical safety information. Watch the recording &gt;&gt; <a href="https://www.youtube.com/watch?v=v0mZ-n_BgZI" target="_blank" rel="noreferrer">Watch the recording</a> &gt;&gt;</li>
+<li><strong>LF AI &amp; Data at the United Nations’ OSPOs for Good AI Day, June 23 in New York</strong> as part of UN Open Source Week, leading a featured session titled “Responsible GenAI at Scale: Open Source Commons and Governance.” Hosted by Anni Lai (Futurewei) and featuring Susan Malaika (IBM) and Nithya Ruff (Chair, Linux Foundation Board), the discussion will explore how open source collaboration and governance can help scale responsible generative AI globally, including initiatives such as the Responsible Generative AI Framework (RGAF) and Model Openness Framework (MOF). <a href="https://lfaidata.foundation/event/un-open-source-weeks-ospos-for-good-ai-day/?__hstc=160532258.eb01f7f94aafcbc72140f6bba498460e.1772731378131.1781013014291.1781061472532.91&amp;__hssc=160532258.3.1781061472532&amp;__hsfp=9243a08bfb90b88469af98cea9ea6236&amp;lfajs_aid=29684358-e8c6895e-bc7d-4ef6-bc6b-82a1dc9fda02" target="_blank" rel="noreferrer">Learn more and register your interest</a> &gt;&gt;</li>
+<li><strong>Recordings from the LF AI &amp; Data Mini Summit, held alongside Open Source Summit North America, are now available</strong> on the <a href="https://www.youtube.com/@lfaidata" target="_blank" rel="noreferrer">LF AI &amp; Data YouTube channel</a>. The half-day event featured technical talks and community discussions on open source AI and data innovation, including topics such as document intelligence, open source AI models, responsible AI, and production-ready AI agents. <a href="https://www.youtube.com/playlist?list=PLPnJ_u0AKgW-fhvCqmI9Qv7UGxJhB6O_5" target="_blank" rel="noreferrer">Watch the recordings</a> to catch up on the latest insights and project updates from across the LF AI &amp; Data ecosystem &gt;&gt;</li>
+<li><strong>The Kedro community has released Kedro 1.2.0 and Kedro-Viz 12.3.0</strong>, with new capabilities for GenAI experimentation, agentic workflows, multi-pipeline execution, and pipeline visibility. Read the release blog to learn how Kedro is helping teams build more scalable, production-ready AI workflows. <a href="https://lfaidata.foundation/blog/2026/05/22/kedro-1-2-0-and-kedro-viz-12-3-0-released-advancing-ai-experimentation-and-pipeline-visibility/" target="_blank" rel="noreferrer">Read the release blog</a>.</li>
+</ul>
+<h3>LF Broadband</h3>
+<p><a href="https://lfbroadband.org/white-paper-open-observable-intelligent-building-the-foundation-for-ai-in-fixed-broadband/" target="_blank" rel="noreferrer">AI in Broadband Needs Open Network Foundations</a>: LF Broadband argues that AI’s near-term value in fixed broadband will come through predictive fault detection, service assurance, capacity planning, and NOC copilots, but only if operators build on open, observable, programmable network infrastructure. LFDT is not mentioned; this is an LF Broadband item focused on broadband network modernization.</p>
+<h3>LF Decentralized Trust</h3>
+<ul>
+<li><a href="https://www.lfdecentralizedtrust.org/blog/how-australian-payments-plus-used-hiero-to-bridge-stablecoins-and-central-bank-digital-currency?utm_source=chatgpt.com&amp;hsLang=en" target="_blank" rel="noreferrer">Hiero Gets a Payments Infrastructure Use Case</a>: Australian Payments Plus used Hiero to explore how stablecoins and central bank digital currency could work together in payments infrastructure, giving LFDT a concrete example of real-world relevance in regulated finance.</li>
+<li><a href="https://www.lfdecentralizedtrust.org/blog/protocol-neutrality-an-imperative-for-institutional-adoption-and-scale-of-digital-assets?utm_source=chatgpt.com&amp;hsLang=en" target="_blank" rel="noreferrer">Why Protocol Neutrality Is Becoming a Board-Level Issue</a>: Daniela Barbosa makes the case that institutions need neutral, open infrastructure to scale digital assets with confidence, which puts LFDT’s governance model at the center of enterprise adoption.</li>
+<li><a href="https://www.lfdecentralizedtrust.org/blog/open-standards-for-tokenization-why-interoperability-matters-now?utm_source=chatgpt.com&amp;hsLang=en" target="_blank" rel="noreferrer">Tokenization’s Next Bottleneck Is Interoperability</a>: As tokenized assets move into production, interoperability is becoming the next barrier to scale; this piece connects LFDT Labs to the open standards work needed to make tokenization usable across markets.</li>
+<li><a href="https://www.lfdecentralizedtrust.org/blog/blockchain-enabled-trust-in-6g?utm_source=chatgpt.com&amp;hsLang=en" target="_blank" rel="noreferrer">Blockchain Steps Into 6G’s Trust Problem</a>: The 6G article shows how Hyperledger Fabric could help future telecom networks manage trust, identity, and coordination, extending LFDT’s relevance beyond financial services.</li>
+<li><a href="https://www.lfdecentralizedtrust.org/blog/developer-showcase-series-alexander-shenshin-software-architect-dsr-corporation?utm_source=chatgpt.com&amp;hsLang=en" target="_blank" rel="noreferrer">A Developer View Into Real-World LFDT Adoption</a>: Alexander Shenshin’s developer story highlights practical work with Hiero and shows that LFDT technologies are gaining traction with builders, not just institutions.</li>
+</ul>
+<h3>LF Edge</h3>
+<ul>
+<li>As AI workloads continue to expand beyond centralized data centers, LF Edge&#x27;s State of the Edge 2026 report provides insights into the technologies and architectures enabling the rise of Edge AI. The report examines key trends shaping the future of distributed intelligence, automation, and next-generation edge infrastructure. <a href="https://stateoftheedge.com/state-of-the-edge-report-2026/" target="_blank" rel="noreferrer">Read the report &gt;&gt;</a></li>
+<li>ONE Summit 2026 will take place December 10-11 in Tokyo, Japan, co-located with Open Source Summit Japan. The event will bring together leaders across networking, edge, cloud, and AI to explore topics including AI-native networking, 6G and Open Source RAN, Edge AI, and cloud native infrastructure. Registration is now open, and the Call for Proposals (CFP) will launch later this month. <a href="https://events.linuxfoundation.org/open-networking-edge-summit-japan/" target="_blank" rel="noreferrer">Learn more about the event &gt;&gt;</a></li>
+</ul>
+<h3>LF Energy</h3>
+<ul>
+<li><a href="https://events.linuxfoundation.org/lfenergysummit-europe" target="_blank" rel="noreferrer">LF Energy Summit Europe 2026 Agenda Now Available</a> | September 15–16 in Berlin Early bird registration rates are available through June 30. LF Energy Summit Europe convenes utilities, grid operators, technology vendors, energy companies, policymakers, researchers, and practitioners to showcase how open source is being used today to build production-grade digital infrastructure for energy systems.</li>
+<li><a href="https://lfenergy.org/lf-energy-new-members-projects-and-portfolio-growth/" target="_blank" rel="noreferrer">LF Energy Welcomes New Members and Projects, Expands Portfolio</a> | AZX and EcoPhi have joined LF Energy as General Members, while Empa has joined as an Associate Member. LF Energy also welcomed three new projects to its portfolio: AINETUS, URPX, and CUPID, addressing AI for grid operations, utility rate plan standardization, and DER interoperability.</li>
+<li><a href="https://blog.google/company-news/outreach-and-initiatives/entrepreneurs/google-for-startups-accelerator/" target="_blank" rel="noreferrer">LF Energy Joins Google for Startups AI for Energy Program</a> | LF Energy is participating as a partner in Google for Startups&#x27; AI for Energy program. In Europe, LF Energy participates alongside RTE. In North America, the program includes Hydro-Québec and EPRI.</li>
+<li><a href="https://www.enlit.world/library/final-entso-e-reports-sheds-light-on-multiple-factors-that-caused-iberian-blackout" target="_blank" rel="noreferrer">ENTSO-E Iberian Blackout Report References Dynawo</a> | ENTSO-E&#x27;s final report on the April 2025 Iberian blackout describes the use of LF Energy&#x27;s Dynawo for independent voltage stability analysis. The Expert Panel used Dynawo to reproduce system dynamics and evaluate factors including cross-border flows, TSO-DSO exchanges, distributed PV, and reactive power margins.</li>
+<li><a href="https://lfenergy.org/the-grid-doesnt-wait-for-a-requirements-document/" target="_blank" rel="noreferrer">The Grid Doesn&#x27;t Wait for a Requirements Document</a> | Hugo Pfister of TenneT Netherlands describes how his team built a grid security analysis platform on PowSyBl in five months, achieving at least 10× faster performance than its predecessor.</li>
+<li><a href="https://lfenergy.org/seapath-roadmap-workshop-2026/" target="_blank" rel="noreferrer">SEAPATH Roadmap Workshop Brings Together 19 Organizations</a> | The LF Energy SEAPATH community gathered in Lyon, France for its first Roadmap Workshop, bringing together 45 participants from 19 organizations. The event included deployment updates, roadmap planning, and the release of SEAPATH 2.0.0-rc1.</li>
+<li><a href="https://lfenergy.org/flexmeasures-v0-33-copy-assets-account-sources/" target="_blank" rel="noreferrer">FlexMeasures v0.33 Released</a> | FlexMeasures v0.33 introduces asset copying, improved account-linked data sources, a dedicated data ingestion queue, more granular monitoring controls, and more than 30 additional improvements. It is the final release before the project transitions from the 0.x series to version 1.x.</li>
+<li><a href="https://lfenergy.org/event/everest-community-hackathon-2026-cross-domain-engineering-for-the-open-ev-charging-ecosystem/" target="_blank" rel="noreferrer">EVerest Community Hackathon Announced</a> | The EVerest Community Hackathon will take place September 9–10 at Pionix headquarters in Bad Schönborn, Germany.</li>
+<li><a href="https://lfenergy.org/operatorfabric-4-12-0-release/" target="_blank" rel="noreferrer">OperatorFabric 4.12.0 Released</a> | OperatorFabric 4.12.0.RELEASE introduces dashboard enhancements, email gateway improvements, administration updates, CLI enhancements, bug fixes, configuration changes, and dependency upgrades. The release notes include a migration guide for users upgrading from version 4.11.x.</li>
+<li><strong>LF Energy Summit Europe 2025 Session Recaps</strong></li>
+</ul>
+<p><a href="https://lfenergy.org/making-our-power-grid-sweat/" target="_blank" rel="noreferrer">Making Our Power Grid Sweat</a> | Daniël Kok and Anna Van Velsen of Alliander presented how thermal models can help utilities move from static asset limits toward cyclic or dynamic ratings, improving utilization of existing grid infrastructure.</p>
+<ul>
+<li><a href="https://lfenergy.org/rise-of-open-source-program-offices-grid-operations/" target="_blank" rel="noreferrer">Rise of Open Source Program Offices in Grid Operations</a> | Representatives from Alliander, RTE, E.ON, and Hydro-Québec discussed why utilities are establishing Open Source Program Offices (OSPOs) and how open source can support collaboration, cybersecurity, and digital sovereignty.</li>
+<li><strong>FOSDEM 2026 Session Recaps</strong></li>
+</ul>
+<p><a href="https://lfenergy.org/real-world-interoperability-in-ev-charging-the-tooling-stack-behind-the-everest-ecosystem/" target="_blank" rel="noreferrer">Real World Interoperability in EV Charging</a> | Marco Möller presented how EVerest approaches real-world interoperability in EV charging through shared software implementations and system-level testing.</p>
+<ul>
+<li><a href="https://lfenergy.org/tracking-the-open-source-energy-modelling-ecosystem-insights-for-smarter-tool-selection/" target="_blank" rel="noreferrer">Tracking the Open Source Energy Modelling Ecosystem</a> | Bryn Pickering presented tools designed to help practitioners navigate and compare approximately 200 open source energy system modelling tools.</li>
+<li><a href="https://lfenergy.org/rust-meets-the-grid-building-openleadr-rs-for-real-world-demand-response/" target="_blank" rel="noreferrer">Rust Meets the Grid</a> | Dr. Maximilian Pohl and Stijn van Houwelingen presented OpenLEADR-rs, an open source Rust implementation of the OpenADR protocol, and highlighted a Dutch grid-aware charging use case.</li>
+</ul>
+<h3>LF Networking</h3>
+<ul>
+<li><strong>GM of Networking, Arpit Joshioura, was featured in DataQuest Magazine.</strong>Joshipuradiscusses the continued growth of open source across enterprise technology, AI, and India’s developer ecosystem. The article highlights how open collaboration is fueling critical infrastructure, enterprise adoption, and AI innovation, with India emerging not only as a major open source contributor, but also as a creator of open source solutions for areas like digital payments, smart cities, localization, and social good. <a href="http://linkedin.com/posts/lf-networking_arpit-joshipura-dataquest-interview-with-activity-7471251804228505601-b6zQ?utm_source=share&amp;utm_medium=member_desktop&amp;rcm=ACoAAAC1hnoB64ZFi-8rzMNjh5XA0JZePK-Vlj8" target="_blank" rel="noreferrer">Read the article here&gt;&gt;</a></li>
+<li><strong>AI Thought Leadership Blog Series by CTO Ranny Haiby:</strong></li>
+<li>In the opening article of the series, Haiby examines how the telecom industry is moving beyond cloud-native transformation toward AI-native infrastructure. Drawing insights from the Project Sylva AI whitepaper, he discusses the growing importance of interoperability, autonomous operations, and trusted AI frameworks, and explains how open source communities are helping build the foundation for the next era of intelligent networks. <a href="https://www.linkedin.com/pulse/decades-data-deliberative-shift-why-sylva-ai-whitepaper-ranny-haiby-ulx4c/?trackingId=mlmElxvrRN9btLaAMXADSA%3D%3D" target="_blank" rel="noreferrer">Read the article &gt;&gt;&gt;</a></li>
+<li>In the second iteration of the series, Haiby explores why AI-native networks require an open source ecosystem rather than a single project. Learn how projects across the LFN ecosystem work together to provide the infrastructure, automation, observability, and orchestration needed to support the next generation of intelligent networks. <a href="https://www.linkedin.com/pulse/why-ai-native-networks-need-open-source-ecosystem-single-ranny-haiby-h1l0c/?trackingId=zlsR5W0ET1UdBj9IP7nyaw%3D%3D" target="_blank" rel="noreferrer">Read the article</a> &gt;&gt;</li>
+<li><strong>Project Sylva AI Ecosystem Whitepaper:</strong> LFN&#x27;s sister project, Project Sylva, recently <a href="https://sylvaproject.org/ai-and-the-sylva-projects-ecosystem/" target="_blank" rel="noreferrer">released a whitepaper</a> exploring the AI ecosystem and its implications for telecommunications infrastructure. In a <a href="https://www.linkedin.com/pulse/decades-data-deliberative-shift-why-sylva-ai-whitepaper-ranny-haiby-ulx4c/?trackingId=JAqdo5gWze12g8%2FjBRXN1A%3D%3D" target="_blank" rel="noreferrer">related commentary</a> , CTO Ranny Haiby discusses how open source collaboration is helping the industry move toward AI-native networks through interoperability, automation, security, and cloud-native innovation.</li>
+<li><strong>CNTi Introduces free5GC as Reference CNF for the CNTi Test Suite:</strong> LFN’s <a href="https://lfnetworking.org/cloud-native-telecom-initiative/?utm_source=chatgpt.com" target="_blank" rel="noreferrer">Cloud Native Telecom Initiative</a> (CNTi) has introduced free5GC as a reference Cloud Native Network Function (CNF) for the CNTi Test Suite. By validating the test suite against a real-world open source 5G Core implementation, the collaboration helps advance cloud native best practices, testing, and operational readiness for telecom workloads. <a href="https://lfnetworking.org/introducing-free5gc-as-a-reference-cnf-for-the-cnti-test-suite/" target="_blank" rel="noreferrer">Read the blog &gt;&gt;&gt;</a></li>
+<li><strong>Cloud Native Telco Day Panel: Agentic AI Infrastructure for Telecom Networks</strong> featuring Yoshihiro Nakajima (NTT DOCOMO), Ranny Haiby (The Linux Foundation), Philippe Ensarguet (Orange), Hui Deng (Huawei), and Yanjun Chen (China Mobile), explored how telecom operators are applying Agentic AI to network operations and service delivery. The discussion covered the path from pilots to production, including carrier-grade reliability, observability, open source collaboration, and the infrastructure needed to support autonomous networks. <a href="https://www.youtube.com/watch?v=thO1pxId3fU" target="_blank" rel="noreferrer">Watch the recording</a> and <a href="https://lfnetworking.org/panel-agentic-ai-infrastructure-for-telecom/" target="_blank" rel="noreferrer">read the recap</a> .</li>
+</ul>
+<h3>Margo</h3>
+<ul>
+<li>The Margo PR2 Plugfest is a structured interoperability testing event for the industrial Open source AI infrastructure ecosystem. Taking place in Nürnberg, Germany, July 7–10, 2026, the Plugfest brings together vendors, implementers, and Margo technicalworking group members to test Margo Preview Release 2 (PR2) implementations inreal-world, multi-vendor environments. Testing is organised as a round-robin acrossall participating implementations, producing documented interoperability evidence andsurfacing specification improvements that feed directly back into the Margo development process. <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=WUw_LIL6p0eppXwOxVWHhnE28L3O9pxHh8oF5yBCdcpUM0k5RjFBTjhDWjdFUzJWSEFIS09VQzdSSS4u" target="_blank" rel="noreferrer">Register now</a></li>
+<li>Did you know that Margo delivers a unified framework for edge interoperability through an open source specification, a reference implementation and a comprehensive compliance testing toolkit? <a href="https://www.youtube.com/watch?v=uBQy11eJcqM" target="_blank" rel="noreferrer">Watch our new video</a> to learn more about how Margo is unlocking multi-vendor interoperability at the industrial edge.</li>
+</ul>
+<h3>OCUDU Ecosystem Foundation</h3>
+<ul>
+<li><strong>OCUDU Ecosystem Foundation Expands Global Community:</strong>The OCUDU Ecosystem Foundation has added 21 new global member organizations since its launch, including five General Members and 16 Associate Members. Hosted by the Linux Foundation, OCUDU is advancing open, secure, and interoperable Open Source RAN CU/DU implementations and helping accelerate cloud-native RAN innovation from research to real-world deployment. <a href="https://ocudu.org/news/ocudu-ecosystem-foundation-emerges-as-key-hub-for-open-source-ran-innovation-with-21-new-global-member-organizations-since-launch/" target="_blank" rel="noreferrer">Read the announcement &gt;&gt;</a></li>
+<li><strong>OCUDU Launches Developer Webinar Series:</strong>The OCUDU Ecosystem Foundation has launched a new developer-focused webinar series to help contributors get hands-on with the OCUDU technical project. The series covers the project roadmap, architecture, contribution workflows, codebase structure, CI/CD, testing, and release readiness, giving developers the practical knowledge needed to participate in building open, secure, and interoperable Open RAN infrastructure. <a href="https://youtu.be/h2jO9vGh7VI?si=bxxr5fmljbwMyaJd" target="_blank" rel="noreferrer">Watch episode 1</a>and <a href="https://www.linkedin.com/events/7466209489742987264?viewAsMember=true" target="_blank" rel="noreferrer">Register to attend Episodes 2</a>(June 18) <a href="https://www.linkedin.com/events/7470159083720065025?viewAsMember=true" target="_blank" rel="noreferrer">and 3</a> (July 2).</li>
+<li><strong>OCUDU to Support FutureG ISAC Prototyping:</strong>The FutureG Office and National Spectrum Consortium have released two new prototype proposal requests focused on Integrated Sensing and Communications (ISAC), including a Multi-Waveform RAN effort that will use open source OCUDU software to accelerate next-generation wireless experimentation. Proposals are due July 3, 2026. <a href="https://nationalspectrumconsortium.org/news-detail/New-requests-for-prototype-proposals-for-ISAC-solutions-from-FutureG" target="_blank" rel="noreferrer">Learn more &gt;&gt;</a></li>
+<li><strong>Sylva Case Study Highlights OCUDU on Telco Cloud:</strong> A new Sylva case study featuring SUSE showcases how cloud-native telecom infrastructure can support real-world Open RAN innovation, including OCUDU-based workloads. The story highlights how Sylva and SUSE are helping operators and ecosystem partners advance more open, automated, and interoperable telco cloud environments for next-generation network deployments using OCUDU RAN stack. <a href="https://sylvaproject.org/tackling-telco-ecosystem-fragmentation-challenges-with-suse-ocudu-and-sylva/" target="_blank" rel="noreferrer">Read the case study &gt;&gt;</a></li>
+<li><strong>OCUDU RAN Stack Showcased at EuCNC &amp; 6G Summit:</strong> Premier member, SRS, showcase OCUDU this week at EuCNC &amp; 6G Summit in Malaga, displaying the OCUDU RAN stack and connecting with partners across the 6G research and Open RAN ecosystem.</li>
+<li><strong>OCUDU Technical Project Issues 26.04 Release:</strong>OCUDU 26.04 is now available, bringing expanded radio and spectrum support, stronger uplink capabilities, enhanced mobility, O1-based management updates, hardware acceleration support, and stability improvements for cloud-native Open Source RAN deployments. <a href="https://ocudu.org/news/blog-introducing-the-initial-ocudu-technical-project-release-26-04/" target="_blank" rel="noreferrer">Read the blog</a>&gt;&gt;</li>
+<li><strong>Member Innovation Advances OCUDU Capabilities:</strong> ISCO International and SRS have announced IQ Data Tap for the OCUDU technical open source project, implemented as “PHY TAP.” The new functionality gives external applications access to Layer 1 uplink IQ stream data, helping enable real-time RF applications such as interference management, jammer cancellation, and future innovation for OCUDU-based wireless networks. <a href="https://iscointl.com/isco-and-srs-announce-the-availability-of-iq-data-tap-for-the-ocudu-open-source-project/" target="_blank" rel="noreferrer">Learn more &gt;&gt;</a></li>
+</ul>
+<h3>OpenInfra Foundation</h3>
+<ul>
+<li>The OpenInfra Foundation has launched a new AI Policy Working Group to help align open source community needs with how AI is already reshaping software development. The group will focus on understanding the current state of AI policy across OpenInfra projects, tracking industry developments, developing guidance that accommodates agentic workflows while preserving human accountability for contributions, and building recommendations that can evolve as the technology does. The Working Group meets the third Wednesday of every month at 18:00 UTC, with the <a href="https://t.e2ma.net/click/ud4ini/ulibd2le/6ele08" target="_blank" rel="noreferrer">agenda and meeting details available in this etherpad</a> . You can also <a href="https://t.e2ma.net/click/ud4ini/ulibd2le/m7le08" target="_blank" rel="noreferrer">join the conversation via the public mailing list</a> .</li>
+<li>The new Kata Containers <a href="https://t.e2ma.net/click/ud4ini/ulibd2le/qy5e08" target="_blank" rel="noreferrer">3.31.0</a> release is now available! The community is working hard on the Kata Containers 4.0.0 release. If you’re curious about what the new major version of the runtime is going to bring you, check out the <a href="https://t.e2ma.net/click/ud4ini/ulibd2le/6q6e08" target="_blank" rel="noreferrer">release preview blog post</a> !</li>
+<li><a href="http://zuulci.org" target="_blank" rel="noreferrer">Zuul</a> is an open source CI/CD and project-gating system that helps software teams test code changes together before they are merged, reducing the risk of introducing bugs or breaking complex applications. <a href="https://zuul-ci.org/blog/#20260513a" target="_blank" rel="noreferrer">This blog</a> explains how several challenges currently associated with AI-driven software development, such as coordinating changes across many repositories, validating complex dependencies, and safely automating workflows are problems Zuul has been solving at scale for years in large open source communities.</li>
+<li>On September 8-9, <a href="https://t.e2ma.net/click/ud4ini/ulibd2le/yove08" target="_blank" rel="noreferrer">OpenInfra Summit Asia | KubeCon | CloudNativeCon | PyTorch Conference China</a> will take place in Shanghai. This flagship event unites adopters, technologists, and community members from across the region to drive innovation in open-source infrastructure, cloud-native computing, and open-source AI around common, industry-wide use cases such as next-gen AI. Visit <a href="https://t.e2ma.net/click/ud4ini/ulibd2le/icnf08" target="_blank" rel="noreferrer">2026 OpenInfra events</a> for a full list of gatherings.</li>
+</ul>
+<h3>Open Mainframe Project</h3>
+<ul>
+<li>The Open Mainframe Project Summer 2026 Mentorship cohort is here. This year&#x27;s six mentorships focus on digital sovereignty and AI-driven modernization, running June 1 through August 31. Meet the 12 mentees and five mentors working across programs including Workflow APIs for Zowe Client Java SDK, AI-Powered Mainframe Data Modernization, Mainframe Modernization Whitep aper and Modernising Mainframe with Open Source. <a href="https://openmainframeproject.org/mentorship/open-mainframe-summer-mentorship-program-2026/" target="_blank" rel="noreferrer">Meet the cohort</a></li>
+<li>Zowe 3.5 is out, and <strong>Jakub Balhar, Engineer at Broadcom,</strong> dives into how the CLI is closing in on half a million downloads. This release brings pre-flight configuration checks, unified logging, multi-member search in VS Code, job polling at submit time, and certificate management improvements. It also marks the moment zowex (the SSH-based transport and foundation for the Zowe MCP server) moves from experiment toward GA in 3.6. <a href="https://openmainframeproject.org/blog/whats-new-in-zowe-3-5/" target="_blank" rel="noreferrer">Read what&#x27;s new</a></li>
+<li>IBM&#x27;s Data Studio and Eclipse-based DB2 tools hit end of support in March 2025. The replacement is built entirely on Zowe, meaning core DB2 administration now runs on an open source framework managed by the Open Mainframe Project. <strong>Joe Winchester, Senior Technical Staff Member</strong> at <strong>IBM</strong> breaks down what the shift means for developers, SysProgs, and anyone managing DB2 on z/OS. <a href="https://planetmainframe.com/2026/05/zowe-db2-and-the-open-source-future-of-the-mainframe/" target="_blank" rel="noreferrer">Read more</a></li>
+<li>In this episode of Mainframe Connect&#x27;s &quot; <a href="https://openmainframeproject.org/i-am-a-mainframer-podcast/" target="_blank" rel="noreferrer">I Am a Mainframer</a> &quot; podcast, <strong>J.J. Lovett</strong> , <strong>Lead for Education and Customer Engagement at Broadcom&#x27;s</strong> Mainframe Division, talks with host <strong>Steven Dickens, CEO and Principal Analyst at HyperFRAME Research,</strong> about helping people find long-term careers in the mainframe ecosystem through education, mentorship, and community. From Mainframe Open Education to the Vitality program to SHARE and IDUG, J.J. makes the case that the mainframe is a career path, not just a job. <a href="https://www.youtube.com/watch?v=y0H_VX6JgUM" target="_blank" rel="noreferrer">Watch the full episode</a></li>
+<li>In this Mainframe Voices episode, community leaders <strong>Geoffrey Decker, IBM Z Champion 2022–2026, Jakub Balhar, Engineer at Broadcom Inc. Brahadambal Srinivasan, Technical Architect at IBM</strong> and <strong>Erin Joel Moore, IBM Z Student Ambassador</strong> share the signals and trends they&#x27;re watching most closely: from AI and modernization to talent development and open source. <a href="https://www.youtube.com/watch?v=bkMjLPLYupU" target="_blank" rel="noreferrer">Watch the full episode</a></li>
+</ul>
+<h3>OpenSearch</h3>
+<ul>
+<li><a href="https://opensearch.org/blog/explore-opensearch-3-7/" target="_blank" rel="noreferrer">OpenSearch 3.7 is here:</a> The latest release delivers an array of new tools designed to help you build, discover, and...</li>
+</ul></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-afe589dc9cd57da0.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：direct-pr-small-news / 2026-06-21T12:01:31+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-21T12:01:31+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Linux Foundation Newsletter: June 2026</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：Linux Foundation Newsletter: June 2026（Codex）</li><li><strong>原始作者</strong>：The Linux Foundation（json-ld）</li><li><strong>原始網站授權</strong>：著作權保護（頁面文字推斷）（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-afe589dc9cd57da0";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 2;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 2;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
