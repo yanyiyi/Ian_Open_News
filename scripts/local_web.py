@@ -16,6 +16,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -182,6 +183,41 @@ NOISY_TAG_VALUES = {
     "headlines",
     "home what's new",
     "people",
+    "projects",
+    "official statistics blog",
+    "data value and use blog",
+    "data financing blog",
+    "guest posts",
+    "partners and collaboration",
+    "inside the library",
+    "job announcements",
+    "announcements",
+    "editors' choice",
+    "outreach and events",
+    "publications and resources",
+    "cfps & conferences",
+    "dariah news slides",
+    "new on loc.gov",
+    "opentech rss",
+    "coscup media",
+    "coscup 年會",
+    "coscup 開源人年會",
+    "ocf 開放文化基金會",
+    "新聞活動 (週更新)",
+    "關鍵字（有就更新）",
+    "開放資料知識  (有就更新)",
+    "法規規範標準 (每月有特殊事件更新)",
+    "中央機關二級機關平臺 相關公告（月更新）",
+    "縣市政府文化局",
+    "記憶庫過往執行單位",
+    "既有單位",
+    "記憶庫追蹤",
+    "os",
+    "od",
+    "og",
+    "dr",
+    "api",
+    "ai",
 }
 REJECTION_REASON_ALIASES = {
     "內容偏活動公告或宣傳，暫不整理。": "活動公告/宣傳",
@@ -1301,9 +1337,9 @@ def item_display_kind(item: dict) -> str:
 
 def item_triage_keywords(item: dict) -> set[str]:
     triage = item.get("triage") or {}
-    keywords = set(triage.get("matched_keywords") or [])
-    keywords.update(triage.get("skip_keywords") or [])
-    keywords.update(tag for tag in item_tags(item) if not is_noisy_tag(tag))
+    keywords = {canonical_tag_label(keyword) for keyword in triage.get("matched_keywords") or []}
+    keywords.update(canonical_tag_label(keyword) for keyword in triage.get("skip_keywords") or [])
+    keywords.update(normalized_item_tags(item))
     return {str(keyword) for keyword in keywords if str(keyword).strip()}
 
 
@@ -1311,11 +1347,33 @@ def tag_key(tag: object) -> str:
     return clean_text(tag, 120).casefold()
 
 
+@lru_cache(maxsize=1)
+def configured_keep_keyword_labels() -> dict[str, str]:
+    config = load_json(TRIAGE_KEYWORDS)
+    tracks = config.get("tracks") if isinstance(config.get("tracks"), dict) else {}
+    labels: dict[str, str] = {}
+    for track_config in tracks.values():
+        if not isinstance(track_config, dict):
+            continue
+        for keyword in track_config.get("keep_keywords") or []:
+            label = clean_text(keyword, 80)
+            key = tag_key(label)
+            if key and not key.isdigit():
+                labels.setdefault(key, label)
+    return labels
+
+
+def canonical_tag_label(tag: object) -> str:
+    text = clean_text(tag, 80)
+    return configured_keep_keyword_labels().get(tag_key(text), text)
+
+
 def item_tags(item: dict) -> list[str]:
     tags = form_lines(item.get("tags"))
     output: list[str] = []
     seen: set[str] = set()
     for tag in tags:
+        tag = canonical_tag_label(tag)
         key = tag_key(tag)
         if not key or key in seen:
             continue
@@ -1326,23 +1384,68 @@ def item_tags(item: dict) -> list[str]:
 
 def is_noisy_tag(tag: object) -> bool:
     key = tag_key(tag)
+    if not key:
+        return True
     if key in NOISY_TAG_VALUES:
         return True
     if not any(char.isalnum() for char in key):
         return True
     if key.isdigit():
         return True
+    if key in configured_keep_keyword_labels():
+        return False
     if key.startswith("keyword-monitoring-"):
         return True
     if key.startswith("[archived]"):
         return True
     if key.startswith("http://") or key.startswith("https://"):
         return True
+    if "週更新" in key or "月更新" in key or "有就更新" in key:
+        return True
+    if key.endswith(" rss") or key.endswith(" blog") or key.endswith(" news"):
+        return True
+    return False
+
+
+def source_like_tag_keys(item: dict) -> set[str]:
+    keys: set[str] = set()
+    for value in [
+        item.get("source_name"),
+        item.get("author"),
+        item.get("source_group"),
+        item.get("site_name"),
+        (item.get("reference") or {}).get("site_name") if isinstance(item.get("reference"), dict) else "",
+        (item.get("reading_metadata") or {}).get("site_name") if isinstance(item.get("reading_metadata"), dict) else "",
+    ]:
+        text = clean_text(value, 160)
+        if not text:
+            continue
+        variants = {text}
+        for prefix in ["Excel:", "[Archived]"]:
+            if text.casefold().startswith(prefix.casefold()):
+                variants.add(text[len(prefix) :].strip())
+        keys.update(tag_key(variant) for variant in variants if tag_key(variant))
+    reference = item.get("reference") if isinstance(item.get("reference"), dict) else {}
+    url = clean_text(item.get("url") or reference.get("url"))
+    host = urlparse(url).netloc.casefold().removeprefix("www.")
+    if host:
+        keys.add(host)
+        keys.add(host.split(":")[0])
+        keys.add(host.split(".")[0])
+    return keys
+
+
+def is_source_like_tag(tag: object, item: dict | None = None) -> bool:
+    key = tag_key(tag)
+    if not key or key in configured_keep_keyword_labels():
+        return False
+    if item and key in source_like_tag_keys(item):
+        return True
     return False
 
 
 def append_unique_tag(tags: list[str], seen: set[str], tag: object) -> None:
-    text = clean_text(tag, 80)
+    text = canonical_tag_label(tag)
     key = tag_key(text)
     if not text or not key or key in seen or is_noisy_tag(text):
         return
@@ -1350,15 +1453,35 @@ def append_unique_tag(tags: list[str], seen: set[str], tag: object) -> None:
     seen.add(key)
 
 
-def item_visible_tags(item: dict, limit: int = 7) -> list[str]:
+def append_item_tag(tags: list[str], seen: set[str], item: dict, tag: object) -> None:
+    text = canonical_tag_label(tag)
+    if is_source_like_tag(text, item):
+        return
+    append_unique_tag(tags, seen, text)
+
+
+def item_has_manual_tags(item: dict) -> bool:
+    metadata = item.get("tag_metadata") if isinstance(item.get("tag_metadata"), dict) else {}
+    return metadata.get("source") == "local_web"
+
+
+def normalized_item_tags(item: dict, limit: int | None = None) -> list[str]:
     tags: list[str] = []
     seen: set[str] = set()
-    for tag in item_tags(item):
-        if not is_noisy_tag(tag):
-            append_unique_tag(tags, seen, tag)
     triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
+    manual_tags = item_has_manual_tags(item)
     for keyword in triage.get("matched_keywords") or []:
-        append_unique_tag(tags, seen, keyword)
+        append_item_tag(tags, seen, item, keyword)
+    for tag in item_tags(item):
+        key = tag_key(tag)
+        if key not in configured_keep_keyword_labels() and not manual_tags:
+            continue
+        append_item_tag(tags, seen, item, tag)
+    return tags[:limit] if limit is not None else tags
+
+
+def item_visible_tags(item: dict, limit: int = 7) -> list[str]:
+    tags = normalized_item_tags(item, limit=limit)
     return tags[:limit]
 
 
@@ -1377,9 +1500,6 @@ def item_tag_text_haystack(item: dict) -> str:
     parts: list[object] = [
         item.get("title"),
         item.get("summary"),
-        item.get("url"),
-        item.get("source_name"),
-        item.get("author"),
         editorial.get("zh_title"),
         editorial.get("zh_summary"),
         editorial.get("summary_reason"),
@@ -1411,31 +1531,45 @@ def tag_counts_for(records: list[dict], *, track: str = "", source_id: str = "")
         if source_id and record.get("source_id") != source_id:
             continue
         for tag in item_tags(record):
-            if not is_noisy_tag(tag):
+            key = tag_key(tag)
+            if (
+                not is_noisy_tag(tag)
+                and not is_source_like_tag(tag, record)
+                and (key in configured_keep_keyword_labels() or item_has_manual_tags(record))
+            ):
                 counts[tag] += 1
     return counts
 
 
+def tag_matches_haystack(tag: object, haystack: str) -> bool:
+    key = tag_key(tag)
+    if not key:
+        return False
+    if key in configured_keep_keyword_labels():
+        return key in haystack
+    if re.fullmatch(r"[a-z0-9][a-z0-9 &./+-]{0,2}", key):
+        return False
+    return key in haystack
+
+
 def suggested_item_tags(item: dict, records: list[dict], limit: int = TAG_SUGGESTION_LIMIT) -> list[str]:
-    current_keys = {tag_key(tag) for tag in item_tags(item)}
+    current_keys = {tag_key(tag) for tag in normalized_item_tags(item)}
     suggestions: list[str] = []
     seen: set[str] = set(current_keys)
     haystack = item_tag_text_haystack(item)
     triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
 
     for keyword in triage.get("matched_keywords") or []:
-        append_unique_tag(suggestions, seen, keyword)
+        append_item_tag(suggestions, seen, item, keyword)
     for beat in taxonomy_beats(clean_text(item.get("track"))):
-        if tag_key(beat) in haystack:
-            append_unique_tag(suggestions, seen, beat)
+        if tag_matches_haystack(beat, haystack):
+            append_item_tag(suggestions, seen, item, beat)
 
     peers = [record for record in records if record.get("id") != item.get("id")]
-    for tag, _count in tag_counts_for(peers, source_id=clean_text(item.get("source_id"))).most_common(6):
-        append_unique_tag(suggestions, seen, tag)
     for tag, _count in tag_counts_for(peers, track=clean_text(item.get("track"))).most_common(80):
         key = tag_key(tag)
-        if key and key in haystack:
-            append_unique_tag(suggestions, seen, tag)
+        if key and tag_matches_haystack(tag, haystack):
+            append_item_tag(suggestions, seen, item, tag)
         if len(suggestions) >= limit:
             break
 
@@ -1450,6 +1584,21 @@ def all_tag_options(records: list[dict], limit: int = 120) -> list[str]:
 def item_reader_flags(item: dict) -> dict:
     flags = item.get("reader_flags")
     return flags if isinstance(flags, dict) else {}
+
+
+def current_reading_flags(item: dict, updated_at: str) -> dict:
+    flags = dict(item_reader_flags(item))
+    flags.update(
+        {
+            "current_reading": True,
+            "share_intent": True,
+            "started_at": flags.get("started_at") or updated_at,
+            "updated_at": updated_at,
+            "source": "local_web",
+            "skill_priority_after_days": CURRENT_READING_PRIORITY_DAYS,
+        }
+    )
+    return flags
 
 
 def item_is_current_reading(item: dict) -> bool:
@@ -1493,48 +1642,44 @@ def reader_flag_badges(item: dict) -> str:
 
 def tag_editor_html(item: dict, records: list[dict], redirect_to: str) -> str:
     item_id = clean_text(item.get("id"))
-    current_tags = item_tags(item)
+    current_tags = normalized_item_tags(item)
     suggestions = suggested_item_tags(item, records)
     suggestion_keys = {tag_key(tag) for tag in suggestions}
     current_keys = {tag_key(tag) for tag in current_tags}
     options = [tag for tag in all_tag_options(records) if tag_key(tag) not in current_keys | suggestion_keys][:80]
-    datalist_id = "tag-options-" + re.sub(r"[^a-zA-Z0-9_-]+", "-", item_id or "item")
+    option_payload: list[str] = []
+    option_seen: set[str] = set()
+    for tag in [*current_tags, *suggestions, *options]:
+        append_unique_tag(option_payload, option_seen, tag)
 
     current_html = "".join(
-        f"""
-<label class="tag-check">
-  <input type="checkbox" name="tags" value="{h(tag)}" checked>
-  {h(tag)}
-</label>
-"""
+        f"""<button type="button" class="tag-pill" data-tag-value="{h(tag)}" data-remove-tag>
+  {icon_span("tag", "", "tag-chip-icon")}<span>{h(tag)}</span><span class="tag-pill-remove" aria-hidden="true">x</span>
+</button>"""
         for tag in current_tags
     )
+    hidden_inputs = "".join(f'<input type="hidden" name="tags" value="{h(tag)}">' for tag in current_tags)
     suggested_html = "".join(
-        f"""
-<label class="tag-check tag-check--suggested">
-  <input type="checkbox" name="tags" value="{h(tag)}">
-  {icon_span("tag", "", "tag-chip-icon")}{h(tag)}
-</label>
-"""
+        f"""<button type="button" class="tag-suggestion" data-tag-suggestion="{h(tag)}">
+  {icon_span("tag", "", "tag-chip-icon")}<span>{h(tag)}</span>
+</button>"""
         for tag in suggestions
     )
-    datalist = "".join(f'<option value="{h(tag)}"></option>' for tag in [*suggestions, *options])
-    empty_current = '<p class="help">目前還沒有人工概念 tag。</p>' if not current_tags else ""
-    empty_suggestion = '<p class="help">本機暫時沒有新的建議 tag；可以直接新增。</p>' if not suggestions else ""
+    options_json = json.dumps(option_payload, ensure_ascii=False).replace("<", "\\u003c")
     return f"""
 <div class="card">
   <h2>概念標籤</h2>
-  <p class="muted">用單篇補上自動關鍵字沒有抓到的抽象概念。建議 tag 只用本機資料推斷，不額外耗 Codex token。</p>
-  <form method="post" action="/items/update-tags" class="tag-editor-grid">
+  <form method="post" action="/items/update-tags" class="tag-picker" data-tag-picker>
     <input type="hidden" name="id" value="{h(item_id)}">
     <input type="hidden" name="redirect" value="{h(redirect_to)}">
-    <label>新增 tag</label>
-    <input name="new_tags" list="{h(datalist_id)}" placeholder="輸入或貼上 tag，可用逗號分隔">
-    <datalist id="{h(datalist_id)}">{datalist}</datalist>
-    <label>目前 tag</label>
-    <div class="tag-check-list">{current_html}{empty_current}</div>
-    <label>本機建議 tag</label>
-    <div class="tag-check-list">{suggested_html}{empty_suggestion}</div>
+    <div class="tag-picker-current" data-tag-current>{current_html}</div>
+    <div class="tag-search-wrap">
+      <input name="new_tags" data-tag-input autocomplete="off" placeholder="搜尋或新增 tag" aria-label="搜尋或新增 tag">
+      <div class="tag-menu" data-tag-menu hidden></div>
+    </div>
+    <div class="tag-suggestion-strip" data-tag-suggestions>{suggested_html}</div>
+    <div data-tag-hidden>{hidden_inputs}</div>
+    <script type="application/json" data-tag-options>{options_json}</script>
     <button type="submit">{button_content("儲存 tag", "tag", "T")}</button>
   </form>
 </div>
@@ -2771,6 +2916,7 @@ def page(title: str, body: str) -> bytes:
     .button-opentech {{ background: var(--ocf-primary); }}
     .button-humanities {{ background: var(--humanities); }}
     .secondary {{ background: var(--ocf-cyan); }}
+    .reading-button {{ background: var(--ocf-magenda); }}
     .quiet {{ background: var(--ocf-dark); }}
     .icon {{
       display: inline-grid;
@@ -2885,6 +3031,79 @@ def page(title: str, body: str) -> bytes:
     }}
     .tag-check--suggested {{ background: #eefcff; border-color: #b7e7f4; color: #00699f; }}
     .tag-check input {{ width: auto; }}
+    .tag-picker {{ display: grid; gap: 10px; }}
+    .tag-picker-current, .tag-suggestion-strip {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 32px;
+    }}
+    .tag-suggestion-strip:empty {{ display: none; }}
+    .tag-pill, .tag-suggestion, .tag-menu-option {{
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 6px;
+      width: auto;
+      min-height: 32px;
+      margin: 0;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ocf-dark);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.2;
+      box-shadow: none;
+    }}
+    .tag-pill:hover, .tag-suggestion:hover, .tag-menu-option:hover {{
+      color: var(--ocf-dark);
+      background: var(--soft);
+      box-shadow: none;
+      transform: translateY(-1px);
+    }}
+    .tag-suggestion {{
+      border-color: #b7e7f4;
+      background: #eefcff;
+      color: #00699f;
+    }}
+    .tag-pill-remove {{
+      display: inline-grid;
+      place-items: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: #eef1fb;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1;
+    }}
+    .tag-search-wrap {{ position: relative; }}
+    .tag-search-wrap input {{ padding-right: 34px; }}
+    .tag-menu {{
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      display: grid;
+      gap: 4px;
+      max-height: 260px;
+      overflow: auto;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 12px 30px rgba(15,25,35,.16);
+      z-index: 30;
+    }}
+    .tag-menu[hidden] {{ display: none; }}
+    .tag-menu-option {{
+      width: 100%;
+      border-color: transparent;
+      border-radius: 6px;
+    }}
+    .tag-menu-option.is-create {{ color: #00699f; background: #eefcff; }}
     .source-group {{ margin-bottom: 14px; overflow: hidden; }}
     .source-group.is-drop-target summary.source-group-summary {{
       background: #fff;
@@ -3503,6 +3722,13 @@ def page(title: str, body: str) -> bytes:
       <div class="loading-dots" aria-label="載入中"><span></span><span></span><span></span></div>
     </div>
   </div>
+  <div class="loading-overlay" id="translation-loading" aria-live="polite" aria-hidden="true">
+    <div class="loading-card">
+      <strong>全文翻譯 loading 中</strong>
+      <p class="muted">會先確認已展開全文，再用台灣習慣用語翻成繁體中文並存回本機資料庫。</p>
+      <div class="loading-dots" aria-label="載入中"><span></span><span></span><span></span></div>
+    </div>
+  </div>
   <script>
   const setShortcutMode = (active) => {{
     document.body.classList.toggle("show-shortcuts", Boolean(active));
@@ -3676,6 +3902,175 @@ def page(title: str, body: str) -> bytes:
     if (!element || !value || element.value.trim()) return;
     element.value = value;
   }};
+
+  const splitTagInput = (value) => String(value || "")
+    .split(/[\\n,，]/)
+    .map((tag) => tag.trim().replace(/\\s+/g, " "))
+    .filter(Boolean);
+
+  const tagKeyClient = (value) => String(value || "").trim().toLocaleLowerCase();
+  const tagIconHTML = `{action_icon("tag")}`;
+
+  const setupTagPicker = (form) => {{
+    const current = form.querySelector("[data-tag-current]");
+    const input = form.querySelector("[data-tag-input]");
+    const menu = form.querySelector("[data-tag-menu]");
+    const hidden = form.querySelector("[data-tag-hidden]");
+    const suggestionStrip = form.querySelector("[data-tag-suggestions]");
+    const optionsScript = form.querySelector("[data-tag-options]");
+    if (!current || !input || !menu || !hidden) return;
+
+    let selected = Array.from(current.querySelectorAll("[data-tag-value]"))
+      .map((button) => button.dataset.tagValue || button.textContent || "")
+      .flatMap(splitTagInput);
+    const allOptions = [];
+    const addOption = (tag) => {{
+      const label = splitTagInput(tag)[0] || "";
+      if (!label) return;
+      const key = tagKeyClient(label);
+      if (!key || allOptions.some((option) => tagKeyClient(option) === key)) return;
+      allOptions.push(label);
+    }};
+
+    try {{
+      JSON.parse(optionsScript?.textContent || "[]").forEach(addOption);
+    }} catch (_error) {{
+      // Keep manual tag entry usable even if an old browser extension alters the JSON block.
+    }}
+    selected.forEach(addOption);
+
+    const selectedKeys = () => new Set(selected.map(tagKeyClient));
+
+    const syncHidden = () => {{
+      hidden.innerHTML = selected
+        .map((tag) => `<input type="hidden" name="tags" value="${{escapeHTML(tag)}}">`)
+        .join("");
+    }};
+
+    const renderSelected = () => {{
+      current.innerHTML = selected
+        .map((tag) => `<button type="button" class="tag-pill" data-tag-value="${{escapeHTML(tag)}}" data-remove-tag>
+          <span class="tag-chip-icon" aria-hidden="true">${{tagIconHTML}}</span><span>${{escapeHTML(tag)}}</span><span class="tag-pill-remove" aria-hidden="true">x</span>
+        </button>`)
+        .join("");
+      syncHidden();
+      const keys = selectedKeys();
+      suggestionStrip?.querySelectorAll("[data-tag-suggestion]").forEach((button) => {{
+        button.hidden = keys.has(tagKeyClient(button.dataset.tagSuggestion || ""));
+      }});
+    }};
+
+    const addTag = (value) => {{
+      let changed = false;
+      splitTagInput(value).forEach((tag) => {{
+        const key = tagKeyClient(tag);
+        if (!key || selected.some((existing) => tagKeyClient(existing) === key)) return;
+        selected.push(tag);
+        addOption(tag);
+        changed = true;
+      }});
+      if (changed) renderSelected();
+      input.value = "";
+      menu.hidden = true;
+    }};
+
+    const removeTag = (value) => {{
+      const key = tagKeyClient(value);
+      selected = selected.filter((tag) => tagKeyClient(tag) !== key);
+      renderSelected();
+      renderMenu();
+    }};
+
+    const matchingOptions = () => {{
+      const query = input.value.trim();
+      const queryKey = tagKeyClient(query);
+      const keys = selectedKeys();
+      const matches = allOptions
+        .filter((tag) => !keys.has(tagKeyClient(tag)))
+        .filter((tag) => !queryKey || tagKeyClient(tag).includes(queryKey))
+        .slice(0, 8)
+        .map((tag) => ({{tag, label: tag, create: false}}));
+      if (queryKey && !keys.has(queryKey) && !allOptions.some((tag) => tagKeyClient(tag) === queryKey)) {{
+        matches.unshift({{tag: query, label: `新增「${{query}}」`, create: true}});
+      }}
+      return matches.slice(0, 8);
+    }};
+
+    const renderMenu = () => {{
+      const matches = matchingOptions();
+      if (!matches.length || document.activeElement !== input) {{
+        menu.hidden = true;
+        return;
+      }}
+      menu.innerHTML = matches
+        .map((option, index) => `<button type="button" class="tag-menu-option${{option.create ? " is-create" : ""}}" data-tag-option="${{escapeHTML(option.tag)}}"${{index === 0 ? " data-primary-tag-option" : ""}}>
+          <span>${{escapeHTML(option.label)}}</span>
+        </button>`)
+        .join("");
+      menu.hidden = false;
+    }};
+
+    current.addEventListener("click", (event) => {{
+      const button = event.target.closest("[data-remove-tag]");
+      if (!button) return;
+      removeTag(button.dataset.tagValue || "");
+    }});
+
+    suggestionStrip?.addEventListener("click", (event) => {{
+      const button = event.target.closest("[data-tag-suggestion]");
+      if (!button) return;
+      addTag(button.dataset.tagSuggestion || "");
+      input.focus();
+    }});
+
+    menu.addEventListener("mousedown", (event) => event.preventDefault());
+    menu.addEventListener("click", (event) => {{
+      const button = event.target.closest("[data-tag-option]");
+      if (!button) return;
+      addTag(button.dataset.tagOption || "");
+      input.focus();
+    }});
+
+    input.addEventListener("input", renderMenu);
+    input.addEventListener("focus", renderMenu);
+    input.addEventListener("keydown", (event) => {{
+      if (event.key === "Enter") {{
+        event.preventDefault();
+        const primary = menu.querySelector("[data-primary-tag-option]");
+        addTag(primary?.dataset.tagOption || input.value);
+      }} else if (event.key === "Escape") {{
+        menu.hidden = true;
+      }} else if (event.key === "Backspace" && !input.value && selected.length) {{
+        removeTag(selected[selected.length - 1]);
+      }}
+    }});
+
+    form.addEventListener("submit", () => {{
+      if (input.value.trim()) addTag(input.value);
+      input.value = "";
+      syncHidden();
+    }});
+
+    document.addEventListener("click", (event) => {{
+      if (!form.contains(event.target)) menu.hidden = true;
+    }});
+
+    renderSelected();
+  }};
+
+  document.querySelectorAll("form[data-tag-picker]").forEach(setupTagPicker);
+
+  document.addEventListener("submit", (event) => {{
+    const form = event.target.closest("form[data-translate-form]");
+    if (!form) return;
+    const overlay = document.getElementById("translation-loading");
+    const button = event.submitter || form.querySelector("button");
+    if (overlay) {{
+      overlay.classList.add("is-visible");
+      overlay.setAttribute("aria-hidden", "false");
+    }}
+    if (button) button.disabled = true;
+  }});
 
   document.querySelectorAll("[data-source-group-field]").forEach((field) => {{
     const select = field.querySelector("[data-source-group-select]");
@@ -4462,6 +4857,9 @@ class Handler(BaseHTTPRequestHandler):
         if (query.get("saved") or [""])[0] == "accepted":
             count = h((query.get("count") or ["1"])[0])
             notice = f'<div class="notice">已確認收下 {count} 筆。處理過的項目已離開 RSS 待整理，現在可到候選清單的「待跑 skill」區接著編修。</div>'
+        elif (query.get("saved") or [""])[0] == "accepted_reading":
+            count = h((query.get("count") or ["1"])[0])
+            notice = f'<div class="notice">已確認收下並標記閱讀中 / 超想看 {count} 筆。處理過的項目已離開 RSS 待整理，後續會優先進入待跑 skill。</div>'
         elif (query.get("saved") or [""])[0] == "auto_rejected":
             count = h((query.get("count") or ["0"])[0])
             notice = f'<div class="notice">已用自動批次處理標記不收 {count} 筆，並依每則標題、網址與既有理由寫入新版不收分類。</div>'
@@ -4517,6 +4915,11 @@ class Handler(BaseHTTPRequestHandler):
       </form>
       <form method="post" action="/candidates/accept" data-decision-form>
         <input type="hidden" name="id" value="{h(item_id)}">
+        <input type="hidden" name="decision" value="accept_reading">
+        <button type="submit" class="reading-button">{button_content("閱讀中 / 超想看", "bookmark", "B")}</button>
+      </form>
+      <form method="post" action="/candidates/accept" data-decision-form>
+        <input type="hidden" name="id" value="{h(item_id)}">
         <input type="hidden" name="decision" value="direct_pr">
         <button type="submit" class="secondary">{button_content("直接送 PR（小消息）", "small-news", "P")}</button>
       </form>
@@ -4563,6 +4966,11 @@ class Handler(BaseHTTPRequestHandler):
       <form method="post" action="/items/accept" data-decision-form>
         <input type="hidden" name="id" value="{h(item_id)}">
         <button type="submit">{button_content("確認收，準備跑 skill", "accept", "A")}</button>
+      </form>
+      <form method="post" action="/items/accept" data-decision-form>
+        <input type="hidden" name="id" value="{h(item_id)}">
+        <input type="hidden" name="mark_reading" value="1">
+        <button type="submit" class="reading-button">{button_content("閱讀中 / 超想看", "bookmark", "B")}</button>
       </form>
       <form method="post" action="/items/direct-pr" data-decision-form>
         <input type="hidden" name="id" value="{h(item_id)}">
@@ -4686,6 +5094,7 @@ class Handler(BaseHTTPRequestHandler):
     <input type="hidden" id="batch-reason" name="reason">
     <div class="button-row">
       <button type="submit" name="action" value="accept">{button_content("批次確認收，準備跑 skill", "accept", "A")}</button>
+      <button type="submit" name="action" value="accept_reading" class="reading-button">{button_content("批次閱讀中 / 超想看", "bookmark", "B")}</button>
       <button type="submit" name="action" value="direct_pr" class="secondary">{button_content("批次直接送 PR（小消息）", "small-news", "P")}</button>
     </div>
     <p class="help">批次不收原因</p>
@@ -5411,7 +5820,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         can_translate = bool(article_markdown or article_text) and is_foreign_language_item(item) and not translated_markdown
         translate_actions = (
             f"""
-  <form method="post" action="/items/translate-zh">
+  <form method="post" action="/items/translate-zh" data-translate-form>
     <input type="hidden" name="id" value="{h(item_id)}">
     <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
     <button type="submit" class="secondary">自動翻譯成中文</button>
@@ -5463,6 +5872,11 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     </form>
     <form method="post" action="/candidates/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
+      <input type="hidden" name="decision" value="accept_reading">
+      <button type="submit" class="reading-button">{button_content("閱讀中 / 超想看", "bookmark", "B")}</button>
+    </form>
+    <form method="post" action="/candidates/accept">
+      <input type="hidden" name="id" value="{h(item_id)}">
       <input type="hidden" name="decision" value="direct_pr">
       <button type="submit" class="secondary">{button_content("直接送 PR（小消息）", "small-news", "P")}</button>
     </form>
@@ -5489,6 +5903,11 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <form method="post" action="/items/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
         <button type="submit">{button_content("確認收，準備跑 skill", "accept", "A")}</button>
+    </form>
+    <form method="post" action="/items/accept">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <input type="hidden" name="mark_reading" value="1">
+        <button type="submit" class="reading-button">{button_content("閱讀中 / 超想看", "bookmark", "B")}</button>
     </form>
     <form method="post" action="/items/direct-pr">
       <input type="hidden" name="id" value="{h(item_id)}">
@@ -5754,7 +6173,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         changed = 0
         for selected_id in selected_ids:
             if selected_id in candidate_ids:
-                if action in {"accept", "direct_pr"}:
+                if action in {"accept", "accept_reading", "direct_pr"}:
                     item, _already_exists = self.import_candidate_item(selected_id)
                     if item and item.get("id"):
                         item_ids_to_update.append(str(item.get("id")))
@@ -5783,14 +6202,21 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 updated_items.append(item)
                 continue
             updated_item = dict(item)
-            if action == "accept":
-                note = "本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。"
-                event_status = "accepted-for-editing"
+            if action in {"accept", "accept_reading"}:
+                if action == "accept_reading":
+                    note = "本機確認收下並標記為閱讀中 / 超想看；下一步優先跑 skill 做摘要、切角與文章編修，整理好後再送 PR。"
+                    event_status = "accepted-current-reading"
+                    decision_reason = "人工確認值得收，且標記近期正在閱讀 / 超想看。"
+                    updated_item["reader_flags"] = current_reading_flags(updated_item, decided_at)
+                else:
+                    note = "本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。"
+                    event_status = "accepted-for-editing"
+                    decision_reason = "人工確認值得收，準備進入 skill 編修。"
                 updated_item["status"] = "triaged"
                 updated_item["local_decision"] = {
                     "action": "accepted-for-editing",
                     "decided_at": decided_at,
-                    "reason": "人工確認值得收，準備進入 skill 編修。",
+                    "reason": decision_reason,
                     "source": "local_web",
                     "next_step": "run-writing-skill-before-pr",
                 }
@@ -5838,16 +6264,18 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 
     def accept_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
+        action = "accept_reading" if form_value(data, "mark_reading") == "1" else "accept"
         items = load_jsonl(ITEMS)
         if not any(item.get("id") == item_id for item in items):
             self.send_html("找不到項目", "<h1>找不到待整理項目</h1><p><a class='button' href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
             return
 
-        count = self.update_item_decisions([item_id], "accept")
+        count = self.update_item_decisions([item_id], action)
         if self.is_async_request():
             self.send_no_content()
             return
-        self.redirect(f"/items?saved=accepted&count={count}")
+        saved = "accepted_reading" if action == "accept_reading" else "accepted"
+        self.redirect(f"/items?saved={saved}&count={count}")
 
     def direct_pr_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
@@ -5893,12 +6321,13 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 return
             self.redirect("/items?error=empty-selection")
             return
-        if action == "accept":
-            count = self.update_pending_decisions(item_ids, "accept")
+        if action in {"accept", "accept_reading"}:
+            count = self.update_pending_decisions(item_ids, action)
             if self.is_async_request():
                 self.send_no_content()
                 return
-            self.redirect(f"/items?saved=accepted&count={count}")
+            saved = "accepted_reading" if action == "accept_reading" else "accepted"
+            self.redirect(f"/items?saved={saved}&count={count}")
             return
         if action == "direct_pr":
             count = self.update_pending_decisions(item_ids, "direct_pr")
@@ -6064,16 +6493,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 note = "取消近期正在閱讀 / 想分享標記。"
                 event_status = "cleared-current-reading"
             else:
-                flags.update(
-                    {
-                        "current_reading": True,
-                        "share_intent": True,
-                        "started_at": flags.get("started_at") or now,
-                        "updated_at": now,
-                        "source": "local_web",
-                        "skill_priority_after_days": CURRENT_READING_PRIORITY_DAYS,
-                    }
-                )
+                flags = current_reading_flags(updated, now)
                 note = f"標記為近期正在閱讀 / 想分享；若持續 {CURRENT_READING_PRIORITY_DAYS} 天以上，後續未指定項目時優先跑 skill。"
                 event_status = "marked-current-reading"
             updated["reader_flags"] = flags
@@ -6187,7 +6607,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             translation_actions_html = ""
             if response_item and article_markdown and is_foreign_language_item(response_item) and not item_translated_markdown(response_item):
                 translation_actions_html = f"""
-<form method="post" action="/items/translate-zh">
+<form method="post" action="/items/translate-zh" data-translate-form>
   <input type="hidden" name="id" value="{h(item_id)}">
   <input type="hidden" name="redirect" value="{h(redirect_to)}">
   <button type="submit" class="secondary">自動翻譯成中文</button>
@@ -6499,12 +6919,12 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             self.send_html("找不到候選項目", "<h1>找不到候選項目</h1><p><a href='/items'>回 RSS 待整理</a></p>", HTTPStatus.NOT_FOUND)
             return
 
-        if decision in {"accept", "direct_pr"}:
+        if decision in {"accept", "accept_reading", "direct_pr"}:
             count = self.update_pending_decisions([candidate_id], decision)
             if self.is_async_request():
                 self.send_no_content()
                 return
-            saved = "accepted" if decision == "accept" else "direct_pr"
+            saved = "direct_pr" if decision == "direct_pr" else "accepted_reading" if decision == "accept_reading" else "accepted"
             self.redirect(f"/items?saved={saved}&count={count}")
             return
 
@@ -6596,6 +7016,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             config["tracks"][track]["keep_keywords"] = keep
             config["tracks"][track]["skip_keywords"] = skip
         write_json(TRIAGE_KEYWORDS, config)
+        configured_keep_keyword_labels.cache_clear()
         self.redirect("/keywords?saved=1")
 
     def quick_update_source(self, data: dict[str, list[str]]) -> None:
