@@ -16,27 +16,9 @@
     <string>/Users/ianliu/Documents/Ian_Open_News/scripts/local_rss_daily.py</string>
   </array>
 
-  <key>StartCalendarInterval</key>
-  <array>
-    <dict>
-      <key>Hour</key>
-      <integer>12</integer>
-      <key>Minute</key>
-      <integer>0</integer>
-    </dict>
-    <dict>
-      <key>Hour</key>
-      <integer>18</integer>
-      <key>Minute</key>
-      <integer>0</integer>
-    </dict>
-    <dict>
-      <key>Hour</key>
-      <integer>23</integer>
-      <key>Minute</key>
-      <integer>0</integer>
-    </dict>
-  </array>
+  <!-- 評估頻率期間：每小時跑一次（3600 秒）。評估完可改回 StartCalendarInterval 固定時段。 -->
+  <key>StartInterval</key>
+  <integer>3600</integer>
 
   <key>StandardOutPath</key>
   <string>/Users/ianliu/Documents/Ian_Open_News/.cache/launchd-rss-fetch.log</string>
