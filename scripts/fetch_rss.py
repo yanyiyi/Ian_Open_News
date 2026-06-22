@@ -29,6 +29,11 @@ DEFAULT_DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
 DEFAULT_REJECTED_ITEMS = DATABASE / "rejected-items.jsonl"
 DEFAULT_STATUS_FILE = ROOT / ".cache" / "rss-fetch-status.json"
 DEFAULT_SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast"]
+FEED_ACCEPT_HEADER = "application/rss+xml, application/atom+xml, application/xml, text/xml, */*"
+BROWSER_FALLBACK_USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
+)
 FETCH_FREQUENCY_INTERVALS = {
     "hourly": timedelta(hours=1),
     "six-hourly": timedelta(hours=6),
@@ -373,19 +378,33 @@ def parse_feed_entries(content: bytes) -> list[FeedEntry]:
 def read_feed_bytes(url: str, timeout: int, user_agent: str) -> bytes:
     if url.startswith("file://"):
         return Path(url.removeprefix("file://")).read_bytes()
-    request = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": user_agent,
-            "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
-        },
+
+    def fetch_with_headers(headers: dict[str, str]) -> bytes:
+        request = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            content = response.read()
+            encoding = clean_text(response.headers.get("Content-Encoding")).casefold()
+            if encoding == "gzip" or content.startswith(b"\x1f\x8b"):
+                return gzip.decompress(content)
+            return content
+
+    try:
+        return fetch_with_headers(
+            {
+                "User-Agent": user_agent,
+                "Accept": FEED_ACCEPT_HEADER,
+            }
+        )
+    except urllib.error.HTTPError as exc:
+        if exc.code not in {403, 406}:
+            raise
+    return fetch_with_headers(
+        {
+            "User-Agent": BROWSER_FALLBACK_USER_AGENT,
+            "Accept": FEED_ACCEPT_HEADER,
+            "Accept-Language": "en-US,en;q=0.9",
+        }
     )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        content = response.read()
-        encoding = clean_text(response.headers.get("Content-Encoding")).casefold()
-        if encoding == "gzip" or content.startswith(b"\x1f\x8b"):
-            return gzip.decompress(content)
-        return content
 
 
 LINK_ATTR_RE = re.compile(r"""([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(['"])(.*?)\2""", re.S)
@@ -584,6 +603,11 @@ def source_is_fetchable(source: dict, args: argparse.Namespace) -> tuple[bool, s
     return True, ""
 
 
+def source_display_name(source: dict) -> str:
+    name = clean_text(source.get("name")) or clean_text(source.get("id")) or "unknown source"
+    return re.sub(r"^\s*[-*]\s+", "", name).strip() or name
+
+
 def build_report(
     *,
     fetched_sources: int,
@@ -635,7 +659,7 @@ def build_report(
     if failures:
         lines.extend(["## Failed sources", ""])
         for source, error in failures[:80]:
-            lines.append(f"- {source['name']} (`{source['id']}`): {error}")
+            lines.append(f"- {source_display_name(source)} (`{source['id']}`): {error}")
         if len(failures) > 80:
             lines.append(f"- ...and {len(failures) - 80} more")
         lines.append("")
@@ -760,7 +784,7 @@ def main() -> None:
         if source_id not in source_stats:
             source_stats[source_id] = {
                 "source_id": source_id,
-                "source_name": source.get("name", ""),
+                "source_name": source_display_name(source),
                 "feed_url": source.get("feed_url", ""),
                 "last_checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 "last_fetch_status": "pending",
@@ -779,9 +803,9 @@ def main() -> None:
             args.status_file,
             {
                 "phase": "fetching",
-                "message": f"正在抓取 {source.get('name') or source.get('id')} ({source_index}/{len(selected_sources)})",
+                "message": f"正在抓取 {source_display_name(source)} ({source_index}/{len(selected_sources)})",
                 "current_source_id": source.get("id", ""),
-                "current_source_name": source.get("name", ""),
+                "current_source_name": source_display_name(source),
                 "source_index": source_index,
                 "selected_sources": len(selected_sources),
                 "fetched_sources": fetched_sources,
