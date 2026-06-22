@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>研究指出：利用 Reddit 操弄 AI 搜尋結果非常容易 - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>研究指出：利用 Reddit 操弄 AI 搜尋結果非常容易</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-22T15:41:14+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">可用材料 / 可進編輯台</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-15 08:00</span>
+    </div>
+    <h2><a class="article-title-link" href="https://www.404media.co/it-is-trivially-easy-to-use-reddit-to-manipulate-ai-search-research-suggests/" target="_blank" rel="noreferrer" title="開啟原始連結">研究指出：利用 Reddit 操弄 AI 搜尋結果非常容易</a></h2>
+    <p class="lede">這篇報導整理 Cornell 研究對 AI 搜尋與深度研究代理的風險觀察：當 ChatGPT、Google AI 搜尋等工具即時擷取網路內容時，Reddit、Wikipedia、Quora 等使用者生成內容常被引用，而品牌或詐騙者只要在這些地方放入與使用者查詢高度相似的短句，就可能讓 AI 輸出偏向促銷、垃圾或不實內容。研究是在沙盒環境中模擬，沒有直接污染公開網站，但指出現有檢索機制常用文字相似度替代可信度判斷，讓 AEO 產業有機會反向設計內容來影響 AI 回答。報導也把這件事放到 Reddit 版主、Wikipedia 編輯與平台責任的脈絡中，凸顯開放社群在 AI 時代面臨的新型資訊污染壓力。</p>
+    <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
+    </div>
+    <section class="article-body"><h1>It Is Trivially Easy to Use Reddit to Manipulate AI Search, Research Suggests</h1>
+<p>A tiny snippet of user-generated text as short as 13 words long is often enough to manipulate the AI agents that power tools like ChatGPT and Google’s AI search, <a href="https://arxiv.org/pdf/2605.24245?ref=404media.co" target="_blank" rel="noreferrer">new research shows</a>. The study suggests that it is trivially easy for brands to inject promotional content on sites like Reddit, Quora, and Wikipedia with the end goal of poisoning or manipulating the output of AI tools. The preprint research, done by Hal Triedman, Tingwei Zhang, and Vitaly Shmatikov of Cornell University, is called “Deep-research agents can be poisoned via user-generated content” and provides a mechanism and research basis for a problem that has been noticed by Reddit moderators and Wikipedia editors, namely that their websites are getting flooded with promotional content from brands trying to do AEO, or AI-engine optimization. 404 Media has repeatedly reported on this booming industry, in which brands try to promote their product by seeding the websites that AI tools most often cite and scrape from with inauthentic and spammy content. The Cornell research finds that deep research agents, which are the real-time scrapers that tools like Google AI search and ChatGPT use to retrieve web content with citations in response to user queries, cite user-generated content from sites like Reddit or Wikipedia in roughly half of all queries, and that nearly a quarter of all citations come from user-generated websites. The paper suggests that what we have been seeing is basically <a href="https://www.404media.co/google-is-paying-reddit-60-million-for-fucksmith-to-tell-its-users-to-eat-glue/" target="_blank" rel="noreferrer">Redditor suggests you put glue on your pizza as a service</a>, or an end-to-end attack against the systems that increasingly dominate the ways that people access information online. The researchers found that “a single poisoned Reddit comment can influence generated outputs for an entire cluster of related [AI] queries,” the paper said. “We show that a tiny snippet—just 13 words—of retrieved text on a UGC website like Reddit, Wikipedia, Quora, Facebook, etc. can change AI agents to output spam / scam content pretty consistently,” Triedman told 404 Media. The fact that such small snippets of texts in even single comments can be used to ultimately trick LLMs raises questions about whether Reddit’s volunteer moderators or Wikipedia’s volunteer editors are going to be able to durably protect the communities they moderate and edit from AI manipulation over time. 404 Media has repeatedly written <a href="https://www.404media.co/companies-are-using-reddit-to-manipulate-chatgpt-and-google-ai-search/" target="_blank" rel="noreferrer">about the steps Redditors</a> and <a href="https://www.404media.co/wikipedia-bans-ai-generated-content/" target="_blank" rel="noreferrer">Wikipedia editors</a> have taken to keep AI-generated content off of their sites, but we have also written about the economic incentives and growing industries of AEO that has created a cat-and-mouse game between brands trying to manipulate AI tools and the people trying to prevent that from happening. For example, last week we wrote about the r/biohackers subreddit banning discussion of peptides because the companies shilling them posting inauthentic content had become too overwhelming, and about the rise of companies like RedRover, which advertise that they do brand placements on Reddit with the express purpose of changing the outputs on AI search results. The research aligns with what we’ve seen in the real world; artists, celebrities, and normal people have also seen that AI search is picking up seemingly insignificant, inaccurate text from around the web and <a href="https://www.404media.co/googles-ai-is-destroying-search-the-internet-and-your-brain/" target="_blank" rel="noreferrer">displaying it as though it were fact</a>. This is also notable as companies begin <a href="https://www.theatlantic.com/technology/2026/06/google-search-ai-optimization/687495/?ref=404media.co" target="_blank" rel="noreferrer">loading their own websites with AEO content</a> specifically targeted to agents and as a court in Germany has ruled that Google [can be held liable for the content its AI overviews](https://the-decoder.com/landmark-german-ruling-declares... This is happening in part because many deep research agents and large language models use lexical similarity to a query as a stand-in for accuracy of information, Triedman explained on a phone call. Basically, LLMs often return content that reads similar to the query that users ask it, so brands doing AI-engine optimization can study what people are asking AI and can create content that closely mirrors those queries on Reddit. “One of the things that’s critical is that if an 11-to-15-word snippet of text is very similar to the query, it can be particularly convincing to an LLM,” Triedman said. “So if you’re someone who is trying to manipulate Reddit, say you have supplements people want to buy, if you can identify the kinds of queries you want to poison, what you want to influence, you can put content on Reddit that looks very similar to what you’re trying to poison and that will be particularly convincing when it comes to an LLM.” The Cornell researchers did not post on the live Reddit website but instead grabbed content from the Reddit API and “interposed poisoned content at the agent system retrieval level,” meaning it was changed in what was essentially a sandbox simulation environment. They wrote that “publishing poisoned content to the live web would pollute the public information environment, which we consider ethically unacceptable.” The researchers found that even when adding poisoned, promotional content to the end of Reddit comments, they were able to change the responses that LLMs gave and the material that it ultimately cited. Poisoning LLM results is basically just as easy as doing targeted posting on highly relevant subreddits to the industry or company you’re trying to promote, phrasing the comment to align with popular LLM queries, and attempting to evade moderation for as long as possible, Triedman said. “It really is just that simple. The way that you can attack these systems is usually so much dumber than you think it is, or than you think it needs to be,” he said. “But yes, it really is that simple.” “I think implicit in the design of these systems, which are like trying to replicate 10 people doing Google searches and reading the first 10 search results on a given query is that they are explicitly doing what they’re trained to do,” Triedman added. “LLMs export their trust to external content moderation strategies that exist on sites like Wikipedia or Reddit or Quora or StackExchange. So these deep research systems are increasingly relying on the judgment and taste of subreddit moderators or Wikipedia editors, and at the same time those websites are increasingly under strain from people and companies trying to manipulate them.” Since we published the article of the biohackers subreddit about AEO-focused spam, the moderator of that subreddit sent an example of attempted manipulation, in which they believe the creators of an app called <a href="https://archive.is/IFxqJ?ref=404media.co" target="_blank" rel="noreferrer">PepPal Peptide Dose Tracker created a thread</a> called “LDL Still High on Reta + low carb diet,” which consisted of a series of screenshots from the app from a supposedly normal person who was seeking advice on their cholesterol. After the post had a series of comments, the original poster edited their initial post to include a link to the app: “since people keep asking this is the app I’m using.” The moderator <a href="https://www.reddit.com/r/Biohackers/comments/1twu5hi/ldl_still_high_on_reta_low_carb_diet/?share_id=yzgGbVzP4tzZxqVL9HQAc&amp;ref=404media.co" target="_blank" rel="noreferrer">eventually deleted the thread</a> and said “we ask that you don’t blatantly promote products and brands you have affiliations with.” “They created engagement and then linked out their app,” the moderator of the subreddit told me. “They also used bots to create specific sequences [of comments].” Zhang, one of the Cornell researchers, told 404 Media that AI is fundamentally changing how people retrieve information on the internet, but that many of these deep research engines fueling AI-powered search are treating the veracity of many websites more or less the same. “It’s not thinking about which source you find more credible: a random Reddit comment or an article from a government website. They are treated almost the same by the LLMs.” Both Zhang and Triedman said that problem is not necessarily one for Reddit or Wikipedia to solve on its own. Both sites have at least attempted to prevent AI spam from taking over these very human spaces, but what we’re facing is more of a “societal-level” problem, Triedman said. “I&#x27;m not actually advocating for this, but you could add biometric verification in order to post a comment, or you could limit the people who could post comments that are just fully copy-pasted in from some other source,” Triedman said. “But there&#x27;s all sorts of technical solutions that may or may not work. They get increasingly disruptive and radical the further you go down this road of trying to verify humanness.” One alarming finding of the paper is that moderating against this sort of attack may not be feasible in the long run, because of how little text is actually needed to manipulate an LLM. Long passages of obviously promotional AI-generated text are easier to detect than a few words appended in a random comment thread. “I think based on the comment content itself, it&#x27;s just hard to distinguish between the poisoned text and an actual user&#x27;s text,” Zhang said. “Let&#x27;s say if you want to find the best restaurant, it could be possible that some [human] users post about good restaurants—you can’t really say [as a moderator] ‘You cannot post this comment because it&#x27;ll poison an LLM.’” Zhang said that embarrassing AI search results, like the glue pizza incident, “really hurts the interests of AI companies, and I think it’s more their problem to solve. But really, there’s no easy fix.” A Reddit spokesperson told 404 Media “Managing spam, bots, or other inauthentic content is not new to Reddit—we’ve been on the cutting edge of detecting and removing manipulated content and inauthentic accounts for 20 years. We have sophisticated systems that detect and prevent inauthentic behavior, coordinated manipulation, and astroturfing, and we<a href="https://www.reddit.com/r/redditdev/comments/1s3f3ag/keeping_reddit_human_a_new_app_label_for/?share_id=d1hiMxk4BNqIGQ2dCtXuZ&amp;utm_content=2&amp;utm_medium=ios_app&amp;utm_name=ioscss&amp;utm_source=share&amp;utm_term=1" target="_blank" rel="noreferrer">recently announced</a> that any fishy automated accounts will be asked to verify their humanity. AEO or chatbot visibility strategies can have unintended and opposite effects, particularly when users can tell the content isn’t additive or authentic.”</p>
+<h3>More like this</h3></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-ab961c80beab04fe.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-21T23:53:17+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-21T23:53:17+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：It Is Trivially Easy to Use Reddit to Manipulate AI Search, Research Suggests</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：It Is Trivially Easy to Use Reddit to Manipulate AI Search, Research Suggests（Codex）</li><li><strong>原始作者</strong>：@jason_koebler（twitter:creator）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-ab961c80beab04fe";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

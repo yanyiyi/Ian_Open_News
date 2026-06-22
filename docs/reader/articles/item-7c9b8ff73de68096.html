@@ -274,7 +274,7 @@
     <div class="masthead">
       <h1>你的 AI 沒壞，是你的資料壞了</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-21T18:24:51+00:00</p>
+      <p class="generated">產生時間：2026-06-22T15:41:14+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -288,7 +288,7 @@
   <article class="article-panel">
     <div>
       <span class="badge">開放科技</span>
-      <span class="badge">精選文章 / 待跑 skill</span>
+      <span class="badge">可用材料 / 可進編輯台</span>
 
       <span class="badge">已載入本機全文</span>
       <span class="badge">2026-06-17 08:00</span>
@@ -299,7 +299,16 @@
     <div class="actions">
       <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
-    <section class="article-body"><h1>Your AI isn&#x27;t broken. Your data is.</h1></section>
+    <section class="article-body"><h1>你的 AI 沒壞，是你的資料壞了</h1>
+<p>企業正把數十億美元投入 AI，換回來的卻是一堆垃圾結果。一家新創公司說，它知道原因，也打造出第一個專門解決這個問題的平台。 Clario 週三脫離隱形模式，宣布取得 600 萬美元種子輪資金，要處理共同創辦人暨執行長 <a href="https://www.linkedin.com/in/yousufakhan/" target="_blank" rel="noreferrer">Yousuf Khan</a> 所稱的資料 ROT 問題：冗餘、過時、瑣碎的檔案推高儲存成本，也從源頭污染 AI 專案。 Khan 在聲明中表示：「ChatGPT 問世四年後，企業已在專案上花了數十億美元，卻沒有產生有意義的影響。『垃圾進，垃圾出』不是陳腔濫調，而是代價極高的錯誤。」 業界估計，所有已儲存的<a href="https://thenewstack.io/how-precog-adds-business-context-to-make-enterprise-data-ai-ready/" target="_blank" rel="noreferrer">企業資料</a>中，有超過三分之一屬於垃圾類別。Gartner 也預測，因為資料品質不佳，到年底將有 60% 的 AI 專案遭到放棄。Clario 自己早期客戶工作的結果，甚至把這個數字推得更高。Khan 說，在與設計合作夥伴進行的測試中，該公司發現垃圾資料比例最高可達 60%。 Khan 曾五度擔任 CIO，在成為 Ridge Ventures 普通合夥人之前，曾在 Pure Storage 與 Moveworks 擔任這個職位。他說，自己在每一站都不斷撞上同一堵牆。他告訴 <em>The New Stack</em>：「我曾多次嘗試用所有大型檔案系統來解決這個問題，但都做不到。」ChatGPT 推出後，AI 生成內容開始湧入企業儲存庫，問題也變得更加嚴重。 共同創辦人暨技術長 <a href="https://www.linkedin.com/in/madhu-vohra/" target="_blank" rel="noreferrer">Madhu Vohra</a> 則帶來基礎架構面的經驗。她的職涯都在打造這些資料最後會進入的系統，包括在 NetApp 設計叢集式 SAN、在 Nutanix 擴展工程團隊，以及領導 Oracle 在 OCI 的區塊與物件儲存。 她告訴 <em>The New Stack</em>：「我曾打造讓人們得以大量累積資料的重要系統。所以我現在是在贖罪。」</p>
+<h2>運作方式</h2>
+<p>Clario 可直接連接企業檔案與內容系統，包括 <a href="https://thenewstack.io/address-high-scale-google-drive-data-exposure-with-bulk-remediation/" target="_blank" rel="noreferrer">Google Drive</a>、SharePoint、OneDrive、Box 與 Confluence，並掃描中繼資料，在完全不開啟檔案本身的情況下找出垃圾。Vohra 說，目前分類是以啟發式規則為基礎，使用檔案 checksum、命名模式、存取時間戳記與格式支援狀態。她也指出，AI 與以 embedding 為基礎的偵測已列入產品路線圖。 當 Clario 標記某個檔案時，它會透過 Slack 或 Teams 觸發工作流程，通知建立或擁有該內容的人，並請對方選擇保留、封存或刪除。系統會從這些決定中學習，逐步建立越來越自動化的清理引擎。Clario 只有在客戶對被標記的檔案採取行動時才收費。這是一種以成果為基礎的模式，讓公司的誘因與實際資料減量保持一致。 ROT 分成三類：冗餘檔案（重複與近似重複檔）、過時檔案（沒有人能開啟的舊格式、多年未被動過的文件、離職員工留下的內容），以及瑣碎檔案（隱藏檔、雜訊）。Vohra 說，早期客戶分析已找出數 TB 的廢棄資料，包括已停產產品線的知識庫文章，以及前員工下載的完整電影長片。 為了避免誤判，Clario 的模型調校方向是重視精準率勝過召回率，也就是只標記它有把握判定為垃圾的內容。 Khan 說：「任何我們認為難以判讀的東西，我們都想先提出來。」他補充，目標是先處理容易摘取的成果，在進入更模糊的領域之前建立信心。</p>
+<h2>AI 成本觀點</h2>
+<p>這個時間點的理由不只是儲存帳單。隨著企業打造內部代理人與以 <a href="https://thenewstack.io/a-blueprint-for-implementing-rag-at-scale/" target="_blank" rel="noreferrer">RAG</a> 為基礎的系統，底層資料品質會直接決定這些系統是否能運作。Vohra 說得很直接：「是我的 AI 產生幻覺，還是因為你把 1,500 萬個檔案全都餵給它？」 Khan 說，他是從 token 經濟學看見這個問題：建立在未清理知識庫上的內部代理人，會迫使 <a href="https://thenewstack.io/llm/" target="_blank" rel="noreferrer">LLM</a> 在過時政策、停產產品文件與過時支援文章中篩選，把運算預算燒在雜訊上。 他指出：「你根本是在垃圾上處理 token。」 一位早期客戶擁有 550 萬個檔案，結果發現其中超過 20% 是資料 ROT，而且主要可追溯到四名已離職員工。</p>
+<h2>競爭態勢</h2>
+<p>Khan 承認，這個領域的業者不多。他說，備份供應商與封存公司曾觸及資料清理的邊緣，但還沒有公司打造從分類、通知員工，到採取行動與學習的端到端工作流程。他說：「如果它們已經存在，我早就用了。我還沒看過有公司做到這件事。」 Vohra 指出，壓縮與儲存效率工具處理的是 bit 的成本，而不是 bit 的數量。「問題核心仍然是，你擁有的 1,500 萬個檔案，仍然正是那 1,500 萬個問題。」</p>
+<h2>投資人與客戶</h2>
+<p>Preface Ventures 合夥人 <a href="https://www.linkedin.com/in/saadsiddiqu/" target="_blank" rel="noreferrer">Saad Siddiqui</a> 在聲明中表示：「企業資料危機並不新鮮，但今天繼續忽視它的代價，已經越來越難以合理化。我們投資 Clario，是因為他們是唯一一家從基礎層面協助企業達到 AI-ready 的公司。」 Clario 約有十幾家客戶處於早期分析與部署階段。該公司成立約六個月，計畫從檔案與內容系統，擴展到影像儲存庫、影片儲存，以及 ServiceNow、Salesforce Service Cloud 等平台中的知識庫。 Khan 簡單說明產品願景：「我們的目標是確保資料衛生成為企業內部的持續流程。」</p></section>
   </article>
 
 <aside class="side-panel">
@@ -313,7 +322,7 @@
   <ul><li>本機決定：accepted-for-editing / 2026-06-19T00:25:36+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
 2026-06-19T00:25:36+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。</li></ul>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Your AI isn&#x27;t broken. Your data is.（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：你的 AI 沒壞，是你的資料壞了（Codex）</li><li><strong>原始作者</strong>：Darryl K. Taft（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Your AI isn&#x27;t broken. Your data is.（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：你的 AI 沒壞，是你的資料壞了（Codex）</li><li><strong>原始作者</strong>：Darryl K. Taft（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-7c9b8ff73de68096";

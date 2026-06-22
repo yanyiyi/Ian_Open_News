@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>有人偷用你家 Wi-Fi 的 3 個明顯跡象，以及阻止方法 - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>有人偷用你家 Wi-Fi 的 3 個明顯跡象，以及阻止方法</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-22T15:41:14+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">可用材料 / 可進編輯台</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-22 08:00</span>
+    </div>
+    <h2><a class="article-title-link" href="https://www.zdnet.com/article/signs-someone-is-using-your-wi-fi-how-to-kick-them-off/" target="_blank" rel="noreferrer" title="開啟原始連結">有人偷用你家 Wi-Fi 的 3 個明顯跡象，以及阻止方法</a></h2>
+    <p class="lede">這篇文章說明家用 Wi-Fi 可能被他人未授權使用時的幾個常見跡象，包括網路突然變慢、路由器管理介面出現不認識的裝置，以及 Wi-Fi 連線或密碼被異常更動。文章也提醒，這不只是頻寬被占用的問題，還可能影響個人隱私與資安，甚至讓使用者承擔他人不當網路行為的風險。整體內容屬於面向一般讀者的家庭網路安全檢查與防護建議。</p>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">數位人權</span><span class="tag-chip">數位隱私</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
+    </div>
+    <section class="article-body"><h1>有人偷用你家 Wi-Fi 的 3 個明顯跡象，以及阻止方法</h1>
+<p>監控正持續滲入我們的日常生活。街上到處有臉部辨識攝影機；我們在線上也不斷被追蹤；參加社交活動時，也很少不會有人拿著相機對著我們拍。然而，如果這種監控進到家裡，可能更令人不安。 你是否曾注意到有陌生裝置連上家中網路？或是頻寬突然快速下降？如果有人潛伏在你的 Wi-Fi 上，那就是嚴重侵犯隱私；更不用說你正在為這項服務付費，對方卻在占用你的資源。 如果有人取得你的 Wi-Fi 存取權，他們能做的不只是偷用你付費購買的頻寬；他們也可能危害你的隱私與安全、竊取你的資料，甚至讓你的網路活動和他人的非法線上行為被牽連在一起。 幸好，要辨識網路上的陌生人並把他們踢出去，通常並不困難。以下說明如何偵測他們、請他們離開，並避免他們再進來。</p>
+<h2>留意這三個警訊</h2>
+<h3>1. 你的網路變慢</h3>
+<p>網路連線突然從快速變得遲緩，或出現意外斷線與延遲，原因有很多。合理的中斷原因包括路由器硬體故障、外部線路受損、訊號強度不足，或網路服務供應商（ISP）端的問題，例如區域性斷線。軟體方面，如果使用錯誤的 VPN 或 VPN 伺服器來保護連線，也可能導致嚴重降速。 不過，網路變慢也可能是因為你的網路上有不速之客正在偷用頻寬。連上同一個 Wi-Fi 存取點的裝置越多，流量需求就越高。若有人正在高畫質串流、線上遊戲，或透過 torrent 下載大型檔案，情況尤其明顯。 要分辨網路變慢是合理原因造成，還是被搭便車的人導致延遲，可能並不容易。你可以先查看 ISP 的服務狀態是否異常、到 downforeveryoneorjustme.com 檢查線上服務是否中斷，並檢查硬體，包括線材與接頭；因為線路鬆脫也可能造成寬頻問題。</p>
+<h3>2. 網路上出現未知或不認得的裝置</h3>
+<p>如果有人未經允許使用你的 Wi-Fi，他們必須連上一台裝置，例如智慧型手機、PC、喇叭或智慧家庭設備。 你也可能會遇到網速低、流量負載高、影片緩衝，甚至自己的裝置毫無預警斷線。當太多裝置，不論是否獲得授權，都在爭奪同一份頻寬時，網路就可能不堪負荷。 另一個跡象是路由器顯示的即時流量與連線狀態。例如，硬體上的燈號閃爍可能代表網路活動，即使你並沒有預期會有流量。不過，在認定是未知裝置造成前，還是應先查閱路由器手冊，確認是否有其他原因。</p>
+<h3>3. 路由器停止運作，或你失去 Wi-Fi 存取權</h3>
+<p>如果 Wi-Fi 突然停止運作，可能代表有人未經允許動了你的設定。若你的網路會在特定時間開關，例如你正在播放音樂時，更值得懷疑。 要維持對你 Wi-Fi 熱點的存取，對方必須離你很近。如果你和鄰居或家中某人關係不太和睦，就始終存在有人故意干擾你 Wi-Fi 的風險。例如，若有人已經取得你的 Wi-Fi 與閘道器存取權，就可以隨時中斷你的連線。 此外，如果 Wi-Fi 密碼被更改，而你被踢出網路，很可能有人已經取得控制權，並在未經允許的情況下改掉密碼。 不過，你也應該記得，問題可能來自硬體故障，而不是惡意人士。路由器會隨時間故障、ISP 服務可能不穩，甚至天氣狀況也可能影響連線。但如果服務中斷有固定模式，例如每天某個特定時間發生，就可能是刻意造成的。</p>
+<h2>別人怎麼會未經允許使用我的 Wi-Fi？</h2>
+<p>最簡單的答案通常就是正確答案；在 Wi-Fi 這件事上，通常問題出在密碼。 可能是你的密碼太弱、太容易猜，或是在未經你允許的情況下被分享出去。也可能有人對某些 Wi-Fi 網路進行暴力破解或字典攻擊，執行程式測試字母、數字、片語和特殊字元的組合，藉此猜出密碼並闖入。 Wi-Fi 安全性本身也是問題。Wi-Fi 標準包括 WPA、WPA2 與 WPA3。你可以到路由器的無線設定中查看 Wi-Fi 使用的通訊協定：在 macOS 上，按住 option 鍵並點擊 Wi-Fi 圖示；在 Windows 上，前往「設定」、Wi-Fi，接著查看安全性分頁。 標準越新，攻擊者越難入侵。但如果密碼很差或網路設定錯誤，無論使用哪一種協定，都不是完全不可能被突破。過時的路由器韌體也可能讓你的 Wi-Fi 面臨風險，因為其中可能含有可被利用的漏洞。你可以在路由器閘道器中查看硬體的韌體版本，確認它是否會自動更新，或是否需要透過網頁手動更新。</p>
+<h2>如何找出網路上的可疑裝置？</h2>
+<p>要確認是否有人未經允許連上你的 Wi-Fi 網路，最簡單的方法是進行網路掃描。 第一步是透過瀏覽器進入路由器的閘道器。你的路由器製造商或 ISP 應該會提供需要造訪的位址；如果不確定，可以試試 192.168.0.1 或 192.168.1.1。另一個方法是打開智慧型手機的 Wi-Fi 設定，點選家中的 Wi-Fi 熱點，進入設定，並在可用時選擇「管理路由器」；這應該會直接帶你到閘道器。 透過瀏覽器進入閘道器時，你可能會看到連線不是私密連線的警告，接著需要用集線器或路由器密碼登入。登入後，依 ISP 而定，你可能可以看到網路上列出的所有裝置。 或者，你也可以使用專門的網路掃描工具，找出並顯示所有裝置與 IP 位址，再檢查是否有陌生項目。</p>
+<h2>還能怎麼確認是否有人闖入 Wi-Fi？</h2>
+<p><strong>執行測速：</strong> 如果可以，在一天中的不同時間測速，看看是否能找出模式。例如，如果你的起始速度本來就偏低，而有人下班回家後開始用 Netflix 看 4K 串流，你可能會立刻注意到服務品質下降，甚至完全無法載入內容。 <strong>檢查連線紀錄：</strong> 熟悉技術的人可以使用 Nmap 與 Fing 等工具產生紀錄，這些是專門用於網路與 Wi-Fi 對應的工具。它們可能讓你了解有哪些裝置正在連線、連了多久，以及何時連線。 <strong>觀察你的周遭環境：</strong> 例如，如果鄰居正在大聲播放 Spotify 播放清單，而你拔掉路由器後音樂突然停止，你可能就找到了 Wi-Fi 服務斷斷續續的原因。</p>
+<h2>如何阻止網路入侵者？</h2>
+<p><strong>更改密碼：</strong> 如果有人透過猜出密碼悄悄使用你的 Wi-Fi，改密碼就是最快也最簡單的踢人方式。你可以依前述方式進入路由器閘道器來更改密碼。 <strong>選擇更好的密碼：</strong> 不要依賴預設密碼來保護 Wi-Fi，也不要使用容易記住或方便分享給訪客的密碼。建立一組複雜密碼。雖然很麻煩，但請花時間把所有裝置重新連上 Wi-Fi；因為改密碼代表使用舊憑證登入的裝置會被移出網路。雖然我們不建議把重要線上帳號的密碼寫下來，但家用 Wi-Fi 的密碼寫下來並放在家中安全處，風險相對較低。 <strong>檢查管理員密碼：</strong> 你也應該檢查路由器或 ISP 閘道器的管理員密碼。如果仍是預設組合，例如 admin/admin，請改成更強的密碼，並妥善保存在安全地方。 <strong>檢查 Wi-Fi 安全性，必要時升級：</strong> 如果你使用的是過時或舊式通訊協定，例如 WPA，它本身就不夠安全，無論你做什麼都可能容易被破解。這種情況下，你需要升級通訊協定。通常你可以自行進入路由器閘道器，在安全性或無線設定中變更加密標準。之後你可能需要設定新密碼，並重新連接各項裝置。如果可以，WPA3 是最佳選擇。 <strong>考慮設定訪客網路：</strong> 如果你偶爾需要分享 Wi-Fi，可以設定訪客網路。這會建立一個與主要網路和裝置分開的存取點，讓你對誰能連線、可以連多久，以及能使用多少頻寬，有更多控制權。</p></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-aadcb0c66aca6878.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-22T15:19:54+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-22T15:19:54+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：There are 3 obvious signs someone is stealing your Wi-Fi - and several ways to stop them</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：有人偷用你家 Wi-Fi 的 3 個明顯跡象，以及阻止方法（Codex）</li><li><strong>原始作者</strong>：@ZDNET（twitter:creator）</li><li><strong>原始網站授權</strong>：著作權保護（頁面文字推斷）（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-aadcb0c66aca6878";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
