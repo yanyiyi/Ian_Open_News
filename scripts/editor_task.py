@@ -33,14 +33,17 @@ CANDIDATES = CACHE / "rss-candidates.jsonl"
 SESSIONS = CACHE / "editor-sessions.jsonl"
 STATUS = CACHE / "editor-status.json"
 
-TASK_TYPES = {"theme-check", "compose-thematic", "compose-digest", "factcheck"}
+TASK_TYPES = {"theme-check", "compose-thematic", "compose-digest", "factcheck", "extract-viewpoints"}
 CHOICE_LABELS = {"thematic": "主題式", "digest": "彙報式"}
 TASK_LABELS = {
     "theme-check": "選法檢查",
     "compose-thematic": "主題式撰稿",
     "compose-digest": "彙報式撰稿",
-    "factcheck": "查核",
+    "factcheck": "查核找原文",
+    "extract-viewpoints": "萃取觀點",
 }
+# 哪些任務要上網查（需要 web search 工具）
+WEB_TASKS = {"factcheck"}
 
 
 # --------------------------------------------------------------------------- #
@@ -191,8 +194,10 @@ def gather_viewpoints(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
 WRITING_RULES = (
     "寫作規則（Ian Open News）：忠於來源、分清「原文說什麼」與「我們的觀察」；"
     "用台灣慣用語、不超譯；語氣清楚準確不浮誇；數字、日期、組織、法規、授權名稱保留來源，不確定就標「需要出處」；"
-    "不要把廠商新聞稿當已證實事實。不要上網、不要使用任何工具，只根據提供的材料推理。"
+    "不要把廠商新聞稿當已證實事實。"
 )
+# 不需上網的任務，明確要求只靠提供的材料推理。
+OFFLINE_RULE = "不要上網、不要使用任何工具，只根據提供的材料推理。"
 
 
 def theme_check_schema() -> dict[str, Any]:
@@ -250,15 +255,40 @@ def factcheck_schema() -> dict[str, Any]:
                 "items": {
                     "type": "object",
                     "additionalProperties": False,
-                    "required": ["title", "url", "why"],
+                    "required": ["title", "url", "kind", "found", "why"],
                     "properties": {
                         "title": {"type": "string"},
                         "url": {"type": "string"},
+                        "kind": {"type": "string",
+                                  "enum": ["original", "primary", "official", "follow-up", "background"]},
+                        "found": {"type": "boolean"},
                         "why": {"type": "string"},
                     },
                 },
             },
             "overall_note": {"type": "string"},
+        },
+    }
+
+
+def extract_viewpoints_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["viewpoint_candidates"],
+        "properties": {
+            "viewpoint_candidates": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["title", "body"],
+                    "properties": {
+                        "title": {"type": "string"},
+                        "body": {"type": "string"},
+                    },
+                },
+            },
         },
     }
 
@@ -274,7 +304,7 @@ def build_prompt(task_type: str, choice: str, materials: list[dict], viewpoints:
 請判斷這些材料彼此相關程度，建議用「主題式」（thematic，幾篇相關、收斂成一個觀點）還是「彙報式」（digest，多主題不一定相關的彙整），
 並說明若選錯該怎麼貼。判斷時請參考使用者的觀點筆記；如果沒有任何一條觀點和這批材料相關，請在 has_suggested_viewpoint=true 並擬一條待補觀點草稿（標題＋一兩句）。
 
-{WRITING_RULES}
+{WRITING_RULES}{OFFLINE_RULE}
 {extra}
 材料：
 {mat_json}
@@ -295,7 +325,7 @@ def build_prompt(task_type: str, choice: str, materials: list[dict], viewpoints:
 {mode}
 {vp_hint}保留每篇材料的來源與原始連結。
 
-{WRITING_RULES}
+{WRITING_RULES}{OFFLINE_RULE}
 {extra}
 材料：
 {mat_json}
@@ -306,10 +336,32 @@ def build_prompt(task_type: str, choice: str, materials: list[dict], viewpoints:
 請直接輸出 Markdown 稿件本文（含標題），不要輸出 JSON、不要加說明。
 """
 
-    # factcheck
-    return f"""你是 Ian Open News 的查核編輯。請針對下列材料整理出可驗證的關鍵宣稱，標記每條是否被材料支持，
-並列出值得進一步查核或收藏的來源（recommended_sources，給標題、URL、為什麼值得看）。
-不要杜撰連結；若材料未提供 URL，url 留空字串。
+    if task_type == "extract-viewpoints":
+        return f"""你是 Ian Open News 的觀點整理編輯。請從下列材料（以及「額外指示」中可能附上的本次編輯內容）中，
+萃取 2-5 條值得存進「觀點庫」的觀點。每條給一個短標題與一兩句 body，要能把這些材料串起來、講清楚一個立場或張力，
+不是流水帳摘要。避免空泛口號。
+
+{WRITING_RULES}{OFFLINE_RULE}
+{extra}
+材料：
+{mat_json}
+
+請只輸出符合下列 JSON schema 的物件，不要任何額外說明或 markdown 包裝：
+{json.dumps(extract_viewpoints_schema(), ensure_ascii=False)}
+"""
+
+    # factcheck：真的上網把原文 / 正式文件 / 系列下篇找出來，附真實可點 URL
+    input_urls = [m.get("url") for m in materials if m.get("url")]
+    input_urls_json = json.dumps(input_urls, ensure_ascii=False)
+    return f"""你是 Ian Open News 的查核編輯，可以使用網路搜尋工具。請**實際上網查證**，幫使用者把原文找出來。
+
+任務：
+1. 列出材料裡可驗證的關鍵宣稱（claims），標記是否被材料本身支持。
+2. recommended_sources：上網找出**能佐證或追溯的原始/權威來源**並附**真實、可點的 URL**——例如官方公告、法規原文、統計報告、研究原文、新聞原始出處。
+   - kind 標明來源性質：original（被轉述報導的原始出處）/ primary（一手文件、官方公告、法規）/ official（機關或組織官網統計或公告）/ follow-up（系列文章的下一篇或其他篇）/ background（補充背景）。
+   - 若材料看起來是系列文章（標題或內文出現「上篇 / part 1 / parte 1 / 第一部」等），請找出**後續或其他篇**，kind=follow-up。
+   - found：真的找到可點 URL 時為 true 並填 url；查不到就 found=false、url 留空字串，並在 why 說明為何沒找到，**絕對不要杜撰 URL**。
+3. **不要把使用者提供的材料本身列為 recommended_sources**（那是被查核的對象，不是新發現）。以下是材料的 URL，請排除指向同一頁的連結：{input_urls_json}
 
 {WRITING_RULES}
 {extra}
@@ -340,7 +392,7 @@ def _env() -> dict[str, str]:
     return env
 
 
-def run_codex(prompt: str, schema: dict | None, timeout: int) -> tuple[str, str]:
+def run_codex(prompt: str, schema: dict | None, timeout: int, web: bool = False) -> tuple[str, str]:
     """回傳 (raw_text, model)。有 schema 時 raw_text 為 JSON 字串。"""
     CACHE.mkdir(exist_ok=True)
     output_path = CACHE / "editor-codex-output.txt"
@@ -349,6 +401,8 @@ def run_codex(prompt: str, schema: dict | None, timeout: int) -> tuple[str, str]
         "--cd", str(ROOT), "--sandbox", "read-only", "--color", "never",
         "--output-last-message", str(output_path),
     ]
+    if web:
+        command += ["-c", "tools.web_search=true"]
     if schema is not None:
         schema_path = CACHE / "editor-codex.schema.json"
         schema_path.write_text(json.dumps(schema, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -363,9 +417,11 @@ def run_codex(prompt: str, schema: dict | None, timeout: int) -> tuple[str, str]
     return text.strip(), "codex"
 
 
-def run_claude(prompt: str, timeout: int) -> tuple[str, str]:
+def run_claude(prompt: str, timeout: int, web: bool = False) -> tuple[str, str]:
     """回傳 (result_text, model)。"""
     command = [cli_path("claude"), "-p", prompt, "--output-format", "json"]
+    if web:
+        command += ["--allowedTools", "WebSearch", "WebFetch"]
     result = subprocess.run(
         command, cwd=ROOT, text=True, capture_output=True, timeout=timeout, env=_env()
     )
@@ -427,24 +483,70 @@ def theme_check_markdown(data: dict, choice: str) -> str:
     return "\n".join(lines)
 
 
+KIND_LABELS = {"original": "原始出處", "primary": "一手文件", "official": "官方",
+               "follow-up": "系列下篇", "background": "背景"}
+
+
 def factcheck_markdown(data: dict) -> str:
-    lines = ["## 查核結果", "", "**關鍵宣稱**："]
+    lines = ["## 查核找原文", "", "**關鍵宣稱**："]
     badge = {"supported": "✅ 有支持", "unclear": "❓ 不明", "needs-source": "⚠️ 需出處"}
     for c in data.get("claims") or []:
         lines.append(f"- {badge.get(c.get('status'), c.get('status'))}：{c.get('claim','')}　{c.get('note','')}")
-    lines += ["", "**值得查核／收藏的來源**（可在介面按「+ 加入收藏」）："]
-    for s in data.get("recommended_sources") or []:
-        url = s.get("url") or ""
-        title = s.get("title") or url or "(未命名)"
-        lines.append(f"- [{title}]({url})　{s.get('why','')}" if url else f"- {title}　{s.get('why','')}")
+    found = [s for s in (data.get("recommended_sources") or []) if s.get("url")]
+    missing = [s for s in (data.get("recommended_sources") or []) if not s.get("url")]
+    lines += ["", "**找到的原文／來源**（可在介面按「+ 新增到入庫建檔區」）："]
+    if found:
+        for s in found:
+            kind = KIND_LABELS.get(s.get("kind"), s.get("kind") or "")
+            tag = f"［{kind}］" if kind else ""
+            lines.append(f"- {tag}[{s.get('title') or s.get('url')}]({s.get('url')})　{s.get('why','')}")
+    else:
+        lines.append("- （這次沒找到可點的原文連結）")
+    if missing:
+        lines += ["", "**還沒找到原文（誠實標記，未杜撰連結）**："]
+        for s in missing:
+            kind = KIND_LABELS.get(s.get("kind"), s.get("kind") or "")
+            tag = f"［{kind}］" if kind else ""
+            lines.append(f"- {tag}{s.get('title','')}　{s.get('why','')}")
     if data.get("overall_note"):
         lines += ["", f"**整體**：{data.get('overall_note')}"]
+    return "\n".join(lines)
+
+
+def extract_viewpoints_markdown(data: dict) -> str:
+    lines = ["## 萃取的觀點候選", "", "（可在下方按「+ 串聯加入觀點庫」，會自動帶上本次材料）", ""]
+    for v in data.get("viewpoint_candidates") or []:
+        lines.append(f"- **{v.get('title','')}**：{v.get('body','')}")
+    if len(lines) == 4:
+        lines.append("- （這次沒萃取到明確觀點）")
     return "\n".join(lines)
 
 
 # --------------------------------------------------------------------------- #
 # 主流程
 # --------------------------------------------------------------------------- #
+def _norm_url(url: object) -> str:
+    u = clean_text(url).lower().rstrip("/")
+    u = re.sub(r"^https?://", "", u)
+    u = re.sub(r"[?#].*$", "", u)
+    return u
+
+
+def drop_input_echoes(sources: object, materials: list[dict]) -> list[dict]:
+    """濾掉把輸入材料自己當推薦的來源（echo）。"""
+    if not isinstance(sources, list):
+        return []
+    input_urls = {_norm_url(m.get("url")) for m in materials if m.get("url")}
+    out = []
+    for s in sources:
+        if not isinstance(s, dict):
+            continue
+        if s.get("url") and _norm_url(s.get("url")) in input_urls:
+            continue
+        out.append(s)
+    return out
+
+
 def maybe_record_suggested_viewpoint(data: dict, records: list[dict], dry_run: bool) -> str | None:
     if not data.get("has_suggested_viewpoint"):
         return None
@@ -498,13 +600,18 @@ def main() -> None:
         viewpoints = gather_viewpoints(records) if args.task_type in {"theme-check", "compose-thematic", "compose-digest"} else []
         prompt = build_prompt(args.task_type, args.choice, materials, viewpoints, args.instructions)
 
-        structured = args.task_type in {"theme-check", "factcheck"}
-        schema = theme_check_schema() if args.task_type == "theme-check" else factcheck_schema() if args.task_type == "factcheck" else None
+        schema_for = {
+            "theme-check": theme_check_schema(),
+            "factcheck": factcheck_schema(),
+            "extract-viewpoints": extract_viewpoints_schema(),
+        }
+        schema = schema_for.get(args.task_type)
+        web = args.task_type in WEB_TASKS
 
         if args.engine == "codex":
-            raw, model = run_codex(prompt, schema if structured else None, args.timeout)
+            raw, model = run_codex(prompt, schema, args.timeout, web=web)
         else:
-            raw, model = run_claude(prompt, args.timeout)
+            raw, model = run_claude(prompt, args.timeout, web=web)
 
         data: dict[str, Any] | None = None
         suggested_vp_id = None
@@ -514,7 +621,11 @@ def main() -> None:
             output_markdown = theme_check_markdown(data, args.choice)
         elif args.task_type == "factcheck":
             data = parse_json_result(raw)
+            data["recommended_sources"] = drop_input_echoes(data.get("recommended_sources"), materials)
             output_markdown = factcheck_markdown(data)
+        elif args.task_type == "extract-viewpoints":
+            data = parse_json_result(raw)
+            output_markdown = extract_viewpoints_markdown(data)
         else:
             output_markdown = raw
 

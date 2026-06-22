@@ -56,7 +56,8 @@ EDITOR_TASK_LABELS = {
     "theme-check": "選法檢查",
     "compose-thematic": "主題式撰稿",
     "compose-digest": "彙報式撰稿",
-    "factcheck": "查核",
+    "factcheck": "查核找原文",
+    "extract-viewpoints": "萃取觀點",
 }
 EDITOR_CHOICE_LABELS = {"thematic": "主題式", "digest": "彙報式"}
 DATA_AUTOCOMMIT_INTERVAL_SECONDS = 30 * 60
@@ -5218,7 +5219,8 @@ EDITOR_TASK_HINTS = {
     "theme-check": "先檢查所選材料適合主題式還是彙報式，並參考你的觀點筆記給貼法建議。",
     "compose-thematic": "把幾篇相關材料收斂成一篇帶觀點的 article 草稿（三段分明）。",
     "compose-digest": "把多主題、不一定相關的材料整理成彙報式 article 草稿。",
-    "factcheck": "整理可驗證的宣稱並列出值得收藏的查證來源。",
+    "factcheck": "實際上網把原文／正式文件／系列下篇找出來並附真實連結，不把輸入材料當推薦。",
+    "extract-viewpoints": "從所選材料抽出 2-5 條可存進觀點庫的觀點。",
 }
 
 
@@ -6117,6 +6119,68 @@ class Handler(BaseHTTPRequestHandler):
                 '<a href="/editor/viewpoints">觀點庫</a>。</p>'
             )
 
+        # 可加入觀點庫：把這次浮現的觀點一鍵串聯（自動帶上本次材料）
+        related_csv = ",".join(clean_text(i) for i in (session.get("item_ids") or []))
+        n_items = len(session.get("item_ids") or [])
+        task_type = clean_text(session.get("task_type"))
+        candidates: list[tuple[str, str]] = []
+        if task_type == "theme-check":
+            for angle in data.get("angle_suggestions") or []:
+                text = clean_text(angle)
+                if text:
+                    candidates.append((text[:48], text))
+            if clean_text(data.get("suggested_viewpoint_body")):
+                candidates.append((clean_text(data.get("suggested_viewpoint_title"), 60) or "（待補觀點）",
+                                   clean_text(data.get("suggested_viewpoint_body"))))
+        elif task_type == "extract-viewpoints":
+            for cand in data.get("viewpoint_candidates") or []:
+                title_c = clean_text(cand.get("title"), 60)
+                body_c = clean_text(cand.get("body"))
+                if body_c:
+                    candidates.append((title_c or body_c[:48], body_c))
+        candidate_rows = ""
+        for title_c, body_c in candidates:
+            candidate_rows += (
+                '<form class="editor-vp-candidate" method="post" action="/editor/viewpoints/save" data-async-viewpoint>'
+                f'<input type="hidden" name="title" value="{h(title_c)}">'
+                f'<input type="hidden" name="body" value="{h(body_c)}">'
+                f'<input type="hidden" name="related_item_ids" value="{h(related_csv)}">'
+                f'<span>{h(body_c)}</span>'
+                '<button type="submit" class="button button-small">+ 串聯加入觀點庫</button></form>'
+            )
+        extract_button = ""
+        if task_type in {"compose-thematic", "compose-digest", "factcheck"} and related_csv:
+            src_text = clean_text(session.get("output_markdown"), 6000)
+            extract_button = (
+                '<form class="editor-vp-extract" method="post" action="/editor/run" data-extract-viewpoints>'
+                f'<input type="hidden" name="engine" value="{h(session.get("engine") or "claude")}">'
+                '<input type="hidden" name="task_type" value="extract-viewpoints">'
+                f'<input type="hidden" name="items" value="{h(related_csv)}">'
+                f'<input type="hidden" name="instructions" value="{h(src_text)}">'
+                '<input type="hidden" name="format" value="json">'
+                '<button type="submit" class="button button-small">✨ 萃取可存觀點</button>'
+                '<span class="muted editor-vp-extract-status"></span></form>'
+            )
+        viewpoint_panel = ""
+        if related_csv:
+            inner = ""
+            if candidate_rows:
+                inner += f'<div class="editor-vp-candidates">{candidate_rows}</div>'
+            inner += f"""
+  <form class="editor-vp-quickform" method="post" action="/editor/viewpoints/save" data-async-viewpoint>
+    <input type="hidden" name="related_item_ids" value="{h(related_csv)}">
+    <input type="text" name="title" placeholder="觀點標題（可留空）">
+    <textarea name="body" rows="2" placeholder="把這次想到的立場寫下來，會自動串連本次 {n_items} 篇材料" required></textarea>
+    <button type="submit" class="button button-small">加入觀點庫（連結本次 {n_items} 篇材料）</button>
+  </form>"""
+            viewpoint_panel = f"""
+<section class="card">
+  <h2>可加入觀點庫</h2>
+  <p class="muted">把這次浮現的觀點一鍵存進觀點庫，會自動帶上本次的 {n_items} 篇材料（同一觀點可關聯多篇）。{('' if candidate_rows else '若想讓系統幫忙從這次內容抽出觀點，按下方「萃取可存觀點」。')}</p>
+  {extract_button}
+  {inner}
+</section>"""
+
         choice_label = EDITOR_CHOICE_LABELS.get(session.get("choice"), "")
         meta = (
             f'<span class="tag-pill">{h(session.get("engine"))}</span>'
@@ -6135,7 +6199,16 @@ class Handler(BaseHTTPRequestHandler):
   <ul>{material_rows or '<li class="muted">（無）</li>'}</ul>
 </section>
 <section class="card editor-output">{output_html}</section>
+{viewpoint_panel}
 {favorites_block}
+<style>
+  .editor-vp-candidates {{ display:flex; flex-direction:column; gap:8px; margin:8px 0; }}
+  .editor-vp-candidate {{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 10px; border:1px solid var(--border,#e2e8f0); border-radius:10px; }}
+  .editor-vp-candidate span {{ flex:1; min-width:160px; }}
+  .editor-vp-quickform {{ margin-top:10px; }}
+  .editor-vp-quickform input, .editor-vp-quickform textarea {{ width:100%; max-width:560px; box-sizing:border-box; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; margin-bottom:6px; }}
+  .editor-vp-extract {{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }}
+</style>
 <script>
 document.querySelectorAll("form[data-async-collect]").forEach(function(form) {{
   form.addEventListener("submit", async function(event) {{
@@ -6148,6 +6221,40 @@ document.querySelectorAll("form[data-async-collect]").forEach(function(form) {{
       if (btn) btn.textContent = payload.duplicate ? "已在入庫建檔區" : "已送入庫建檔";
     }} catch (err) {{
       if (btn) {{ btn.textContent = "失敗，再試"; btn.disabled = false; }}
+    }}
+  }});
+}});
+document.querySelectorAll("form[data-async-viewpoint]").forEach(function(form) {{
+  form.addEventListener("submit", async function(event) {{
+    event.preventDefault();
+    var btn = form.querySelector("button");
+    if (form.querySelector("[name=body]") && !form.querySelector("[name=body]").value.trim()) return;
+    if (btn) btn.disabled = true;
+    try {{
+      var res = await fetch(form.action, {{ method: "POST", headers: {{ "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With": "local-web-fetch" }}, body: new URLSearchParams(new FormData(form)) }});
+      await res.json();
+      if (btn) btn.textContent = "✓ 已加入觀點庫";
+    }} catch (err) {{
+      if (btn) {{ btn.textContent = "失敗，再試"; btn.disabled = false; }}
+    }}
+  }});
+}});
+document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form) {{
+  form.addEventListener("submit", async function(event) {{
+    event.preventDefault();
+    var btn = form.querySelector("button");
+    var status = form.querySelector(".editor-vp-extract-status");
+    if (btn) btn.disabled = true;
+    if (status) status.textContent = "萃取中…";
+    try {{
+      var res = await fetch(form.action, {{ method: "POST", headers: {{ "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With": "local-web-fetch" }}, body: new URLSearchParams(new FormData(form)) }});
+      var payload = await res.json();
+      if (payload.ok && payload.redirect) {{ window.location = payload.redirect; return; }}
+      if (status) status.textContent = payload.error || "失敗";
+      if (btn) btn.disabled = false;
+    }} catch (err) {{
+      if (status) status.textContent = "失敗：" + err;
+      if (btn) btn.disabled = false;
     }}
   }});
 }});

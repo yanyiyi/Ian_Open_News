@@ -144,6 +144,34 @@ GitHub 對應：
 
 查核結果放在 PR comment 或 brief 的「查核紀錄」段落。
 
+## 編輯台（Editor Console）
+
+本機網頁的「編輯台」(`/editor`) 把「挑材料 → 選引擎與寫文模式 → 產出草稿」收成一個工作台。**只有經過編輯台產出的稿件才稱為 article（專題文章）**，其餘都還只是材料。執行器是 `scripts/editor_task.py`，可選 Claude CLI 或 Codex CLI；UI 與編輯歷程在 `scripts/local_web.py`，每次執行存成一筆 session 到 `.cache/editor-sessions.jsonl`。建 prompt 時材料若已有翻譯全文（`reading_metadata.translated_article_markdown_zh`）會優先使用以省 token。
+
+任務類型：
+
+- **選法檢查（theme-check）**：判斷所選材料適合主題式（幾篇相關、收斂成一個觀點）或彙報式（多主題彙整），選錯會建議改用另一種；判斷時參考觀點庫，沒有相關觀點會記一筆待補。
+- **主題式／彙報式撰稿（compose）**：把材料寫成 article 草稿，套用 `CLAUDE.md` 寫作規則。
+- **查核找原文（factcheck）**：見下。
+- **萃取觀點（extract-viewpoints）**：從這次的材料或編輯內容抽出 2-5 條可存進觀點庫的觀點候選。
+
+### 查核＝真的上網找原文
+
+查核任務會**實際使用網路搜尋**（Claude 走 `WebSearch`/`WebFetch`，Codex 走 `tools.web_search`），目標是幫你把可佐證的來源找出來並附**真實可點 URL**：
+
+- 找原始出處、官方公告、法規原文、統計報告、研究原文等一手／權威來源，並標記 `kind`（original／primary／official／follow-up／background）。
+- 材料若是系列文章（上篇／part 1／parte 1），會去找後續或其他篇（`kind=follow-up`）。
+- **不會把你輸入的材料自己當成推薦來源**（那是被查核的對象），會用 URL 比對濾掉。
+- 找不到就誠實標記、**不杜撰連結**；session 頁分「找到的原文」與「還沒找到」兩區。
+- 找到的外部來源可在 session 頁按「+ 新增到入庫建檔區」，走既有手動入庫流程（會自動去重）。
+
+### 觀點串聯與萃取
+
+觀點庫 (`/editor/viewpoints`) 以可用材料為核心，**每條觀點都帶著相關 item，同一觀點可關聯多篇，article 也能連回觀點**。在任一 session 頁的「可加入觀點庫」面板：
+
+- 選法檢查的角度、萃取出的候選、或你自己打的觀點，都能按「+ 串聯加入觀點庫」，存檔時**自動帶上本次 session 的材料**。
+- compose／查核等沒有結構化觀點的 session，提供「✨ 萃取可存觀點」按鈕，從這次內容抽出候選再一鍵加入。
+
 ## 資料庫原則
 
 `database/*.jsonl` 是正本，因為它可以在 PR 裡逐行 review。SQLite 只作為查詢輸出，由 `scripts/export_sqlite.py` 產生，不直接提交。
