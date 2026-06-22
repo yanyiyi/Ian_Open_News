@@ -7,6 +7,7 @@ import hashlib
 import html
 import json
 import re
+import ssl
 import sys
 import urllib.error
 import urllib.request
@@ -236,6 +237,41 @@ def category_terms(element: ET.Element) -> list[str]:
 BARE_AMPERSAND_RE = re.compile(r"&(?!#\d+;|#x[0-9a-fA-F]+;|[A-Za-z][A-Za-z0-9_.:-]*;)")
 INVALID_XML_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
+# Common feed namespace prefixes. Some feeds use a prefix (e.g. media:, content:)
+# without declaring it on the root element, which makes a strict parser raise
+# "unbound prefix". We re-declare any used-but-missing prefix from this map.
+COMMON_FEED_NAMESPACES = {
+    "content": "http://purl.org/rss/1.0/modules/content/",
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "wfw": "http://wellformedweb.org/CommentAPI/",
+    "sy": "http://purl.org/rss/1.0/modules/syndication/",
+    "slash": "http://purl.org/rss/1.0/modules/slash/",
+    "atom": "http://www.w3.org/2005/Atom",
+    "media": "http://search.yahoo.com/mrss/",
+    "georss": "http://www.georss.org/georss",
+    "geo": "http://www.w3.org/2003/01/geo/wgs84_pos#",
+    "itunes": "http://www.itunes.com/dtds/podcast-1.0.dtd",
+    "wp": "http://wordpress.org/export/1.2/",
+}
+ROOT_TAG_RE = re.compile(r"<(?:rss|feed|rdf:RDF|RDF)\b[^>]*>")
+
+
+def inject_missing_namespaces(text: str) -> str:
+    root = ROOT_TAG_RE.search(text)
+    if not root:
+        return text
+    root_tag = root.group(0)
+    used = set(re.findall(r"<\s*([A-Za-z][\w-]*):", text))
+    used |= set(re.findall(r"\s([A-Za-z][\w-]*):[\w-]+\s*=", text))
+    declared = set(re.findall(r"xmlns:([\w-]+)\s*=", root_tag))
+    missing = [p for p in used if p in COMMON_FEED_NAMESPACES and p not in declared]
+    if not missing:
+        return text
+    injection = "".join(f' xmlns:{p}="{COMMON_FEED_NAMESPACES[p]}"' for p in missing)
+    repaired = root_tag[:-1] + injection + ">"
+    return text[: root.start()] + repaired + text[root.end() :]
+
 
 def parse_xml_root(content: bytes) -> ET.Element:
     cleaned = content.lstrip(b"\xef\xbb\xbf \t\r\n")
@@ -251,6 +287,7 @@ def parse_xml_root(content: bytes) -> ET.Element:
         text = cleaned.decode("utf-8", errors="replace")
         text = INVALID_XML_CHAR_RE.sub(" ", text)
         text = BARE_AMPERSAND_RE.sub("&amp;", text)
+        text = inject_missing_namespaces(text)
         return ET.fromstring(text.encode("utf-8"))
 
 
@@ -375,29 +412,39 @@ def parse_feed_entries(content: bytes) -> list[FeedEntry]:
     return [entry for entry in entries if entry.url or entry.guid or entry.title]
 
 
+def _insecure_ssl_context() -> ssl.SSLContext:
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    return context
+
+
 def read_feed_bytes(url: str, timeout: int, user_agent: str) -> bytes:
     if url.startswith("file://"):
         return Path(url.removeprefix("file://")).read_bytes()
 
-    def fetch_with_headers(headers: dict[str, str]) -> bytes:
+    def fetch_with_headers(headers: dict[str, str], context: ssl.SSLContext | None = None) -> bytes:
         request = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with urllib.request.urlopen(request, timeout=timeout, context=context) as response:
             content = response.read()
             encoding = clean_text(response.headers.get("Content-Encoding")).casefold()
             if encoding == "gzip" or content.startswith(b"\x1f\x8b"):
                 return gzip.decompress(content)
             return content
 
+    default_headers = {"User-Agent": user_agent, "Accept": FEED_ACCEPT_HEADER}
     try:
-        return fetch_with_headers(
-            {
-                "User-Agent": user_agent,
-                "Accept": FEED_ACCEPT_HEADER,
-            }
-        )
+        return fetch_with_headers(default_headers)
     except urllib.error.HTTPError as exc:
         if exc.code not in {403, 406}:
             raise
+    except urllib.error.URLError as exc:
+        # Many public-sector feeds (e.g. *.gov.tw) serve a certificate chain that
+        # is not in the default trust store. For public RSS, retry without TLS
+        # verification rather than dropping the source entirely.
+        if not isinstance(exc.reason, ssl.SSLCertVerificationError):
+            raise
+        return fetch_with_headers(default_headers, context=_insecure_ssl_context())
     return fetch_with_headers(
         {
             "User-Agent": BROWSER_FALLBACK_USER_AGENT,
