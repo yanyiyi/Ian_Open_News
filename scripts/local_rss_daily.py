@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import subprocess
@@ -49,6 +50,14 @@ def notify(title: str, message: str) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Run the local RSS fetch workflow.")
+    parser.add_argument(
+        "--manual",
+        action="store_true",
+        help="Include sources that are configured to fetch only when the UI update button is pressed.",
+    )
+    args = parser.parse_args()
+
     command = [
         sys.executable,
         str(ROOT / "scripts" / "fetch_rss.py"),
@@ -59,6 +68,8 @@ def main() -> None:
         "--report",
         str(REPORT),
     ]
+    if args.manual:
+        command.append("--include-on-update")
     result = subprocess.run(command, cwd=ROOT, text=True)
 
     codex_message = ""

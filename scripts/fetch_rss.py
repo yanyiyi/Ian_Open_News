@@ -29,6 +29,33 @@ DEFAULT_DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
 DEFAULT_REJECTED_ITEMS = DATABASE / "rejected-items.jsonl"
 DEFAULT_STATUS_FILE = ROOT / ".cache" / "rss-fetch-status.json"
 DEFAULT_SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast"]
+FETCH_FREQUENCY_INTERVALS = {
+    "hourly": timedelta(hours=1),
+    "six-hourly": timedelta(hours=6),
+    "daily": timedelta(days=1),
+    "weekly": timedelta(days=7),
+    "monthly": timedelta(days=30),
+}
+FETCH_FREQUENCY_ALIASES = {
+    "1h": "hourly",
+    "1-hour": "hourly",
+    "hour": "hourly",
+    "hourly": "hourly",
+    "6h": "six-hourly",
+    "6-hour": "six-hourly",
+    "6-hourly": "six-hourly",
+    "six-hour": "six-hourly",
+    "six-hourly": "six-hourly",
+    "six_hourly": "six-hourly",
+    "daily": "daily",
+    "weekly": "weekly",
+    "monthly": "monthly",
+    "manual": "on-update",
+    "on-demand": "on-update",
+    "on-update": "on-update",
+    "on_update": "on-update",
+    "paused": "paused",
+}
 
 
 def stable_id(prefix: str, *parts: object) -> str:
@@ -477,9 +504,7 @@ def item_record(source: dict, entry: FeedEntry, captured_at: str) -> dict:
 
 def source_frequency(source: dict) -> str:
     frequency = clean_text(source.get("fetch_frequency") or "daily").casefold()
-    if frequency in {"daily", "weekly", "monthly", "paused"}:
-        return frequency
-    return "daily"
+    return FETCH_FREQUENCY_ALIASES.get(frequency, "daily")
 
 
 def source_last_fetch(source: dict) -> datetime | None:
@@ -505,15 +530,19 @@ def source_since_days(source: dict, args: argparse.Namespace) -> int:
     return args.initial_since_days
 
 
-def source_due_for_fetch(source: dict, now: datetime) -> tuple[bool, str]:
+def source_due_for_fetch(source: dict, now: datetime, *, include_on_update: bool = False) -> tuple[bool, str]:
     frequency = source_frequency(source)
     if frequency == "paused":
         return False, "source fetch_frequency is paused"
+    if frequency == "on-update":
+        if include_on_update:
+            return True, ""
+        return False, "source fetch_frequency on-update only runs from manual update"
     last_fetch = source_last_fetch(source)
     if not last_fetch:
         return True, ""
-    interval_days = {"daily": 1, "weekly": 7, "monthly": 30}.get(frequency, 1)
-    if now - last_fetch < timedelta(days=interval_days):
+    interval = FETCH_FREQUENCY_INTERVALS.get(frequency, FETCH_FREQUENCY_INTERVALS["daily"])
+    if now - last_fetch < interval:
         return False, f"source fetch_frequency {frequency} is not due yet"
     return True, ""
 
@@ -537,7 +566,11 @@ def source_is_fetchable(source: dict, args: argparse.Namespace) -> tuple[bool, s
     if source.get("status") != "active":
         return False, "source status is not active"
     if not getattr(args, "force", False):
-        due, due_reason = source_due_for_fetch(source, datetime.now(timezone.utc))
+        due, due_reason = source_due_for_fetch(
+            source,
+            datetime.now(timezone.utc),
+            include_on_update=getattr(args, "include_on_update", False),
+        )
         if not due:
             return False, due_reason
     if source.get("source_type") not in args.source_type:
@@ -643,6 +676,11 @@ def main() -> None:
     parser.add_argument("--report", type=Path)
     parser.add_argument("--status-file", type=Path, default=DEFAULT_STATUS_FILE)
     parser.add_argument("--force", action="store_true", help="Fetch matching sources even if their frequency is not due yet.")
+    parser.add_argument(
+        "--include-on-update",
+        action="store_true",
+        help="Include sources whose fetch_frequency is on-update; used by manual UI runs.",
+    )
     parser.add_argument(
         "--candidate-output",
         type=Path,

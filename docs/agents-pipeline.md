@@ -1,6 +1,6 @@
 # Agents 寫作生產線：怎麼用
 
-這份是 [`reference/agents-writing-pipeline.html`](../reference/agents-writing-pipeline.html) 那場簡報的操作版。簡報講「為什麼」，這裡講「怎麼按」。
+這份文件不是原始簡報，也不保存內部分享檔。它是從同事 toomore 於 OCF 六月內部知識分享的 agents writing pipeline 簡報汲取「rules vs agents、主 session 協調、平行審稿、查核後置」等 skill 流程觀念後，整理成 Ian Open News 可操作的版本。簡報講「為什麼」，這裡講「怎麼按」。
 
 一句話：**把每次發文都會漏的「寫作風格、查證、觀點」交給固定角色顧，自己只做判斷。**
 

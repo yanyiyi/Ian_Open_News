@@ -1,6 +1,6 @@
 # Ian Open News — 常駐寫作規則
 
-這份檔案是 `reference/agents-writing-pipeline.html` 裡「rules」那一半：每次 session 都會自動載入，不必另外叫 agent。它規定「該怎麼寫、底線在哪」；要動腦跑一輪的事（找題、切角、審稿、查核）交給 `.claude/agents/` 的角色。教學見 [docs/agents-pipeline.md](docs/agents-pipeline.md)。
+這份檔案是本專案的常駐寫作規則：每次 session 都會自動載入，不必另外叫 agent。流程靈感與 skill 觀念汲取自同事 toomore 於 OCF 六月內部知識分享的 agents writing pipeline 簡報；本 repo 不保存原始簡報檔，只保留依其流程觀念發展出的本地 rules 與 `.claude/agents/` 角色。它規定「該怎麼寫、底線在哪」；要動腦跑一輪的事（找題、切角、審稿、查核）交給 `.claude/agents/` 的角色。Agents 操作版見 [docs/agents-pipeline.md](docs/agents-pipeline.md)，日常工作流見 [docs/workflow.md](docs/workflow.md)。
 
 ## 這個 repo 在做什麼
 

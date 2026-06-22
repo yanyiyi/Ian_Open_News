@@ -44,6 +44,7 @@
 - `name`：來源名稱。
 - `source_group`：Inoreader 群組、Excel sheet 或人工群組。
 - `source_type`：`rss`、`facebook`、`google-alert`、`youtube`、`podcast`、`spreadsheet`、`manual`、`inoreader-monitor`。
+- `fetch_frequency`：抓取節奏，支援 `hourly`、`six-hourly`、`daily`、`weekly`、`monthly`、`on-update`、`paused`；`on-update` 只在首頁或單一來源手動更新時抓。
 - `feed_url`：RSS / Atom / Inoreader feed URL。
 - `site_url`：來源網站。
 - `status`：`active`、`paused`、`archived`。
@@ -63,12 +64,18 @@ python3 scripts/import_reference_data.py
 python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --dismissed .cache/rss-dismissed.jsonl --report .cache/rss-fetch-report.md
 ```
 
-預設一般來源只抓近 7 天；還沒有成功抓取紀錄的新來源，第一次會先用近 90 天作為回補窗口。
+預設一般來源只抓近 7 天；還沒有成功抓取紀錄的新來源，第一次會先用近 90 天作為回補窗口。抓取會依 `fetch_frequency` 判斷是否到期；若要包含 `on-update` 來源，請加 `--include-on-update` 或從本機網頁首頁手動按更新。
 
 排程使用的完整本機流程會在抓完 RSS 後補 Codex 建議與摘要：
 
 ```bash
 python3 scripts/local_rss_daily.py
+```
+
+首頁手動更新會使用：
+
+```bash
+python3 scripts/local_rss_daily.py --manual
 ```
 
 只補 Codex 建議與摘要：

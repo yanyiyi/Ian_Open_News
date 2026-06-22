@@ -11,7 +11,7 @@
 5. 摘要、研究札記、對外文章或內部 brief 走 PR。
 6. 審查鏈與查核結果留在 GitHub。
 
-每日抓 RSS 的第一站改成「RSS 待整理」。`launchd` 會在台灣時間 12:00、18:00、23:00 讀取 `database/sources.jsonl`，把新資料放進 `.cache/rss-candidates.jsonl`，本機網頁則把這些 RSS 新進和 `database/items.jsonl` 裡的 `inbox` 合併顯示。抓到資料時會先跑一輪 `triage` 與 `editorial_triage`：前者是關鍵字第一層判斷，後者會補上「為什麼建議看」三個理由、是否建議收錄、與過去不收/收錄類型的相似度。RSS 抓完後，`scripts/local_rss_daily.py` 會再呼叫 `scripts/codex_enrich_reviews.py`，把缺少 Codex review 的 RSS 候選補上「給 Ian 的一句話推薦」、中文標題、三個閱讀理由與中文摘要。
+每日抓 RSS 的第一站改成「RSS 待整理」。`launchd` 會在台灣時間 12:00、18:00、23:00 讀取 `database/sources.jsonl`，依各來源的 `fetch_frequency` 判斷是否到期，再把新資料放進 `.cache/rss-candidates.jsonl`。本機網頁首頁的「抓到 RSS 待整理」走同一條流程，但會額外包含設定為「按更新時抓」的來源；來源列表與單一來源頁的「更新」則會直接手動抓該來源。抓到資料時會先跑一輪 `triage` 與 `editorial_triage`：前者是關鍵字第一層判斷，後者會補上「為什麼建議看」三個理由、是否建議收錄、與過去不收/收錄類型的相似度。RSS 抓完後，`scripts/local_rss_daily.py` 會再呼叫 `scripts/codex_enrich_reviews.py`，把缺少 Codex review 的 RSS 候選補上「給 Ian 的一句話推薦」、中文標題、三個閱讀理由與中文摘要。
 
 你在本機網頁看過後，可以直接按「確認收，準備跑 skill」「直接送 PR（小消息）」或不收原因。RSS 新進會在按確認收或直接送 PR 時先新增到 `database/items.jsonl`，再套用決定；不收則寫入 `database/rejected-items.jsonl`，並同步進 `.cache/rss-dismissed.jsonl` 做抓取去重。
 
@@ -65,7 +65,9 @@
 
 1. 固定時間或手動抓 RSS。
    - 12:00、18:00、23:00 的本機自動流程會抓 RSS 到 `.cache/rss-candidates.jsonl`，並在抓完後補 Codex 建議與摘要。
-   - 手動時可在本機網頁首頁按「抓到 RSS 待整理」；這顆按鈕和排程跑同一條流程。
+   - `fetch_frequency` 可設 `hourly`、`six-hourly`、`daily`、`weekly`、`monthly`、`on-update` 或 `paused`；前五種會依最近一次成功抓取時間判斷是否到期。
+   - 手動時可在本機網頁首頁按「抓到 RSS 待整理」；這顆按鈕和排程跑同一條流程，但會另外包含 `on-update` 來源。
+   - 來源列表與單一來源頁的「更新」會強制抓該來源，適合快速測試新 RSS 或整理某個分類。
 2. 抓完後先跑初篩。
    - RSS 抓取會自動產生 `triage` 與 `editorial_triage`。
    - 若更新過關鍵字，可在首頁或關鍵字頁按「重新跑本機規則/關鍵字初篩」。
@@ -87,7 +89,9 @@
    - 閱讀區顯示已確認收錄或小消息。
    - 讀完如果覺得文章很好，可在單篇頁填「我的關鍵紀錄」，再按「用我的觀點重新送 skill」。
 
-## 依 agents-writing-pipeline.html 改寫的鏈條
+## 受 toomore 內部分享啟發的鏈條
+
+這條 rules + agents 的 skill 流程靈感，汲取自同事 toomore 於 OCF 六月內部知識分享的 agents writing pipeline 簡報。本 repo 不保存原始簡報檔；以下是依其「找題、備料、主 session 起草、平行審稿與查核」觀念，發展成本專案 RSS 待整理與知識 brief 流程的版本。
 
 ### 0. 本機先篩選：RSS 待整理
 

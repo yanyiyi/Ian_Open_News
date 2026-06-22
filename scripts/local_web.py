@@ -94,7 +94,7 @@ TRACK_ORDER = ["open-tech-open-industry", "digital-humanities-local-knowledge", 
 LOCAL_TIMEZONE = ZoneInfo("Asia/Taipei")
 SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast", "facebook", "inoreader-monitor", "spreadsheet", "manual"]
 SOURCE_STATUSES = ["active", "paused", "archived"]
-FETCH_FREQUENCIES = ["daily", "weekly", "monthly", "paused"]
+FETCH_FREQUENCIES = ["hourly", "six-hourly", "daily", "weekly", "monthly", "on-update", "paused"]
 NEW_SOURCE_GROUP_VALUE = "__new_source_group__"
 SOURCE_TYPE_LABELS = {
     "rss": "RSS / 網站",
@@ -122,10 +122,33 @@ SOURCE_STATUS_LABELS = {
     "archived": "封存",
 }
 FETCH_FREQUENCY_LABELS = {
+    "hourly": "每 1 小時抓",
+    "six-hourly": "每 6 小時抓",
     "daily": "每天抓",
     "weekly": "每週抓",
     "monthly": "每月抓",
+    "on-update": "按更新時抓",
     "paused": "暫停抓取",
+}
+FETCH_FREQUENCY_ALIASES = {
+    "1h": "hourly",
+    "1-hour": "hourly",
+    "hour": "hourly",
+    "hourly": "hourly",
+    "6h": "six-hourly",
+    "6-hour": "six-hourly",
+    "6-hourly": "six-hourly",
+    "six-hour": "six-hourly",
+    "six-hourly": "six-hourly",
+    "six_hourly": "six-hourly",
+    "daily": "daily",
+    "weekly": "weekly",
+    "monthly": "monthly",
+    "manual": "on-update",
+    "on-demand": "on-update",
+    "on-update": "on-update",
+    "on_update": "on-update",
+    "paused": "paused",
 }
 COMMAND_ICONS = {
     "fetch_rss": "rss",
@@ -258,11 +281,12 @@ REJECTION_REASON_ALIASES = {
 COMMANDS = {
     "fetch_rss": {
         "label": "立刻抓 RSS 候選",
-        "description": "先抓到 RSS 待整理，不直接寫進正式資料庫；抓完會接著用 Codex 補閱讀建議、三個理由與中文摘要。",
+        "description": "先抓到 RSS 待整理，不直接寫進正式資料庫；手動按鈕也會包含「按更新時抓」的來源，抓完接著用 Codex 補閱讀建議、三個理由與中文摘要。",
         "button": "抓到 RSS 待整理",
         "command": [
             sys.executable,
             str(ROOT / "scripts" / "local_rss_daily.py"),
+            "--manual",
         ],
     },
     "validate": {
@@ -965,12 +989,21 @@ def source_status_options(current: str) -> str:
     return option_list([(value, SOURCE_STATUS_LABELS.get(value, value)) for value in SOURCE_STATUSES], current)
 
 
+def normalize_fetch_frequency(frequency: str) -> str:
+    key = clean_text(frequency or "daily").casefold()
+    return FETCH_FREQUENCY_ALIASES.get(key, "daily")
+
+
 def source_frequency_label(frequency: str) -> str:
-    return FETCH_FREQUENCY_LABELS.get(frequency or "daily", frequency or "每天抓")
+    normalized = normalize_fetch_frequency(frequency)
+    return FETCH_FREQUENCY_LABELS.get(normalized, normalized)
 
 
 def source_frequency_options(current: str) -> str:
-    return option_list([(value, FETCH_FREQUENCY_LABELS.get(value, value)) for value in FETCH_FREQUENCIES], current or "daily")
+    return option_list(
+        [(value, FETCH_FREQUENCY_LABELS.get(value, value)) for value in FETCH_FREQUENCIES],
+        normalize_fetch_frequency(current),
+    )
 
 
 def source_group_values(sources: list[dict]) -> list[str]:
@@ -1105,7 +1138,7 @@ def source_record_passes_keywords(record: dict, source: dict) -> bool:
 def is_fetchable_source(source: dict) -> bool:
     return (
         source.get("status") == "active"
-        and source.get("fetch_frequency", "daily") != "paused"
+        and normalize_fetch_frequency(source.get("fetch_frequency", "daily")) != "paused"
         and source.get("track") in {"digital-humanities-local-knowledge", "open-tech-open-industry"}
         and source.get("source_type") in {"rss", "google-alert", "youtube", "podcast"}
     )
@@ -8205,6 +8238,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             source_id,
             "--include-unclassified",
             "--force",
+            "--include-on-update",
             "--report",
             str(report),
             "--status-file",
@@ -8725,7 +8759,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 for source in sorted(group_sources, key=lambda row: (status_order.get(row.get("status", ""), 9), row.get("name", ""), row.get("id", ""))):
                     source_type = source.get("source_type", "manual")
                     status = source.get("status", "")
-                    frequency = source.get("fetch_frequency", "daily")
+                    frequency = normalize_fetch_frequency(source.get("fetch_frequency", "daily"))
                     feed_url = source.get("feed_url") or ""
                     site_url = source.get("site_url") or ""
                     type_class = source_type.replace("_", "-")
@@ -9098,7 +9132,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             current_track = "digital-humanities-local-knowledge"
         current_type = source.get("source_type", "rss")
         current_status = source.get("status", "active")
-        current_frequency = source.get("fetch_frequency", "daily")
+        current_frequency = normalize_fetch_frequency(source.get("fetch_frequency", "daily"))
         current_group = clean_text(source.get("source_group")) or "Manual RSS"
         existing_sources = load_jsonl(SOURCES)
         current_group_is_new = current_group not in source_group_values(existing_sources)
@@ -9130,7 +9164,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 """
         body = f"""
 <h1>{h(title)}</h1>
-<p class="lede">用在你想長期追蹤一個網站、Google 快訊、YouTube 頻道或 Podcast 時。RSS / Google 快訊 / YouTube / Podcast 會被每天的抓取流程處理。</p>
+<p class="lede">用在你想長期追蹤一個網站、Google 快訊、YouTube 頻道或 Podcast 時。RSS / Google 快訊 / YouTube / Podcast 會被排程或手動抓取流程處理。</p>
 {health_card}
 <form class="form-panel" method="post" action="/sources" data-url-preview-form data-preview-kind="source">
   <input type="hidden" name="id" value="{h(source_id)}">
@@ -9151,10 +9185,10 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <p class="help">{h(SOURCE_TYPE_HELP.get(current_type, "RSS / Google 快訊 / YouTube / Podcast 會被自動抓；其他類型目前用來保留脈絡。"))}</p>
   <label>狀態</label>
   <select name="status">{source_status_options(current_status)}</select>
-  <p class="help">啟用會進入每日抓取；暫停會保留但不抓；封存代表這個來源暫時不再顯示。</p>
+  <p class="help">啟用會依抓取頻率進入排程或手動更新；暫停會保留但不抓；封存代表這個來源暫時不再顯示。</p>
   <label>抓取頻率</label>
   <select name="fetch_frequency">{source_frequency_options(current_frequency)}</select>
-  <p class="help">每天的流程會看這個欄位；每週與每月會參考最近一次成功抓取時間，暫停抓取則保留來源但不抓。</p>
+  <p class="help">排程會依最近一次成功抓取時間判斷每 1 小時、每 6 小時、每天、每週或每月是否到期；按更新時抓只會在首頁 RSS 更新或單一來源手動更新時處理；暫停抓取則保留來源但不抓。</p>
   <label>Feed URL</label>
   <input name="feed_url" value="{h(source.get('feed_url', ''))}" placeholder="https://example.com/feed.xml" data-preview-url data-preview-feed-url>
   <p class="help">RSS / Google 快訊 / YouTube / Podcast 請填這欄。Facebook、舊 Inoreader monitor 或既有表格來源可以留空作為紀錄。</p>
@@ -9199,7 +9233,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             "source_group": source_group,
             "source_group_order": group_order,
             "source_type": form_value(data, "source_type", "rss"),
-            "fetch_frequency": form_value(data, "fetch_frequency", "daily"),
+            "fetch_frequency": normalize_fetch_frequency(form_value(data, "fetch_frequency", "daily")),
             "feed_url": form_value(data, "feed_url"),
             "site_url": form_value(data, "site_url"),
             "status": form_value(data, "status", "active"),

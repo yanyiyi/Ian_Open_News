@@ -14,7 +14,15 @@ templates/launchd/com.ian.opennews.rss-fetch.plist
 python3 scripts/local_rss_daily.py
 ```
 
-`scripts/local_rss_daily.py` 會執行 RSS 候選抓取，寫入 `.cache/rss-candidates.jsonl`，接著呼叫 `scripts/codex_enrich_reviews.py`，替新的 RSS 候選補上 Codex 版閱讀建議、中文標題、三個閱讀理由與中文摘要，最後再用 macOS 通知提醒你打開本機網頁的「RSS 待整理」。它不會直接修改 `database/items.jsonl`。電腦在排程時間開著時就會跑；如果當下睡眠或關機，就等下一次排程。
+`scripts/local_rss_daily.py` 會執行 RSS 候選抓取，依 `database/sources.jsonl` 裡每個來源的 `fetch_frequency` 判斷是否到期，寫入 `.cache/rss-candidates.jsonl`，接著呼叫 `scripts/codex_enrich_reviews.py`，替新的 RSS 候選補上 Codex 版閱讀建議、中文標題、三個閱讀理由與中文摘要，最後再用 macOS 通知提醒你打開本機網頁的「RSS 待整理」。它不會直接修改 `database/items.jsonl`。電腦在排程時間開著時就會跑；如果當下睡眠或關機，就等下一次排程。
+
+本機網頁首頁的「抓到 RSS 待整理」會用手動模式呼叫：
+
+```bash
+python3 scripts/local_rss_daily.py --manual
+```
+
+手動模式會額外包含 `fetch_frequency: on-update` 的來源；排程模式則略過這類只想按更新時才抓的來源。
 
 如果某天你只想抓 RSS、不想自動呼叫 Codex，可以在執行前設定：
 
