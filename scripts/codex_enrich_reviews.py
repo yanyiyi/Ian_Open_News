@@ -20,6 +20,20 @@ REPORT = ROOT / ".cache" / "codex-review-report.md"
 READER_STATUSES = {"triaged", "researching", "drafting", "reviewing", "fact-checking", "ready", "published"}
 READER_ACTIONS = {"accepted-for-editing", "direct-pr-small-news", "revisit-with-personal-notes"}
 CURRENT_READING_PRIORITY_DAYS = 2
+AI_PROVIDERS = {
+    "codex": {
+        "label": "Codex",
+        "review_key": "codex_review",
+        "generated_key": "codex_generated_at",
+        "generator": "codex-cli",
+    },
+    "claude": {
+        "label": "Claude Code",
+        "review_key": "claude_review",
+        "generated_key": "claude_generated_at",
+        "generator": "claude-code-cli",
+    },
+}
 
 
 def clean_text(value: object, limit: int | None = None) -> str:
@@ -65,11 +79,48 @@ def codex_path() -> str:
     raise RuntimeError("找不到 codex CLI，請先確認 /opt/homebrew/bin/codex 是否可用。")
 
 
-def has_codex_review(record: dict[str, Any]) -> bool:
+def claude_path() -> str:
+    candidate = shutil.which("claude")
+    if candidate:
+        return candidate
+    for path in ["/opt/homebrew/bin/claude", "/usr/local/bin/claude"]:
+        if Path(path).exists():
+            return path
+    raise RuntimeError("找不到 claude CLI，請先確認 /opt/homebrew/bin/claude 是否可用。")
+
+
+def provider_meta(provider: str) -> dict[str, str]:
+    return AI_PROVIDERS.get(provider, AI_PROVIDERS["codex"])
+
+
+def parse_cli_json(raw: str) -> dict[str, Any]:
+    text = raw.strip()
+    if not text:
+        raise RuntimeError("model output is empty")
+    payload: Any
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        last_line = next((line.strip() for line in reversed(text.splitlines()) if line.strip()), "")
+        payload = json.loads(last_line)
+    if isinstance(payload, dict) and "reviews" in payload:
+        return payload
+    if isinstance(payload, dict) and "result" in payload:
+        result = payload["result"]
+        if isinstance(result, dict):
+            return result
+        if isinstance(result, str):
+            return json.loads(result)
+    if isinstance(payload, dict) and "message" in payload and isinstance(payload["message"], dict):
+        return payload["message"]
+    raise RuntimeError("model output missing structured payload")
+
+
+def has_provider_review(record: dict[str, Any], provider: str) -> bool:
     editorial = record.get("editorial_triage")
     if not isinstance(editorial, dict):
         return False
-    return isinstance(editorial.get("codex_review"), dict)
+    return isinstance(editorial.get(provider_meta(provider)["review_key"]), dict)
 
 
 def local_decision_action(record: dict[str, Any]) -> str:
@@ -239,9 +290,10 @@ def output_schema() -> dict[str, Any]:
     }
 
 
-def build_prompt(batch: list[dict[str, Any]]) -> str:
+def build_prompt(batch: list[dict[str, Any]], provider: str = "codex") -> str:
+    label = provider_meta(provider)["label"]
     data = json.dumps({"items": batch}, ensure_ascii=False, indent=2)
-    return f"""你是 Ian Open News 的編輯助理，請為下列 RSS/知識項目補上 Codex 版閱讀建議。
+    return f"""你是 Ian Open News 的編輯助理，請為下列 RSS/知識項目補上 {label} 版閱讀建議。
 
 請只根據每筆提供的 source_text 判斷，不要上網，不要補不存在的事實。
 若 source_basis 是「只有標題」或 source_text 太短，請明確降低 confidence，needs_fulltext 設為 true，摘要只做保守判斷。
@@ -269,7 +321,7 @@ def run_codex(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[dic
     output_path = cache / "codex-review-output.json"
     prompt_path = cache / "codex-review-prompt.json"
     schema_path.write_text(json.dumps(output_schema(), ensure_ascii=False, indent=2), encoding="utf-8")
-    prompt = build_prompt(batch)
+    prompt = build_prompt(batch, "codex")
     prompt_path.write_text(prompt, encoding="utf-8")
 
     command = [
@@ -315,6 +367,58 @@ def run_codex(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[dic
     return reviews
 
 
+def run_claude(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[dict[str, Any]]:
+    cache = ROOT / ".cache"
+    cache.mkdir(exist_ok=True)
+    schema = output_schema()
+    prompt = build_prompt(batch, "claude")
+    (cache / "claude-review-prompt.json").write_text(prompt, encoding="utf-8")
+    command = [
+        claude_path(),
+        "--print",
+        "--input-format",
+        "text",
+        "--output-format",
+        "json",
+        "--no-session-persistence",
+        "--permission-mode",
+        "dontAsk",
+        "--tools",
+        "",
+        "--json-schema",
+        json.dumps(schema, ensure_ascii=False),
+    ]
+    env = os.environ.copy()
+    env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        input=prompt,
+        text=True,
+        capture_output=True,
+        timeout=args.timeout,
+        env=env,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            "claude print failed\n"
+            f"STDOUT:\n{result.stdout[-2000:]}\n"
+            f"STDERR:\n{result.stderr[-2000:]}"
+        )
+    (cache / "claude-review-output.json").write_text(result.stdout, encoding="utf-8")
+    payload = parse_cli_json(result.stdout)
+    reviews = payload.get("reviews")
+    if not isinstance(reviews, list):
+        raise RuntimeError("Claude output missing reviews array")
+    return reviews
+
+
+def run_provider(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[dict[str, Any]]:
+    if args.provider == "claude":
+        return run_claude(batch, args)
+    return run_codex(batch, args)
+
+
 def formatted_summary(review: dict[str, Any]) -> str:
     reasons = review.get("reasons") if isinstance(review.get("reasons"), list) else []
     reasons = [clean_text(reason) for reason in reasons[:3]]
@@ -337,7 +441,8 @@ def formatted_summary(review: dict[str, Any]) -> str:
     ).strip()
 
 
-def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]]) -> int:
+def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]], provider: str) -> int:
+    meta = provider_meta(provider)
     by_id = {str(review.get("id")): review for review in reviews if review.get("id")}
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     changed = 0
@@ -353,9 +458,9 @@ def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]]) 
         reasons = [clean_text(reason) for reason in reasons[:3]]
         while len(reasons) < 3:
             reasons.append("來源資訊不足，建議補抓全文後再判斷。")
-        codex_review = {
-            "source": "Codex",
-            "generator": "codex-cli",
+        provider_review = {
+            "source": meta["label"],
+            "generator": meta["generator"],
             "generated_at": generated_at,
             "version": 1,
             "zh_title": clean_text(review.get("zh_title"), 300),
@@ -368,11 +473,13 @@ def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]]) 
             "needs_fulltext": bool(review.get("needs_fulltext")),
             "note": clean_text(review.get("note"), 500),
         }
-        editorial["codex_review"] = codex_review
-        editorial["zh_title"] = codex_review["zh_title"] or clean_text(record.get("title"), 300)
-        editorial["zh_summary"] = formatted_summary(review)
-        editorial["summary_reason"] = "已由 Codex 依目前可讀資料補閱讀建議與摘要。"
-        editorial["codex_generated_at"] = generated_at
+        editorial[meta["review_key"]] = provider_review
+        has_codex = isinstance(editorial.get("codex_review"), dict)
+        if provider == "codex" or not has_codex:
+            editorial["zh_title"] = provider_review["zh_title"] or clean_text(record.get("title"), 300)
+            editorial["zh_summary"] = formatted_summary(review)
+            editorial["summary_reason"] = f"已由 {meta['label']} 依目前可讀資料補閱讀建議與摘要。"
+        editorial[meta["generated_key"]] = generated_at
         record["editorial_triage"] = editorial
         changed += 1
     return changed
@@ -392,11 +499,11 @@ def collect_targets(records: list[dict[str, Any]], args: argparse.Namespace, kin
         if ids:
             if str(record.get("id") or "") not in ids:
                 continue
-            if args.missing_only and has_codex_review(record):
+            if args.missing_only and has_provider_review(record, args.provider):
                 continue
             selected.append(record)
             continue
-        if args.missing_only and has_codex_review(record):
+        if args.missing_only and has_provider_review(record, args.provider):
             continue
         if kind == "items":
             if not in_item_scope(record, tracks, statuses, args.workflow_scope):
@@ -423,8 +530,8 @@ def process_file(path: Path, kind: str, args: argparse.Namespace) -> tuple[int, 
     changed = 0
     for batch_records in batched(targets, max(1, args.batch_size)):
         batch_input = [review_input(record) for record in batch_records]
-        reviews = run_codex(batch_input, args)
-        batch_changed = apply_reviews(records, reviews)
+        reviews = run_provider(batch_input, args)
+        batch_changed = apply_reviews(records, reviews, args.provider)
         changed += batch_changed
         if batch_changed and not args.dry_run:
             for record in records:
@@ -435,7 +542,8 @@ def process_file(path: Path, kind: str, args: argparse.Namespace) -> tuple[int, 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Use Codex CLI to add reading recommendations and summaries.")
+    parser = argparse.ArgumentParser(description="Use Codex or Claude Code CLI to add reading recommendations and summaries.")
+    parser.add_argument("--provider", choices=sorted(AI_PROVIDERS), default="codex")
     parser.add_argument("--target", choices=["candidates", "items", "both"], default="candidates")
     parser.add_argument("--items", type=Path, default=ITEMS)
     parser.add_argument("--candidates", type=Path, default=CANDIDATES)
@@ -460,10 +568,11 @@ def main() -> None:
         totals.append(("資料庫項目", *process_file(args.items, "items", args)))
 
     lines = [
-        "# Codex review enrichment report",
+        f"# {provider_meta(args.provider)['label']} review enrichment report",
         "",
         f"- Generated at: {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
         f"- Target: {args.target}",
+        f"- Provider: {provider_meta(args.provider)['label']}",
         f"- Tracks: {', '.join(args.track) if args.track else 'all'}",
         f"- Mode: {'prepare only' if args.prepare_only else 'dry run' if args.dry_run else 'write'}",
         "",

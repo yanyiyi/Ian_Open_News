@@ -15,6 +15,10 @@ from page_metadata import infer_language_from_text
 
 ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "database" / "items.jsonl"
+AI_PROVIDERS = {
+    "codex": {"label": "Codex", "generator": "codex-cli"},
+    "claude": {"label": "Claude Code", "generator": "claude-code-cli"},
+}
 
 
 def clean_text(value: object, limit: int | None = None) -> str:
@@ -49,6 +53,42 @@ def codex_path() -> str:
         if Path(path).exists():
             return path
     raise RuntimeError("找不到 codex CLI，請先確認 /opt/homebrew/bin/codex 是否可用。")
+
+
+def claude_path() -> str:
+    candidate = shutil.which("claude")
+    if candidate:
+        return candidate
+    for path in ["/opt/homebrew/bin/claude", "/usr/local/bin/claude"]:
+        if Path(path).exists():
+            return path
+    raise RuntimeError("找不到 claude CLI，請先確認 /opt/homebrew/bin/claude 是否可用。")
+
+
+def provider_label(provider: str) -> str:
+    return AI_PROVIDERS.get(provider, AI_PROVIDERS["codex"])["label"]
+
+
+def parse_cli_json(raw: str) -> dict[str, Any]:
+    text = raw.strip()
+    if not text:
+        raise RuntimeError("model output is empty")
+    try:
+        payload: Any = json.loads(text)
+    except json.JSONDecodeError:
+        last_line = next((line.strip() for line in reversed(text.splitlines()) if line.strip()), "")
+        payload = json.loads(last_line)
+    if isinstance(payload, dict) and "zh_markdown" in payload:
+        return payload
+    if isinstance(payload, dict) and "result" in payload:
+        result = payload["result"]
+        if isinstance(result, dict):
+            return result
+        if isinstance(result, str):
+            return json.loads(result)
+    if isinstance(payload, dict) and "message" in payload and isinstance(payload["message"], dict):
+        return payload["message"]
+    raise RuntimeError("model output missing structured payload")
 
 
 def item_title(record: dict[str, Any]) -> str:
@@ -100,7 +140,7 @@ def output_schema() -> dict[str, Any]:
     }
 
 
-def build_prompt(record: dict[str, Any], markdown: str, language: str) -> str:
+def build_prompt(record: dict[str, Any], markdown: str, language: str, provider: str = "codex") -> str:
     payload = {
         "id": record.get("id"),
         "title": clean_text(record.get("title"), 320),
@@ -111,7 +151,7 @@ def build_prompt(record: dict[str, Any], markdown: str, language: str) -> str:
         "markdown": markdown,
     }
     data = json.dumps(payload, ensure_ascii=False, indent=2)
-    return f"""你是 Ian Open News 的翻譯編輯，請把下列外語文章翻成台灣讀者自然可讀的繁體中文。
+    return f"""你是 Ian Open News 的翻譯編輯，請用 {provider_label(provider)} 把下列外語文章翻成台灣讀者自然可讀的繁體中文。
 
 規則：
 - 只翻譯提供的 markdown，不要上網，不要補不存在的事實。
@@ -133,7 +173,7 @@ def run_codex(record: dict[str, Any], markdown: str, language: str, timeout: int
     output_path = cache / "codex-translate-output.json"
     prompt_path = cache / "codex-translate-prompt.md"
     schema_path.write_text(json.dumps(output_schema(), ensure_ascii=False, indent=2), encoding="utf-8")
-    prompt = build_prompt(record, markdown, language)
+    prompt = build_prompt(record, markdown, language, "codex")
     prompt_path.write_text(prompt, encoding="utf-8")
 
     command = [
@@ -179,23 +219,89 @@ def run_codex(record: dict[str, Any], markdown: str, language: str, timeout: int
     return payload
 
 
-def apply_translation(record: dict[str, Any], payload: dict[str, Any], language: str) -> bool:
+def run_claude(record: dict[str, Any], markdown: str, language: str, timeout: int) -> dict[str, Any]:
+    cache = ROOT / ".cache"
+    cache.mkdir(exist_ok=True)
+    schema = output_schema()
+    prompt = build_prompt(record, markdown, language, "claude")
+    (cache / "claude-translate-prompt.md").write_text(prompt, encoding="utf-8")
+    command = [
+        claude_path(),
+        "--print",
+        "--input-format",
+        "text",
+        "--output-format",
+        "json",
+        "--no-session-persistence",
+        "--permission-mode",
+        "dontAsk",
+        "--tools",
+        "",
+        "--json-schema",
+        json.dumps(schema, ensure_ascii=False),
+    ]
+    env = os.environ.copy()
+    env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        input=prompt,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+        env=env,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            "claude print failed\n"
+            f"STDOUT:\n{result.stdout[-2000:]}\n"
+            f"STDERR:\n{result.stderr[-2000:]}"
+        )
+    (cache / "claude-translate-output.json").write_text(result.stdout, encoding="utf-8")
+    payload = parse_cli_json(result.stdout)
+    if clean_text(payload.get("id")) != clean_text(record.get("id")):
+        raise RuntimeError("Claude output id mismatch")
+    if not clean_text(payload.get("zh_markdown")):
+        raise RuntimeError("Claude output missing zh_markdown")
+    return payload
+
+
+def run_provider(record: dict[str, Any], markdown: str, language: str, provider: str, timeout: int) -> dict[str, Any]:
+    if provider == "claude":
+        return run_claude(record, markdown, language, timeout)
+    return run_codex(record, markdown, language, timeout)
+
+
+def apply_translation(record: dict[str, Any], payload: dict[str, Any], language: str, provider: str) -> bool:
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
     metadata = dict(metadata)
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     zh_title = clean_text(payload.get("zh_title"), 320)
     zh_markdown = clean_text(payload.get("zh_markdown"), 90000)
+    source_label = provider_label(provider)
+    provider_prefix = "claude" if provider == "claude" else "codex"
     metadata.update(
         {
-            "translated_zh_title": zh_title,
-            "translated_zh_title_source": "Codex",
-            "translated_article_markdown_zh": zh_markdown,
-            "translated_article_markdown_zh_chars": len(zh_markdown),
-            "translation_source": "Codex",
-            "translation_generated_at": generated_at,
-            "translation_note": clean_text(payload.get("note"), 600),
+            f"{provider_prefix}_translated_zh_title": zh_title,
+            f"{provider_prefix}_translated_article_markdown_zh": zh_markdown,
+            f"{provider_prefix}_translated_article_markdown_zh_chars": len(zh_markdown),
+            f"{provider_prefix}_translation_source": source_label,
+            f"{provider_prefix}_translation_generated_at": generated_at,
+            f"{provider_prefix}_translation_note": clean_text(payload.get("note"), 600),
         }
     )
+    if provider == "codex" or not clean_text(metadata.get("translated_article_markdown_zh")):
+        metadata.update(
+            {
+                "translated_zh_title": zh_title,
+                "translated_zh_title_source": source_label,
+                "translated_article_markdown_zh": zh_markdown,
+                "translated_article_markdown_zh_chars": len(zh_markdown),
+                "translation_source": source_label,
+                "translation_generated_at": generated_at,
+                "translation_note": clean_text(payload.get("note"), 600),
+            }
+        )
     if language and not clean_text(metadata.get("original_language")):
         metadata["original_language"] = language
         metadata["original_language_source"] = "推斷"
@@ -204,7 +310,8 @@ def apply_translation(record: dict[str, Any], payload: dict[str, Any], language:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Use Codex CLI to translate one fetched article into Taiwan Traditional Chinese.")
+    parser = argparse.ArgumentParser(description="Use Codex or Claude Code CLI to translate one fetched article into Taiwan Traditional Chinese.")
+    parser.add_argument("--provider", choices=sorted(AI_PROVIDERS), default="codex")
     parser.add_argument("--items", type=Path, default=ITEMS)
     parser.add_argument("--id", required=True)
     parser.add_argument("--timeout", type=int, default=1500)
@@ -221,11 +328,11 @@ def main() -> None:
     language = source_language(record, markdown)
     if language.startswith("zh"):
         raise SystemExit("這篇看起來已是中文，不需要自動翻譯。")
-    payload = run_codex(record, markdown, language, args.timeout)
-    apply_translation(record, payload, language)
+    payload = run_provider(record, markdown, language, args.provider, args.timeout)
+    apply_translation(record, payload, language, args.provider)
     if not args.dry_run:
         write_jsonl(args.items, records)
-    print(f"translated id={args.id} language={language or 'unknown'} dry_run={args.dry_run}")
+    print(f"translated id={args.id} provider={provider_label(args.provider)} language={language or 'unknown'} dry_run={args.dry_run}")
 
 
 if __name__ == "__main__":

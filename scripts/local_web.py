@@ -63,6 +63,29 @@ EDITOR_CHOICE_LABELS = {"thematic": "主題式", "digest": "彙報式"}
 DATA_AUTOCOMMIT_INTERVAL_SECONDS = 30 * 60
 TAG_SUGGESTION_LIMIT = 12
 CURRENT_READING_PRIORITY_DAYS = 2
+AI_PROVIDER_META = {
+    "codex": {
+        "label": "Codex",
+        "short": "Codex",
+        "review_key": "codex_review",
+        "translation_markdown_key": "codex_translated_article_markdown_zh",
+        "translation_title_key": "codex_translated_zh_title",
+        "translation_source_key": "codex_translation_source",
+        "translation_generated_key": "codex_translation_generated_at",
+        "translation_note_key": "codex_translation_note",
+    },
+    "claude": {
+        "label": "Claude Code",
+        "short": "Claude",
+        "review_key": "claude_review",
+        "translation_markdown_key": "claude_translated_article_markdown_zh",
+        "translation_title_key": "claude_translated_zh_title",
+        "translation_source_key": "claude_translation_source",
+        "translation_generated_key": "claude_translation_generated_at",
+        "translation_note_key": "claude_translation_note",
+    },
+}
+AI_PROVIDER_ORDER = ["codex", "claude"]
 TAG_SYNONYM_GROUPS = [
     ("開放原始碼 / Open Source", ["開放原始碼", "開源", "open source", "opensource", "FOSS", "free software", "自由軟體"]),
     ("開放資料 / Open Data", ["開放資料", "開放數據", "open data", "data portal", "資料開放"]),
@@ -1462,18 +1485,49 @@ def remove_local_candidate_fields(record: dict) -> dict:
 
 
 def record_codex_review(record: dict) -> dict:
+    return record_model_review(record, "codex")
+
+
+def normalize_ai_provider(provider: object) -> str:
+    text = clean_text(provider).casefold()
+    return text if text in AI_PROVIDER_META else "codex"
+
+
+def ai_provider_label(provider: object) -> str:
+    return AI_PROVIDER_META[normalize_ai_provider(provider)]["label"]
+
+
+def record_model_review(record: dict, provider: str) -> dict:
     editorial = record.get("editorial_triage") or {}
     if not isinstance(editorial, dict):
         return {}
-    review = editorial.get("codex_review")
+    key = AI_PROVIDER_META[normalize_ai_provider(provider)]["review_key"]
+    review = editorial.get(key)
     return review if isinstance(review, dict) else {}
 
 
+def record_model_reviews(record: dict) -> list[tuple[str, dict]]:
+    reviews: list[tuple[str, dict]] = []
+    for provider in AI_PROVIDER_ORDER:
+        review = record_model_review(record, provider)
+        if review:
+            reviews.append((provider, review))
+    return reviews
+
+
+def record_preferred_review(record: dict) -> dict:
+    for provider in AI_PROVIDER_ORDER:
+        review = record_model_review(record, provider)
+        if review:
+            return review
+    return {}
+
+
 def candidate_recommendation(candidate: dict) -> str:
-    codex_review = record_codex_review(candidate)
-    if codex_review:
-        codex_recommendation = clean_text(codex_review.get("recommendation")).casefold()
-        if codex_recommendation == "recommend-skip":
+    model_review = record_preferred_review(candidate)
+    if model_review:
+        model_recommendation = clean_text(model_review.get("recommendation")).casefold()
+        if model_recommendation == "recommend-skip":
             return "suggest-skip"
         return "suggest-keep"
     return (candidate.get("triage") or {}).get("recommendation", "unknown")
@@ -1786,7 +1840,7 @@ def form_tags(data: dict[str, list[str]], key: str = "tags") -> list[str]:
 def item_tag_text_haystack(item: dict) -> str:
     triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
     editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
-    codex_review = record_codex_review(item)
+    model_reviews = [review for _, review in record_model_reviews(item)]
     metadata = item_reading_metadata(item)
     parts: list[object] = [
         item.get("title"),
@@ -1794,15 +1848,20 @@ def item_tag_text_haystack(item: dict) -> str:
         editorial.get("zh_title"),
         editorial.get("zh_summary"),
         editorial.get("summary_reason"),
-        codex_review.get("zh_title"),
-        codex_review.get("one_line_recommendation"),
-        codex_review.get("summary"),
-        " ".join(codex_review.get("reasons") or []),
         metadata.get("title"),
         metadata.get("description"),
         metadata.get("article_text"),
         " ".join(triage.get("matched_keywords") or []),
     ]
+    for review in model_reviews:
+        parts.extend(
+            [
+                review.get("zh_title"),
+                review.get("one_line_recommendation"),
+                review.get("summary"),
+                " ".join(review.get("reasons") or []),
+            ]
+        )
     return "\n".join(clean_text(part, 3000) for part in parts if part).casefold()
 
 
@@ -2051,6 +2110,195 @@ def editorial_badge_class(recommendation: str) -> str:
     return "neutral"
 
 
+def clamp_score(value: float, low: float = 0, high: float = 10) -> float:
+    return max(low, min(high, value))
+
+
+def raw_number(value: object, default: float = 0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def scale_score(value: object, low: float, high: float, invert: bool = False) -> float:
+    number = clamp_score(raw_number(value), low, high)
+    if high == low:
+        score = 0.0
+    else:
+        score = ((number - low) / (high - low)) * 10
+    if invert:
+        score = 10 - score
+    return clamp_score(score)
+
+
+def confidence_score_10(value: object) -> float:
+    label = clean_text(value).casefold()
+    if label == "high":
+        return 10
+    if label == "medium":
+        return 6
+    if label == "low":
+        return 3
+    return 0
+
+
+def recommendation_score_10(value: object) -> float:
+    recommendation = clean_text(value).casefold()
+    if recommendation in {"recommend-collect", "suggest-collect"}:
+        return 10
+    if recommendation in {"recommend-review", "suggest-review"}:
+        return 6.5
+    if recommendation in {"suggest-keep", "recommend-keep"}:
+        return 8
+    if recommendation in {"recommend-skip", "suggest-skip"}:
+        return 1.5
+    return 4
+
+
+def local_rule_score_10(item: dict) -> float:
+    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
+    scores: list[tuple[float, float]] = []
+    if isinstance(editorial, dict) and editorial:
+        keyword = editorial.get("keyword_fit") if isinstance(editorial.get("keyword_fit"), dict) else {}
+        prior = editorial.get("prior_collection_fit") if isinstance(editorial.get("prior_collection_fit"), dict) else {}
+        deletion = editorial.get("deletion_pattern_fit") if isinstance(editorial.get("deletion_pattern_fit"), dict) else {}
+        if keyword:
+            scores.append((scale_score(keyword.get("score"), -6, 6), 0.32))
+        if prior:
+            scores.append((scale_score(prior.get("score"), 0, 5), 0.22))
+        if deletion:
+            scores.append((scale_score(deletion.get("score"), 0, 6, invert=True), 0.26))
+        if editorial.get("recommendation"):
+            scores.append((recommendation_score_10(editorial.get("recommendation")), 0.20))
+    if not scores and triage:
+        scores.append((recommendation_score_10(triage.get("recommendation")), 1.0))
+    if not scores:
+        return 4
+    weight = sum(score_weight for _, score_weight in scores) or 1
+    return clamp_score(sum(score * score_weight for score, score_weight in scores) / weight)
+
+
+def collection_fit_score_10(item: dict) -> float:
+    model_review = record_preferred_review(item)
+    if model_review:
+        return recommendation_score_10(model_review.get("recommendation"))
+    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    if editorial and editorial.get("recommendation"):
+        return recommendation_score_10(editorial.get("recommendation"))
+    triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
+    return recommendation_score_10(triage.get("recommendation"))
+
+
+def item_confidence_score_10(item: dict) -> float:
+    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    if editorial and editorial.get("confidence"):
+        return confidence_score_10(editorial.get("confidence"))
+    model_review = record_preferred_review(item)
+    if model_review and model_review.get("confidence"):
+        return confidence_score_10(model_review.get("confidence"))
+    return 0
+
+
+def candidate_priority_scores(item: dict) -> dict[str, float]:
+    rule_score = local_rule_score_10(item)
+    collect_score = collection_fit_score_10(item)
+    confidence_score = item_confidence_score_10(item)
+    overall = (rule_score * 0.45) + (collect_score * 0.40) + (confidence_score * 0.15)
+    return {
+        "overall": clamp_score(overall),
+        "rule": rule_score,
+        "collect": collect_score,
+        "confidence": confidence_score,
+    }
+
+
+def score_label(value: float) -> str:
+    if abs(value - round(value)) < 0.05:
+        return str(int(round(value)))
+    return f"{value:.1f}"
+
+
+def candidate_sort_key(entry: tuple[str, dict]) -> tuple[float, float, float, float, str, str, str]:
+    item = entry[1]
+    scores = candidate_priority_scores(item)
+    return (
+        scores["overall"],
+        scores["collect"],
+        scores["confidence"],
+        scores["rule"],
+        item.get("captured_at", ""),
+        item.get("published_at", ""),
+        item_display_title(item),
+    )
+
+
+def model_recommendation_label(review: dict) -> str:
+    recommendation = clean_text(review.get("recommendation")).casefold()
+    if recommendation == "recommend-collect":
+        return "建議收"
+    if recommendation == "recommend-review":
+        return "建議人工看過"
+    if recommendation == "recommend-skip":
+        return "建議不要看"
+    return "未判斷"
+
+
+def model_recommendation_badge_class(review: dict) -> str:
+    recommendation = clean_text(review.get("recommendation")).casefold()
+    if recommendation == "recommend-skip":
+        return "suggest-skip"
+    if recommendation == "recommend-collect":
+        return "suggest-keep"
+    return "neutral"
+
+
+def score_summary_html(item: dict) -> str:
+    scores = candidate_priority_scores(item)
+    labels = [
+        ("綜合排序", scores["overall"]),
+        ("自動規則", scores["rule"]),
+        ("建議收程度", scores["collect"]),
+        ("信心度", scores["confidence"]),
+    ]
+    return "<div class='score-grid'>" + "".join(
+        f"<span class='score-pill'><b>{h(score_label(value))}</b><small>/10 {h(label)}</small></span>"
+        for label, value in labels
+    ) + "</div>"
+
+
+def rule_stage_scores_html(item: dict) -> str:
+    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    if not editorial:
+        return ""
+    rows: list[tuple[str, float, str]] = []
+    keyword = editorial.get("keyword_fit") if isinstance(editorial.get("keyword_fit"), dict) else {}
+    prior = editorial.get("prior_collection_fit") if isinstance(editorial.get("prior_collection_fit"), dict) else {}
+    deletion = editorial.get("deletion_pattern_fit") if isinstance(editorial.get("deletion_pattern_fit"), dict) else {}
+    if keyword:
+        rows.append(("關鍵字", scale_score(keyword.get("score"), -6, 6), "越高越符合主線"))
+    if prior:
+        rows.append(("過去收錄", scale_score(prior.get("score"), 0, 5), "越高越像已收材料"))
+    if deletion:
+        rows.append(("不收風險", scale_score(deletion.get("score"), 0, 6, invert=True), "越高越不像不收紀錄"))
+    if not rows:
+        return ""
+    return "<div class='score-grid score-grid--stages'>" + "".join(
+        f"<span class='score-pill score-pill--soft'><b>{h(score_label(value))}</b><small>/10 {h(label)}</small><em>{h(hint)}</em></span>"
+        for label, value, hint in rows
+    ) + "</div>"
+
+
+def model_judgement_summary_html(item: dict) -> str:
+    parts = []
+    for provider, review in record_model_reviews(item):
+        parts.append(f"{ai_provider_label(provider)} 最後判斷：{model_recommendation_label(review)}")
+    if not parts:
+        return "<p class='help'>Codex 最後判斷：尚未生成。</p>"
+    return f"<p class='help'>{h('；'.join(parts))}</p>"
+
+
 def item_detail_href(item: dict) -> str:
     return f"/items/view?id={quote(str(item.get('id', '')))}"
 
@@ -2134,13 +2382,11 @@ def item_original_summary(item: dict, limit: int = 420) -> str:
 
 
 def item_zh_summary(item: dict, limit: int = 420) -> str:
-    editorial = item.get("editorial_triage") or {}
-    if isinstance(editorial, dict):
-        codex_review = editorial.get("codex_review")
-        if isinstance(codex_review, dict):
-            text = clean_text(codex_review.get("summary")) or clean_text(codex_review.get("one_line_recommendation"))
-            if text:
-                return workflow_display_text(text, limit)
+    model_review = record_preferred_review(item)
+    if model_review:
+        text = clean_text(model_review.get("summary")) or clean_text(model_review.get("one_line_recommendation"))
+        if text:
+            return workflow_display_text(text, limit)
     return item_original_summary(item, limit)
 
 
@@ -2155,8 +2401,8 @@ def item_reading_metadata(item: dict) -> dict:
 
 def item_codex_zh_title(item: dict) -> str:
     editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
-    codex_review = editorial.get("codex_review") if isinstance(editorial.get("codex_review"), dict) else {}
-    for candidate in [codex_review.get("zh_title"), editorial.get("zh_title"), editorial.get("codex_zh_title")]:
+    model_review = record_preferred_review(item)
+    for candidate in [model_review.get("zh_title"), editorial.get("zh_title"), editorial.get("codex_zh_title")]:
         title = usable_zh_title(candidate, 300)
         if title:
             return title
@@ -2230,8 +2476,101 @@ def is_foreign_language_item(item: dict) -> bool:
     return not language.startswith("zh")
 
 
+def item_provider_translation_markdown(item: dict, provider: str) -> str:
+    metadata = item_reading_metadata(item)
+    provider = normalize_ai_provider(provider)
+    if provider == "codex":
+        return clean_text(
+            metadata.get("codex_translated_article_markdown_zh")
+            or metadata.get("translated_article_markdown_zh")
+        )
+    return clean_text(metadata.get(AI_PROVIDER_META[provider]["translation_markdown_key"]))
+
+
+def item_translation_entries(item: dict) -> list[tuple[str, str]]:
+    entries: list[tuple[str, str]] = []
+    seen_markdown: set[str] = set()
+    for provider in AI_PROVIDER_ORDER:
+        markdown = item_provider_translation_markdown(item, provider)
+        if markdown and markdown not in seen_markdown:
+            entries.append((provider, markdown))
+            seen_markdown.add(markdown)
+    return entries
+
+
 def item_translated_markdown(item: dict) -> str:
-    return clean_text(item_reading_metadata(item).get("translated_article_markdown_zh"))
+    entries = item_translation_entries(item)
+    return entries[0][1] if entries else ""
+
+
+def translation_meta_value(metadata: dict, provider: str, key: str) -> str:
+    provider = normalize_ai_provider(provider)
+    meta_key = AI_PROVIDER_META[provider][key]
+    value = clean_text(metadata.get(meta_key))
+    if value:
+        return value
+    if provider == "codex":
+        legacy_map = {
+            "translation_source_key": "translation_source",
+            "translation_generated_key": "translation_generated_at",
+            "translation_note_key": "translation_note",
+            "translation_title_key": "translated_zh_title",
+        }
+        legacy_key = legacy_map.get(key)
+        if legacy_key:
+            return clean_text(metadata.get(legacy_key))
+    return ""
+
+
+def translation_actions_html(item: dict, item_id: str, redirect_to: str) -> str:
+    if not (item_article_markdown(item) or item_article_text(item)):
+        return ""
+    if not is_foreign_language_item(item):
+        return ""
+    missing = [provider for provider in AI_PROVIDER_ORDER if not item_provider_translation_markdown(item, provider)]
+    if not missing:
+        return ""
+    forms = []
+    for provider in missing:
+        label = ai_provider_label(provider)
+        button_class = "" if provider == "codex" else "secondary"
+        shortcut = "T" if provider == "codex" else "L"
+        forms.append(
+            "<form method='post' action='/items/translate-zh' data-translate-form>"
+            f"<input type='hidden' name='id' value='{h(item_id)}'>"
+            f"<input type='hidden' name='redirect' value='{h(redirect_to)}'>"
+            f"<input type='hidden' name='provider' value='{h(provider)}'>"
+            f"<button type='submit' class='{h(button_class)}'>{button_content(label + ' 翻譯中文', 'translate', shortcut)}</button>"
+            "</form>"
+        )
+    metadata = item_reading_metadata(item)
+    return (
+        f"<div class='button-row'>{''.join(forms)}</div>"
+        f"<p class='help'>偵測原文語言：{h(language_label(item_original_language(item)))}{h(metadata_source_label(metadata, 'original_language'))}。會用台灣習慣用語翻成繁體中文，並依 provider 存回本機資料庫。</p>"
+    )
+
+
+def translation_panels_html(item: dict) -> str:
+    metadata = item_reading_metadata(item)
+    panels = []
+    for provider, markdown in item_translation_entries(item):
+        label = ai_provider_label(provider)
+        generated_at = translation_meta_value(metadata, provider, "translation_generated_key")
+        source = translation_meta_value(metadata, provider, "translation_source_key") or label
+        note = translation_meta_value(metadata, provider, "translation_note_key")
+        note_html = f"<p class='help'>備註：{h(note)}</p>" if note else ""
+        panels.append(
+            f"""
+<section class="card fulltext-panel source-card source-card--source" id="translation-panel-{h(provider)}">
+  <div class="section-kicker">{h(label)} 中文翻譯</div>
+  <h2>{h(label)} 翻譯成中文</h2>
+  <p class="help">翻譯來源：{h(source)} · {h(generated_at)}</p>
+  {note_html}
+  <div class="article-text article-markdown">{markdown_to_html(markdown)}</div>
+</section>
+"""
+        )
+    return "".join(panels)
 
 
 def item_article_text(item: dict) -> str:
@@ -2531,52 +2870,75 @@ def is_reader_item(item: dict) -> bool:
     return isinstance(decision, dict) and decision.get("action") in {"accepted-for-editing", "direct-pr-small-news"}
 
 
+def model_review_card_html(provider: str, review: dict, compact: bool = False) -> str:
+    label = ai_provider_label(provider)
+    one_line = workflow_display_text(review.get("one_line_recommendation"), 420)
+    summary = workflow_display_text(review.get("summary"), 900)
+    reasons = review.get("reasons") or []
+    reason_rows = "<ol class='reason-list'>" + "".join(f"<li>{h(workflow_display_text(reason))}</li>" for reason in reasons[:3]) + "</ol>" if reasons and not compact else ""
+    summary_html = f"<p class='zh-summary'>{h(summary)}</p>" if summary and not compact else ""
+    confidence = confidence_score_10(review.get("confidence"))
+    confidence_badge = badge(f"信心 {score_label(confidence)}/10", "neutral") if confidence else ""
+    generated_badge = badge(str(review.get("generated_at", "")), "neutral") if review.get("generated_at") and not compact else ""
+    basis_badge = badge("需要補全文" if review.get("needs_fulltext") else "依可讀資料判斷", "neutral")
+    return (
+        "<div class='source-card source-card--model'>"
+        f"<div class='section-kicker'>{h(label)} 生成</div>"
+        "<h3>給 Ian 的閱讀建議</h3>"
+        f"{badge('來源：' + label, 'suggest-keep')}"
+        f"{badge(model_recommendation_label(review), model_recommendation_badge_class(review))}"
+        f"{confidence_badge}"
+        f"{basis_badge}"
+        f"{generated_badge}"
+        f"<p class='recommendation-line'>{h(one_line)}</p>"
+        f"{reason_rows}"
+        f"{summary_html}"
+        "</div>"
+    )
+
+
+def model_review_actions_html(item: dict, compact: bool = False) -> str:
+    if compact:
+        return ""
+    missing_providers = [provider for provider in AI_PROVIDER_ORDER if not record_model_review(item, provider)]
+    if not missing_providers:
+        return ""
+    has_article_text = bool(item_article_markdown(item) or item_article_text(item))
+    forms = []
+    for provider in missing_providers:
+        label = ai_provider_label(provider)
+        button_label = f"{label} 生成建議" if has_article_text else f"抓全文並用 {label} 生成建議"
+        button_class = "" if provider == "codex" else "secondary"
+        forms.append(
+            "<form method='post' action='/items/codex-review' data-codex-review-form>"
+            f"<input type='hidden' name='id' value='{h(item.get('id'))}'>"
+            f"<input type='hidden' name='redirect' value='{h(item_detail_href(item))}'>"
+            "<input type='hidden' name='with_fulltext' value='1'>"
+            f"<input type='hidden' name='provider' value='{h(provider)}'>"
+            f"<button type='submit' class='{h(button_class)}'>{button_content(button_label, 'sparkle', 'C' if provider == 'codex' else 'L')}</button>"
+            "</form>"
+        )
+    return (
+        "<div class='source-card source-card--model source-card--empty'>"
+        "<div class='section-kicker'>模型建議</div>"
+        "<h3>生成閱讀建議</h3>"
+        "<p class='help'>預設先看 Codex 建議；需要交叉比較時，可再補 Claude Code。兩邊都有生成時會各自顯示成一張卡。</p>"
+        f"<div class='button-row'>{''.join(forms)}</div>"
+        "</div>"
+    )
+
+
 def editorial_triage_html(item: dict, compact: bool = False, reject_action: str = "/items/reject") -> str:
     editorial = item.get("editorial_triage") or {}
     if not isinstance(editorial, dict):
         editorial = {}
     recommendation = editorial.get("recommendation", "")
-    kind = editorial.get("content_kind", "")
     confidence = editorial.get("confidence", "")
     if not editorial:
         return "<p class='help'>自動規則判斷：尚未重跑。可到首頁或關鍵字頁按「重新跑本機規則/關鍵字初篩」。</p>"
     display_kind = item_display_kind(item)
-    codex_review = item_codex_review(item)
-    codex_html = ""
-    if codex_review:
-        one_line = workflow_display_text(codex_review.get("one_line_recommendation"), 420)
-        summary = workflow_display_text(codex_review.get("summary"), 900)
-        reasons = codex_review.get("reasons") or []
-        reason_rows = "<ol class='reason-list'>" + "".join(f"<li>{h(workflow_display_text(reason))}</li>" for reason in reasons[:3]) + "</ol>" if reasons and not compact else ""
-        summary_html = f"<p class='zh-summary'>{h(summary)}</p>" if summary and not compact else ""
-        codex_html = (
-            "<div class='source-card source-card--model'>"
-            "<div class='section-kicker'>Codex 生成</div>"
-            "<h3>給 Ian 的閱讀建議</h3>"
-            f"{badge('來源：Codex', 'suggest-keep')}"
-            f"{badge('依主文生成' if codex_review.get('used_article_text') else '依既有資料生成', 'neutral')}"
-            f"{badge(str(codex_review.get('generated_at', '')), 'neutral') if codex_review.get('generated_at') and not compact else ''}"
-            f"<p class='recommendation-line'>{h(one_line)}</p>"
-            f"{reason_rows}"
-            f"{summary_html}"
-            "</div>"
-        )
-    elif not compact:
-        has_article_text = bool(item_article_text(item))
-        button_label = "生成 Codex 建議" if has_article_text else "抓全文並生成 Codex 建議"
-        codex_html = (
-            "<div class='source-card source-card--model source-card--empty'>"
-            "<div class='section-kicker'>Codex 生成</div>"
-            "<h3>給 Ian 的閱讀建議</h3>"
-            "<p class='help'>這則還沒有 Codex 生成摘要。可以直接在本頁補上；系統會先嘗試抓全文，再用目前可讀資料生成閱讀建議。</p>"
-            "<form method='post' action='/items/codex-review' data-codex-review-form>"
-            f"<input type='hidden' name='id' value='{h(item.get('id'))}'>"
-            f"<input type='hidden' name='redirect' value='{h(item_detail_href(item))}'>"
-            "<input type='hidden' name='with_fulltext' value='1'>"
-            f"<button type='submit' class='secondary'>{button_content(button_label, 'sparkle', 'C')}</button>"
-            "</form>"
-            "</div>"
-        )
+    model_html = "".join(model_review_card_html(provider, review, compact=compact) for provider, review in record_model_reviews(item))
+    model_html += model_review_actions_html(item, compact=compact)
 
     article_text = item_article_text(item)
     metadata = item_reading_metadata(item)
@@ -2594,6 +2956,16 @@ def editorial_triage_html(item: dict, compact: bool = False, reject_action: str 
             "</div>"
         )
 
+    triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
+    matched = "、".join(triage.get("matched_keywords") or []) or "無"
+    skipped = "、".join(triage.get("skip_keywords") or []) or "無"
+    keyword_html = (
+        f"<p class='help'>關鍵字第一層判斷：建議：{h(recommendation_label(triage.get('recommendation', 'unknown')))}<br>"
+        f"理由：{h(workflow_display_text(triage.get('reason', '未標示')))}<br>"
+        f"命中：{h(matched)}<br>排除：{h(skipped)}</p>"
+        if triage
+        else ""
+    )
     reasons = editorial.get("view_reasons") or []
     reason_rows = ""
     if reasons and not compact:
@@ -2611,21 +2983,27 @@ def editorial_triage_html(item: dict, compact: bool = False, reject_action: str 
             f"<div class='reason-presets'>{inline_reject_buttons(clean_text(item.get('id')), suggested_reasons, limit=4, action=reject_action)}</div>"
         )
     zh_summary = workflow_display_text(editorial.get("zh_summary"), 620)
-    zh_summary_html = f"<p class='zh-summary'>{h(zh_summary)}</p>" if zh_summary and not compact and not codex_review else ""
+    has_model_review = bool(record_model_reviews(item))
+    zh_summary_html = f"<p class='zh-summary'>{h(zh_summary)}</p>" if zh_summary and not compact and not has_model_review else ""
+    confidence_html = f"{score_label(confidence_score_10(confidence))}/10" if confidence else ""
     rule_html = (
         "<div class='source-card source-card--rules'>"
         "<div class='section-kicker'>自動規則判斷</div>"
-        "<h3>關鍵字與過往資料的判斷</h3>"
+        "<h3>本機規則與關鍵字階段判斷</h3>"
         f"{badge(editorial_recommendation_label(recommendation), editorial_badge_class(recommendation))}"
         f"{badge(content_kind_label(display_kind), 'neutral')}"
-        f"{badge('信心 ' + confidence, 'neutral') if confidence else ''}"
+        f"{badge('信心 ' + confidence_html, 'neutral') if confidence_html else ''}"
+        f"{score_summary_html(item)}"
+        f"{rule_stage_scores_html(item)}"
+        f"{model_judgement_summary_html(item)}"
         f"{zh_summary_html}"
         f"<p class='help'>初步判斷：{h(workflow_display_text(editorial.get('summary_reason', '未標示')))}<br>"
         f"下一步：{h(workflow_display_text(editorial.get('next_step_hint', '人工判斷下一步。')))}</p>"
+        f"{keyword_html}"
         f"{reason_rows}{deletion_html}{reject_reason_html}"
         "</div>"
     )
-    return f"<div class='source-stack'>{codex_html}{source_html}{rule_html}</div>"
+    return f"<div class='source-stack'>{model_html}{source_html}{rule_html}</div>"
 
 
 def append_review_note(review: dict, note: str) -> dict:
@@ -3719,6 +4097,13 @@ def page(title: str, body: str) -> bytes:
     .source-card--source {{ border-left-color: var(--ocf-cyan); background: #f7fbfe; }}
     .source-card--rules {{ border-left-color: #7b8495; background: #fbfcff; }}
     .source-card--empty {{ opacity: .82; }}
+    .score-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; margin: 10px 0; }}
+    .score-grid--stages {{ grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); margin-top: 8px; }}
+    .score-pill {{ border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 8px 10px; display: grid; gap: 2px; min-height: 58px; }}
+    .score-pill b {{ font-size: 22px; line-height: 1; color: var(--ocf-dark); }}
+    .score-pill small {{ color: var(--muted); font-size: 12px; line-height: 1.2; }}
+    .score-pill em {{ color: var(--muted); font-size: 11px; font-style: normal; line-height: 1.25; }}
+    .score-pill--soft {{ background: #f8fafc; }}
     .section-kicker {{
       color: var(--muted);
       font-size: 12px;
@@ -6739,15 +7124,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 keyword_options.insert(0, keyword)
 
         filtered = [entry for entry in pending_entries if matches(entry[1])]
-        filtered.sort(
-            key=lambda entry: (
-                entry[1].get("captured_at", ""),
-                entry[1].get("published_at", ""),
-                entry[1].get("title", ""),
-            ),
-            reverse=True,
-        )
-        filtered.sort(key=lambda entry: candidate_recommendation(entry[1]) == "suggest-skip")
+        filtered.sort(key=candidate_sort_key, reverse=True)
         visible = filtered if show_all else filtered[:150]
         summary_entries = [
             entry
@@ -6797,10 +7174,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             notice = f'<div class="notice">已略過 RSS 新進 {count} 筆，之後同一筆不會重複出現。</div>'
         rows = []
         for entry_type, item in visible:
-            triage = item.get("triage") or {}
             recommendation = candidate_recommendation(item)
-            matched = "、".join(triage.get("matched_keywords") or []) or "無"
-            skipped = "、".join(triage.get("skip_keywords") or []) or "無"
+            priority_score = score_label(candidate_priority_scores(item)["overall"])
             css_class = track_class(item.get("track", "unclassified"))
             item_id = str(item.get("id") or "")
             if entry_type == "rss":
@@ -6816,12 +7191,12 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     {badge("RSS 新進", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
+    {badge(f"綜合 {priority_score}/10", "neutral")}
     <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   {tag_chips_html(item_visible_tags(item))}
-  <p class="help">判斷理由：{h(workflow_display_text(triage.get('reason', '未標示')))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
   <div class="decision-panel">
     <div class="button-row">
       <form method="post" action="/candidates/accept" data-decision-form>
@@ -6871,12 +7246,12 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     {badge("已入庫待分流", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
+    {badge(f"綜合 {priority_score}/10", "neutral")}
     <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   {tag_chips_html(item_visible_tags(item))}
-  <p class="help">判斷理由：{h(workflow_display_text(triage.get('reason', '未標示')))}<br>命中關鍵字：{h(matched)}<br>排除關鍵字：{h(skipped)}</p>
   <div class="decision-panel">
     <div class="button-row">
       <form method="post" action="/items/accept" data-decision-form>
@@ -7963,7 +8338,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         elif saved == "read_more":
             notice = '<div class="notice">已嘗試載入原始主文與頁面資料；若抓到全文，已寫入閱讀資料庫並顯示在「原始主文」。</div>'
         elif saved == "codex_review":
-            notice = '<div class="notice">已補上 Codex 生成閱讀建議；如果有抓到全文，這次會優先依全文判斷。</div>'
+            notice = '<div class="notice">已補上模型閱讀建議；如果有抓到全文，這次會優先依全文判斷。</div>'
         elif saved == "url":
             notice = '<div class="notice">已更新原始網址。接著可以按「展開全文」重新抓文章內容。</div>'
         elif saved == "title":
@@ -7975,7 +8350,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         elif (query.get("error") or [""])[0] == "read_more":
             notice = '<div class="notice">這次沒有抓到更多資料。可能是網站擋住讀取、網址需要登入，或頁面沒有可抽取的主文。</div>'
         elif (query.get("error") or [""])[0] == "codex_review":
-            notice = '<div class="notice">這次沒有順利補上 Codex 生成資訊。可以稍後再試，或先按「展開全文」補資料後再生成。</div>'
+            notice = '<div class="notice">這次沒有順利補上模型閱讀建議。可以稍後再試，或先按「展開全文」補資料後再生成。</div>'
         elif (query.get("error") or [""])[0] == "url_resolve":
             notice = '<div class="notice">這次無法解析跳轉後網址。你仍可手動貼上實際文章網址再儲存。</div>'
         elif (query.get("error") or [""])[0] == "translation":
@@ -7997,33 +8372,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         display_title = item_display_title(item)
         original_title = item_original_title(item)
         original_language = item_original_language(item)
-        translated_markdown = item_translated_markdown(item)
-        translated_html = markdown_to_html(translated_markdown) if translated_markdown else ""
-        can_translate = bool(article_markdown or article_text) and is_foreign_language_item(item) and not translated_markdown
-        translate_actions = (
-            f"""
-  <form method="post" action="/items/translate-zh" data-translate-form>
-    <input type="hidden" name="id" value="{h(item_id)}">
-    <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
-    <button type="submit" class="secondary">自動翻譯成中文</button>
-  </form>
-  <p class="help">偵測原文語言：{h(language_label(original_language))}{h(metadata_source_label(article_meta, "original_language"))}。會用台灣習慣用語翻成繁體中文，並存回本機資料庫。</p>
-"""
-            if can_translate
-            else ""
-        )
-        translation_panel = (
-            f"""
-<section class="card fulltext-panel source-card source-card--source" id="translation-panel">
-  <div class="section-kicker">Codex 中文翻譯</div>
-  <h2>自動翻譯成中文</h2>
-  <p class="help">翻譯來源：{h(article_meta.get('translation_source', 'Codex'))} · {h(article_meta.get('translation_generated_at', ''))}</p>
-  <div class="article-text article-markdown">{translated_html}</div>
-</section>
-"""
-            if translated_markdown
-            else ""
-        )
+        translate_actions = translation_actions_html(item, item_id, item_detail_href(item))
+        translation_panel = translation_panels_html(item)
         fulltext_hidden = "" if article_markdown or article_text else " hidden"
         fulltext_message = (
             f"已載入 Markdown 閱讀版，約 {article_meta.get('article_markdown_chars', len(article_markdown)) or article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_markdown_method') or article_meta.get('article_text_method', 'metadata')}。"
@@ -8303,10 +8653,6 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 <section class="article-detail-stack">
   <h2>閱讀建議與判斷來源</h2>
   {editorial_triage_html(item, reject_action='/candidates/dismiss' if is_rss_candidate else '/items/reject')}
-  <div class="card">
-    <h2>關鍵字第一層判斷</h2>
-    <p class="help">建議：{h(recommendation_label(candidate_recommendation(item)))}<br>理由：{h(workflow_display_text(triage.get('reason', '未標示')))}<br>命中：{h('、'.join(triage.get('matched_keywords') or []) or '無')}<br>排除：{h('、'.join(triage.get('skip_keywords') or []) or '無')}</p>
-  </div>
   {skill_rows}
 </section>
 </div>
@@ -8876,16 +9222,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 else ""
             )
             article_html = markdown_to_html(article_markdown) if article_markdown else ""
-            translation_actions_html = ""
-            if response_item and article_markdown and is_foreign_language_item(response_item) and not item_translated_markdown(response_item):
-                translation_actions_html = f"""
-<form method="post" action="/items/translate-zh" data-translate-form>
-  <input type="hidden" name="id" value="{h(item_id)}">
-  <input type="hidden" name="redirect" value="{h(redirect_to)}">
-  <button type="submit" class="secondary">自動翻譯成中文</button>
-</form>
-<p class="help">偵測原文語言：{h(language_label(item_original_language(response_item)))}{h(metadata_source_label(metadata, "original_language"))}。會用台灣習慣用語翻成繁體中文，並存回本機資料庫。</p>
-"""
+            translation_actions_markup = translation_actions_html(response_item or {}, item_id, redirect_to)
             message = (
                 f"已載入 Markdown 閱讀版，約 {metadata.get('article_markdown_chars', len(article_markdown)) or metadata.get('article_text_chars', len(article_text))} 字；"
                 f"抽取方式：{metadata.get('article_markdown_method') or metadata.get('article_text_method', 'metadata')}。"
@@ -8904,8 +9241,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                     "article_text_status": metadata.get("article_text_status", ""),
                     "article_markdown_status": metadata.get("article_markdown_status", ""),
                     "original_language": item_original_language(response_item or {}),
-                    "can_translate": bool(translation_actions_html),
-                    "translation_actions_html": translation_actions_html,
+                    "can_translate": bool(translation_actions_markup),
+                    "translation_actions_html": translation_actions_markup,
                     "image_url": metadata.get("image_url", ""),
                     "redirect": redirect_to,
                 },
@@ -8924,6 +9261,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 
     def codex_review_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
+        provider = normalize_ai_provider(form_value(data, "provider", "codex"))
         redirect_to = form_value(data, "redirect", f"/items/view?id={quote(item_id)}")
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
         if not redirect_to.startswith("/") or redirect_to.startswith("//"):
@@ -8950,6 +9288,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         command = [
             sys.executable,
             str(ROOT / "scripts" / "codex_enrich_reviews.py"),
+            "--provider",
+            provider,
             "--target",
             target,
             "--id",
@@ -8965,7 +9305,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             ok = result.returncode == 0
         except subprocess.TimeoutExpired as exc:
             output = (exc.stdout or "") + ("\nSTDERR:\n" + exc.stderr if exc.stderr else "")
-            output = (output + "\nCodex 單篇生成逾時。").strip()
+            output = (output + f"\n{ai_provider_label(provider)} 單篇生成逾時。").strip()
             ok = False
             result = subprocess.CompletedProcess(command, returncode=124, stdout="", stderr=output)
 
@@ -9137,6 +9477,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 
     def translate_item_zh(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
+        provider = normalize_ai_provider(form_value(data, "provider", "codex"))
         redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
         target_path = ITEMS
         if any(item.get("id") == item_id for item in load_jsonl(ITEMS)):
@@ -9155,6 +9496,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         command = [
             sys.executable,
             str(ROOT / "scripts" / "codex_translate_article.py"),
+            "--provider",
+            provider,
             "--items",
             str(target_path),
             "--id",
@@ -9166,7 +9509,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             ok = result.returncode == 0
         except subprocess.TimeoutExpired as exc:
             output = (exc.stdout or "") + ("\nSTDERR:\n" + exc.stderr if exc.stderr else "")
-            output = (output + "\nCodex 翻譯逾時。").strip()
+            output = (output + f"\n{ai_provider_label(provider)} 翻譯逾時。").strip()
             ok = False
         if not ok:
             print(output, file=sys.stderr)
