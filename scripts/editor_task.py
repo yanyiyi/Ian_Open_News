@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """編輯台雙引擎執行器。
 
-可選 Claude CLI 或 Codex CLI 跑下列任務：
+可選 Claude CLI, Codex CLI 或 Gemini (agy) 跑下列任務：
 - theme-check     ：判斷所選材料適合「主題式」或「彙報式」，參考觀點筆記，沒有相關觀點時記一筆待補觀點。
 - compose-thematic：把幾篇相關材料收斂成一篇帶觀點的 article 草稿。
 - compose-digest  ：把多主題材料整理成彙報式 article 草稿。
@@ -33,7 +33,14 @@ CANDIDATES = CACHE / "rss-candidates.jsonl"
 SESSIONS = CACHE / "editor-sessions.jsonl"
 STATUS = CACHE / "editor-status.json"
 
-TASK_TYPES = {"theme-check", "compose-thematic", "compose-digest", "factcheck", "extract-viewpoints"}
+TASK_TYPES = {
+    "theme-check",
+    "compose-thematic",
+    "compose-digest",
+    "factcheck",
+    "extract-viewpoints",
+    "newsletter-extract",
+}
 CHOICE_LABELS = {"thematic": "主題式", "digest": "彙報式"}
 TASK_LABELS = {
     "theme-check": "選法檢查",
@@ -41,6 +48,7 @@ TASK_LABELS = {
     "compose-digest": "彙報式撰稿",
     "factcheck": "查核找原文",
     "extract-viewpoints": "萃取觀點",
+    "newsletter-extract": "彙整萃取報告",
 }
 # 哪些任務要上網查（需要 web search 工具）
 WEB_TASKS = {"factcheck"}
@@ -60,6 +68,15 @@ def clean_text(value: object, limit: int | None = None) -> str:
     text = "\n".join(line for line in text.split("\n") if line.strip()).strip()
     if limit and len(text) > limit:
         return text[:limit].rstrip() + "..."
+    return text
+
+
+def clean_markdown(value: object, limit: int | None = None) -> str:
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[ \t\f\v]+", " ", text)
+    text = re.sub(r"\n{4,}", "\n\n\n", text).strip()
+    if limit and len(text) > limit:
+        return text[:limit].rstrip() + "\n\n..."
     return text
 
 
@@ -121,7 +138,7 @@ def record_title(record: dict[str, Any]) -> str:
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
     editorial = record.get("editorial_triage") if isinstance(record.get("editorial_triage"), dict) else {}
     model_titles = []
-    for key in ("codex_review", "claude_review"):
+    for key in ("codex_review", "claude_review", "gemini_review"):
         review = editorial.get(key) if isinstance(editorial.get(key), dict) else {}
         model_titles.append(review.get("zh_title"))
     return (
@@ -143,6 +160,7 @@ def translated_markdown(record: dict[str, Any]) -> str:
         "codex_translated_article_markdown_zh",
         "translated_article_markdown_zh",
         "claude_translated_article_markdown_zh",
+        "gemini_translated_article_markdown_zh",
     ):
         text = clean_text(metadata.get(key), 12000)
         if text:
@@ -169,6 +187,25 @@ def material_block(record: dict[str, Any]) -> dict[str, Any]:
         "source_name": clean_text(record.get("source_name")),
         "body_kind": body_kind,
         "body": body,
+    }
+
+
+def newsletter_material_block(record: dict[str, Any]) -> dict[str, Any]:
+    metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
+    body = (
+        clean_markdown(metadata.get("article_markdown"), 22000)
+        or clean_markdown(metadata.get("article_text"), 22000)
+        or clean_markdown(record.get("summary"), 22000)
+    )
+    return {
+        "id": clean_text(record.get("id")),
+        "title": record_title(record),
+        "track": clean_text(record.get("track")),
+        "tags": [clean_text(t) for t in (record.get("tags") or []) if clean_text(t)],
+        "url": clean_text(record.get("url")),
+        "source_name": clean_text(record.get("source_name")),
+        "body_kind": "full_markdown" if body else "summary",
+        "body": body or clean_text(record.get("summary"), 2400),
     }
 
 
@@ -315,6 +352,42 @@ def extract_viewpoints_schema() -> dict[str, Any]:
     }
 
 
+def newsletter_extract_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["report_markdown", "viewpoint_candidates", "recommended_sources"],
+        "properties": {
+            "report_markdown": {"type": "string"},
+            "viewpoint_candidates": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["title", "body"],
+                    "properties": {
+                        "title": {"type": "string"},
+                        "body": {"type": "string"},
+                    },
+                },
+            },
+            "recommended_sources": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["title", "url", "why"],
+                    "properties": {
+                        "title": {"type": "string"},
+                        "url": {"type": "string"},
+                        "why": {"type": "string"},
+                    },
+                },
+            },
+        },
+    }
+
+
 def build_prompt(task_type: str, choice: str, materials: list[dict], viewpoints: list[dict], instructions: str) -> str:
     mat_json = json.dumps(materials, ensure_ascii=False, indent=2)
     vp_json = json.dumps(viewpoints, ensure_ascii=False, indent=2)
@@ -370,6 +443,37 @@ def build_prompt(task_type: str, choice: str, materials: list[dict], viewpoints:
 
 請只輸出符合下列 JSON schema 的物件，不要任何額外說明或 markdown 包裝：
 {json.dumps(extract_viewpoints_schema(), ensure_ascii=False)}
+"""
+
+    if task_type == "newsletter-extract":
+        return f"""你是 Ian Open News 的彙整萃取編輯。使用者提供的是一則密度很高的外部電子報或 roundup。
+請做一份「外於單篇入庫判斷」的萃取，幫使用者理解這封電子報的觀點脈絡、可拆成獨立材料的文章/報告、以及應該略過的功能性連結。
+同時要輸出可一鍵存用的結構化資料：觀點候選（viewpoint_candidates）與可拆成材料的文章連結（recommended_sources）。
+
+report_markdown 用繁體中文 Markdown，固定包含這些段落：
+# 彙整萃取報告：<材料標題>
+## 這封彙整的主軸
+## 可拆成獨立材料的文章與報告
+## 建議略過的功能性或機會型連結
+## 可延伸成 Ian Open News 觀點的脈絡
+## 建議下一步
+
+判斷規則：
+- 文章、研究報告、官方公告、政策文件、新聞報導列入 recommended_sources（可拆成獨立材料），每筆給 title、真實 url、why（為何值得拆出）。
+- 訂閱電子報、報名、投稿、課程、職缺、社群首頁、一般組織首頁、社群媒體、登入或偏好設定，只在 report_markdown 的略過段落說明，不要放進 recommended_sources。
+- url 一律用材料裡實際出現的連結，不要杜撰；不確定是不是文章時不要放進 recommended_sources。
+- viewpoint_candidates：2-5 條可存進觀點庫的觀點脈絡，每條 title + 一兩句 body，要能把這封彙整的張力或立場講清楚，不是流水帳摘要。
+
+{WRITING_RULES}{OFFLINE_RULE}
+{extra}
+材料：
+{mat_json}
+
+觀點筆記（可能為空）：
+{vp_json}
+
+請只輸出符合下列 JSON schema 的物件，不要任何額外說明或 markdown 包裝：
+{json.dumps(newsletter_extract_schema(), ensure_ascii=False)}
 """
 
     # factcheck：真的上網把原文 / 正式文件 / 系列下篇找出來，附真實可點 URL
@@ -457,6 +561,19 @@ def run_claude(prompt: str, timeout: int, web: bool = False) -> tuple[str, str]:
     if isinstance(usage, dict) and usage:
         model = sorted(usage.keys())[-1]
     return clean_text_keep_markdown(payload.get("result")), model
+
+
+def run_gemini(prompt: str, schema: dict | None, timeout: int, web: bool = False) -> tuple[str, str]:
+    """回傳 (result_text, model)。"""
+    if schema is not None:
+        prompt += f"\n\n請務必輸出 JSON 格式，並完全符合以下 JSON Schema：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
+    command = [cli_path("agy"), "--print", prompt]
+    result = subprocess.run(
+        command, cwd=ROOT, text=True, capture_output=True, timeout=timeout, env=_env()
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"agy failed\nSTDOUT:\n{result.stdout[-2000:]}\nSTDERR:\n{result.stderr[-2000:]}")
+    return clean_text_keep_markdown(result.stdout), "gemini"
 
 
 def clean_text_keep_markdown(value: object) -> str:
@@ -598,7 +715,7 @@ def maybe_record_suggested_viewpoint(data: dict, records: list[dict], dry_run: b
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Ian Open News 編輯台雙引擎任務執行器")
-    parser.add_argument("--engine", choices=["claude", "codex"], required=True)
+    parser.add_argument("--engine", choices=["claude", "codex", "gemini"], required=True)
     parser.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
     parser.add_argument("--items", default="", help="逗號分隔的 item id")
     parser.add_argument("--choice", choices=["thematic", "digest"], default="")
@@ -618,20 +735,30 @@ def main() -> None:
         records = find_records(ids)
         if not records:
             raise SystemExit("找不到任何指定的材料 id。")
-        materials = [material_block(r) for r in records]
-        viewpoints = gather_viewpoints(records) if args.task_type in {"theme-check", "compose-thematic", "compose-digest"} else []
+        if args.task_type == "newsletter-extract":
+            materials = [newsletter_material_block(r) for r in records]
+        else:
+            materials = [material_block(r) for r in records]
+        viewpoints = (
+            gather_viewpoints(records)
+            if args.task_type in {"theme-check", "compose-thematic", "compose-digest", "newsletter-extract"}
+            else []
+        )
         prompt = build_prompt(args.task_type, args.choice, materials, viewpoints, args.instructions)
 
         schema_for = {
             "theme-check": theme_check_schema(),
             "factcheck": factcheck_schema(),
             "extract-viewpoints": extract_viewpoints_schema(),
+            "newsletter-extract": newsletter_extract_schema(),
         }
         schema = schema_for.get(args.task_type)
         web = args.task_type in WEB_TASKS
 
         if args.engine == "codex":
             raw, model = run_codex(prompt, schema, args.timeout, web=web)
+        elif args.engine == "gemini":
+            raw, model = run_gemini(prompt, schema, args.timeout, web=web)
         else:
             raw, model = run_claude(prompt, args.timeout, web=web)
 
@@ -648,6 +775,9 @@ def main() -> None:
         elif args.task_type == "extract-viewpoints":
             data = parse_json_result(raw)
             output_markdown = extract_viewpoints_markdown(data)
+        elif args.task_type == "newsletter-extract":
+            data = parse_json_result(raw)
+            output_markdown = clean_text_keep_markdown(data.get("report_markdown")) or "（沒有產生報告）"
         else:
             output_markdown = raw
 

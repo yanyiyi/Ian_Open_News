@@ -19,6 +19,7 @@ ITEMS = ROOT / "database" / "items.jsonl"
 AI_PROVIDERS = {
     "codex": {"label": "Codex", "generator": "codex-cli"},
     "claude": {"label": "Claude Code", "generator": "claude-code-cli"},
+    "gemini": {"label": "Gemini", "generator": "agy-cli"},
 }
 
 
@@ -64,6 +65,16 @@ def claude_path() -> str:
         if Path(path).exists():
             return path
     raise RuntimeError("找不到 claude CLI，請先確認 /opt/homebrew/bin/claude 是否可用。")
+
+
+def agy_path() -> str:
+    candidate = shutil.which("agy")
+    if candidate:
+        return candidate
+    for path in ["/opt/homebrew/bin/agy", "/usr/local/bin/agy"]:
+        if Path(path).exists():
+            return path
+    raise RuntimeError("找不到 agy CLI，請先確認 /opt/homebrew/bin/agy 是否可用。")
 
 
 def provider_label(provider: str) -> str:
@@ -284,9 +295,48 @@ def run_claude(record: dict[str, Any], markdown: str, language: str, timeout: in
     return payload
 
 
+def run_gemini(record: dict[str, Any], markdown: str, language: str, timeout: int) -> dict[str, Any]:
+    cache = ROOT / ".cache"
+    cache.mkdir(exist_ok=True)
+    schema = output_schema()
+    prompt = build_prompt(record, markdown, language, "gemini")
+    prompt += f"\n\n請務必輸出 JSON 格式，並完全符合以下 JSON Schema：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
+    (cache / "gemini-translate-prompt.md").write_text(prompt, encoding="utf-8")
+    command = [
+        agy_path(),
+        "--print",
+        prompt,
+    ]
+    env = os.environ.copy()
+    env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+        env=env,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            "agy print failed\n"
+            f"STDOUT:\n{result.stdout[-2000:]}\n"
+            f"STDERR:\n{result.stderr[-2000:]}"
+        )
+    (cache / "gemini-translate-output.json").write_text(result.stdout, encoding="utf-8")
+    payload = parse_cli_json(result.stdout)
+    if clean_text(payload.get("id")) != clean_text(record.get("id")):
+        raise RuntimeError("Gemini output id mismatch")
+    if not clean_text(payload.get("zh_markdown")):
+        raise RuntimeError("Gemini output missing zh_markdown")
+    return payload
+
+
 def run_provider(record: dict[str, Any], markdown: str, language: str, provider: str, timeout: int) -> dict[str, Any]:
     if provider == "claude":
         return run_claude(record, markdown, language, timeout)
+    if provider == "gemini":
+        return run_gemini(record, markdown, language, timeout)
     return run_codex(record, markdown, language, timeout)
 
 
@@ -297,7 +347,7 @@ def apply_translation(record: dict[str, Any], payload: dict[str, Any], language:
     zh_title = clean_text(payload.get("zh_title"), 320)
     zh_markdown = clean_text(payload.get("zh_markdown"), 90000)
     source_label = provider_label(provider)
-    provider_prefix = "claude" if provider == "claude" else "codex"
+    provider_prefix = provider if provider in {"claude", "gemini"} else "codex"
     metadata.update(
         {
             f"{provider_prefix}_translated_zh_title": zh_title,

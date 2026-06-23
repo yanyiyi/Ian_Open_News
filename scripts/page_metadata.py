@@ -591,11 +591,12 @@ def codex_zh_title(item: dict) -> str:
     editorial = item.get("editorial_triage")
     if not isinstance(editorial, dict):
         return ""
-    codex_review = editorial.get("codex_review")
-    if isinstance(codex_review, dict):
-        title = usable_zh_title(codex_review.get("zh_title"), 260)
-        if title:
-            return title
+    for key in ["gemini_review", "claude_review", "codex_review"]:
+        review = editorial.get(key)
+        if isinstance(review, dict):
+            title = usable_zh_title(review.get("zh_title"), 260)
+            if title:
+                return title
     return usable_zh_title(editorial.get("zh_title"), 260)
 
 

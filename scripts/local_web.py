@@ -25,6 +25,8 @@ from urllib.parse import parse_qs, quote, urlencode, unquote, urljoin, urlparse
 import hashlib
 from zoneinfo import ZoneInfo
 
+from editorial_triage import build_editorial_context, evaluate_editorial_triage
+from fetch_rss import evaluate_triage
 from page_metadata import (
     attrs_from_tag,
     complete_item_metadata,
@@ -58,6 +60,7 @@ EDITOR_TASK_LABELS = {
     "compose-digest": "彙報式撰稿",
     "factcheck": "查核找原文",
     "extract-viewpoints": "萃取觀點",
+    "newsletter-extract": "彙整萃取報告",
 }
 EDITOR_CHOICE_LABELS = {"thematic": "主題式", "digest": "彙報式"}
 DATA_AUTOCOMMIT_INTERVAL_SECONDS = 30 * 60
@@ -84,8 +87,18 @@ AI_PROVIDER_META = {
         "translation_generated_key": "claude_translation_generated_at",
         "translation_note_key": "claude_translation_note",
     },
+    "gemini": {
+        "label": "Gemini",
+        "short": "Gemini",
+        "review_key": "gemini_review",
+        "translation_markdown_key": "gemini_translated_article_markdown_zh",
+        "translation_title_key": "gemini_translated_zh_title",
+        "translation_source_key": "gemini_translation_source",
+        "translation_generated_key": "gemini_translation_generated_at",
+        "translation_note_key": "gemini_translation_note",
+    },
 }
-AI_PROVIDER_ORDER = ["codex", "claude"]
+AI_PROVIDER_ORDER = ["codex", "claude", "gemini"]
 TAG_SYNONYM_GROUPS = [
     ("開放原始碼 / Open Source", ["開放原始碼", "開源", "open source", "opensource", "FOSS", "free software", "自由軟體"]),
     ("開放資料 / Open Data", ["開放資料", "開放數據", "open data", "data portal", "資料開放"]),
@@ -229,6 +242,41 @@ REJECTION_REASON_CATEGORIES = [
 DEFAULT_REJECTION_REASONS = list(REJECTION_REASON_CATEGORIES)
 MIN_REJECTION_REASON_OPTION_COUNT = 3
 SOURCE_KEYWORD_EXCLUSION_REASON = "單一 RSS 專屬關鍵字排除"
+GENERIC_NEWSLETTER_LINK_LABELS = {
+    "read more",
+    "learn more",
+    "more",
+    "here",
+    "link",
+    "source",
+    "published",
+    "report",
+    "paper",
+    "recent report",
+    "閱讀更多",
+    "更多",
+}
+NEWSLETTER_FUNCTIONAL_LINK_RE = re.compile(
+    r"\b("
+    r"subscribe|unsubscribe|preference|preferences|manage|opt[ -]?out|privacy|terms|login|sign[ -]?in|"
+    r"register|registration|ticket|tickets|eventbrite|calendar|pretalx|cfp|call for proposals|submit|"
+    r"application|applications are open|apply|vacancy|job|jobs|program manager|ambassador program|"
+    r"course|training|academy|info session|symposium|conference"
+    r")\b|訂閱|取消訂閱|偏好設定|報名|投稿|職缺|課程|訓練",
+    re.I,
+)
+NEWSLETTER_ARTICLE_LINK_RE = re.compile(
+    r"/("
+    r"20\d{2}|news|blog|post|article|articles|publication|publications|press|press-releases|"
+    r"research|report|reports|brief|paper|papers|study|studies|abs|pdf"
+    r")\b|\.pdf(?:$|[?#])|arxiv\.org/(?:abs|pdf)/",
+    re.I,
+)
+NEWSLETTER_ARTICLE_TITLE_RE = re.compile(
+    r"\b(report|research|paper|study|brief|statement|news|article|launch|announc|governance|policy|"
+    r"funding|security|open source|digital public infrastructure|commons|AI|DPI)\b",
+    re.I,
+)
 NOISY_TAG_VALUES = {
     "",
     "rss",
@@ -323,7 +371,7 @@ REJECTION_REASON_ALIASES = {
 COMMANDS = {
     "fetch_rss": {
         "label": "立刻抓 RSS 候選",
-        "description": "先抓到入庫建檔區，不直接寫進正式資料庫；手動按鈕也會包含「按更新時抓」的來源，抓完接著隨機用 Codex 或 Claude Code 補閱讀建議、三個理由與中文摘要。",
+        "description": "先抓到入庫建檔區，不直接寫進正式資料庫；手動按鈕也會包含「按更新時抓」的來源，抓完接著隨機用 Codex, Claude Code 或 Gemini 補閱讀建議、三個理由與中文摘要。",
         "button": "抓到入庫建檔區",
         "command": [
             sys.executable,
@@ -400,7 +448,7 @@ COMMANDS = {
     },
     "codex_enrich_reviews": {
         "label": "隨機補 AI 閱讀建議與摘要",
-        "description": "針對入庫建檔區與閱讀區中還沒有模型 review 的項目，隨機使用 Codex CLI 或 Claude Code CLI 產生給 Ian 的一句話推薦、三個閱讀理由、中文標題與中文摘要；未指定項目時會先看長時間標記的正在閱讀材料。",
+        "description": "針對入庫建檔區與閱讀區中還沒有模型 review 的項目，隨機使用 Codex CLI, Claude Code CLI 或 Gemini (agy) CLI 產生給 Ian 的一句話推薦、三個閱讀理由、中文標題與中文摘要；未指定項目時會先看長時間標記的正在閱讀材料。",
         "button": "隨機補 AI 建議",
         "command": [
             sys.executable,
@@ -2741,6 +2789,282 @@ def ensure_article_markdown(item: dict) -> tuple[dict, bool]:
     )
     updated["reading_metadata"] = updated_metadata
     return updated, True
+
+
+def markdown_source_text(item: dict) -> str:
+    return item_article_markdown(item) or item_article_text(item) or clean_text(item.get("summary"))
+
+
+def strip_markdown_syntax(value: object, limit: int | None = None) -> str:
+    text = str(value or "")
+    text = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", text)
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    text = re.sub(r"^[#>\s-]+", "", text)
+    text = re.sub(r"[*_`~]+", "", text)
+    return clean_text(text, limit)
+
+
+def canonical_item_url(value: object) -> str:
+    url = unwrap_google_alert_url(clean_text(value, 2000))
+    if not url.startswith(("http://", "https://")):
+        return ""
+    parsed = urlparse(url)
+    query_pairs = [
+        (key, val)
+        for key, val in parse_qs(parsed.query, keep_blank_values=True).items()
+        if not key.casefold().startswith("utm_") and key.casefold() not in {"fbclid", "gclid", "mc_cid", "mc_eid"}
+    ]
+    query = urlencode([(key, item) for key, values in query_pairs for item in values])
+    normalized = parsed._replace(query=query, fragment="").geturl()
+    return normalized.rstrip("/")
+
+
+def item_url_keys(item: dict) -> set[str]:
+    metadata = item_reading_metadata(item)
+    urls = [
+        item.get("url"),
+        metadata.get("source_url"),
+        metadata.get("final_url"),
+        metadata.get("canonical_url"),
+    ]
+    return {key for key in (canonical_item_url(url) for url in urls) if key}
+
+
+def title_from_url_path(url: str) -> str:
+    path = unquote(urlparse(url).path)
+    leaf = path.rsplit("/", 1)[-1]
+    leaf = re.sub(r"\.(?:html?|php|aspx?|pdf|xml)$", "", leaf, flags=re.I)
+    title = clean_text(re.sub(r"[-_]+", " ", leaf), 220)
+    return title if len(title) >= 8 and not title.casefold().startswith("index") else ""
+
+
+def markdown_link_title(markdown: str, start: int, label: str, url: str) -> str:
+    context = markdown[max(0, start - 900) : start]
+    same_line = context.rsplit("\n", 1)[-1]
+    for pattern in [r"\*\*([^*\n]{8,260})\*\*", r"###?\s+([^\n]{8,260})"]:
+        matches = re.findall(pattern, same_line)
+        if matches:
+            return strip_markdown_syntax(matches[-1], 260)
+    for line in reversed(context.splitlines()[-10:]):
+        heading = re.match(r"\s*#{2,5}\s+(.+)$", line)
+        if heading:
+            return strip_markdown_syntax(heading.group(1), 260)
+        bold = re.findall(r"\*\*([^*\n]{8,260})\*\*", line)
+        if bold:
+            return strip_markdown_syntax(bold[-1], 260)
+    clean_label = strip_markdown_syntax(label, 260)
+    if clean_label.casefold() not in GENERIC_NEWSLETTER_LINK_LABELS:
+        return clean_label
+    path_title = title_from_url_path(url)
+    if path_title:
+        return path_title
+    return host_label(url)
+
+
+def markdown_link_context(markdown: str, start: int, end: int) -> str:
+    before = markdown[max(0, start - 520) : start]
+    after = markdown[end : min(len(markdown), end + 220)]
+    return strip_markdown_syntax(f"{before} {after}", 700)
+
+
+def extract_markdown_links(markdown: str, base_url: str = "") -> list[dict]:
+    links: list[dict] = []
+    seen: set[str] = set()
+    pattern = re.compile(r"\[([^\]]{1,500})\]\((https?://[^)\s]+)\)")
+    for index, match in enumerate(pattern.finditer(markdown)):
+        url = canonical_item_url(urljoin(base_url, html.unescape(match.group(2))))
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        label = strip_markdown_syntax(match.group(1), 220)
+        title = markdown_link_title(markdown, match.start(), label, url)
+        links.append(
+            {
+                "index": index,
+                "url": url,
+                "label": label,
+                "title": title,
+                "context": markdown_link_context(markdown, match.start(), match.end()),
+            }
+        )
+    return links
+
+
+def classify_newsletter_link(item: dict, link: dict) -> tuple[bool, str]:
+    url = canonical_item_url(link.get("url"))
+    if not url:
+        return False, "不是可抓取網址"
+    if url in item_url_keys(item):
+        return False, "和電子報本身相同"
+    parsed = urlparse(url)
+    host = parsed.netloc.casefold()
+    label = clean_text(link.get("label"), 220)
+    title = clean_text(link.get("title"), 300)
+    context = clean_text(link.get("context"), 800)
+    haystack = f"{label}\n{title}\n{url}\n{context}"
+    functional_haystack = f"{label}\n{title}\n{url}"
+    if any(domain in host for domain in ["mailerlite", "mailchimp", "list-manage.com", "linkedin.com", "x.com", "twitter.com", "facebook.com"]):
+        return False, "功能性或社群連結"
+    if NEWSLETTER_FUNCTIONAL_LINK_RE.search(functional_haystack):
+        return False, "功能性 / 機會型連結"
+    if label.casefold() in GENERIC_NEWSLETTER_LINK_LABELS and len(title) >= 8:
+        return True, "電子報 Read more 連結"
+    if NEWSLETTER_ARTICLE_LINK_RE.search(url):
+        return True, "網址型態像文章、報告或 PDF"
+    if NEWSLETTER_ARTICLE_TITLE_RE.search(title) and len(title) >= 18:
+        return True, "標題型態像文章或報告"
+    return False, "不像獨立文章"
+
+
+def newsletter_link_candidates(item: dict) -> tuple[list[dict], list[dict]]:
+    markdown = markdown_source_text(item)
+    if not markdown:
+        return [], []
+    candidates: list[dict] = []
+    skipped: list[dict] = []
+    for link in extract_markdown_links(markdown, clean_text(item.get("url"))):
+        keep, reason = classify_newsletter_link(item, link)
+        record = {**link, "reason": reason}
+        if keep:
+            candidates.append(record)
+        else:
+            skipped.append(record)
+    return candidates, skipped
+
+
+def ensure_derived_source(sources: list[dict], track: str, source_name: str, site_url: str = "") -> tuple[str, bool]:
+    clean_name = source_name or host_label(site_url) or "Newsletter link"
+    source_id = stable_id("src", "newsletter-link", clean_name)
+    if any(clean_text(source.get("id")) == source_id for source in sources):
+        return source_id, False
+    sources.append(
+        {
+            "id": source_id,
+            "track": track,
+            "name": clean_name,
+            "source_group": "Newsletter links",
+            "source_type": "manual",
+            "fetch_frequency": "daily",
+            "feed_url": "",
+            "site_url": site_url,
+            "status": "active",
+            "required_keywords": [],
+            "excluded_keywords": [],
+            "notes": "由彙整式電子報拆出的子文章來源。",
+        }
+    )
+    return source_id, True
+
+
+def build_newsletter_child_item(parent: dict, link: dict, captured_at: str, keyword_config: dict, editorial_context: dict) -> tuple[dict, dict]:
+    url = canonical_item_url(link.get("url"))
+    title = clean_text(link.get("title"), 300) or host_label(url)
+    summary = clean_text(link.get("context"), 1200)
+    track = clean_text(parent.get("track")) or "unclassified"
+    record = {
+        "id": stable_id("item", "newsletter-link", url, title),
+        "track": track,
+        "status": "inbox",
+        "priority": "normal",
+        "title": title,
+        "url": url,
+        "source_id": "",
+        "source_name": host_label(url),
+        "author": "",
+        "published_at": "",
+        "captured_at": captured_at,
+        "summary": summary,
+        "tags": item_visible_tags(parent, 8),
+        "origin": "newsletter-link",
+        "reference": {
+            "created_by": "local_web",
+            "created_from": "newsletter-link-extractor",
+            "parent_item_id": clean_text(parent.get("id")),
+            "parent_title": item_display_title(parent),
+            "parent_url": clean_text(parent.get("url")),
+            "link_label": clean_text(link.get("label")),
+            "link_reason": clean_text(link.get("reason")),
+        },
+        "review": default_review("從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。"),
+    }
+    enriched, _did_change, error = enrich_item_metadata(record)
+    metadata = item_reading_metadata(enriched)
+    if metadata.get("title") and (title == host_label(url) or clean_text(link.get("label")).casefold() in GENERIC_NEWSLETTER_LINK_LABELS):
+        enriched["title"] = clean_text(metadata.get("title"), 300)
+    if metadata.get("description") or metadata.get("excerpt"):
+        enriched["summary"] = clean_text(metadata.get("description") or metadata.get("excerpt"), 1200)
+    final_url = canonical_item_url(metadata.get("final_url") or enriched.get("url"))
+    site_url = f"{urlparse(final_url).scheme}://{urlparse(final_url).netloc}" if final_url else url
+    source_name = clean_text(metadata.get("original_author"), 160) or host_label(final_url or url)
+    enriched["source_name"] = source_name
+    enriched["author"] = source_name
+    enriched["triage"] = evaluate_triage(enriched, keyword_config)
+    enriched["editorial_triage"] = evaluate_editorial_triage(enriched, keyword_config, editorial_context)
+    if error:
+        reference = enriched.get("reference") if isinstance(enriched.get("reference"), dict) else {}
+        enriched["reference"] = {**reference, "metadata_fetch_error": clean_text(error, 500)}
+    return enriched, {"source_name": source_name, "site_url": site_url}
+
+
+def update_newsletter_extraction_metadata(parent: dict, stats: dict) -> dict:
+    updated = dict(parent)
+    metadata = dict(item_reading_metadata(updated))
+    metadata["newsletter_link_extraction"] = stats
+    updated["reading_metadata"] = metadata
+    updated["review"] = append_review_note(
+        updated.get("review") or {},
+        f"{stats.get('extracted_at')} 彙整式電子報拆 link：新增 {stats.get('imported_count', 0)} 筆，重複 {stats.get('duplicate_count', 0)} 筆，略過 {stats.get('skipped_count', 0)} 筆。",
+    )
+    return updated
+
+
+def normalize_pdf_markdown_item(item: dict) -> tuple[dict, bool, str]:
+    metadata = dict(item_reading_metadata(item))
+    raw_markdown = str(metadata.get("article_markdown") or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    raw = raw_markdown or clean_text(metadata.get("article_text")) or clean_text(item.get("summary"))
+    if len(raw) < 240:
+        return item, False, "沒有足夠文字可轉成 PDF Markdown 全文。"
+    title = item_original_title(item) or item_display_title(item)
+    markdown_like = bool(raw_markdown or re.search(r"(?m)^#{1,6}\s+\S|\[[^\]]+\]\(https?://|^\s*[-*]\s+", raw))
+    markdown = raw if markdown_like else text_to_markdown(raw, title=title)
+    updated = dict(item)
+    metadata.update(
+        {
+            "article_text": raw,
+            "article_text_chars": len(raw),
+            "article_text_method": metadata.get("article_text_method") or "pdf-markitdown-summary",
+            "article_text_status": "ok" if len(raw) >= 280 else "short",
+            "article_text_label": "PDF MarkItDown 文字",
+            "article_markdown": markdown,
+            "article_markdown_chars": len(markdown),
+            "article_markdown_method": "pdf-markitdown",
+            "article_markdown_status": "ok" if len(markdown) >= 280 else "short",
+            "article_markdown_label": "PDF MarkItDown 全文",
+            "pdf_markdown_normalized_at": now_iso(),
+        }
+    )
+    if not clean_text(metadata.get("content_type")):
+        metadata["content_type"] = "application/pdf"
+    language = infer_language_from_text(raw)
+    if language and not clean_text(metadata.get("original_language")):
+        metadata["original_language"] = language
+        metadata["original_language_source"] = "PDF 文字推斷"
+    updated["reading_metadata"] = metadata
+    reference = updated.get("reference") if isinstance(updated.get("reference"), dict) else {}
+    updated["reference"] = {**reference, "pdf_markdown_normalized_at": metadata["pdf_markdown_normalized_at"]}
+    updated["review"] = append_review_note(
+        updated.get("review") or {},
+        f"{metadata['pdf_markdown_normalized_at']} 已將 PDF / MarkItDown 文字補成 reading_metadata.article_markdown，後續模型建議與編輯台會以全文為優先。",
+    )
+    updated, _changed = complete_item_metadata(updated)
+    return updated, updated != item, ""
+
+
+def item_is_pdf_like(item: dict) -> bool:
+    metadata = item_reading_metadata(item)
+    content_type = clean_text(metadata.get("content_type")).casefold()
+    url = clean_text(item.get("url")).casefold()
+    return "pdf" in content_type or url.endswith(".pdf") or ".pdf?" in url
 
 
 def item_cached_image_url(item: dict) -> str:
@@ -5835,6 +6159,7 @@ EDITOR_TASK_HINTS = {
     "compose-digest": "把多主題、不一定相關的材料整理成彙報式 article 草稿。",
     "factcheck": "實際上網把原文／正式文件／系列下篇找出來並附真實連結，不把輸入材料當推薦。",
     "extract-viewpoints": "從所選材料抽出 2-5 條可存進觀點庫的觀點。",
+    "newsletter-extract": "針對彙整式電子報或 roundup 產出外部萃取報告，分清文章/報告 link 與功能性連結。",
 }
 
 
@@ -5849,7 +6174,7 @@ def editor_cli_path(name: str) -> str | None:
 
 
 def editor_engine_status() -> dict[str, bool]:
-    return {"claude": bool(editor_cli_path("claude")), "codex": bool(editor_cli_path("codex"))}
+    return {"claude": bool(editor_cli_path("claude")), "codex": bool(editor_cli_path("codex")), "gemini": bool(editor_cli_path("agy"))}
 
 
 def new_editor_id(prefix: str) -> str:
@@ -6233,6 +6558,10 @@ class Handler(BaseHTTPRequestHandler):
             self.requeue_skill_item(self.read_form())
         elif parsed.path == "/items/read-more":
             self.read_more_item(self.read_form())
+        elif parsed.path == "/items/extract-newsletter-links":
+            self.extract_newsletter_links_item(self.read_form())
+        elif parsed.path == "/items/pdf-markdown":
+            self.normalize_pdf_markdown(self.read_form())
         elif parsed.path == "/items/codex-review":
             self.codex_review_item(self.read_form())
         elif parsed.path == "/items/update-url":
@@ -6298,7 +6627,7 @@ class Handler(BaseHTTPRequestHandler):
         available_json = json.dumps(available_payload, ensure_ascii=False).replace("<", "\\u003c")
         selected_json = json.dumps(selected_payload, ensure_ascii=False).replace("<", "\\u003c")
 
-        engine_default = "claude" if engines["claude"] else "codex"
+        engine_default = "gemini" if engines.get("gemini") else ("claude" if engines.get("claude") else "codex")
 
         def engine_option(name: str, label: str) -> str:
             available = engines.get(name)
@@ -6369,7 +6698,7 @@ class Handler(BaseHTTPRequestHandler):
     <input type="hidden" name="items" data-selected-items>
     <div class="editor-control-grid">
       <label class="editor-label">模型
-        <select name="engine" class="editor-select">{engine_option('claude', 'Claude CLI')}{engine_option('codex', 'Codex CLI')}</select>
+        <select name="engine" class="editor-select">{engine_option('gemini', 'Gemini')}{engine_option('claude', 'Claude CLI')}{engine_option('codex', 'Codex CLI')}</select>
       </label>
       <label class="editor-label">任務
         <select name="task_type" id="editor-task-type" class="editor-select">{task_options}</select>
@@ -6620,7 +6949,7 @@ class Handler(BaseHTTPRequestHandler):
 
         ids = [x for x in re.split(r"[\s,]+", items_raw) if x]
         engines = editor_engine_status()
-        if engine not in {"claude", "codex"} or not engines.get(engine):
+        if engine not in {"claude", "codex", "gemini"} or not engines.get(engine):
             msg = f"引擎 {engine} 目前不可用。"
             if wants_json:
                 self.send_json({"ok": False, "error": msg}, HTTPStatus.BAD_REQUEST)
@@ -6669,7 +6998,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def show_editor_session(self, query: dict[str, list[str]]) -> None:
         session_id = clean_text((query.get("id") or [""])[0])
-        session = next((s for s in load_jsonl(EDITOR_SESSIONS) if clean_text(s.get("id")) == session_id), None)
+        editor_sessions = load_jsonl(EDITOR_SESSIONS)
+        session = next((s for s in editor_sessions if clean_text(s.get("id")) == session_id), None)
         if not session:
             self.send_html("找不到", "<h1>找不到這次編輯紀錄</h1><p><a href='/editor'>回編輯台</a></p>", HTTPStatus.NOT_FOUND)
             return
@@ -6740,7 +7070,7 @@ class Handler(BaseHTTPRequestHandler):
             if clean_text(data.get("suggested_viewpoint_body")):
                 candidates.append((clean_text(data.get("suggested_viewpoint_title"), 60) or "（待補觀點）",
                                    clean_text(data.get("suggested_viewpoint_body"))))
-        elif task_type == "extract-viewpoints":
+        elif task_type in {"extract-viewpoints", "newsletter-extract"}:
             for cand in data.get("viewpoint_candidates") or []:
                 title_c = clean_text(cand.get("title"), 60)
                 body_c = clean_text(cand.get("body"))
@@ -6796,6 +7126,98 @@ class Handler(BaseHTTPRequestHandler):
             + (f'<span class="tag-pill">{h(choice_label)}</span>' if choice_label else "")
             + f'<span class="muted">{h(editor_relative_time(session.get("created_at")))}</span>'
         )
+        engines = editor_engine_status()
+
+        def toolbox_engine_option(name: str, label: str) -> str:
+            available = engines.get(name)
+            selected = " selected" if clean_text(session.get("engine")) != name and available else ""
+            if not any(engines.values()) and clean_text(session.get("engine")) == name:
+                selected = " selected"
+            disabled = "" if available else " disabled"
+            suffix = "" if available else "（未安裝）"
+            return f'<option value="{name}"{selected}{disabled}>{h(label + suffix)}</option>'
+
+        task_options = ""
+        for key, label in EDITOR_TASK_LABELS.items():
+            selected = " selected" if key == task_type else ""
+            task_options += f'<option value="{h(key)}"{selected}>{h(label)}</option>'
+        toolbox_panel = f"""
+<details class="card editor-session-toolbox" open>
+  <summary><h2>工具箱</h2><span class="help-dot" title="用同一組材料改跑其他寫法、其他任務，或換另一個 AI。">?</span></summary>
+  <form method="post" action="/editor/run" class="editor-session-toolbox-form">
+    <input type="hidden" name="items" value="{h(related_csv)}">
+    <div class="editor-toolbox-grid">
+      <label class="editor-label">模型
+        <select name="engine" class="editor-select">{toolbox_engine_option('gemini', 'Gemini')}{toolbox_engine_option('claude', 'Claude CLI')}{toolbox_engine_option('codex', 'Codex CLI')}</select>
+      </label>
+      <label class="editor-label">任務
+        <select name="task_type" class="editor-select">{task_options}</select>
+      </label>
+      <label class="editor-label">寫文模式
+        <select name="choice" class="editor-select">
+          <option value="thematic"{' selected' if session.get('choice') == 'thematic' else ''}>主題式</option>
+          <option value="digest"{' selected' if session.get('choice') == 'digest' else ''}>彙報式</option>
+        </select>
+      </label>
+    </div>
+    <label class="editor-label">這次額外指示
+      <textarea name="instructions" rows="2" placeholder="例如：換成較短的彙報式，或改用另一個觀點切入"></textarea>
+    </label>
+    <button type="submit" class="button">{button_content('用這組材料再跑一次', 'wand')}</button>
+  </form>
+</details>
+"""
+
+        current_ids = {clean_text(item_id) for item_id in (session.get("item_ids") or []) if clean_text(item_id)}
+        current_key = tuple(sorted(current_ids))
+
+        def session_key(entry: dict) -> tuple[str, ...]:
+            return tuple(sorted(clean_text(item_id) for item_id in (entry.get("item_ids") or []) if clean_text(item_id)))
+
+        related_exact = [
+            entry
+            for entry in reversed(editor_sessions)
+            if clean_text(entry.get("id")) != session_id and session_key(entry) == current_key
+        ]
+        related_overlap = [
+            entry
+            for entry in reversed(editor_sessions)
+            if clean_text(entry.get("id")) != session_id
+            and session_key(entry) != current_key
+            and current_ids.intersection(session_key(entry))
+        ]
+        related_entries = related_exact or related_overlap[:8]
+
+        def related_session_row(entry: dict) -> str:
+            titles = "、".join(h(t) for t in (entry.get("item_titles") or [])[:3])
+            extra = "..." if len(entry.get("item_titles") or []) > 3 else ""
+            relation = "同組合" if session_key(entry) == current_key else "相關材料"
+            choice = EDITOR_CHOICE_LABELS.get(entry.get("choice"), "")
+            return (
+                '<a class="editor-session-row" href="/editor/session?id=' + quote(clean_text(entry.get("id"))) + '">'
+                f'<strong>{h(entry.get("task_label") or entry.get("task_type"))}</strong>'
+                f'<span class="tag-pill">{h(relation)}</span>'
+                f'<span class="tag-pill">{h(entry.get("engine"))}</span>'
+                + (f'<span class="tag-pill">{h(choice)}</span>' if choice else "")
+                + f'<span class="editor-session-titles">{titles}{extra}</span>'
+                f'<span class="muted">{h(editor_relative_time(entry.get("created_at")))}</span>'
+                "</a>"
+            )
+
+        related_history = editor_timeline_html(
+            related_entries,
+            related_session_row,
+            empty_html='<p class="muted">目前還沒有同組合的其他編輯紀錄。</p>',
+            initial_count=6,
+            batch_size=6,
+            class_name="editor-session-related-timeline",
+        )
+        related_panel = f"""
+<section class="card">
+  <h2>相關編輯台紀錄</h2>
+  <div class="editor-session-list">{related_history}</div>
+</section>
+"""
         body = f"""
 <nav class="article-top-nav"><a class="button" href="/editor">{button_content('回編輯台', 'back')}</a></nav>
 <section class="card">
@@ -6806,16 +7228,23 @@ class Handler(BaseHTTPRequestHandler):
   <h2>材料</h2>
   <ul>{material_rows or '<li class="muted">（無）</li>'}</ul>
 </section>
+{toolbox_panel}
 <section class="card editor-output">{output_html}</section>
 {viewpoint_panel}
 {favorites_block}
+{related_panel}
 <style>
+  .editor-session-toolbox summary {{ cursor:pointer; display:flex; align-items:center; gap:8px; }}
+  .editor-session-toolbox summary h2 {{ display:inline; margin:0; }}
+  .editor-session-toolbox-form .editor-label {{ display:block; margin:0 0 10px; font-weight:600; }}
+  .editor-toolbox-grid {{ display:flex; flex-direction:column; gap:0; }}
   .editor-vp-candidates {{ display:flex; flex-direction:column; gap:8px; margin:8px 0; }}
   .editor-vp-candidate {{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 10px; border:1px solid var(--border,#e2e8f0); border-radius:10px; }}
   .editor-vp-candidate span {{ flex:1; min-width:160px; }}
-  .editor-vp-quickform {{ margin-top:10px; }}
-  .editor-vp-quickform input, .editor-vp-quickform textarea {{ width:100%; max-width:560px; box-sizing:border-box; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; margin-bottom:6px; }}
+  .editor-vp-quickform, .editor-session-toolbox-form {{ margin-top:10px; }}
+  .editor-vp-quickform input, .editor-vp-quickform textarea, .editor-session-toolbox-form textarea, .editor-session-toolbox-form select {{ width:100%; max-width:560px; box-sizing:border-box; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; margin-bottom:6px; }}
   .editor-vp-extract {{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }}
+  @media (max-width: 900px) {{ .editor-toolbox-grid {{ grid-template-columns:1fr; }} }}
 </style>
 <script>
 document.querySelectorAll("form[data-async-collect]").forEach(function(form) {{
@@ -8626,6 +9055,13 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             notice = '<div class="notice">已更新這篇的原始 metadata。</div>'
         elif saved == "translation":
             notice = '<div class="notice">已完成中文翻譯，並存回閱讀資料庫。</div>'
+        elif saved == "newsletter_links":
+            created = h((query.get("created") or ["0"])[0])
+            duplicates = h((query.get("duplicates") or ["0"])[0])
+            skipped = h((query.get("skipped") or ["0"])[0])
+            notice = f'<div class="notice">已拆出彙整式電子報 link：新增 {created} 筆到入庫建檔區，重複 {duplicates} 筆，略過 {skipped} 筆功能性或非文章連結。</div>'
+        elif saved == "pdf_markdown":
+            notice = '<div class="notice">已將 PDF / MarkItDown 文字補成 Markdown 全文；接下來模型建議、翻譯與編輯台會優先使用這份全文。</div>'
         elif (query.get("error") or [""])[0] == "read_more":
             notice = '<div class="notice">這次沒有抓到更多資料。可能是網站擋住讀取、網址需要登入，或頁面沒有可抽取的主文。</div>'
         elif (query.get("error") or [""])[0] == "codex_review":
@@ -8634,6 +9070,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             notice = '<div class="notice">這次無法解析跳轉後網址。你仍可手動貼上實際文章網址再儲存。</div>'
         elif (query.get("error") or [""])[0] == "translation":
             notice = '<div class="notice">這次沒有順利翻譯。請先確認已展開全文，或稍後再試。</div>'
+        elif (query.get("error") or [""])[0] == "pdf_markdown":
+            notice = '<div class="notice">這次沒有足夠文字可轉成 PDF Markdown 全文。請先補全文或摘要。</div>'
 
         css_class = track_class(item.get("track", "unclassified"))
         triage = item.get("triage") or {}
@@ -8788,6 +9226,54 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         <button type="submit">展開全文</button>
       </form>
 """
+        newsletter_candidates, newsletter_skipped = newsletter_link_candidates(item)
+        extraction_meta = article_meta.get("newsletter_link_extraction") if isinstance(article_meta.get("newsletter_link_extraction"), dict) else {}
+        extraction_status = ""
+        if extraction_meta:
+            extraction_status = (
+                f"<p class='help'>上次拆出：新增 {h(extraction_meta.get('imported_count', 0))} 筆，"
+                f"重複 {h(extraction_meta.get('duplicate_count', 0))} 筆，"
+                f"略過 {h(extraction_meta.get('skipped_count', 0))} 筆。"
+                f"<br>時間：{h(extraction_meta.get('extracted_at'))}</p>"
+            )
+        derived_actions: list[str] = []
+        if newsletter_candidates:
+            derived_actions.append(
+                f"""
+    <form method="post" action="/items/extract-newsletter-links">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+      <button type="submit" class="secondary">{button_content(f'拆出文章 link（{len(newsletter_candidates)}）', 'source')}</button>
+    </form>
+"""
+            )
+            derived_actions.append(
+                f'<a class="button quiet" href="/editor?items={quote(item_id)}&task=newsletter-extract">{button_content("做彙整萃取報告", "note")}</a>'
+            )
+        if item_is_pdf_like(item):
+            pdf_label = "更新 PDF Markdown 全文" if article_markdown else "補成 PDF Markdown 全文"
+            derived_actions.append(
+                f"""
+    <form method="post" action="/items/pdf-markdown">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+      <button type="submit" class="secondary">{button_content(pdf_label, 'text-lines')}</button>
+    </form>
+"""
+            )
+        derived_toolbox = ""
+        if derived_actions:
+            skipped_hint = f"；目前規則會略過 {len(newsletter_skipped)} 個功能性或非文章連結" if newsletter_candidates else ""
+            derived_toolbox = f"""
+  <div class="card">
+    <h2>衍生材料工具箱 <span class="help-dot" title="處理彙整式電子報、PDF MarkItDown 這種不是一般單篇文章的材料。">?</span></h2>
+    <div class="button-row article-dock-actions">
+      {''.join(derived_actions)}
+    </div>
+    {extraction_status}
+    <p class="help">拆出的文章會先進入入庫建檔區，不會直接變成可用材料{h(skipped_hint)}。</p>
+  </div>
+"""
         metadata_form = f"""
     <details class="card metadata-dock">
       <summary><h2>原始 metadata</h2><span class="help-dot" title="手動修正網站標題、語言、授權與作者；這區需要按儲存。">?</span></summary>
@@ -8884,6 +9370,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
       {reading_priority_actions}
     </div>
   </div>
+  {derived_toolbox}
   {tag_panel}
   {metadata_form}
   {personal_note_panel}
@@ -9556,6 +10043,140 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         if found and changed:
             write_jsonl(path, updated_records)
         return found, changed, response_item, error
+
+    def extract_newsletter_links_record(self, path: Path, item_id: str) -> tuple[bool, dict]:
+        target_records = load_jsonl(path)
+        parent = next((item for item in target_records if clean_text(item.get("id")) == item_id), None)
+        if not parent:
+            return False, {}
+
+        candidates, skipped = newsletter_link_candidates(parent)
+        existing_items = load_jsonl(ITEMS)
+        existing_candidates = load_jsonl(CANDIDATES)
+        existing_keys = {key for record in [*existing_items, *existing_candidates] for key in item_url_keys(record)}
+        keyword_config = load_json(TRIAGE_KEYWORDS)
+        editorial_context = build_editorial_context([*existing_items, *load_jsonl(REJECTED_ITEMS)], keyword_config)
+        imported: list[dict] = []
+        imported_ids: list[str] = []
+        duplicate_links: list[dict] = []
+        source_records = load_jsonl(SOURCES)
+        sources_changed = False
+        extracted_at = now_iso()
+
+        for link in candidates:
+            url = canonical_item_url(link.get("url"))
+            if not url or url in existing_keys:
+                duplicate_links.append(link)
+                continue
+            child, source_info = build_newsletter_child_item(parent, link, extracted_at, keyword_config, editorial_context)
+            source_id, did_source_change = ensure_derived_source(
+                source_records,
+                clean_text(child.get("track")) or "unclassified",
+                clean_text(source_info.get("source_name")) or clean_text(child.get("source_name")) or host_label(url),
+                clean_text(source_info.get("site_url")),
+            )
+            sources_changed = sources_changed or did_source_change
+            child["source_id"] = source_id
+            imported.append(child)
+            imported_ids.append(clean_text(child.get("id")))
+            existing_keys.update(item_url_keys(child))
+
+        if sources_changed:
+            write_jsonl(SOURCES, source_records)
+
+        stats = {
+            "extracted_at": extracted_at,
+            "source": "local_web",
+            "total_links": len(candidates) + len(skipped),
+            "article_candidate_count": len(candidates),
+            "imported_count": len(imported),
+            "duplicate_count": len(duplicate_links),
+            "skipped_count": len(skipped),
+            "imported_item_ids": imported_ids,
+            "duplicate_urls": [clean_text(link.get("url")) for link in duplicate_links[:12]],
+            "skipped_samples": [
+                {
+                    "title": clean_text(link.get("title"), 180),
+                    "url": clean_text(link.get("url"), 500),
+                    "reason": clean_text(link.get("reason"), 120),
+                }
+                for link in skipped[:16]
+            ],
+        }
+        updated_parent = update_newsletter_extraction_metadata(parent, stats)
+        updated_target_records = [
+            updated_parent if clean_text(item.get("id")) == item_id else item
+            for item in target_records
+        ]
+        if path == ITEMS:
+            write_jsonl(ITEMS, [*updated_target_records, *imported])
+        else:
+            write_jsonl(path, updated_target_records)
+            if imported:
+                write_jsonl(ITEMS, [*existing_items, *imported])
+
+        append_jsonl(
+            REVIEW_EVENTS,
+            review_event(
+                updated_parent,
+                "newsletter-links-extracted",
+                f"彙整式電子報拆出 {len(imported)} 筆子文章，重複 {len(duplicate_links)} 筆，略過 {len(skipped)} 筆功能性或非文章連結。",
+            ),
+        )
+        return True, stats
+
+    def extract_newsletter_links_item(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        found, stats = self.extract_newsletter_links_record(ITEMS, item_id)
+        if not found:
+            found, stats = self.extract_newsletter_links_record(CANDIDATES, item_id)
+        if not found:
+            self.send_html("找不到項目", "<h1>找不到可拆 link 的項目</h1><p><a class='button' href='/items'>回入庫建檔區</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(
+            f"{redirect_to}{separator}saved=newsletter_links"
+            f"&created={stats.get('imported_count', 0)}"
+            f"&duplicates={stats.get('duplicate_count', 0)}"
+            f"&skipped={stats.get('skipped_count', 0)}"
+        )
+
+    def normalize_pdf_markdown_record(self, path: Path, item_id: str) -> tuple[bool, bool, str]:
+        records = load_jsonl(path)
+        updated_records = []
+        found = False
+        changed = False
+        error = ""
+        event_item = None
+        for item in records:
+            if clean_text(item.get("id")) != item_id:
+                updated_records.append(item)
+                continue
+            found = True
+            updated, changed, error = normalize_pdf_markdown_item(item)
+            updated_records.append(updated)
+            event_item = updated
+        if found and changed:
+            write_jsonl(path, updated_records)
+            if event_item:
+                append_jsonl(REVIEW_EVENTS, review_event(event_item, "pdf-markdown-normalized", "已將 PDF / MarkItDown 文字補入全文欄位。"))
+        return found, changed, error
+
+    def normalize_pdf_markdown(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        found, changed, error = self.normalize_pdf_markdown_record(ITEMS, item_id)
+        if not found:
+            found, changed, error = self.normalize_pdf_markdown_record(CANDIDATES, item_id)
+        if not found:
+            self.send_html("找不到項目", "<h1>找不到可轉全文的項目</h1><p><a class='button' href='/items'>回入庫建檔區</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        separator = "&" if "?" in redirect_to else "?"
+        if error and not changed:
+            self.redirect(f"{redirect_to}{separator}error=pdf_markdown")
+            return
+        self.redirect(f"{redirect_to}{separator}saved=pdf_markdown")
 
     def read_more_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")

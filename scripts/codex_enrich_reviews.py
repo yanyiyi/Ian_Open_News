@@ -35,6 +35,12 @@ AI_PROVIDERS = {
         "generated_key": "claude_generated_at",
         "generator": "claude-code-cli",
     },
+    "gemini": {
+        "label": "Gemini",
+        "review_key": "gemini_review",
+        "generated_key": "gemini_generated_at",
+        "generator": "agy-cli",
+    },
 }
 
 
@@ -91,6 +97,16 @@ def claude_path() -> str:
     raise RuntimeError("找不到 claude CLI，請先確認 /opt/homebrew/bin/claude 是否可用。")
 
 
+def agy_path() -> str:
+    candidate = shutil.which("agy")
+    if candidate:
+        return candidate
+    for path in ["/opt/homebrew/bin/agy", "/usr/local/bin/agy"]:
+        if Path(path).exists():
+            return path
+    raise RuntimeError("找不到 agy CLI，請先確認 /opt/homebrew/bin/agy 是否可用。")
+
+
 def provider_meta(provider: str) -> dict[str, str]:
     return AI_PROVIDERS.get(provider, AI_PROVIDERS["codex"])
 
@@ -136,7 +152,7 @@ def parse_cli_json(raw: str) -> dict[str, Any]:
 
 def available_providers() -> list[str]:
     available: list[str] = []
-    for provider, finder in [("codex", codex_path), ("claude", claude_path)]:
+    for provider, finder in [("codex", codex_path), ("claude", claude_path), ("gemini", agy_path)]:
         try:
             finder()
         except RuntimeError:
@@ -451,9 +467,47 @@ def run_claude(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[di
     return reviews
 
 
+def run_gemini(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[dict[str, Any]]:
+    cache = ROOT / ".cache"
+    cache.mkdir(exist_ok=True)
+    schema = output_schema()
+    prompt = build_prompt(batch, "gemini")
+    prompt += f"\n\n請務必輸出 JSON 格式，並完全符合以下 JSON Schema：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
+    (cache / "gemini-review-prompt.json").write_text(prompt, encoding="utf-8")
+    command = [
+        agy_path(),
+        "--print",
+        prompt,
+    ]
+    env = os.environ.copy()
+    env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        timeout=args.timeout,
+        env=env,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            "agy print failed\n"
+            f"STDOUT:\n{result.stdout[-2000:]}\n"
+            f"STDERR:\n{result.stderr[-2000:]}"
+        )
+    (cache / "gemini-review-output.json").write_text(result.stdout, encoding="utf-8")
+    payload = parse_cli_json(result.stdout)
+    reviews = payload.get("reviews")
+    if not isinstance(reviews, list):
+        raise RuntimeError("Gemini output missing reviews array")
+    return reviews
+
+
 def run_provider(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[dict[str, Any]]:
     if args.provider == "claude":
         return run_claude(batch, args)
+    if args.provider == "gemini":
+        return run_gemini(batch, args)
     return run_codex(batch, args)
 
 
