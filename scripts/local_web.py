@@ -2618,6 +2618,35 @@ def inline_markdown_html(text: str) -> str:
     return "".join(parts)
 
 
+def normalized_title_key(text: object) -> str:
+    value = clean_text(text, 500)
+    value = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", value)
+    value = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", value)
+    value = re.sub(r"[#*_`~]+", "", value)
+    value = re.sub(r"[\s\u3000]+", "", value)
+    value = re.sub(r"[：:，,。．.、;；!?！？「」『』《》〈〉()（）\[\]{}\"'“”‘’—–\-_/\\|]+", "", value)
+    return value.casefold()
+
+
+def strip_duplicate_leading_heading(markdown: str, title: object) -> str:
+    title_key = normalized_title_key(title)
+    if not title_key:
+        return markdown
+    lines = str(markdown or "").splitlines()
+    index = 0
+    while index < len(lines) and not lines[index].strip():
+        index += 1
+    if index >= len(lines):
+        return markdown
+    heading = re.match(r"^\s*#{1,6}\s+(.+?)\s*#*\s*$", lines[index])
+    if not heading or normalized_title_key(heading.group(1)) != title_key:
+        return markdown
+    end = index + 1
+    while end < len(lines) and not lines[end].strip():
+        end += 1
+    return "\n".join([*lines[:index], *lines[end:]]).lstrip()
+
+
 def markdown_to_html(markdown: str) -> str:
     raw = html.unescape(str(markdown or ""))
     raw = raw.replace("\r\n", "\n").replace("\r", "\n")
@@ -2646,11 +2675,11 @@ def markdown_to_html(markdown: str) -> str:
             flush_paragraph()
             close_list()
             continue
-        heading = re.match(r"^(#{1,4})\s+(.+)$", line)
+        heading = re.match(r"^(#{1,6})\s+(.+)$", line)
         if heading:
             flush_paragraph()
             close_list()
-            level = min(len(heading.group(1)), 3)
+            level = min(len(heading.group(1)), 5)
             parts.append(f"<h{level}>{inline_markdown_html(heading.group(2))}</h{level}>")
             continue
         if line.startswith("> "):
@@ -3388,6 +3417,7 @@ def page(title: str, body: str) -> bytes:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{h(title)} - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {{
       --ocf-primary: #6450dc;
       --ocf-light: #d7dcf0;
@@ -3405,6 +3435,9 @@ def page(title: str, body: str) -> bytes:
       --accent: var(--ocf-primary);
       --humanities: var(--ocf-dark);
       --danger: #9f2525;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+      --paper: #fffaf0;
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -4548,12 +4581,16 @@ def page(title: str, body: str) -> bytes:
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: clamp(18px, 4vw, 34px);
-      background: #fff;
+      background: var(--paper);
       max-width: 820px;
       margin: 0 auto;
       color: #17212f;
       font-size: 16px;
-      line-height: 1.78;
+      font-family: var(--article-serif);
+      font-weight: 260;
+      line-height: 2.05;
+      letter-spacing: .01em;
+      box-shadow: 0 14px 34px rgba(58, 45, 18, .10), 0 1px 0 rgba(255,255,255,.85) inset;
     }}
     .reader-card .fulltext-panel .article-text {{
       max-height: 54vh;
@@ -4563,23 +4600,53 @@ def page(title: str, body: str) -> bytes:
     }}
     .article-markdown h1,
     .article-markdown h2,
-    .article-markdown h3 {{
-      color: var(--ocf-dark);
+    .article-markdown h3,
+    .article-markdown h4,
+    .article-markdown h5 {{
+      font-family: var(--article-heading);
+      font-weight: 850;
       line-height: 1.35;
-      margin: 1.25em 0 .55em;
+      margin: 1.55em 0 .68em;
       letter-spacing: 0;
     }}
-    .article-markdown h1 {{ font-size: 28px; margin-top: 0; }}
+    .article-markdown h1 {{ color: var(--ocf-primary); font-size: 28px; margin-top: 0; }}
     .article-markdown h2 {{
-      font-size: 21px;
-      border-bottom: 1px solid var(--line);
-      padding-bottom: 6px;
+      color: var(--ocf-primary);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
     }}
-    .article-markdown h3 {{ font-size: 18px; }}
-    .article-markdown p {{ margin: 0 0 1em; }}
+    .article-markdown h2::after {{
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--ocf-primary);
+      opacity: .72;
+    }}
+    .article-markdown h3 {{
+      color: var(--ocf-primary);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--ocf-primary);
+    }}
+    .article-markdown h4 {{
+      color: var(--ocf-dark);
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }}
+    .article-markdown h5 {{
+      color: var(--ocf-dark);
+      font-size: 15px;
+      text-transform: none;
+    }}
+    .article-markdown p {{ margin: 0 0 1.25em; }}
     .article-markdown ul,
-    .article-markdown ol {{ margin: 0 0 1em 1.4em; padding: 0; }}
-    .article-markdown li {{ margin: .35em 0; }}
+    .article-markdown ol {{ margin: 0 0 1.25em 1.4em; padding: 0; }}
+    .article-markdown li {{ margin: .45em 0; }}
     .article-markdown blockquote {{
       margin: 1.1em 0;
       padding: .75em 1em;
@@ -8445,9 +8512,9 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         )
         article_text = item_article_text(item)
         article_markdown = item_article_markdown(item)
-        article_html = markdown_to_html(article_markdown) if article_markdown else ""
         article_meta = item_reading_metadata(item)
         display_title = item_display_title(item)
+        article_html = markdown_to_html(strip_duplicate_leading_heading(article_markdown, display_title)) if article_markdown else ""
         original_title = item_original_title(item)
         original_language = item_original_language(item)
         translate_actions = translation_actions_html(item, item_id, item_detail_href(item))

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>公司如何從你的智慧型手機使用行為建立個人輪廓，以及如何降低追蹤 - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,41 +463,53 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>公司如何從你的智慧型手機使用行為建立個人輪廓，以及如何降低追蹤</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">可用材料 / 可進編輯台</span>
-
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2026-06-18 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="https://www.zdnet.com/article/companies-profiling-you-smartphone-how-stop-them/" target="_blank" rel="noreferrer" title="開啟原始連結">公司如何從你的智慧型手機使用行為建立個人輪廓，以及如何降低追蹤</a></h2>
-    <p class="lede">這篇說明企業與行銷廣告機構如何透過智慧型手機與網路活動建立使用者輪廓。文章指出，瀏覽網站、搜尋、接受 cookie、購物、社群互動、造訪地點與使用 App 都可能留下訊號；這些訊號可和 IP、email、社群帳號或裝置識別碼連結，形成包含位置、購買紀錄、收入區間、興趣、工作與健康紀錄等資訊的影子檔案。文章的價值在於把資料剖析拆成日常手機使用情境，讓讀者理解看似零散的行為如何被聚合成可用於定向廣告與行為影響的資料資產。</p>
-    <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>公司如何從你的智慧型手機使用行為建立個人輪廓，以及如何降低追蹤</h1>
-<p>行銷與廣告公司想要你的資料。各種組織想知道你的位置、購物方式，還有更多關於你的資訊。以下整理常見的個人輪廓建立方式，以及你可以如何減少資料外流、維護隱私權。 企業掌握的個人資料，往往比你以為的更多；而且許多用來描繪你個人輪廓的紀錄，並不需要你明確、知情地同意。每當你瀏覽網站、送出搜尋查詢、接受 cookie 通知、購物、在社群媒體發文，甚至只是造訪某個地點，你的活動都可能被記錄下來。 單次造訪某個網站，未必能讓行銷人員了解太多關於你、你的興趣，或你可能想買什麼；但隨著時間與多次互動累積，一幅關於你的詳細圖像就會逐漸形成。 你的個人資料、所在位置、購買紀錄、收入級距、興趣等資訊，都可能被記錄下來，並與你的 IP 位址、電子郵件或社群媒體足跡連結。這些個人輪廓也可能在行銷代理商與其他第三方之間被分享、出售或交換，讓各種組織能進行精準廣告投放，並運用各種心理手法誘使你消費。 要完全避免資訊落入代理商與資料掮客手中並不容易。不過，以下會說明你在網路上最常被建立個人輪廓的方式，以及你可以如何減少資料流出。</p>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
+      <h1><a class="article-title-link" href="https://www.zdnet.com/article/companies-profiling-you-smartphone-how-stop-them/" target="_blank" rel="noreferrer" title="開啟原始連結">公司如何從你的智慧型手機使用行為建立個人輪廓，以及如何降低追蹤</a></h1>
+      <p class="lede">這篇說明企業與行銷廣告機構如何透過智慧型手機與網路活動建立使用者輪廓。文章指出，瀏覽網站、搜尋、接受 cookie、購物、社群互動、造訪地點與使用 App 都可能留下訊號；這些訊號可和 IP、email、社群帳號或裝置識別碼連結，形成包含位置、購買紀錄、收入區間、興趣、工作與健康紀錄等資訊的影子檔案。文章的價值在於把資料剖析拆成日常手機使用情境，讓讀者理解看似零散的行為如何被聚合成可用於定向廣告與行為影響的資料資產。</p>
+      <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><p>行銷與廣告公司想要你的資料。各種組織想知道你的位置、購物方式，還有更多關於你的資訊。以下整理常見的個人輪廓建立方式，以及你可以如何減少資料外流、維護隱私權。 企業掌握的個人資料，往往比你以為的更多；而且許多用來描繪你個人輪廓的紀錄，並不需要你明確、知情地同意。每當你瀏覽網站、送出搜尋查詢、接受 cookie 通知、購物、在社群媒體發文，甚至只是造訪某個地點，你的活動都可能被記錄下來。 單次造訪某個網站，未必能讓行銷人員了解太多關於你、你的興趣，或你可能想買什麼；但隨著時間與多次互動累積，一幅關於你的詳細圖像就會逐漸形成。 你的個人資料、所在位置、購買紀錄、收入級距、興趣等資訊，都可能被記錄下來，並與你的 IP 位址、電子郵件或社群媒體足跡連結。這些個人輪廓也可能在行銷代理商與其他第三方之間被分享、出售或交換，讓各種組織能進行精準廣告投放，並運用各種心理手法誘使你消費。 要完全避免資訊落入代理商與資料掮客手中並不容易。不過，以下會說明你在網路上最常被建立個人輪廓的方式，以及你可以如何減少資料流出。</p>
 <h2>為什麼公司想要我的資訊？他們會拿來做什麼？</h2>
 <p>資料現在就是貨幣。對提供分析、消費科技、行銷、旅宿等各種服務的公司來說，你的資訊與注意力都是龐大的營收來源。 只要資料夠多，組織就能為個別消費者建立詳細報告，也就是所謂的「影子個人檔案」（shadow profile）。每一個訊號都可能被用於精準廣告、客製化溝通，並調整行銷活動，引導你做出購買決定，或造訪它們在網路上的聯盟夥伴與合作對象。 我們的智慧型手機如今已是日常活動的中心。我們用它上網、購物、在社群媒體上與他人溝通、查地圖，也用來記錄健康與健身資料，類似情境不勝枚舉。透過每一筆資料點，或稱為「訊號」，公司都能了解我們在哪裡、有哪些習慣、對什麼感興趣、跟誰交談，以及喜歡買什麼。 公司可能透過你的智慧型手機蒐集的資訊包括：</p>
 <ul>
@@ -341,8 +550,20 @@
 <li><strong>建立垃圾信專用電子郵件地址：</strong> 建立第二個電子郵件地址，可以避免主要信箱被雜訊塞滿，也能切斷你與真正電子郵件地址之間的連結。每當你在線上購物，或註冊只是偶爾使用的服務時，就改用這個備用地址。</li>
 <li><strong>刪除並移除不再使用的服務與 App：</strong> 整體而言，這是維護安全與隱私的好習慣，也能減少你的裝置與第三方組織之間的資料流動。如果你已經不再使用某個 App 或線上服務，請刪除相關帳戶。即使你沒有主動使用某個 App，它仍可能保留權限並傳送你的資訊。</li>
 <li><strong>使用資料移除服務：</strong> 如果你想避免資訊落入資料掮客手中，可以考慮註冊專門代為處理的服務。資料掮客的問題在於，一次資料刪除請求永遠不夠；因為你的資訊會不斷從不同來源被取得，你必須持續要求移除。資料移除服務可以替你承擔這項工作。</li>
-</ul></section>
-  </article>
+</ul></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-b0ccf08f481bc4c4.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">別讓完美阻礙可攜性</span>
+</a>
+
+<a class="article-sequence-link" href="item-b59c287f9339d8b8.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">企業導入 AI 代理的四個原則：快速實驗，但高度謹慎</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>
@@ -356,7 +577,7 @@
 2026-06-19T04:07:09+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。
 2026-06-23T03:08:02+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li><li>我的關鍵紀錄：OCF 一直很重視數位人權。</li></ul>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Companies are profiling you from your smartphone use - how to stop them（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：公司如何從你的智慧型手機使用行為建立個人輪廓，以及如何降低追蹤（Codex）</li><li><strong>原始作者</strong>：@ZDNET（twitter:creator）</li><li><strong>原始網站授權</strong>：著作權保護（頁面文字推斷）（推斷）</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Companies are profiling you from your smartphone use - how to stop them（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>原始作者</strong>：@ZDNET（twitter:creator）</li><li><strong>原始網站授權</strong>：著作權保護（頁面文字推斷）（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-2775f9f0fb484bf4";

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>開放科技小消息 - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,24 +463,38 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>開放科技小消息</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="index.html">精選與觀點</a>
   <a class="is-active" href="news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
-  <main>
+  <main><section class="page-heading"><h1>開放科技小消息</h1></section>
 
 <section class="reader-time-filter" data-time-filter>
   <div>
@@ -321,108 +532,63 @@
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
   <h3><a href="articles/item-27ca76e70b345284.html">集中式 AI 數據風險升高，企業如何防堵機密外洩</a></h3>
   <p class="summary">摘要引用一份報告指出，部分企業資料外洩與公共 AI 服務有關，因此企業開始轉向本地部署、開源模型與分布式架構，試圖強化數據治理與安全。摘要也以企業員工使用 AI 工具造成機密風險的案例作為開場，但完整報告來源、數字脈絡與建議措施仍需全文確認。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">數據治理</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
   <h3><a href="articles/item-5de166abbc9d1411.html">真正重要的遙測：設計永續且高影響力的可觀測性管線</a></h3>
   <p class="summary">摘要顯示文章討論雲原生系統愈來愈複雜後，可觀測性工具雖然更容易部署，卻也讓團隊收集過多遙測資料。它可能會聚焦在如何設計更有選擇性、更可持續、影響更高的 observability pipeline，而不是盲目收集所有訊號。</p>
   <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
   <h3><a href="articles/item-85568a3d872d1f53.html">公共圖書館正在變成兒童圖書館嗎？</a></h3>
   <p class="summary">摘要指出，面向年輕讀者的書籍正以令人警覺的速度被移到成人區，文章並訪問專家評估這對其他讀者與公共圖書館意味著什麼。從有限資訊看，可能討論的是圖書館在政治壓力、分類政策或審查風險下如何改變公共知識近用。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
   <h3><a href="articles/item-539d57a1b3ae2f47.html">一艘太空船正墜向終點，NASA 還能救回它嗎？</a></h3>
   <p class="summary">Nature 這則新聞提到 Swift 太空觀測站面臨危機，若救援成功，可能對 Hubble 太空望遠鏡的未來也是好兆頭。從摘要看，文章重點應是 NASA 如何處理老化或失控的太空科研設施；它有公共科研基礎設施維護的潛在角度，但與本 track 的核心關聯仍需全文確認。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
   <h3><a href="articles/item-f40b24d37d1ba485.html">Verato 被 Snowflake 現代行銷資料堆疊報告列為值得關注公司</a></h3>
   <p class="summary">這筆內容是在說身份智能公司 Verato 宣布被 Snowflake 的現代行銷資料堆疊報告列為值得關注公司，場景是 2026 年戛納獅子國際創意節。摘要出現資料治理與 AI 資料雲等詞，但目前看起來主要是公司公關稿。</p>
   <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
   <h3><a href="articles/item-05b0c0c45fa8e684.html">MIH 聯盟轉型籌組台灣機器智能產業協會，推動 AI 機器新標準</a></h3>
   <p class="summary">這則看起來是 MIH 聯盟轉型、籌組台灣機器智能產業協會的產業消息，並連到鴻海在 AI Ready 數據治理論壇中談智慧城市資料整合與 CityGPT 的內容。可先視為台灣 AI 產業與資料治理動態，但需要全文確認是否有實質標準、開放治理或跨域協作內容。</p>
   <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
   <h3><a href="articles/item-87941f02600c06cf.html">Human-in-the-Loop 不再是黃金標準？亞馬遜揭 AI Agent 治理最大盲點</a></h3>
   <p class="summary">從摘要看，文章可能討論 AI Agent 或機器人在產線部署後，如何把操作細節記錄下來，形成持續優化的資料閉環。它和數據治理有關，但目前看不到標題所說 human-in-the-loop 為何不足，也看不到具體治理建議。</p>
   <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
   <h3><a href="articles/item-4e344f8f9799528f.html">Elastic 將 AI SRE 能力加入開源技術堆疊</a></h3>
   <p class="summary">Elastic 據稱收購 AI SRE 新創 Deductive AI，交易金額最高可達 8500 萬美元，目的是強化 Elasticsearch 生態系中的 AI 故障排除與可觀測性能力。這則消息可用來追蹤開源基礎設施廠商把 AI 能力納入營運維護工具的趨勢。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
   <h3><a href="articles/item-90d11a5d204630cd.html">Cursor quietly acquires Continue, an open-source alternative to GitHub Copilot</a></h3>
   <p class="summary">The AI developer tools consolidation continues apace, with news that Cursor has snapped up open-source coding assistant Continue — its
 The post Cursor quietly acquires Continue, an open-source alternative to GitHub Copil...</p>
@@ -430,24 +596,14 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
   <h3><a href="articles/item-34e64f8e8f218a26.html">AI Taichung 三部曲獲智慧城市評比肯定，主打開放資料與數據治理</a></h3>
   <p class="summary">這則摘要提到台中市政府以「AI Taichung 三部曲」推動智慧城市，透過 AI 導入市政服務、深化開放資料應用，並結合數據治理與公私協力，因此在智慧評比中獲得肯定。就目前片段來看，比較像地方政府成果新聞，若要處理應著重查核其數據治理與開放資料的具體做法。</p>
   <div class="tag-chip-list"><span class="tag-chip">開放資料</span><span class="tag-chip">數據治理</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
   <h3><a href="articles/item-6ea91b64290e6629.html">&#x27;We Will Fight to Our Very Last Breath:&#x27; Township Leaders Vow to Fight Nuclear AI Data Center</a></h3>
   <p class="summary">Michigan Governor Gretchen Whitmer and a proposed nuclear weapons AI data center in Michigan have earned the ire of community leaders.</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
@@ -462,744 +618,434 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-20T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-20 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-20 08:00</span></div>
   <h3><a href="articles/item-112f3678cbe29e48.html">科學家提出黑洞可能不存在，而是更奇特的天體</a></h3>
   <p class="summary">這篇是 404 Media 的科學研究週報，介紹多個自然科學研究：2011 年東北地方太平洋近海地震產生的波動可能讓日本本州位移、重力星作為黑洞替代理論的形成模型，以及其他天文與生物研究。內容偏趣味科普與基礎科學整理，和 Ian Open News 目前關注的數位權利或開放科技議題沒有明顯交集。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-20T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-20 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-20 08:00</span></div>
   <h3><a href="articles/item-eeea7c487a8f61ad.html">數位金融標準化：台灣應加速接軌國際制度競爭</a></h3>
   <p class="summary">這則內容看起來討論數位金融標準化與國際制度競爭，指出治理架構與規則建構會影響各國在金融科技發展中的位置。摘要也提到 AI 與區塊鏈應用到金融與數據治理後，制度調適與整合會成為關鍵問題。</p>
   <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-20T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-20 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-20 08:00</span></div>
   <h3><a href="articles/item-e2022b7fcbfb5346.html">嘉義縣科技運動館啟用：智慧健身設備蒐集運動數據</a></h3>
   <p class="summary">嘉義縣啟用科技運動館，摘要提到館內智慧健身設備可蒐集並即時分析使用者的肌力與運動數據，作為健康評估與治理參考。從現有資訊看，重點不是技術突破，而是地方政府把運動設施數據化後，可能如何用於公共服務與政策決策。</p>
   <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
   <h3><a href="articles/item-eeb5422380c5c3da.html">英國擬禁 16 歲以下使用社群媒體，EFF 批評將傷害隱私與言論自由</a></h3>
   <p class="summary">EFF 批評英國推動 16 歲以下社群媒體禁令，認為政府把它包裝成兒少保護政策，但實際上會讓各年齡層使用者都承擔驗齡負擔，並侵蝕隱私與言論自由。摘要指出，目前沒有可靠且保護隱私的普遍驗齡方法，而禁令涵蓋 Snapchat、TikTok、YouTube、Instagram、Facebook、X 等平台，可能不只限制陌生成人接觸或過度滑手機，也會切斷教育影片、地方活動資訊與遠距親友連結。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
   <h3><a href="articles/item-05688e145d20fa87.html">中國要求銀行保險機構將 AI 風險納入全面風險管理</a></h3>
   <p class="summary">摘要指出，中國針對銀行保險機構發布人工智慧安全開發應用相關指導意見，要求把 AI 風險納入全面風險管理體系。內容涵蓋治理架構、開發應用、數據治理、算力建設與風險管理等面向，適合當作金融業 AI 監管動向的小消息追蹤。</p>
   <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
   <h3><a href="articles/item-441697e34ee53289.html">「該清理人類低品質產出」：為什麼 AI 現在比同事更會審程式碼</a></h3>
   <p class="summary">可見摘要只說 AI 模型開始接手寫程式後，討論焦點轉向 AI 是否能有效審查程式碼。標題主張 AI 現在可能比同事更會做 code review，但 RSS 摘要沒有說明依據、案例或方法。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
   <h3><a href="articles/item-1f81f2ccf328063c.html">OCF 前進 Sony 總部：台灣開源治理經驗如何與亞洲接軌？</a></h3>
   <p class="summary">來源文字是一段 OCF 的通用組織介紹，說明基金會由台灣開源社群發起，服務範圍包含開放源碼、開放資料、開放政府、社群支援、組織合作、海外交流與顧問諮詢。它沒有提供本篇文章的活動細節、治理觀點或案例內容。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源治理</span><span class="tag-chip">OSPO</span><span class="tag-chip">開放資料</span><span class="tag-chip">OCF</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
   <h3><a href="articles/item-6cfe78799834fbcf.html">John Edwards 辭職後，英國有機會任命更有力的監管者</a></h3>
   <p class="summary">Open Rights Group 回應 John Edwards 辭任 Information Commissioner，稱政府應把這次人事空缺視為任命更有執行力監管者的機會。摘要提到他的離任發生在一項職場調查之後，但未說明指控內容，文章看起來偏向即時聲明與監管倡議。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
   <h3><a href="articles/item-627bf82004a7bc62.html">Flipkart 因回饋 LitmusChaos 開源修補獲 CNCF 肯定</a></h3>
   <p class="summary">Flipkart 因在 Kubernetes 與 LitmusChaos 上建立大規模混沌工程平台，並把五項增強回饋給開源專案，獲得 CNCF End User Case Study Contest 的肯定。這筆資料適合當作企業端採用開源、再把內部工程成果回饋社群的小型案例追蹤。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
   <h3><a href="articles/item-17a4ebb9aa773387.html">FSF 關於 GNU Savannah 安全回報的聲明</a></h3>
   <p class="summary">FSF 發出一則關於 GNU Savannah 安全回報的聲明。從標題只能保守判斷，這可能與自由軟體專案託管平台的安全通報、處理流程或外界報告回應有關；但缺少內文，無法確認事件內容、影響範圍、FSF 立場或是否已有修補行動。</p>
   <div class="tag-chip-list"><span class="tag-chip">FSF</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
   <h3><a href="articles/item-354a683d7ceacf48.html">EFF 等 60 多個團體呼籲英國停止在邊境使用臉部年齡估測</a></h3>
   <p class="summary">EFF 與 Foxglove、Human Rights Watch 等 60 多個組織致信英國邊境安全與庇護事務官員，反對內政部自 2027 年起使用臉部年齡估測技術判定尋求庇護兒童年齡。摘要指出，這類技術存在族群、膚色與性別偏誤，且即使在表現較好的群體仍會出錯；英國內政部也承認系統在 16 至 18 歲年齡層的誤差約可達 2.5 年，而這正是政策要使用的關鍵年齡帶。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
   <h3><a href="articles/item-74cd6bf4f97fedd2.html">CNCF 與 Udemy 合作擴大雲原生教育與認證管道</a></h3>
   <p class="summary">CNCF 與 Linux Foundation Education 與 Udemy 合作，打算建立較一致的訓練與認證路徑，擴大 Kubernetes 與雲原生開源技能的學習入口，也回應產業對認證人才的需求。摘要目前只提供合作方向，尚未看到具體課程設計、認證變動或對既有學習者的影響。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
   <h3><a href="articles/item-00e937f8c2196408.html">42dot 通過 ISO/IEC 5230 開源合規認證</a></h3>
   <p class="summary">標題顯示 42dot 已達成 ISO/IEC 5230 的符合性要求，應是一則 OpenChain 相關的企業開源合規公告。就目前資訊來看，它比較像開源治理標準採用的小消息，而不是可直接寫成深度分析的材料。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-fda50d7640e707b3.html">避開這 5 個 Android Auto 錯誤，讓開車體驗明顯改善</a></h3>
   <p class="summary">這篇內容看起來整理 Android Auto 使用者常犯的幾個錯誤，並說明這些錯誤可能造成技術問題或讓使用者錯過功能。作者從自己幾個月使用 Android Auto 的經驗出發，觀察其他駕駛也會犯類似錯誤。以目前摘要來看，重點是使用者設定與操作習慣，而不是開放科技或產業面議題。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-33158a432c40d881.html">超越 LoRA：能否挑戰最受歡迎的微調技術？</a></h3>
   <p class="summary">從標題看，這篇文章應是在討論 LoRA 之外的微調方法，並以「是否能超越最流行技術」作為問題意識。由於目前只有標題，還不能判斷它是教學、實驗報告、產品介紹，或只是概念性討論。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-635d811fa3d9c9fb.html">愛爾蘭監管歐盟 AI 法案的新法案獲准推進</a></h3>
   <p class="summary">標題顯示，愛爾蘭一項用來監督或執行歐盟 AI 法案的新法案已獲准推進。這可能涉及 AI 監管機關、執法流程或國內配套制度，但細節仍需全文確認。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-9508f7e884aaf93a.html">庇護決策中的 AI：透明度與問責失靈</a></h3>
   <p class="summary">Open Rights Group 指出英國 Home Office 在庇護個案工作中使用兩個 AI 工具，且可能存在法律問題。摘要提到 Asylum Case Summarisation 使用 GPT-4o 摘要庇護面談逐字稿，Asylum Policy Search 則是以 GPT-4o 聊天介面搜尋國家政策文件；兩者都會產生新文字，而非單純取回既有資料。核心問題看起來是透明度、可追責性與高風險行政決策中的生成式 AI 使用。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-89dcd284ae6d6dd2.html">帶有拉丁美洲觀點的人工智慧配方</a></h3>
   <p class="summary">文章以 LatamGPT 的推出為切入點，討論拉丁美洲在人工智慧與自然語言處理上的在地發展。摘要暗示作者關注的不只是新系統，而是拉丁美洲應如何安排技術創新優先順序，讓 AI 發展更貼近區域語言、文化與權利需求。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-783ce60cba43dfe7.html">帳號合併請求</a></h3>
   <p class="summary">使用者要求將兩個 Ubuntu Discourse 帳號合併，並希望舊帳號從 Ubuntu Members 群組移除，理由是自己已長期不活躍。摘要沒有顯示更廣泛的社群政策討論。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-40881df888f40b7c.html">如何免費把舊 Android 手機變成串流棒</a></h3>
   <p class="summary">這篇看起來是在教讀者用閒置 Android 手機、支援投放或螢幕鏡像的電視、充電器、launcher 及可能的 casting app，把手機當成類似 Roku 或 Fire TV 的串流裝置或控制中心。現有內容偏向個人設備再利用與操作步驟，沒有呈現開放原始碼、平台治理或產業趨勢的明確價值。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-c36263c6383f0127.html">一整年 OPSEC 訓練的現場筆記</a></h3>
   <p class="summary">EFF 回顧過去一年為高風險社群提供數位隱私與安全建議的經驗，並把過去較少公開的 OPSEC 訓練工作整理出來。摘要顯示文章強調這類訓練並非傳統資安公司的滲透測試，而是面向個人與組織的安全工作坊、諮詢、評估或簡報，目的在回應科技促成的暴力與運動工作者的實際需求。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-3fa1d25859427bd4.html">「平等聯盟」：歐盟執委會數位時代新平等策略分析</a></h3>
   <p class="summary">文章摘要指出，歐盟執委會為推進平等與非歧視等基本權，在近幾個月發布 2026 至 2030 年的新一輪平等策略，包括性別平等、反種族歧視與 LGBTIQ+ 策略。文章應是在分析這些策略如何回應數位時代的挑戰，但摘要尚未列出具體數位議題。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-39a70c46347efbc8.html">Ubuntu 社群建議：滑鼠滾輪不應誤改下拉選單</a></h3>
   <p class="summary">這則 Ubuntu 社群貼文建議，當滑鼠游標停在下拉選單上時，滾動滑鼠中鍵不應直接改變下拉選單的內容，因為使用者通常只是想捲動頁面。發文者認為應該只有在使用者先點選某個選項後，再使用滾輪時，才改變下拉選單值。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-afe589dc9cd57da0.html">Linux Foundation 2026 年 6 月電子報</a></h3>
   <p class="summary">這篇是 Linux Foundation 2026 年 6 月電子報，內容以社群動態、研究調查、活動、訓練促銷與專案更新為主。最有資訊價值的部分不是促銷或活動清單，而是 LF Research 正在徵集的多項調查，包括生成式 AI 與開源開發、OSPO 與開源管理、AI 安全，以及全球開源現況；另外也提到 CRA 準備度、歐洲技術人才報告、Agentic AI Foundation 的 agentgateway 與 goose 更新，以...</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">OSPO</span><span class="tag-chip">cybersecurity</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-e9453fadadef3f10.html">KPMG：科技放大投資效益</a></h3>
   <p class="summary">摘要顯示，在地緣政治風險常態化與全球供應鏈重組下，製造業正加速數位轉型，並把 AI、數據治理與資安能力視為核心基礎。這筆可作為產業側資料治理趨勢的小消息，但目前缺乏調查方法、樣本與完整結論。</p>
   <div class="tag-chip-list"><span class="tag-chip">數據治理</span><span class="tag-chip">供應鏈</span><span class="tag-chip">資安</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
   <h3><a href="articles/item-5c598bd28de7c551.html">AMQP 重新連線風暴</a></h3>
   <p class="summary">這則回報描述 Ubuntu 26.04 上的 Landscape Server 26.04.0.1 在執行安全資料庫更新流程時，透過 txAMQP 載入舊版 AMQP 規格與 RabbitMQ 4.0.5 溝通，疑似因協定版本不合而進入快速重新連線循環。回報者附上 strace 與 RabbitMQ log，指出重連延遲很短，導致日誌迅速膨脹到數 GB。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-a930a3336c8b8b9c.html">社群徵求維護 1Panel 分支的人選</a></h3>
   <p class="summary">這則 Ubuntu Community Hub 貼文提到 1Panel 這個開源 VPS 控制面板，發文者希望有人 fork 並維護一個分支，原因是官方團隊不願支援建立網站時的自訂路徑，導致 PHP 開發環境路徑過長。就摘要來看，這比較像單一使用者對專案功能路線的不滿與徵人請求，尚未看到明確的 fork 成果或更大規模社群動員。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-31590f50d3542590.html">新的 Ubuntu MATE 維護者團隊向社群報到</a></h3>
   <p class="summary">新的 Ubuntu MATE Reboot 成員在社群發文說明，他們是在 Martin Wimpress 退出 Ubuntu MATE 之後自願協助專案復甦的一群人。摘要列出多位成員背景，包括 upstream MATE 開發者、Ubuntu Unity 維護者與熱心使用者，也提到他們正在獲得其他 Ubuntu flavors 與核心團隊的協助。發文同時提醒，這個團隊目前不是正式選舉或選任產生，而是先以志工方式讓專案恢復運作，並歡迎更多...</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-225dc0eb4bdc2dd1.html">數位人道行動與在地合作能否對抗剛果民主共和國伊波拉疫情？</a></h3>
   <p class="summary">文章討論在剛果民主共和國伊波拉疫情中，全球數位人道工作者與遠端資料提供者如何回應「用資訊對抗伊波拉」的需求。疫情宣布後，Humanitarian OpenStreetMap Team 與無國界醫生合作啟動任務，動員全球志工支援相關資訊工作；但摘要未說明後續成果。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-ce23623c0a0bee88.html">州級性傾向與性別認同資料實務：包容性資料與負責任治理</a></h3>
   <p class="summary">這份報告討論政府機關蒐集性傾向與性別認同資料的公共價值與治理條件。摘要指出，高品質的 SOGI 資料有助於理解 LGBTQ+ 族群的經驗、需求與不平等處境，但前提是資料必須被負責任地蒐集、保存與使用。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-a4476b121ee6f9c8.html">Ubuntu 將調整 Azure 映像保留政策</a></h3>
   <p class="summary">Ubuntu 計畫自 2026 年 8 月下旬起調整 Azure 映像保留政策，從目前每個 plan 或 SKU 保留最近 90 個 release images，改為保留最近 20 個版本且至少涵蓋六個月。既有 VM 不會受影響，但新建部署可用的六個月以前映像會減少，釘選到很舊映像的 VMSS 也可能受影響。公告同時提醒長期 pinning 會帶來安全與維護問題，並徵求仍需依賴舊映像的實際案例。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-166ed2bb4d79416f.html">Ubuntu Desktop 推出 Myna 語音轉文字計畫</a></h3>
   <p class="summary">Ubuntu Desktop 介紹 Project Myna，目標是把語音轉文字聽寫做成桌面上的一等功能。初期方向是讓使用者按下快捷鍵後直接說話，文字就輸入到正在使用的應用程式，並提供清楚的聽寫狀態回饋。Myna 的語音辨識模型會在本機執行，初版預計聚焦 Ubuntu 26.10、Wayland 與 GNOME 驗證環境。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-8add6bdfcd009581.html">Ubuntu 2026-06-16 變更分流：chrony、qemu 與 systemd 服務強化</a></h3>
   <p class="summary">這則 Ubuntu triage 摘要列出多個 Launchpad 議題：chrony 未透過 networkd-dispatcher 處理 DHCP 提供的 NTP server，作者傾向需要上游討論；qemu 有多個相關合併請求但仍缺 reviewer；另有 virt-manager 無法重現、open-vm-tools 已修正、postfix systemd 服務安全設定可能需要強化等狀態更新。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-1ecf075956b8967e.html">Ubuntu 2026-06-15 變更分流：Netplan 修正與 Nginx systemd 強化</a></h3>
   <p class="summary">這則 triage 記錄提到 netplan set 失敗未回傳非零錯誤碼的問題已在上游修正，未來可評估 SRU 到多個 Ubuntu 版本。舊項目則提到 nginx systemd 服務安全設定可能需要在後續版本加入強化，但目前仍停留在待評估階段。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-6122de839f780f63.html">Ubuntu 2026-06-11 變更分流：SRU 測試覆蓋與伺服器套件問題</a></h3>
   <p class="summary">這則 Ubuntu triage 摘要整理多個 Launchpad 議題，包括 docker.io 在已停止支援版本上的處理、multipath-tools SRU 驗證與 noble autopkgtest 環境變動造成的測試覆蓋流失，以及 chrony NTS 相關問題的後續討論。最值得注意的是測試基礎設施變動可能讓套件更新的回歸判定失準。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-40e4256786f8b983.html">Rockcraft 團隊徵求下一代 GitHub Actions 設計回饋</a></h3>
   <p class="summary">Rockcraft 所屬團隊表示正在改善 Rock 的製作體驗，當前重點放在自動化與 CI/CD。公告邀請使用者填寫問卷，分享目前如何使用 GitHub Actions，以及哪些地方能讓 Rockcraft 的製作流程更自動化、更順暢。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-840b09952d0423cd.html">Kiro 推出 iPhone 版：AWS 將 AI 程式代理監督帶到手機</a></h3>
   <p class="summary">AWS 為其 AI 開發環境 Kiro 推出原生 iOS app，讓開發者可以在手機上監控或引導 agentic coding 工作。從摘要看，這比較像產品功能發布，價值在於觀察 AI coding 工具是否走向跨裝置、持續監督的使用模式。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-4cb1b39df169f546.html">GLM-5.2：為長時程任務打造</a></h3>
   <p class="summary">標題指出 GLM-5.2 被定位為面向長時程任務的模型或系統。僅憑標題無法知道它是否開源、能力如何評估、與既有模型相比有何差異。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-ddb9a7788fcd799f.html">Fox 220 億美元買 Roku，是在買一億家戶的身分識別</a></h3>
   <p class="summary">文章主張 Fox 併購 Roku 表面上是補齊串流與連網電視入口，實際價值在於 Roku 掌握的全球串流家戶、Roku OS、The Roku Channel、Roku Exchange，以及家戶帳號層級的第一方資料。摘要也把這件事和 Publicis 併購 LiveRamp 相比，指出即使 AI Agent 讓交易更自動化，真正稀缺的仍是可驗證、可對照、可衡量的第一方資料。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-773bc8bde264c6b1.html">Chainguard Agent Skills 走向成熟</a></h3>
   <p class="summary">摘要指出 Chainguard 正在擴大對 AI coding agents 安全性的投入，並提到新的公開 registry。現有資訊不足以判斷 registry 的設計、審核方式或對開源供應鏈安全的實際意義。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-6c59e720c506620f.html">Anbox Cloud 1.30.0 發布：新增虛擬化 Android 支援</a></h3>
   <p class="summary">Anbox Cloud 1.30.0 的主要變化是支援在 LXD instance 內透過 Cuttlefish VM 執行虛擬化 Android，同時維持既有容器化 Android 環境。這讓使用者可以依需求選擇高效率、高密度的容器化應用工作負載，或用虛擬化 Android 處理完整系統映像、AAOS、自訂映像與系統層驗證。摘要也提到 Android 16 的 AOSP/AAOS 映像、串流頁面控制介面改版，以及可從現有 instan...</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-9cb96106c4d2ff93.html">Agentic 資源探索：讓代理自己搜尋</a></h3>
   <p class="summary">從標題看，這篇文章可能介紹一種讓 agent 自行搜尋或發現資源的機制，並可能是某項功能上線資訊。現有資訊不足以判斷它的技術深度、使用場景或是否適合進一步整理。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-2221982c8985eb79.html">APC 將參與 2026 年資訊社會世界峰會論壇</a></h3>
   <p class="summary">摘要僅說明 2026 年 WSIS Forum 將於 7 月 5 日至 9 日舉行，並會聚集不同背景的利害關係人，推進資訊社會相關實作。現有資訊不足以判斷 APC 的具體參與內容，也無法確認和 OCF 或開放文化基金會的關聯強度。</p>
   <div class="tag-chip-list"><span class="tag-chip">OCF</span><span class="tag-chip">開放文化基金會</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-005de3b04e5ee240.html">67 個開放科技專案獲得 NGI 補助</a></h3>
   <p class="summary">NLnet Foundation 宣布 Next Generation Internet initiative 新一輪共有 67 個專案獲補助，範圍涵蓋開放科技堆疊與可信開放硬體等方向。摘要只透露資助規模與大方向，尚看不出具體專案內容或與台灣、OCF 議題的連結。</p>
   <div class="tag-chip-list"><span class="tag-chip">OCF</span><span class="tag-chip">開放文化基金會</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-03aeeb13f09b82df.html">4 個 iOS 27 新功能，其實 Android 已經做到了</a></h3>
   <p class="summary">這筆內容比較即將推出的 iPhone 功能與 Android 既有能力，指出 Android 使用者已經能使用一些類似功能。從摘要看，它偏向行動作業系統功能比較與使用經驗評論，尚未顯示更深的產業或公共議題。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
   <h3><a href="articles/item-948ccd26e1e5e48e.html">2026 數位政府展望</a></h3>
   <p class="summary">這份 OECD 報告把數位技術與資料視為政府回應公共需求、政策挑戰與服務交付壓力的核心基礎建設。摘要指出，民眾期待政府快速行動、適應變化並有效回應，因此公共機構必須跟上；但主要結果與建議仍未在摘錄中呈現。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-16 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-16 08:00</span></div>
   <h3><a href="articles/item-82bf19c344087a93.html">駭客現在開始劫持整個 Roblox 遊戲</a></h3>
   <p class="summary">Roblox 駭客攻擊的目標似乎從竊取玩家高價物品，擴大到接管整個遊戲本身，包含奪走所有權與 Robux。這代表平台上的創作者資產也可能成為攻擊標的，不過摘要沒有提供影響規模或攻擊方式，因此暫時只能視為小型資安追蹤。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-16 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-16 08:00</span></div>
   <h3><a href="articles/item-43c65fc93ae0d5be.html">駭客公開 Knicks 與麥迪遜廣場花園資料</a></h3>
   <p class="summary">駭客公開了 Knicks 與 Madison Square Garden 相關資料，其中包括一份「人才」名單，列出前 Knicks 球員、教練，以及其他名人被標示為低風險或高風險的情況；外流資料也包含顧客與 MSG 之間的電子郵件。它的價值在於資料分類與外洩後的隱私傷害，但目前摘要仍偏事件型新聞。</p>
   <div class="tag-chip-list"><span class="tag-chip">cybersecurity</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-16 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-16 08:00</span></div>
   <h3><a href="articles/item-ef19d3f274a51a67.html">向前走，朋友們</a></h3>
   <p class="summary">這是一篇 EFF 成員離職前的告別與回顧。作者表示在 EFF 工作 26 年後離開，回顧組織如何在數位世界中持續捍衛自由與正義，並列舉過去投入的議題，包括加密、程式開發者權利、政府與企業監控、線上私人對話、言論自由、匿名言論、網路中立、安全投票機、專利與著作權等。摘要在後段被截斷，因此目前較能看出情感與歷史脈絡，還不能完整判斷文章後半的重點。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-16 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-16 08:00</span></div>
   <h3><a href="articles/item-4a0a385a33461fc4.html">OpenChain 電子報第 87 期</a></h3>
   <p class="summary">目前只知道這是 OpenChain 第 87 期電子報，無法從提供內容判斷其中是否包含特定活動、政策、工具或社群更新。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-16 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-16 08:00</span></div>
   <h3><a href="articles/item-fda1e1601c95d155.html">MLCommons 發布 MLPerf Training v6.0 結果</a></h3>
   <p class="summary">MLCommons 發布 MLPerf Training v6.0 結果，摘要指出新版包含新的基準測試，也呈現更多元的提交狀況。這筆適合作為 AI 訓練效能評測生態的更新，但細節仍需查全文。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-16 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-16 08:00</span></div>
   <h3><a href="articles/item-70797dadff22d390.html">Git worktrees 是什麼？為什麼該使用？</a></h3>
   <p class="summary">這篇 GitHub Blog 介紹 git worktrees 的概念、使用方式，以及為什麼近年重新受到關注。從摘要看，它主要是開發者工具教學，可能有助於理解多分支或多工作區開發流程，但目前看不出明確的開放科技公共議題角度。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-16 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-16 08:00</span></div>
   <h3><a href="articles/item-fd8764aa58c138e2.html">EXANTE 推出 100 萬歐元開源基礎設施基金，支持關鍵金融技術</a></h3>
   <p class="summary">EXANTE 宣布設立 100 萬歐元基金，支持支撐金融系統的關鍵開源專案。摘要指出，這筆基金回應的是軟體永續性、資安與系統韌性的壓力，屬於企業投入開源基礎設施維護的資金消息。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-16 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-16 08:00</span></div>
   <h3><a href="articles/item-9f31062871a6e4b2.html">Databricks 想合併每家公司都在跑的兩種資料庫</a></h3>
   <p class="summary">目前可保守判斷，這則內容可能在談 Databricks 想縮短企業營運資料庫與分析系統之間的距離，並把這個方向連到 AI agent 所需的資料基礎。但 source_text 只有 RSS 摘要，缺少具體做法、產品脈絡、受訪說法與技術細節，無法進一步判斷是否值得收錄。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-16 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-16 08:00</span></div>
   <h3><a href="articles/item-199d7e9ddb7dcb38.html">COSCUP 2026 BoF／Hacking Corners 參與辦法與使用規則</a></h3>
   <p class="summary">COSCUP 2026 開放社群登記 BoF 聚會與 hacking room 活動，時間為 8 月 8 日、9 日 10:00 至 16:00，地點在 TR310-2。公告鼓勵開源、社群與開放文化相關主題的社群使用這個空間，每場次可預約一小時，也可讓參與者查找現場或場外正在發生的聚會。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-16 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-16 08:00</span></div>
   <h3><a href="articles/item-b527e48dbc95d747.html">Anthropic 暫停 Claude Agent SDK 訂閱制變更</a></h3>
   <p class="summary">摘要指出 Anthropic 原本有一項影響付費訂閱用戶使用 Claude Agent SDK 的帳務變更，但在預定生效當天按下暫停。現有資訊不足以判斷改動內容、開發者反應或後續政策走向。</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-15 08:00</span></div>
   <h3><a href="articles/item-acd602140b2ece62.html">關於戰爭中使用 AI 的聯合聲明</a></h3>
   <p class="summary">這份聯合聲明對 AI 技術快速軍事化表示高度警訊，特別關注 AI 系統被納入軍事殺傷鏈後，如何加快攻擊速度與規模。摘要指出，這種發展會在衝突中製造新的問責風險，並可能促成違反國際刑法、人權法與人道法的行為。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-15 08:00</span></div>
   <h3><a href="articles/item-a37ccd055a52a881.html">社群媒體政策的棘輪效應</a></h3>
   <p class="summary">文章從英國政府十多年來陸續推出兒少網路安全措施談起，指出這些政策多半回應社會對不適當內容、有害內容與霸凌等互動風險的憂慮，但實際成效不如預期。摘要暗示作者關注的是政策一再加碼、問題卻未真正解決的現象。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-15 08:00</span></div>
   <h3><a href="articles/item-f4801497e3e3420d.html">法院裁定 Blacked.com 可就 Meta 抓取色情影片提告</a></h3>
   <p class="summary">美國聯邦法院駁回 Meta 要求撤銷 Strike 3 Holdings 訴訟的主張，讓 Blacked、Vixen、Tushy 等成人網站母公司針對 Meta 涉嫌大量下載其影片的版權訴訟繼續進行。文章重點在於，Strike 3 指稱 Meta 相關 IP 從 2018 到 2025 年間多次 torrent 下載其影片，且法院認為這些下載行為呈現協調性，不像只是零星員工個人行為。法官也指出，即使尚未證明 Meta 是否把這些影片用於...</p>
 
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-15 08:00</span></div>
   <h3><a href="articles/item-5f040682ac9e4f2d.html">治理全球情緒：科技與感覺的新科學</a></h3>
   <p class="summary">這則資料介紹 Jessica Pykett 的《Governing Global Emotions》，核心問題是：如果情緒測量的科學與技術本身誤解了情緒，建立在其上的數位治理也會出問題。摘要顯示，作者主張應重新評估情緒科學的基本前提，並重新思考數位情緒治理的方向。以目前文字看，它較像一本書或研究成果的導讀，值得作為 civic tech、AI 感知技術與治理倫理的素材線索，但需要全文才能判斷深度。</p>
   <div class="tag-chip-list"><span class="tag-chip">civic tech</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-15 08:00</span></div>
   <h3><a href="articles/item-d2d836d7eac38ff1.html">必須停止 AI 加速的戰爭</a></h3>
   <p class="summary">Access Now、國際特赦組織與超過 200 個公民社會組織及個人呼籲，立即停止在軍事殺傷鏈中使用 AI 系統。摘要將 AI 加速戰爭描述為讓殺戮決策以空前速度與規模被背書的機制，並把問題核心放在 AI 軍事化所帶來的人權與問責風險。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-15 08:00</span></div>
   <h3><a href="articles/item-fc442b318ae29d6b.html">MLCommons 發布 MLPerf Mobile v6.0，新增裝置端 LLM 生成式 AI 基準測試</a></h3>
   <p class="summary">MLCommons 發布 MLPerf Mobile v6.0，新增針對裝置端 LLM 的生成式 AI 基準測試，並擴大 NPU 加速的測試範圍。這筆資料的重點在於行動裝置上的 LLM 推論開始有更標準化的比較方式。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
@@ -1214,24 +1060,14 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-12T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-12 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-12 08:00</span></div>
   <h3><a href="articles/item-3fc70fdb77627751.html">olmo-eval：面向模型開發循環的評測工作台</a></h3>
   <p class="summary">olmo-eval 是一套開放評測工作台，協助模型開發者在不同 LLM checkpoint 之間加入、執行並分析 benchmark。它延伸 OLMES 的定位，從最終分數的可再現性，走向日常模型開發循環中的評測與診斷。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-10T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-06-10 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-10 08:00</span></div>
   <h3><a href="articles/item-970f1d7e11f2dede.html">Helion 中可攜式 vLLM 模型推論核心</a></h3>
   <p class="summary">這篇摘要說明 Helion kernels 被整合到 vLLM，用於 Qwen3 模型的 FP8 推論，並在 NVIDIA H100 與 B200 GPU 上評估。文章主軸看起來是用 PyTorch 原生方式開發可攜的推論 kernel，同時兼顧生產力與效能。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
@@ -1246,12 +1082,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-02T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-06-02 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-06-02 08:00</span></div>
   <h3><a href="articles/item-951fa84b97ced695.html">Chakra 成熟化：用於 AI 系統基準測試與共同設計的標準化追蹤生態系</a></h3>
   <p class="summary">MLCommons 介紹 Chakra 從 2023 年的工作小組提案，發展成有 40 多個成員參與的產業協作。其重點是建立標準化 trace 生態系，讓 AI 系統社群能更一致地研究、重現，並共同設計訓練與推論平台。摘要也指出它已在多個開源與商業工具中獲得原生支援。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
@@ -1266,12 +1097,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-26T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2026-05-26 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-05-26 08:00</span></div>
   <h3><a href="articles/item-8c5c3d000090ce25.html">在網路世界成長：Open Rights Group 對諮詢案的回應</a></h3>
   <p class="summary">這筆資料聚焦英國線上年齡驗證政策。摘要顯示，age-gating 原先在 2025 年被定位為限制兒童接觸色情內容的有限措施，但很快被擴張到線上遊戲、應用程式商店、社群平台與其他一般網路服務。從現有文字看，核心價值在於檢視兒少保護政策如何延伸成更廣泛的線上身分或年齡檢查機制。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
@@ -1286,108 +1112,63 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-21T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-21 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-21 08:00</span></div>
   <h3><a href="articles/item-00999a9a4ada0c98.html">GitHub 下一階段的無障礙策略</a></h3>
   <p class="summary">GitHub 發布了一則關於無障礙策略更新的文章，並邀請外部參與者一起建立無障礙文化。從摘要看，重點應是 GitHub 對平台無障礙工作的下一步說明，以及如何讓社群加入相關實踐。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-20T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-20 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-20 08:00</span></div>
   <h3><a href="articles/item-74fc582466c2f626.html">將真相入罪：波灣政府應停止打壓資訊流通</a></h3>
   <p class="summary">這筆資料顯示 Access Now 針對波灣政府打壓資訊的情況發出呼籲，重點可能是要求停止以刑事化方式處理資訊揭露或表達。不過來源摘要沒有提供任何具體案例或政策內容，只能做保守判斷。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-20T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-20 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-20 08:00</span></div>
   <h3><a href="articles/item-9a8d5bdd019e8df4.html">Meta 限制沙烏地與阿聯受眾接觸人權帳號</a></h3>
   <p class="summary">這筆資料只能確認 Access Now 發出一則關於 Meta 在沙烏地阿拉伯與阿聯限制人權帳號觸及受眾的新聞稿。由於 RSS 摘要沒有提供事件細節，尚無法判斷是政策執行、政府要求、演算法降觸及，或其他形式的限制。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-20T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-20 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-20 08:00</span></div>
   <h3><a href="articles/item-3d54bd9ae38f0f26.html">MeasureDev 2026 對官方統計的意義</a></h3>
   <p class="summary">這篇應是 Measuring Development Conference 的觀察文章，討論過去十年的開放科學實作在 AI 改變資料處理與分析可能性後，官方統計應如何調整。摘要顯示文章會整理四個重點，但尚看不出具體主張。</p>
   <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-19 08:00</span></div>
   <h3><a href="articles/item-ffdaeb9e20b3595e.html">OlmoEarth v1.1：更高效率的遙測模型系列</a></h3>
   <p class="summary">OlmoEarth v1.1 是一組更有效率的遙測模型，目標是在維持相近效能的同時，把運算成本最多降低 3 倍。這會讓大規模衛星製圖更快、更便宜，適合作為開放 AI 在地理與遙測應用上的更新觀察。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-19T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-19 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-19 08:00</span></div>
   <h3><a href="articles/item-ed66df5614af028c.html">2026 Global Data Festival 上的 Open Data Watch 活動重點</a></h3>
   <p class="summary">文章介紹 Open Data Watch 在 2026 Global Data Festival 的參與重點，包括 AI 如何用於公民資料、資料系統在壓力下如何強化，以及同儕網絡對永續發展資料基礎設施的重要性。摘要偏活動導覽，實質內容仍需確認。</p>
   <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-18 08:00</span></div>
   <h3><a href="articles/item-00f712cf5cfd4c46.html">Microsoft 應公開與以色列軍方關係的調查結果</a></h3>
   <p class="summary">Access Now 表示，透過一封新的聯名信，公民團體要求 Microsoft 公開其針對以色列軍方使用公司服務情形所做的審查結果。從摘要來看，焦點不是單一產品發布，而是科技公司在軍事用途、透明度與人權責任上的回應。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-18 08:00</span></div>
   <h3><a href="articles/item-0a176d4129d2981d.html">DMA：FSFE 第二度在歐盟法院介入 Apple 案</a></h3>
   <p class="summary">FSFE 獲准在歐盟法院 Apple 對歐盟執委會的 T-359/25 案件中介入。這是 FSFE 第二次介入相關程序，目標是為歐洲的互通性與軟體自由辯護，尤其是在 DMA 相關爭議中凸顯第三方開發者與使用者權益。</p>
   <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">free software</span><span class="tag-chip">software freedom</span><span class="tag-chip">FSF</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-18T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-18 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-18 08:00</span></div>
   <h3><a href="articles/item-688b576762ba83ad.html">2026 開放科技研究研討會開始徵求提案</a></h3>
   <p class="summary">OSI 支持首屆 Open Technology Research Symposium 2026，活動預計於 2026 年 10 月 26 至 27 日在巴塞隆納大學舉行，提案徵集開放至 2026 年 7 月 5 日。這則主要是活動與徵稿公告。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">open technology</span></div>
@@ -1402,36 +1183,21 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-14T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-14 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-14 08:00</span></div>
   <h3><a href="articles/item-5bcdda3ed4969683.html">SFP 第 51 集：政策、歐盟與公共行政中的公共程式碼挑戰</a></h3>
   <p class="summary">這集 FSFE 的 Software Freedom Podcast 討論公共行政中的公共程式碼挑戰，受訪者包括 Nordic Institute for Interoperability Solutions 與 FSFE 相關成員，並以 X-Road 這套在公共機構使用的自由軟體作為案例。摘要顯示重點會放在自由與開源專案進入公共機構時面臨的政策、制度與實務挑戰。它適合和其他 public code 新聞搭配閱讀，但單靠摘要還不能判斷內...</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">free software</span><span class="tag-chip">software freedom</span><span class="tag-chip">public code</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-12T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-12 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-12 08:00</span></div>
   <h3><a href="articles/item-5f28daf33c80b37a.html">私人投資者正在牽引歐洲 AI 競賽</a></h3>
   <p class="summary">這篇分析主張，歐盟宣布大量 AI 投資不是最重要的部分；更值得看的，是這些投資承諾背後附帶了什麼條件，以及這些條件透露出誰正在實際影響歐洲 AI 產業政策。它可能是理解公共政策與私人資本角力的素材。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-11T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-11 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-11 08:00</span></div>
   <h3><a href="articles/item-34d67daafead1ee7.html">強化哈薩克的開放資料</a></h3>
   <p class="summary">這篇應與哈薩克準備下一輪 ODIN 評估有關，重點可能從單純衡量開放資料進展，延伸到如何支持各國改善資料開放。就摘要而言，尚未提供具體措施或成果。</p>
   <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span></div>
@@ -1446,60 +1212,35 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-05-07T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-07 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-07 08:00</span></div>
   <h3><a href="articles/item-e8a5cc1c9fd0ba03.html">開放設計：Ai2 與 NSF OMAI 啟用全開放 AI 基礎設施</a></h3>
   <p class="summary">Ai2 表示 NSF OMAI 的運算資源開始上線，目標是支撐一個完整開放的 AI 研究生態系。摘要強調這項基礎設施不只提供算力，也希望把公共投資轉化為可重用的模型、資料、方法與工具，以加速科學研究。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-07T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-07 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-07 08:00</span></div>
   <h3><a href="articles/item-de12ec53c88f9af0.html">GPT-OSS 20B：MLPerf Training v6.0 的稀疏 MoE 預訓練基準</a></h3>
   <p class="summary">MLCommons 說明他們如何為 MLPerf Training v6.0 設計一個稀疏 Mixture-of-Experts 預訓練基準。摘要的核心訊息是，這個 GPT-OSS 20B 基準被工程化為穩定且較可近用，並能在單一 8-GPU 節點上執行。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-05T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-05 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-05 08:00</span></div>
   <h3><a href="articles/item-3825786f03f5a389.html">MolmoAct 2：面向真實世界機器人的開放基礎模型</a></h3>
   <p class="summary">MolmoAct 2 被描述為一個完全開放的機器人基礎模型，目標是支援真實世界機器人任務中的 3D 動作推理。摘要也提到它搭配新的大型雙臂操作資料集，讓研究者可以重現與延伸相關成果；這使它比單純模型發布更接近可收藏的開放研究基礎設施案例。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-05T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-05 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-05 08:00</span></div>
   <h3><a href="articles/item-2f4c50d1d48d3768.html">Maintainer Month 登場：向程式碼背後的維護者致敬</a></h3>
   <p class="summary">這篇是 GitHub 對 Maintainer Month 的介紹，提到維護者正在反映的需求、GitHub 已推出的內容，以及如何慶祝開源背後的維護者。它應該偏向活動啟動與平台近況整理。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-05-05T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-05-05 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-05-05 08:00</span></div>
   <h3><a href="articles/item-50f49ffce471ad5e.html">DeepSeek-V3：MLPerf Training v6.0 的大型 MoE 預訓練基準</a></h3>
   <p class="summary">這則消息指出 MLCommons 正把大型 Mixture-of-Experts 預訓練納入 MLPerf Training v6.0 測試套件。從摘要看，重點是基準測試範圍的擴展，但目前看不到具體方法、結果或治理意涵。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
@@ -1514,24 +1255,14 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-04-27T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-04-27 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-04-27 08:00</span></div>
   <h3><a href="articles/item-6db1c3aa98a9d95c.html">我們共同建立了什麼：Data2X 簡史</a></h3>
   <p class="summary">這份 Reflection Report 回顧 Data2X 十多年來在全球性別資料生態系中的工作與貢獻，聚焦更具包容性的資料如何支撐有效政策制定。摘要也提到 Data2X 將在 Open Data Watch 進入下一階段，因此可能兼具歷史整理與組織轉向意義。</p>
   <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-04-23T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-04-23 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-04-23 08:00</span></div>
   <h3><a href="articles/item-31498d5b9f2c234f.html">以 DC-EDIC 作為數位公地治理的制度支點</a></h3>
   <p class="summary">這份簡報似乎主張，歐盟已經有可用來承擔 Digital Commons 治理的制度載體 DC-EDIC，但它需要更明確的任務授權與資源，才能發揮應有潛力。以摘要來看，重點偏政策制度設計。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
@@ -1546,24 +1277,14 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-04-16T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-04-16 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-04-16 08:00</span></div>
   <h3><a href="articles/item-c6372e6692277cf7.html">2026-27 年 ODIN 評估將於五月展開</a></h3>
   <p class="summary">ODIN 2026/27 將在五月中開始評估各國官方統計的覆蓋度與開放程度，範圍涵蓋 197 個國家。摘要指出本輪評估有幾項重要更新，但尚未列出細節。</p>
   <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-04-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-04-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-04-15 08:00</span></div>
   <h3><a href="articles/item-777caddebc71ea53.html">透過推理插值早期偵測獎勵駭取跡象</a></h3>
   <p class="summary">可保守判斷這是一篇關於 AI 訓練期間如何早期偵測 reward hacking 的技術文章，方法可能涉及重要性抽樣與經微調的 donor prefills，用來預測模型在訓練過程中何時開始出現投機性行為。由於來源文字太短，目前無法確認研究結果、限制與實務意義。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
@@ -1578,12 +1299,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-04-06T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2026-04-06 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2026-04-06 08:00</span></div>
   <h3><a href="articles/item-f556b5e97a179683.html">Valkey 兩年：Redis 授權轉向後的開源分叉觀察</a></h3>
   <p class="summary">文章開頭回顧 Redis 專案授權轉變後，前貢獻者轉向合作發展競爭性分叉 Valkey。可保守判斷，全文應是在 Valkey 發展兩年之際，檢視這場分叉的背景、後續走向，以及它對開源資料庫生態與授權策略的意義。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
@@ -1598,348 +1314,203 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-03bfbffa318941fe.html">雅砌研究院贊助開放文化基金會與 MOPCON 2020</a></h3>
   <p class="summary">這則資料描述雅砌研究院因看重資訊科技與數位化對未來生活的影響，自 2011 年起贊助台灣大型開源論壇，並自 2017 年起與開放文化基金會合作，以聯合統籌贊助方式投入資訊領域。摘要中特別提到 2020 年度統籌贊助 COSCUP、SITCON 與 g0v Summit，也持續支持在高雄舉辦的 MOPCON，以平衡台灣資訊社群資源分布。整體價值在組織關係與贊助歷史，而非最新事件。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-970de3180dcaca80.html">陽明交通大學資工系公告 10364（內容待確認）</a></h3>
   <p class="summary">目前只能看出這是一筆位於陽明交通大學資工系網站的公告連結，source_text 沒有提供公告標題、正文或任何可判讀的內容。</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-d1abca4bc637d529.html">開源星手村 COSCUP 領航導覽系列活動</a></h3>
   <p class="summary">這筆資料介紹 OCF 與 FNF 圍繞 COSCUP 2023 規劃的「開源星手村」導覽系列活動。活動把開源人分成開發者、使用者與傳播者三種角色，透過線上講座、現場導覽與桌遊工作坊，協助第一次參與 COSCUP 的人理解議程、找到社群，也用桌遊體驗開源專案的發起與協作。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放資料</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-70ca92c2e5b0a3f3.html">跨越兩岸，開源人遇見 COSCUP</a></h3>
   <p class="summary">這則資料看起來是同一篇〈跨越兩岸，開源人遇見 COSCUP〉在 CSDN 的版本，內容介紹 COSCUP 的開源社群背景、開發者與使用者直接交流的重要性，以及開源社參與 COSCUP 2023 的情況。摘要補充指出文章聚焦台灣 COSCUP 年度研討會、全球開源社群交流，以及開源透明協作如何支撐軟體品質。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-4e6cb5b0a570af9c.html">跨越兩岸，開源人遇見 COSCUP</a></h3>
   <p class="summary">這篇文章介紹 COSCUP 作為台灣自由與開放原始碼社群年度研討會的背景，並從開源社參與者角度描述 2023 年活動規模與交流情況。摘要中特別提到 COSCUP 聚集開發者、使用者與推廣者，也記錄開源社因簽證問題部分講者改以遠端參與，但仍透過即時問答與台下觀眾互動。整體看起來是帶有社群觀察與活動紀錄性質的文章。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-af4a019ed7052bbb.html">臺東縣延平鄉公所轉知 COSCUP 2023 活動資訊</a></h3>
   <p class="summary">這則公告轉知 2023 年 COSCUP 活動資訊，說明開源人年會是台灣開放原始碼社群的重要年度大會，活動於 112 年 7 月 29、30 日在國立臺灣科技大學舉行，並提到開放文化基金會與弗里德里西諾曼自由基金會推出線上講座、現場導覽與工作坊等配套活動。</p>
   <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span><span class="tag-chip">開放文化基金會</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-95091a69677cd9f2.html">潤泰建築生活基金會贊助 OCF 與 MOPCON 2018</a></h3>
   <p class="summary">這篇基金會頁面說明潤泰建築生活基金會因看重資訊科技與數位化對未來生活的影響，自 2011 年起贊助台灣大型開源論壇。文中列舉 COSCUP、OSDC.tw、SITCON、g0v Summit 等活動，並提到當年度持續年度贊助開放文化基金會與 MOPCON，希望支持開源軟體、開放資料、開放政府，以及南台灣行動科技社群的發展。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-281eaa6319281f6b.html">潤泰創新國際基金會贊助開放文化基金會與 MOPCON 2022</a></h3>
   <p class="summary">潤泰創新國際基金會延續與開放文化基金會的合作，說明 2022 年支持 COSCUP、SITCON 恢復實體舉辦，也提到 OCF 在 2022 年把「開放科技」納入核心推動目標，並將網路自由與數位人權列入關注議題。摘要後段另提及 MOPCON 恢復實體舉辦與議題方向，但內容被截斷。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放科技</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span><span class="tag-chip">SITCON</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-246c4a1c05d253c5.html">潤泰創新國際基金會贊助開放文化基金會與 MOPCON 2021</a></h3>
   <p class="summary">潤泰創新國際基金會說明其因看重資訊科技與數位化對未來生活的影響，自 2011 年起贊助台灣大型開源論壇，並自 2017 年與開放文化基金會合作，以聯合統籌贊助方式支持資訊領域活動。摘要中特別提到 2021 年受疫情影響轉為線上的 COSCUP 與 SITCON，以及 OCF 推動開源軟體、開放資料與開放政府的角色。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放資料</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span><span class="tag-chip">SITCON</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-86a8fa5cc5822415.html">數位發展部開放原始碼推廣活動與 COSCUP 參與資訊</a></h3>
   <p class="summary">這則轉知說明 COSCUP 是台灣開放原始碼社群共同推動的年度大會，也是自由軟體運動的重要場域；數位發展部為鼓勵民眾參與 2023 年 7 月底的 COSCUP，並支持開放原始碼運動，提到 OCF 與弗里德里西諾曼自由基金會自 7 月中起辦理線上講座、現場導覽與工作坊等活動。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span><span class="tag-chip">開放文化基金會</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-d67e094d63492fe0.html">建築生活研究基金會贊助 OCF 與 MOPCON 2019</a></h3>
   <p class="summary">建築生活研究基金會說明，自 2011 年起因看重資訊科技與數位化對未來生活的影響，開始贊助台灣大型開源論壇。過去支持的活動包括 COSCUP、SITCON、PyCon 與 g0v summit，並在 2019 年持續年度贊助 OCF，同時支持固定於高雄舉辦的 MOPCON，希望促進知識分享、人才培育，也平衡台灣資訊活動重北輕南的狀況。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-2283013dbcf50121.html">Wikidata Taiwan 臺灣維基數據社群貼文</a></h3>
   <p class="summary">目前只能確認這筆資料指向 Wikidata Taiwan 臺灣維基數據社群在 liker.social 上的項目或貼文標題。由於沒有貼文內容，不能可靠判斷它與 COSCUP 的關係或新聞價值。</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-0d7d2f2ec7d55c51.html">Ubuntu Weekly Newsletter 第 797 期封存</a></h3>
   <p class="summary">這是 Ubuntu Weekly Newsletter 第 797 期的封存頁，涵蓋 2023 年 7 月 16 至 22 日期間的 Ubuntu 社群消息。摘要可見主題包括 Ubuntu Studio 22.10 終止支援、Ubuntu 統計、LoCo 活動、Mir 2.14.0、LXD 5.16、Netplan、HPC community team、Canonical News、更新與安全公告等。就提供內容來看，COSCUP 相關性...</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-f8d01d3c87d3fd12.html">Rust Taiwan 在 COSCUP 主辦「Everything in Rust」議程回顧</a></h3>
   <p class="summary">這篇是 Rust Taiwan 成員對 COSCUP 中「Everything in Rust」議程的回顧。摘要描述 COSCUP 作為亞洲大型開源年會，由多個社群各自主辦議程，也提到 Rust Taiwan 邀集來自多地的講者，讓現場大量參與者接觸 Rust 語言與社群。它的價值比較像社群經驗與活動史料，而不是即時新聞。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-27a55237909aff29.html">MySQL 參與印度、京都與 COSCUP 活動巡迴</a></h3>
   <p class="summary">目前提供的 source_text 只有 Oracle MySQL 部落格網址，網址字串顯示可能是 MySQL 參與印度、OSC Kyoto 與 COSCUP 的活動紀錄。除此之外無法確認文章重點、觀點或與台灣開放科技的關聯程度。</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-8ef90ff5fcd41019.html">LINE Engineering 的 COSCUP 文章彙整：Side Project、LINE Bot 與社群分享</a></h3>
   <p class="summary">這筆內容來自 LINE Engineering 的 COSCUP 標籤頁，摘要混合了多篇文章。主要可見 Nijia Lin 在 COSCUP 2023 分享 side project 經驗，包括用 LINE Bot 作為操作介面、整理寶可夢相關資訊、用 Flex Message 呈現互動流程，以及另一篇談如何把 side project 開發到 public cloud。後段也提到 2022 年 LINE Engineering 參與...</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-f4ccef6a760fcc48.html">Instagram 貼文</a></h3>
   <p class="summary">目前無法從提供內容判斷這則 Instagram 貼文的實際主題，只能知道它被系統歸到 COSCUP 相關線索。</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-76b73fde0ee08d57.html">COSCUP：開源開發者、使用者與推廣者會議</a></h3>
   <p class="summary">目前只知道這筆資料指向 COSCUP 的組織名稱，全名是 Conference for Open Source Coders, Users and Promoters。除此之外，沒有提供活動、人物、議題或時間脈絡。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-48f6f0ffdbc6011a.html">COSCUP 開源人年會邁向第 13 年</a></h3>
   <p class="summary">可辨識的相關內容是：COSCUP 自 2006 年起舉辦，邁入第 13 年，並提到該年將與 GNOME.Asia、openSUSE.Asia 等亞洲開源社群活動產生連結。但目前摘要大部分不是 COSCUP 內容，不能可靠判斷文章重點。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-4e1da2960a1f9c61.html">COSCUP 行政組 2024 籌備前整地期招募</a></h3>
   <p class="summary">這筆是 COSCUP 行政組在 2024 籌備前的整地期招募說明。內容回顧行政組在 2023 年承擔的多項活動與支援工作，並說明整地期將進行文件歸檔、協作平台調整、業務介紹、社群志工計畫與 2024 年提案，同時招募少量成員接受預備培訓，後續可直接成為 2024 組員。</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-008ae00a84e76956.html">COSCUP 相關項目</a></h3>
   <p class="summary">目前能讀到的內容只有「拆解整合的旅人」這個短句，資訊量不足，無法判斷它是否提供 COSCUP 相關新聞、會後整理、個人觀察或只是網站標籤頁。建議先不要直接收錄為內容，需看全文後再決定。</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-93e05c428e7104b8.html">COSCUP 攤位團隊之旅：香港開源年會 2023 分享</a></h3>
   <p class="summary">這是一場 HKOSCon 2023 的英文短講摘要，主軸是 COSCUP 今年新成立的 Booth Team。講者預計說明為什麼要成立專責攤位團隊、成立後做了哪些對外設攤活動，以及這些行動對 COSCUP 帶來的影響。從目前文字看，價值偏社群營運與活動推廣經驗，而非開源技術或政策分析。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-461b91000c01eada.html">COSCUP Ruby 議程軌與 Ruby Taiwan 社群攤位公告</a></h3>
   <p class="summary">Ruby Taiwan 宣布 2023 年 7 月 COSCUP 即將到來，Ruby 社群照往例會有專屬議程與攤位，邀請大家參與，並請讀者到 COSCUP 官網或追蹤 Ruby Taiwan 社群帳號取得後續資訊。內容偏活動預告與社群宣傳。</p>
   <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-0f670a832c3d0802.html">COSCUP 2023：用開源工具加速前端開發</a></h3>
   <p class="summary">這篇文章是作者在 COSCUP 2023 分享「開源工具加速前端開發」後的整理與心得。內容從前端開發常見痛點出發，包括 ESLint、Prettier、VSCode 設定、表單驗證、型別檢查、API 串接、response 型別不明、等待後端完成等問題，並主張用一份 API 文件搭配多種開源工具來改善流程。文章也強調這套方法不綁特定框架，較像面向實作者的工具流程分享。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-666edade975339d4.html">COSCUP 2023 開源韌體議程</a></h3>
   <p class="summary">這則資料說明 Open-Source Firmware Foundation 在台北 COSCUP 2023 主持開源韌體議程，並指出這是 COSCUP 第一次設立 open-source firmware track。摘要也簡要介紹 COSCUP 是台北開源社群年度會議，以及 OSFF 是推動開源韌體的非營利組織。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-892ff99ce5428c3d.html">COSCUP 2023 站長開講：GKE、基礎架構職涯與 AI 簡報工具經驗</a></h3>
   <p class="summary">這篇文章先介紹 COSCUP 的定位：連結開源開發者、使用者與推廣者，推動自由及開放原始碼軟體。作者接著記錄自己在 COSCUP 2023 的兩個議程，一個談 Google Cloud GKE 容器平台，另一個分享 Infrastructure Architect 的技能與職涯養成。文中也提到兩份簡報嘗試使用 Gamma.app 先產生主旨、大綱與內容後再微調，提供技術講者使用 AI 簡報工具的經驗線索。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-09d299032d970a5e.html">COSCUP 2023 硬體相關議程整理</a></h3>
   <p class="summary">這篇 PTT 情報文介紹 COSCUP 2023 中 Open Source Inspired Hardware 議程軌的多場硬體相關分享。摘要提到 RISC-V GPGPU、CUDA runtime 移植、德國 IHP 開源 PDK SG13G2、OpenROAD 工具鏈、可運行 Linux 的 RISC-V IP tapeout，以及 Google 參與開源製程與台灣半導體研究計畫等內容。雖然形式是活動宣傳文，但可見資訊量高，特別適...</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-12a17d5df7d6b683.html">COSCUP 2023 徵稿公告：開源開發者、使用者與推廣者年會</a></h3>
   <p class="summary">這則資料是 COSCUP 2023 的 Call for Proposals 資訊，列出活動時間為 2023 年 7 月 29 至 30 日、地點在台北，並說明 COSCUP 是由台灣開源社群自 2006 年起舉辦的年度會議，目標是連結開源開發者、使用者與推廣者，推動 FLOSS。摘要也提到活動形式包含演講、贊助與社群攤位、BoF，並列出部分徵稿軌道線索。整體較適合做基礎資料，不像需要跑專題 skill 的文章。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2024-01-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2024-01-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
   <h3><a href="articles/item-b144ed3157fb5547.html">Archilife Research Foundation：贊助 COSCUP 2016</a></h3>
   <p class="summary">摘錄介紹 COSCUP 從 ICOS 社群議程發展為台灣大型開源研討會的背景，並回顧 2016 年活動在中央研究院舉辦，主題聚焦傳承、扎根與跨界，議程涵蓋商業、教育、法律等開源延伸議題，也包含親子工作坊與 BoF 等活動形式。整體看起來是一則贊助或支持 COSCUP 2016 的介紹頁。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
@@ -1954,12 +1525,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-11-15T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-11-15 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-11-15 08:00</span></div>
   <h3><a href="articles/item-a525d752592c15c7.html">你被 CC 了嗎？國家文化記憶庫公眾授權機制的應用錯誤與謬論</a></h3>
   <p class="summary">可見資訊僅包含 COSCUP 2023 官網與議程連結；題名顯示內容可能討論國家文化記憶庫在 Creative Commons 或公眾授權機制上的應用問題，但 source_text 沒有提供實際論點。</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span><span class="tag-chip">記憶庫</span></div>
@@ -1974,12 +1540,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-10-27T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-10-27 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-10-27 08:00</span></div>
   <h3><a href="articles/item-7a09a65cd699dbdb.html">COSCUP 2023 開放設計工作坊：理解網路中斷與工具設計</a></h3>
   <p class="summary">Superbloom 在 COSCUP 2023 舉辦「The Design We Open - Network Disruption Hackathon」工作坊，討論設計者與技術工具配置者如何理解台灣民眾對網路中斷的經驗與需求，以及在部分或全面斷網時哪些事項最重要。摘要也提到工作坊產出的 Miro 資源、HackMD 筆記與議程資訊可公開查看。這篇看起來兼具活動紀錄與方法整理，主軸落在開放設計、開源工具與人權科技。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
@@ -1994,48 +1555,28 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-09-12T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-09-12 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-09-12 08:00</span></div>
   <h3><a href="articles/item-13c7da226b4e13b4.html">開放資料憲章衡量指南</a></h3>
   <p class="summary">目前可保守判斷，這是一份與 Open Data Charter 相關的衡量指南，可能介紹五種開放資料評量工具，並討論如何衡量開放資料憲章原則。由於提供的文字過短，尚無法確認內容深度或實際可用性。</p>
   <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2023-09-12T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-09-12 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-09-12 08:00</span></div>
   <h3><a href="articles/item-8d60970f051a6540.html">桃園市政府資料開放平台與開放資料憲章承諾</a></h3>
   <p class="summary">桃園市政府資料開放平台介紹 Open Data Charter 的來源與六大原則，包括預設開放、即時詳盡、易取得可運用、可比較與互通、改善治理與公民參與，以及促進發展與創新。文字並說明桃園市政府於 2018 年 7 月參與簽署宣示，承諾依循這些原則逐步落實政府資料開放政策，另要求公開資料集外部連結需維持有效。</p>
   <div class="tag-chip-list"><span class="tag-chip">開放資料</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2023-09-12T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-09-12 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-09-12 08:00</span></div>
   <h3><a href="articles/item-29248cd29efdb0bd.html">數位部推動數據公益，公告兩項指引草案</a></h3>
   <p class="summary">數位部公告「數據公益運作指引」與「隱私強化技術應用指引」草案，主軸是在個資保護與隱私保障前提下，讓資料能促進公益與多元創新。數位部將「數據公益運作指引」放上公共政策網路參與平台，並導入 Polis 協助不同立場者找到共識；「隱私強化技術應用指引」則透過 HackMD 共筆開放民眾留言協作。</p>
   <div class="tag-chip-list"><span class="tag-chip">開放資料</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2023-09-11T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-09-11 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-09-11 08:00</span></div>
   <h3><a href="articles/item-48a04f28a2bfc31f.html">數位部法制藍圖與葉寧的「+1」精神</a></h3>
   <p class="summary">這段內容聚焦數位部常務次長葉寧主導的「法制藍圖」。文章摘要指出，數位部希望不再只是遇到問題才補修法，而是把法律、指引、預算與政策路徑整合成較可依循的制度架構；其中開放資料被放在數位轉型、資料應用與數位產業化的核心位置。</p>
   <div class="tag-chip-list"><span class="tag-chip">開放資料</span><span class="tag-chip">資安</span></div>
@@ -2050,12 +1591,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-08-22T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-08-22 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-08-22 08:00</span></div>
   <h3><a href="articles/item-14cf8fcc6db1d40c.html">揭開 COSCUP：開源之聲的台灣觀察</a></h3>
   <p class="summary">這篇是 Paloma Oliveira 在受 OSI 邀請到 COSCUP 分享「開源 25 年」後的反思。她以自身來自南美與歐洲、首次到亞洲參與 COSCUP 的經驗，討論開源在全球與地方脈絡中的意義，也強調回顧歷史不只是慶祝成就，更包含辨識失敗、重新理解開源運動如何前進。文章同時描寫 COSCUP 作為亞洲開源社群交流場域的特色。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
@@ -2070,12 +1606,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-08-21T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2023-08-21 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2023-08-21 08:00</span></div>
   <h3><a href="articles/item-4c4833ddfb108ce8.html">在台灣 COSCUP 慶祝開源 25 年</a></h3>
   <p class="summary">作者受 OSI 邀請，在台灣 COSCUP 回顧開源 25 年，並以自身在南美與歐洲的經驗進入亞洲開源社群現場。摘要顯示文章不只是活動心得，也試圖用批判角度檢視開源歷史中的不足，並說明 COSCUP 作為亞洲開源社群交會點，帶給作者新的全球與在地視野。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
@@ -2090,12 +1621,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-08-03T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-08-03 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-08-03 08:00</span></div>
   <h3><a href="articles/item-9080722a7ed99c14.html">OSI 在 Campus Party 慶祝開源 25 週年</a></h3>
   <p class="summary">OSI 在開源 25 週年期間於多個國際科技會議推廣開源，包括 Portland 的 FOSSY、日內瓦的 Open Source Congress、台北的 COSCUP，以及聖保羅的 Campus Party。摘要重點放在 Campus Party Brazil 的規模與 OSI 代表的演講，內容回顧自由軟體與開源運動的歷史，並討論 AI 時代若延續開放與協作可能帶來的未來。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
@@ -2110,12 +1636,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-07-27T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-07-27 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-07-27 08:00</span></div>
   <h3><a href="articles/item-12e134d3ec3faf89.html">COSCUP 2023：我會出沒在哪裡？</a></h3>
   <p class="summary">作者以個人行程與推薦清單的形式，整理自己在 COSCUP 2023 期間可能參與或主持的場次。內容涵蓋手語詞典、ActivityPub、OCF 的開源星手村桌遊工作坊、產品人午餐聚、開源教育、開源設計，以及偏向社群文化討論的開源議程。整體更像現場參與者的社群觀察與議程導讀，而不是完整活動報導。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span><span class="tag-chip">開放文化基金會</span></div>
@@ -2130,12 +1651,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-07-05T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2023-07-05 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2023-07-05 08:00</span></div>
   <h3><a href="articles/item-e643b92e4c963de4.html">2023 年 COSCUP 開源人年會領航導覽與桌遊體驗工作坊</a></h3>
   <p class="summary">目前只能保守判斷，這應是 2023 年 COSCUP 開源人年會的領航導覽與桌遊體驗工作坊相關活動頁，可能與新手導覽或開源星手村桌遊體驗有關。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
@@ -2150,12 +1666,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-04-30T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-04-30 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-04-30 08:00</span></div>
   <h3><a href="articles/item-18430c6bd5373ad5.html">COSCUP 2023：Ubuntu Taiwan LoCo 與 UbuCon Asia 聯合攤位</a></h3>
   <p class="summary">這則貼文是在說明作者計畫於 COSCUP 2023 設置 Ubuntu Taiwan LoCo 與 UbuCon Asia 的聯合攤位，用來推廣台灣 Ubuntu 社群與當年的 UbuCon Asia。從片段來看，它主要是活動籌備或參展公告。</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
@@ -2170,12 +1681,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-04-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-04-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-04-17 08:00</span></div>
   <h3><a href="articles/item-9f32b4568752c435.html">FOSSASIA Summit 2023 快速回顧</a></h3>
   <p class="summary">目前摘要只顯示作者提到 FOSSASIA Summit 2023 中有韓國多個社群共同設置攤位，包括 Ubuntu Korea Community、C++ Korea、Women Who Code 等。除此之外，沒有足夠內容判斷文章的完整觀點或新聞價值。</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
@@ -2190,24 +1696,14 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2023-02-09T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-02-09 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-02-09 08:00</span></div>
   <h3><a href="articles/item-952a9aa840e49a13.html">官方忍者龜 Leonardo 角色造型杯</a></h3>
   <p class="summary">這是一個 Numskull 的官方忍者龜 Leonardo 造型杯商品介紹，內容描述杯子材質、容量、角色設計與收藏系列。文中的 CosCup 指的是 cosplaying cup 產品命名，與 COSCUP 開源人年會沒有關聯。</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2023-02-08T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2023-02-08 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2023-02-08 08:00</span></div>
   <h3><a href="articles/item-99029d2f2e61e949.html">FOSDEM 2023 歐洲開源年會參訪記</a></h3>
   <p class="summary">文章記錄作者參加 FOSDEM 2023 的經驗，從 GNOME 相關會議、會場動線、開幕與 keynote，到不同 devroom 的觀察。摘要中特別提到作者近年更關注開放科技的實踐與應用，例如公共交通資訊系統 OpenTripPlanner，以及公共資金與公共程式碼相關議題。整體看起來是兼具個人參訪、社群觀察與開源公共應用思考的文章。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放科技</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span><span class="tag-chip">FOSDEM</span></div>
@@ -2222,12 +1718,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2022-09-17T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2022-09-17 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2022-09-17 08:00</span></div>
   <h3><a href="articles/item-a5946e7ebb2a2f00.html">COSCUP 演講：IOTA 的帳本結構與共識創新</a></h3>
   <p class="summary">這篇文章整理作者在 COSCUP 2022 的 IOTA 演講，從「無領導者 DAG」與「Reality-based UTXO Ledger」兩個研究方向切入，說明分散式帳本為何需要重新思考帳本資料結構與共識機制。摘錄中也比較 Account 與 UTXO 模型在智慧合約、並行處理、帳本體積與雙重支付檢查上的差異，並帶到 IOTA 在 2021 年升級後轉向 UTXO 帳本的脈絡。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
@@ -2242,12 +1733,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2021-07-29T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-
-    <span class="badge">2021-07-29 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">尚未載入全文</span><span class="badge badge--date">2021-07-29 08:00</span></div>
   <h3><a href="articles/item-96defc7cc2db83e5.html">COSCUP 2021：客家公共傳播、語言數位化與資料開放</a></h3>
   <p class="summary">這篇文章介紹客家公共傳播相關單位參與 COSCUP 2021 的安排，主軸是客家語言如何面對數位化、公共傳播與資料開放。文中提到講客廣播電臺累積大量客語節目音檔，正在思考如何把客家聲音資料以公共財形式釋出；也描述客庄夥伴整理地方文史資料、上傳維基平台，以及客語字形、拼音與跨平台輸入法面臨的技術挑戰。</p>
   <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
@@ -2262,12 +1748,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2020-08-03T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2020-08-03 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2020-08-03 08:00</span></div>
   <h3><a href="articles/item-96280d7fc3fd61ea.html">COSCUP 2020 分享：從 BlurHash 看圖片上傳架構</a></h3>
   <p class="summary">這篇 Funliday 技術文章延伸作者在 COSCUP 2020 的 BlurHash 分享，說明團隊如何把 BlurHash 實作到 Web 與 Android，並回答會後常見問題。內容談到 signed URL 如何讓沒有 access key 的端點處理 S3 檔案、用 UUID 避免檔名衝突、BlurHash decode 可能造成前端短暫卡頓而可交給 Web Worker，以及團隊後來從 server side 上傳改為 c...</p>
   <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
@@ -2282,12 +1763,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2020-07-31T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2020-07-31 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2020-07-31 08:00</span></div>
   <h3><a href="articles/item-c55aade06e2c2892.html">OpenChain 再度贊助 COSCUP，台灣工作小組分享開源合規</a></h3>
   <p class="summary">OpenChain Project 宣布再度贊助台灣 COSCUP，並介紹 OpenChain Taiwan Work Group 的林上智與林誠夏將在 2020 年 8 月 1 日分享開源合規業界標準。摘要說明 OpenChain 作為企業供應鏈使用開源軟體時的合規流程，特別關注授權義務、上下游交付依循，以及它即將成為 ISO/IEC 國際標準的背景。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span><span class="tag-chip">供應鏈</span></div>
@@ -2302,12 +1778,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2020-05-06T00:00:00+00:00">
-  <div>
-    <span class="badge">純新聞 / 小消息</span>
-
-    <span class="badge">已載入本機全文</span>
-    <span class="badge">2020-05-06 08:00</span>
-  </div>
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2020-05-06 08:00</span></div>
   <h3><a href="articles/item-b1bb21d1050cbd8d.html">COSCUP 2020 徵稿：從技術重新思考開放文化</a></h3>
   <p class="summary">這則 COSCUP 2020 徵稿資料以「技術」作為理解開放文化的核心，引用海德格對技術本質的思考，主張開放文化不應只被理解成科技工具或自由軟體實作，也需要納入人文科學、藝術與跨領域理論。摘錄也列出議程徵求方向、投稿期限、活動日期，並說明演講錄影將以 CC 姓名標示-相同方式分享 4.0 釋出，入選議程也需提供英文版資訊。</p>
   <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>

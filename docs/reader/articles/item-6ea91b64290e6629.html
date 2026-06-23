@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>&#x27;We Will Fight to Our Very Last Breath:&#x27; Township Leaders Vow to Fight Nuclear AI Data Center - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,46 +463,71 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>&#x27;We Will Fight to Our Very Last Breath:&#x27; Township Leaders Vow to Fight Nuclear AI Data Center</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">純新聞 / 小消息</span>
-
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2026-06-22 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="https://www.404media.co/we-will-fight-to-our-very-last-breath-township-leaders-vow-to-fight-nuclear-ai-data-center/" target="_blank" rel="noreferrer" title="開啟原始連結">&#x27;We Will Fight to Our Very Last Breath:&#x27; Township Leaders Vow to Fight Nuclear AI Data Center</a></h2>
-    <p class="lede">Michigan Governor Gretchen Whitmer and a proposed nuclear weapons AI data center in Michigan have earned the ire of community leaders.</p>
-    <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>「我們會奮戰到最後一口氣」：鎮區領袖誓言反對核武 AI 資料中心</h1>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
+      <h1><a class="article-title-link" href="https://www.404media.co/we-will-fight-to-our-very-last-breath-township-leaders-vow-to-fight-nuclear-ai-data-center/" target="_blank" rel="noreferrer" title="開啟原始連結">&#x27;We Will Fight to Our Very Last Breath:&#x27; Township Leaders Vow to Fight Nuclear AI Data Center</a></h1>
+      <p class="lede">Michigan Governor Gretchen Whitmer and a proposed nuclear weapons AI data center in Michigan have earned the ire of community leaders.</p>
+      <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><h1>「我們會奮戰到最後一口氣」：鎮區領袖誓言反對核武 AI 資料中心</h1>
 <p>密西根州一個小鎮區的委員會成員一致表示，將「奮戰到最後一口氣」，反對在他們社區興建一座 AI 資料中心。美國核科學家與密西根大學希望在密西根州伊普西蘭蒂鎮區（Ypsilanti Township）打造一座大型資料中心。若建成，這座資料中心將用於多項工作，其中包括執行模擬，協助美國打造核武。 伊普西蘭蒂鎮區居民壓倒性反對興建這座資料中心，並在 6 月 16 日的公開委員會會議上，表達他們對這座電腦倉庫的反對。在有資料中心的社區裡，地方領袖如此表態支持居民並不常見；伊普西蘭蒂鎮區委員會誓言，將竭盡所能對抗密西根大學以及與該校合作的洛斯阿拉莫斯國家實驗室（Los Alamos National Laboratory）。 在長達三小時的委員會會議大部分時間裡，委員會後方牆上投影著一張附近薩林鎮區（Saline Township）資料中心動土典禮的照片。照片中，密西根州長 Gretchen Whitmer 笑著站在 Oracle 執行長 Clay Magouyrk 旁邊。這張照片拍攝於 6 月 1 日，當時 Oracle 與 OpenAI 在附近薩林鎮區的一座資料中心動土，該案是多個 Stargate 專案之一。薩林鎮區只有 2,300 名居民，反對資料中心的抗爭十分激烈，鎮區財務主管甚至在 5 月的一場公開會議中<a href="https://www.404media.co/township-leader-resigns-in-tears-over-openai-data-center-death-threats/" target="_blank" rel="noreferrer">含淚辭職</a>。</p>
 <blockquote><a href="https://www.instagram.com/p/DZEQdXXltX3/?utm_source=ig_embed&amp;utm_campaign=loading" target="_blank" rel="noreferrer">在 Instagram 查看這則貼文</a> <a href="https://www.instagram.com/p/DZEQdXXltX3/?utm_source=ig_embed&amp;utm_campaign=loading" target="_blank" rel="noreferrer">Oracle（@oracle）分享的貼文</a></blockquote>
 <p>在動土典禮上，一名攝影師<a href="https://x.com/PatriotPostGirl/status/2064000132182360070??ref=404media.co" target="_blank" rel="noreferrer">拍到 Whitmer 與 Magouyrk 交談</a>。影片中，Whitmer 似乎對這位億萬富豪說：「我們已經習慣人們說不要，然後照樣做。」Whitmer 辦公室已正式<a href="https://www.snopes.com/news/2026/06/16/gretchen-whitmer-hot-mic-data-center/?ref=404media.co" target="_blank" rel="noreferrer">否認她說過這句話</a>，但許多密西根居民，包括伊普西蘭蒂鎮區的人，都相信她說了。</p>
 <blockquote>州長 Whitmer 在薩林資料中心動土典禮上發生熱麥克風事件，她告訴 Oracle 執行長 Clay Magouyrk：「我們已經習慣人們說他媽的不要，然後照樣做。」我年紀大到還記得，她曾公開反對 BlueOval 專案的 Marshall 選民個資。 <a href="https://t.co/PRFnjGY5l9?ref=404media.co" target="_blank" rel="noreferrer">pic.twitter.com/PRFnjGY5l9</a> — Heather Dow（@PatriotPostGirl）<a href="https://x.com/PatriotPostGirl/status/2064000132182360070?ref_src=twsrc%5Etfw&amp;ref=404media.co" target="_blank" rel="noreferrer">2026 年 6 月 8 日</a></blockquote>
-<p>Cilla Cresswell 拍下 Whitmer 的影片，也出席了週二的伊普西蘭蒂鎮區委員會會議。「6 月 1 日，我就站在左邊，就是那裡，」Cresswell 說，指的是會議中高掛在委員會後方的那張照片。「我在現場。我錄下那段影片……我就在那裡。他們想說那是假的，但我只是想讓各位知道那是真的。你們可以在我的相機上播放。」 委員會成員與社區居民在會議中多次提到那張照片。「那張照片裡的人身價數十億美元。不只是數百萬，我們講的是數兆。很快就會成為兆萬富翁。然而這個州，為了急切成為全國資料中心之都，卻給了全世界最富有的企業前所未有的稅務抵免，」代表伊普西蘭蒂鎮區的律師 Douglas Winters 在會議中說。 「這場會議中不得不一直盯著這張照片，讓我氣到血液沸騰，」伊普西蘭蒂居民 Laura Witowski 說。「我沒想到自己會這麼情緒化。浪費空間。完全無視人類和動物，而且是為了什麼？」 在數小時的社區意見發言中，居民上前提出如今在美國各地對資料中心已相當常見的抱怨。伊普西蘭蒂鎮區居民擔心電費上漲、這棟建築會用掉多少水，以及資料中心完工後會有多吵。 他們也要求鎮區委員會盡一切權力，阻止它動工。「請你們把自己押上去。那些人會比聽我們更願意聽你們。請把你們自己、你們的工作和你們的安逸都押上去，為我們阻止這件事，」伊普西蘭蒂居民 Jane Wolf 說。「發揮創意。把路挖掉。擋住道路。違法也行。為了我們，做任何你們需要做的事。如果你們能有創意，真正挺身而出，你們會因為所做的工作，在歷史上被更好地記住。」 循道宗牧師的妻子 Jill Warren 建議居民複習 OSS 的<a href="https://ia801309.us.archive.org/14/items/Simplesabotage/Simplesabotage.pdf?ref=404media.co" target="_blank" rel="noreferrer">《簡易破壞行動現地手冊》</a>。「就是在官僚程序上把事情拖慢，」她說。「確保我們能擋就擋。使用非常緩慢的議程和回應時間，並在你們的權力範圍內，做你們有權做的工作。對不熟悉它的人，請查一下《簡易破壞行動現地手冊》，也把它用在你們自己的行動生活中……他們也許不在乎我們，但我們在乎我們自己，我們在這裡，也會繼續在這裡，支持你們代表我們所做的工作。」 伊普西蘭蒂居民 Alyssa 引用了 John Hersey 的《廣島》（<em>Hiroshima</em>）長段文字。這本 1946 年出版的書聚焦於第一枚原子彈爆炸的受害者。「我們不需要模擬，才知道核攻擊是什麼樣子，」她說。「我們有照片、影片和音檔，知道會發生什麼。我們知道它對身體做了什麼。我們知道它對孩子做了什麼，也知道它對生命做了什麼。」 委員會主席 Brend Stumbo 誓言將抗爭到底。「這會傷害我們社區的未來。我們會奮戰到最後一口氣，但我們需要協助。我們需要有權力阻止事情的人來協助，」她說。 Stumbo 解釋，一開始她和其他委員會成員對資料中心並不了解，她感謝鎮區居民提供資訊。「現在我們知道了，我們也感謝早期來到我們會議的居民和非居民，告訴我們『不要相信密西根大學』，」她說。「我們不喜歡，也不感謝董事會或校董會正在對我們社區做的事。這件事必須停止。今天每一位到場的人，我們都非常感謝，我們會繼續走下去，就像大家所說的，一起做……我會站在你們這邊。我會和你們一起奮戰。我知道整個委員會和我們鎮區的律師也都會。所以讓我們繼續一起做下去。」 到目前為止，鎮區已經實踐承諾，也以有創意的方式表達反對。今年 4 月，委員會投票通過，對資料中心供水實施 365 天暫停令，以便進行科學研究，了解超大型資料中心可能<a href="https://www.404media.co/community-votes-to-deny-water-to-nuclear-weapons-data-center/" target="_blank" rel="noreferrer">如何影響</a>社區供水。作為回應，密西根大學<a href="https://www.404media.co/university-claims-withholding-water-from-nuclear-weapons-data-center-is-unlawfully-discriminatory-to-data-centers/" target="_blank" rel="noreferrer">威脅提告</a>，並聲稱拒絕向一座用來支援核武研究的 AI 資料中心供水，構成非法歧視。</p></section>
-  </article>
+<p>Cilla Cresswell 拍下 Whitmer 的影片，也出席了週二的伊普西蘭蒂鎮區委員會會議。「6 月 1 日，我就站在左邊，就是那裡，」Cresswell 說，指的是會議中高掛在委員會後方的那張照片。「我在現場。我錄下那段影片……我就在那裡。他們想說那是假的，但我只是想讓各位知道那是真的。你們可以在我的相機上播放。」 委員會成員與社區居民在會議中多次提到那張照片。「那張照片裡的人身價數十億美元。不只是數百萬，我們講的是數兆。很快就會成為兆萬富翁。然而這個州，為了急切成為全國資料中心之都，卻給了全世界最富有的企業前所未有的稅務抵免，」代表伊普西蘭蒂鎮區的律師 Douglas Winters 在會議中說。 「這場會議中不得不一直盯著這張照片，讓我氣到血液沸騰，」伊普西蘭蒂居民 Laura Witowski 說。「我沒想到自己會這麼情緒化。浪費空間。完全無視人類和動物，而且是為了什麼？」 在數小時的社區意見發言中，居民上前提出如今在美國各地對資料中心已相當常見的抱怨。伊普西蘭蒂鎮區居民擔心電費上漲、這棟建築會用掉多少水，以及資料中心完工後會有多吵。 他們也要求鎮區委員會盡一切權力，阻止它動工。「請你們把自己押上去。那些人會比聽我們更願意聽你們。請把你們自己、你們的工作和你們的安逸都押上去，為我們阻止這件事，」伊普西蘭蒂居民 Jane Wolf 說。「發揮創意。把路挖掉。擋住道路。違法也行。為了我們，做任何你們需要做的事。如果你們能有創意，真正挺身而出，你們會因為所做的工作，在歷史上被更好地記住。」 循道宗牧師的妻子 Jill Warren 建議居民複習 OSS 的<a href="https://ia801309.us.archive.org/14/items/Simplesabotage/Simplesabotage.pdf?ref=404media.co" target="_blank" rel="noreferrer">《簡易破壞行動現地手冊》</a>。「就是在官僚程序上把事情拖慢，」她說。「確保我們能擋就擋。使用非常緩慢的議程和回應時間，並在你們的權力範圍內，做你們有權做的工作。對不熟悉它的人，請查一下《簡易破壞行動現地手冊》，也把它用在你們自己的行動生活中……他們也許不在乎我們，但我們在乎我們自己，我們在這裡，也會繼續在這裡，支持你們代表我們所做的工作。」 伊普西蘭蒂居民 Alyssa 引用了 John Hersey 的《廣島》（<em>Hiroshima</em>）長段文字。這本 1946 年出版的書聚焦於第一枚原子彈爆炸的受害者。「我們不需要模擬，才知道核攻擊是什麼樣子，」她說。「我們有照片、影片和音檔，知道會發生什麼。我們知道它對身體做了什麼。我們知道它對孩子做了什麼，也知道它對生命做了什麼。」 委員會主席 Brend Stumbo 誓言將抗爭到底。「這會傷害我們社區的未來。我們會奮戰到最後一口氣，但我們需要協助。我們需要有權力阻止事情的人來協助，」她說。 Stumbo 解釋，一開始她和其他委員會成員對資料中心並不了解，她感謝鎮區居民提供資訊。「現在我們知道了，我們也感謝早期來到我們會議的居民和非居民，告訴我們『不要相信密西根大學』，」她說。「我們不喜歡，也不感謝董事會或校董會正在對我們社區做的事。這件事必須停止。今天每一位到場的人，我們都非常感謝，我們會繼續走下去，就像大家所說的，一起做……我會站在你們這邊。我會和你們一起奮戰。我知道整個委員會和我們鎮區的律師也都會。所以讓我們繼續一起做下去。」 到目前為止，鎮區已經實踐承諾，也以有創意的方式表達反對。今年 4 月，委員會投票通過，對資料中心供水實施 365 天暫停令，以便進行科學研究，了解超大型資料中心可能<a href="https://www.404media.co/community-votes-to-deny-water-to-nuclear-weapons-data-center/" target="_blank" rel="noreferrer">如何影響</a>社區供水。作為回應，密西根大學<a href="https://www.404media.co/university-claims-withholding-water-from-nuclear-weapons-data-center-is-unlawfully-discriminatory-to-data-centers/" target="_blank" rel="noreferrer">威脅提告</a>，並聲稱拒絕向一座用來支援核武研究的 AI 資料中心供水，構成非法歧視。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-34e64f8e8f218a26.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">AI Taichung 三部曲獲智慧城市評比肯定，主打開放資料與數據治理</span>
+</a>
+
+<a class="article-sequence-link" href="item-112f3678cbe29e48.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">科學家提出黑洞可能不存在，而是更奇特的天體</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>

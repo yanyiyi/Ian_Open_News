@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>John Edwards 辭職後，英國有機會任命更有力的監管者 - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,45 +463,69 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>John Edwards 辭職後，英國有機會任命更有力的監管者</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">純新聞 / 小消息</span>
-
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2026-06-19 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="https://www.openrightsgroup.org/press-releases/john-edwards-resignation-is-opportunity-to-appoint-a-regulator-with-teeth/" target="_blank" rel="noreferrer" title="開啟原始連結">John Edwards 辭職後，英國有機會任命更有力的監管者</a></h2>
-    <p class="lede">Open Rights Group 回應 John Edwards 辭任 Information Commissioner，稱政府應把這次人事空缺視為任命更有執行力監管者的機會。摘要提到他的離任發生在一項職場調查之後，但未說明指控內容，文章看起來偏向即時聲明與監管倡議。</p>
-    <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>John Edwards 辭職後，英國有機會任命更有力的監管者</h1>
-<h2>John Edwards 辭職後，英國有機會任命更有力的監管者</h2>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
+      <h1><a class="article-title-link" href="https://www.openrightsgroup.org/press-releases/john-edwards-resignation-is-opportunity-to-appoint-a-regulator-with-teeth/" target="_blank" rel="noreferrer" title="開啟原始連結">John Edwards 辭職後，英國有機會任命更有力的監管者</a></h1>
+      <p class="lede">Open Rights Group 回應 John Edwards 辭任 Information Commissioner，稱政府應把這次人事空缺視為任命更有執行力監管者的機會。摘要提到他的離任發生在一項職場調查之後，但未說明指控內容，文章看起來偏向即時聲明與監管倡議。</p>
+      <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><h2>John Edwards 辭職後，英國有機會任命更有力的監管者</h2>
 <p>在 <a href="https://www.linkedin.com/feed/update/urn:li:activity:7473590282803052544/" target="_blank" rel="noreferrer">John Edwards 宣布</a>辭去資訊專員（Information Commissioner）一職後，Open Rights Group 呼籲英國政府「任命一位有實權的監管者」。他的辭職發生在一項針對未公開指控的職場調查之後。 Open Rights Group 執行長 Jim Killock 表示： 「John Edwards 離任，是英國政府任命一位有實權的監管者、重新設定監管機關做法的機會。過去的做法只是名義上提供資料保護。」 「國會必須確保未來的委員會由真正希望法律被執行的專業人士來運作，包括針對政府的資料失誤執法。」 「Edwards 接下來可能會像許多他的高階幕僚與前任一樣，獲得科技巨頭、資料產業，以及代表這些企業的大型法律事務所延攬。Edwards 應該樹立榜樣，拒絕這種『旋轉門』提供的優渥薪資；英國政府也應立法防止這種情況發生，讓監管機關與科技巨頭保持適當距離。」</p>
 <h2>重新設定 ICO</h2>
-<p>Open Rights Group 最近呼籲<a href="https://www.openrightsgroup.org/campaign/reset-the-ico/" target="_blank" rel="noreferrer">重新設定 ICO</a>，原因是在 Edwards 掌舵期間，ICO 出現多項失職。其中包括在執法上導入<a href="https://ico.org.uk/about-the-ico/our-information/policies-and-procedures/public-sector-approach/" target="_blank" rel="noreferrer">所謂的公共部門做法</a>；在這套做法下，ICO 開始高度依賴不具強制力的書面通知，只指出法律遭到違反，卻沒有採取任何監管行動來補救侵害，也沒有追究違法者責任。 正如 ORG 的 2023-24 年替代版 ICO 年度報告所示，這些<a href="https://www.openrightsgroup.org/publications/ico-alternative-annual-report-2023-24/" target="_blank" rel="noreferrer">申誡缺乏</a><a href="https://www.openrightsgroup.org/publications/ico-alternative-annual-report-2023-24/" target="_blank" rel="noreferrer">效果與嚇阻力</a>。ICO 自己後來對公共部門做法所做的<a href="https://ico.org.uk/about-the-ico/research-reports-impact-and-evaluation/impact-and-evaluation/evaluations/post-implementation-review-public-sector-approach-trial-september-2024/" target="_blank" rel="noreferrer">實施後檢討</a>也顯示，英國居民針對公共部門組織使用其資料所提出的申訴量，因此大幅增加。 在一場據報導導致塔利班接管阿富汗後<a href="https://www.theguardian.com/uk-news/2025/oct/27/afghan-data-leak-families-colleagues-killed" target="_blank" rel="noreferrer">至少 49 人死亡</a>的資料外洩事件後，Edwards 未對國防部展開調查。這項決定引發 DSIT 特別委員會的<a href="https://committees.parliament.uk/work/9372/information-and-data-security-across-government-and-the-work-of-the-information-commissioner/publications/" target="_blank" rel="noreferrer">國會調查</a>，也促成 70 多位資料保護專家發出公開信，感嘆<a href="https://www.openrightsgroup.org/press-releases/70-organisations-and-experts-demand-action-over-failing-ico/" target="_blank" rel="noreferrer">執法行動崩解</a>。該委員會主席 Dame Chi Onwurah 承認，導致這起外洩事件的是一場<a href="https://committees.parliament.uk/publications/50560/documents/275905/default/" target="_blank" rel="noreferrer">「制度性失靈」</a>，這也「對政府以及 ICO 這類監管機關提出嚴肅問題」。 Edwards 也支持英國政府的資料保護改革，而這些改革削弱了公眾的權利，以及<strong>掌控</strong>自己個人資料的能力。儘管<a href="https://www.equalityhumanrights.com/media-centre/blogs/personal-data-rights-data-protection-and-digital-information-bill" target="_blank" rel="noreferrer">平等與人權委員會</a>、<a href="https://assets.publishing.service.gov.uk/media/619b84dde90e070445fd75ef/NDG_Data_A_New_Direction_Consultation_Response_v1.pdf" target="_blank" rel="noreferrer">國家資料守護者</a>、<a href="https://www.gov.uk/government/publications/data-a-new-direction-commissioners-response/dcms-consultation-data-a-new-direction-response-by-the-biometrics-and-surveillance-camera-commissioner-accessible-version" target="_blank" rel="noreferrer">生物辨識委員</a>、<a href="https://www.biometricscommissioner.scot/news/commissioner-reiterates-concerns-about-data-protection-and-digital-information-no-2-bill-to-scottish-mp-on-westminster-committee/" target="_blank" rel="noreferrer">蘇格蘭生物辨識委員</a>，以及<a href="https://nihrc.org/publication/detail/nihrc-briefing-on-the-data-protection-and-digital-information-bill" target="_blank" rel="noreferrer">北愛爾蘭人權委員會</a>都提出疑慮，ICO 仍成為唯一完全支持政府提案的監管機關。 閱讀：<a href="https://www.openrightsgroup.org/blog/the-ico-isnt-doing-its-job-why-the-data-watchdog-needs-to-be-reset/" target="_blank" rel="noreferrer">ICO 沒有做好它的工作：為什麼資料監管機關需要被重新設定</a></p></section>
-  </article>
+<p>Open Rights Group 最近呼籲<a href="https://www.openrightsgroup.org/campaign/reset-the-ico/" target="_blank" rel="noreferrer">重新設定 ICO</a>，原因是在 Edwards 掌舵期間，ICO 出現多項失職。其中包括在執法上導入<a href="https://ico.org.uk/about-the-ico/our-information/policies-and-procedures/public-sector-approach/" target="_blank" rel="noreferrer">所謂的公共部門做法</a>；在這套做法下，ICO 開始高度依賴不具強制力的書面通知，只指出法律遭到違反，卻沒有採取任何監管行動來補救侵害，也沒有追究違法者責任。 正如 ORG 的 2023-24 年替代版 ICO 年度報告所示，這些<a href="https://www.openrightsgroup.org/publications/ico-alternative-annual-report-2023-24/" target="_blank" rel="noreferrer">申誡缺乏</a><a href="https://www.openrightsgroup.org/publications/ico-alternative-annual-report-2023-24/" target="_blank" rel="noreferrer">效果與嚇阻力</a>。ICO 自己後來對公共部門做法所做的<a href="https://ico.org.uk/about-the-ico/research-reports-impact-and-evaluation/impact-and-evaluation/evaluations/post-implementation-review-public-sector-approach-trial-september-2024/" target="_blank" rel="noreferrer">實施後檢討</a>也顯示，英國居民針對公共部門組織使用其資料所提出的申訴量，因此大幅增加。 在一場據報導導致塔利班接管阿富汗後<a href="https://www.theguardian.com/uk-news/2025/oct/27/afghan-data-leak-families-colleagues-killed" target="_blank" rel="noreferrer">至少 49 人死亡</a>的資料外洩事件後，Edwards 未對國防部展開調查。這項決定引發 DSIT 特別委員會的<a href="https://committees.parliament.uk/work/9372/information-and-data-security-across-government-and-the-work-of-the-information-commissioner/publications/" target="_blank" rel="noreferrer">國會調查</a>，也促成 70 多位資料保護專家發出公開信，感嘆<a href="https://www.openrightsgroup.org/press-releases/70-organisations-and-experts-demand-action-over-failing-ico/" target="_blank" rel="noreferrer">執法行動崩解</a>。該委員會主席 Dame Chi Onwurah 承認，導致這起外洩事件的是一場<a href="https://committees.parliament.uk/publications/50560/documents/275905/default/" target="_blank" rel="noreferrer">「制度性失靈」</a>，這也「對政府以及 ICO 這類監管機關提出嚴肅問題」。 Edwards 也支持英國政府的資料保護改革，而這些改革削弱了公眾的權利，以及<strong>掌控</strong>自己個人資料的能力。儘管<a href="https://www.equalityhumanrights.com/media-centre/blogs/personal-data-rights-data-protection-and-digital-information-bill" target="_blank" rel="noreferrer">平等與人權委員會</a>、<a href="https://assets.publishing.service.gov.uk/media/619b84dde90e070445fd75ef/NDG_Data_A_New_Direction_Consultation_Response_v1.pdf" target="_blank" rel="noreferrer">國家資料守護者</a>、<a href="https://www.gov.uk/government/publications/data-a-new-direction-commissioners-response/dcms-consultation-data-a-new-direction-response-by-the-biometrics-and-surveillance-camera-commissioner-accessible-version" target="_blank" rel="noreferrer">生物辨識委員</a>、<a href="https://www.biometricscommissioner.scot/news/commissioner-reiterates-concerns-about-data-protection-and-digital-information-no-2-bill-to-scottish-mp-on-westminster-committee/" target="_blank" rel="noreferrer">蘇格蘭生物辨識委員</a>，以及<a href="https://nihrc.org/publication/detail/nihrc-briefing-on-the-data-protection-and-digital-information-bill" target="_blank" rel="noreferrer">北愛爾蘭人權委員會</a>都提出疑慮，ICO 仍成為唯一完全支持政府提案的監管機關。 閱讀：<a href="https://www.openrightsgroup.org/blog/the-ico-isnt-doing-its-job-why-the-data-watchdog-needs-to-be-reset/" target="_blank" rel="noreferrer">ICO 沒有做好它的工作：為什麼資料監管機關需要被重新設定</a></p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-1f81f2ccf328063c.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">OCF 前進 Sony 總部：台灣開源治理經驗如何與亞洲接軌？</span>
+</a>
+
+<a class="article-sequence-link" href="item-627bf82004a7bc62.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">Flipkart 因回饋 LitmusChaos 開源修補獲 CNCF 肯定</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>
@@ -317,7 +538,7 @@
   <ul><li>本機決定：direct-pr-small-news / 2026-06-21T12:15:25+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
 2026-06-21T12:15:25+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：John Edwards resignation is opportunity to appoint a regulator with teeth | Open Rights Group</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：John Edwards 辭職後，英國有機會任命更有力的監管者（Codex）</li><li><strong>原始作者</strong>：@openrightsgroup（twitter:creator）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+  <ul><li><strong>原始網站標題</strong>：John Edwards resignation is opportunity to appoint a regulator with teeth | Open Rights Group</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>原始作者</strong>：@openrightsgroup（twitter:creator）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-6cfe78799834fbcf";

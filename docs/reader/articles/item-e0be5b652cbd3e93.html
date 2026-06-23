@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>英國國會議員被 urged 支持數位主權策略 - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,40 +463,53 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>英國國會議員被 urged 支持數位主權策略</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">可用材料 / 可進編輯台</span>
-
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2026-06-16 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="https://www.openrightsgroup.org/press-releases/mps-urged-to-vote-for-a-digital-sovereignty-strategy/" target="_blank" rel="noreferrer" title="開啟原始連結">英國國會議員被 urged 支持數位主權策略</a></h2>
-    <p class="lede">Open Rights Group 呼籲英國國會議員支持《Cyber Security and Resilience Bill》的一項修正案，要求政府制定數位主權策略，以提升英國關鍵基礎設施的韌性與獨立性。摘要指出該修正案由自由民主黨議員 Victoria Collins 提出，並獲得跨黨派支持。</p>
-    <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>英國國會議員被敦促支持數位主權策略</h1>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-16 08:00</span></div>
+      <h1><a class="article-title-link" href="https://www.openrightsgroup.org/press-releases/mps-urged-to-vote-for-a-digital-sovereignty-strategy/" target="_blank" rel="noreferrer" title="開啟原始連結">英國國會議員被 urged 支持數位主權策略</a></h1>
+      <p class="lede">Open Rights Group 呼籲英國國會議員支持《Cyber Security and Resilience Bill》的一項修正案，要求政府制定數位主權策略，以提升英國關鍵基礎設施的韌性與獨立性。摘要指出該修正案由自由民主黨議員 Victoria Collins 提出，並獲得跨黨派支持。</p>
+      <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><h1>英國國會議員被敦促支持數位主權策略</h1>
 <h2>英國國會議員被敦促支持數位主權策略</h2>
 <h2>Open Rights Group 正敦促英國國會議員投票支持《網路安全與韌性法案》（Cyber Security and Resilience Bill）的一項<a href="https://bills.parliament.uk/bills/4035/stages/20525/amendments/10034731" target="_blank" rel="noreferrer">修正案</a>，要求政府制定數位主權策略，以協助確保英國關鍵基礎設施的韌性與獨立性。該修正案由自由民主黨國會議員 Victoria Collins 提出，也獲得跨黨派國會議員支持，包括工黨的 Clive Lewis，以及綠黨的 Sian Berry 和 Adrian Ramsey。</h2>
 <h3>過度依賴美國科技巨頭的風險</h3>
@@ -309,8 +519,20 @@
 <h3>歐盟正在推動數位主權</h3>
 <p>上週，<a href="https://ec.europa.eu/commission/presscorner/detail/en/ip_26_1187" target="_blank" rel="noreferrer">歐盟執委會</a>宣布科技主權相關提案。德國、法國、荷蘭、丹麥與其他歐盟國家，正透過對開放技術與國際合作的策略性投資，積極推動數位主權。</p>
 <h3>概述英國依賴科技巨頭風險的文件仍被列為機密</h3>
-<p>Collins 與綠黨的 Sian Berry、工黨的 Clive Lewis，以及威爾斯黨（Plaid Cymru）的 Ben Lake，近期<a href="https://www.sianberry.org.uk/publications/calling-for-changes-to-the-national-risk-register/" target="_blank" rel="noreferrer">呼籲政府公布機密文件</a>。這些文件詳細說明英國因依賴數位平台與服務、全球科技企業的主導地位，以及 AI 影響所面臨的「長期風險」。數位權利倡議團體 Open Rights Group 也已透過資訊自由申請，要求公布這些機密文件。公布這些風險至關重要，才能讓公眾與國會就英國在關鍵基礎設施上依賴外國科技公司的問題，展開適當辯論。 「Palantir、Amazon 和 Google 等科技巨頭，已利用其過度龐大的權力，掌控英國的數位基礎設施，影響政府政策使其偏向自身利益，並把政府鎖進浪費且昂貴的合約。 「這既是國家安全風險，也是經濟風險。歐盟已經採取行動發展數位主權。英國也必須在為時已晚之前採取同樣行動。 「透過投票支持這項修正案，國會議員可以踏出第一步，確保英國關鍵數位基礎設施的韌性與控制權。」 <strong>國會議員 Victoria Collins 表示：</strong> 「英國未來的繁榮與安全，取決於我們是否能妥善處理數位主權。這不是要把門關起來、拒絕全球科技創新，而是要為英國科技採取聰明、有策略且有企圖心的做法。現在，我們太多關鍵國家基礎設施與太多政府服務，都依賴外國技術與供應鏈。這帶來真實風險，從國家安全漏洞到經濟脆弱性皆然。 「同時，英國科技公司在政府採購中被排除在外，機會反而給了大型跨國企業。一套適當的數位主權策略將改變這種情況：支持英國創新、降低英國的依賴，並確保英國成為定義未來十年關鍵技術的世界領導者。」 「我支持這項修正案，作為英國掌控自身關鍵數位基礎設施、終結對不服務公共利益之科技巨頭過度依賴的第一步。 「這種過度依賴不只是國家安全風險；當我們被鎖進讓股東受益、而非讓公民受益的合約時，也是在浪費關鍵的國家資源。」</p></section>
-  </article>
+<p>Collins 與綠黨的 Sian Berry、工黨的 Clive Lewis，以及威爾斯黨（Plaid Cymru）的 Ben Lake，近期<a href="https://www.sianberry.org.uk/publications/calling-for-changes-to-the-national-risk-register/" target="_blank" rel="noreferrer">呼籲政府公布機密文件</a>。這些文件詳細說明英國因依賴數位平台與服務、全球科技企業的主導地位，以及 AI 影響所面臨的「長期風險」。數位權利倡議團體 Open Rights Group 也已透過資訊自由申請，要求公布這些機密文件。公布這些風險至關重要，才能讓公眾與國會就英國在關鍵基礎設施上依賴外國科技公司的問題，展開適當辯論。 「Palantir、Amazon 和 Google 等科技巨頭，已利用其過度龐大的權力，掌控英國的數位基礎設施，影響政府政策使其偏向自身利益，並把政府鎖進浪費且昂貴的合約。 「這既是國家安全風險，也是經濟風險。歐盟已經採取行動發展數位主權。英國也必須在為時已晚之前採取同樣行動。 「透過投票支持這項修正案，國會議員可以踏出第一步，確保英國關鍵數位基礎設施的韌性與控制權。」 <strong>國會議員 Victoria Collins 表示：</strong> 「英國未來的繁榮與安全，取決於我們是否能妥善處理數位主權。這不是要把門關起來、拒絕全球科技創新，而是要為英國科技採取聰明、有策略且有企圖心的做法。現在，我們太多關鍵國家基礎設施與太多政府服務，都依賴外國技術與供應鏈。這帶來真實風險，從國家安全漏洞到經濟脆弱性皆然。 「同時，英國科技公司在政府採購中被排除在外，機會反而給了大型跨國企業。一套適當的數位主權策略將改變這種情況：支持英國創新、降低英國的依賴，並確保英國成為定義未來十年關鍵技術的世界領導者。」 「我支持這項修正案，作為英國掌控自身關鍵數位基礎設施、終結對不服務公共利益之科技巨頭過度依賴的第一步。 「這種過度依賴不只是國家安全風險；當我們被鎖進讓股東受益、而非讓公民受益的合約時，也是在浪費關鍵的國家資源。」</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-544a7f5234f13fa0.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">AI 時代教授的絕望</span>
+</a>
+
+<a class="article-sequence-link" href="item-62003f4190765e00.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">肯亞社群如何用連線基礎建設提升環境韌性</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>

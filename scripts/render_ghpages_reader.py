@@ -29,9 +29,11 @@ from local_web import (
     item_zh_summary,
     load_jsonl,
     markdown_to_html,
+    normalized_title_key,
     reader_month_key,
     reader_period_key,
     reader_period_label,
+    strip_duplicate_leading_heading,
     track_meta,
 )
 
@@ -241,6 +243,31 @@ def public_reader_badges(item: dict) -> str:
     return f'<span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span>{aged}'
 
 
+def reader_badge(label: str, class_name: str = "neutral") -> str:
+    return f'<span class="badge badge--{h(class_name)}">{h(label)}</span>'
+
+
+def reader_kind_badge(kind: str) -> str:
+    class_name = {
+        "featured-article": "suggest-keep",
+        "opinion-article": "opinion",
+        "small-news": "small-news",
+    }.get(kind, "neutral")
+    return reader_badge(content_kind_label(kind), class_name)
+
+
+def reader_status_badges(item: dict, has_body: bool) -> str:
+    track_label = track_meta(item.get("track", ""))["short"]
+    fulltext_label = "已載入本機全文" if has_body else "尚未載入全文"
+    return (
+        reader_badge(track_label, "opentech")
+        + reader_kind_badge(item_display_kind(item))
+        + public_reader_badges(item)
+        + reader_badge(fulltext_label, "neutral")
+        + reader_badge(item_date(item), "date")
+    )
+
+
 def public_tag_chips(item: dict, limit: int = 6) -> str:
     tags = item_visible_tags(item, limit)
     if not tags:
@@ -257,6 +284,51 @@ def kind_order(item: dict) -> tuple[int, str, str, str]:
     kind = item_display_kind(item)
     order = {"featured-article": 0, "opinion-article": 1, "small-news": 2}.get(kind, 9)
     return (order, item_sort_time(item), item_display_title(item), clean_text(item.get("id")))
+
+
+def reader_homepage_order(items: list[dict]) -> list[dict]:
+    ordered_groups = [
+        [item for item in items if item_is_current_reading(item)],
+        [item for item in items if item_display_kind(item) in PRIMARY_KINDS and not item_is_current_reading(item)],
+        [item for item in items if item_display_kind(item) == "small-news" and not item_is_current_reading(item)],
+        [item for item in items if item_display_kind(item) not in PUBLIC_KINDS],
+    ]
+    seen: set[str] = set()
+    ordered: list[dict] = []
+    for group in ordered_groups:
+        for item in group:
+            item_id = clean_text(item.get("id"))
+            if item_id and item_id in seen:
+                continue
+            if item_id:
+                seen.add(item_id)
+            ordered.append(item)
+    return ordered
+
+
+def article_sequence_nav(previous_item: dict | None, next_item: dict | None) -> str:
+    links = []
+    if previous_item:
+        links.append(
+            f"""
+<a class="article-sequence-link" href="{h(article_href(previous_item, from_article=True))}">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">{h(clean_text(item_display_title(previous_item), 72))}</span>
+</a>
+"""
+        )
+    if next_item:
+        links.append(
+            f"""
+<a class="article-sequence-link" href="{h(article_href(next_item, from_article=True))}">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">{h(clean_text(item_display_title(next_item), 72))}</span>
+</a>
+"""
+        )
+    if not links:
+        return ""
+    return '<nav class="article-sequence-nav" aria-label="前後文章">' + "".join(links) + "</nav>"
 
 
 def period_sections(items: list[dict], renderer, container_class: str, empty: str) -> str:
@@ -335,11 +407,12 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     root_prefix = "../" if depth else ""
     nav = f"""
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="{h('is-active' if current == 'index' else '')}" href="{root_prefix}index.html">精選與觀點</a>
   <a class="{h('is-active' if current == 'news' else '')}" href="{root_prefix}news.html">小消息</a>
 </nav>
 """
+    page_heading = "" if current == "article" else f'<section class="page-heading"><h1>{h(title)}</h1></section>'
     return f"""<!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -347,6 +420,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{h(title)} - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {{
       --ink: #111827;
       --muted: #5b6472;
@@ -358,6 +432,9 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -367,17 +444,82 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }}
-    header {{ background: #fff; border-bottom: 1px solid var(--line); }}
-    .masthead {{ max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }}
+    .site-header {{
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }}
+    .masthead {{
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }}
+    .brand {{
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }}
+    .brand:hover {{ color: var(--ink); }}
+    .header-actions {{ display: flex; align-items: center; gap: 8px; }}
+    .site-menu {{ position: relative; }}
+    .site-menu summary {{
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }}
+    .site-menu summary::-webkit-details-marker {{ display: none; }}
+    .site-menu summary:hover,
+    .site-menu[open] summary {{ background: var(--soft); border-color: #c8ccef; }}
+    .reader-help summary {{
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }}
+    .site-popover {{
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }}
+    .reader-help-panel p {{ margin: 0 0 8px; color: var(--muted); font-size: 13px; }}
+    .reader-help-panel p:last-child {{ margin-bottom: 0; }}
     main {{ max-width: 1120px; margin: 0 auto; padding: 22px; }}
+    .page-heading {{ margin: 4px 0 18px; }}
     h1 {{ margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }}
     h2 {{ margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }}
     h3 {{ margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }}
     p {{ margin: 8px 0; }}
     a {{ color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }}
     a:hover {{ color: var(--accent); }}
-    nav {{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }}
-    nav a, .button, button {{
+    .reader-nav {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+    .site-popover.reader-nav {{ display: grid; }}
+    .reader-nav a, .button, button {{
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -392,8 +534,8 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       justify-content: center;
       gap: 6px;
     }}
-    nav a:hover, .button:hover, button:hover {{ color: #fff; }}
-    nav a:not(.is-active), .button.secondary {{ background: var(--cyan); }}
+    .reader-nav a:hover, .button:hover, button:hover {{ color: #fff; }}
+    .reader-nav a:not(.is-active), .button.secondary {{ background: var(--cyan); }}
     .button.quiet, button.quiet {{ background: #273244; }}
     .lede {{ max-width: 820px; color: var(--muted); }}
     .generated {{ color: var(--muted); font-size: 13px; }}
@@ -407,6 +549,10 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       display: inline-flex;
       margin: 0 4px 4px 0;
     }}
+    .badge--opentech, .badge--suggest-keep {{ background: #ece8ff; color: var(--accent); }}
+    .badge--opinion {{ background: #eef1fb; color: #273244; }}
+    .badge--neutral {{ background: #e7f5fc; color: #00699f; }}
+    .badge--small-news, .badge--date {{ background: #fff8db; color: #7a5a00; }}
     .badge--reading {{ background: #fff8db; color: #7a5a00; }}
     .tag-chip-list {{ display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }}
     .tag-chip {{
@@ -421,6 +567,11 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }}
+    .tag-chip::before {{
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }}
     .help-dot {{
       display: inline-grid;
@@ -577,14 +728,25 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       justify-content: center;
       margin: 8px 0 30px;
     }}
-    .article-layout {{ display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }}
-    .article-panel, .side-panel {{
+    .article-top-nav {{ margin: 0 0 14px; }}
+    .article-back-button {{
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }}
+    .article-layout {{ display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }}
+    .article-main {{ display: grid; gap: 18px; min-width: 0; }}
+    .article-summary-card, .article-fulltext-card, .side-panel {{
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }}
-    .article-body {{ max-width: 760px; }}
+    .article-summary-card h1 {{
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }}
+    .article-summary-meta {{ margin-bottom: 8px; }}
     .article-title-link {{
       color: var(--ink);
       text-decoration: none;
@@ -593,9 +755,117 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       color: var(--link);
       text-decoration: underline;
     }}
-    .article-body img {{ max-width: 100%; height: auto; }}
-    .article-body pre {{ white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }}
-    .article-body blockquote {{ border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }}
+    .section-kicker {{
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }}
+    .article-fulltext-card {{
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }}
+    .article-text {{
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }}
+    .article-text img {{ max-width: 100%; height: auto; border-radius: 6px; }}
+    .article-text pre {{ white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }}
+    .article-text blockquote {{
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }}
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {{
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }}
+    .article-text h1 {{ color: var(--accent); font-size: 28px; margin-top: 0; }}
+    .article-text h2 {{
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }}
+    .article-text h2::after {{
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }}
+    .article-text h3 {{
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }}
+    .article-text h4 {{
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }}
+    .article-text h5 {{ color: #0f1923; font-size: 15px; }}
+    .article-text p {{ margin: 0 0 1.25em; }}
+    .article-text ul, .article-text ol {{ margin: 0 0 1.25em 1.4em; padding: 0; }}
+    .article-text li {{ margin: .45em 0; }}
+    .side-panel {{
+      position: sticky;
+      top: 84px;
+    }}
+    .side-panel h2 {{ font-size: 18px; margin-top: 18px; }}
+    .side-panel h2:first-child {{ margin-top: 0; }}
+    .article-sequence-nav {{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }}
+    .article-sequence-link {{
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }}
+    .article-sequence-link:hover {{
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }}
+    .article-sequence-label {{
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }}
+    .article-sequence-title {{
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }}
     textarea {{
       width: 100%;
       min-height: 180px;
@@ -608,19 +878,33 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     @media (max-width: 820px) {{
       main, .masthead {{ padding-left: 16px; padding-right: 16px; }}
       .article-layout {{ grid-template-columns: 1fr; }}
+      .article-sequence-nav {{ grid-template-columns: 1fr; }}
+      .side-panel {{ position: static; }}
     }}
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>{h(title)}</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：{h(generated_at)}</p>
-      {nav}
+      <a class="brand" href="{root_prefix}index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：{h(generated_at)}</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+            {nav}
+          </div>
+        </details>
+      </div>
     </div>
   </header>
-  <main>{body}</main>
+  <main>{page_heading}{body}</main>
   {period_more_script()}
   {time_filter_script() if include_time_filter else ""}
 </body>
@@ -638,13 +922,7 @@ def item_card(item: dict) -> str:
 <article class="story-card" data-reader-item data-item-date="{h(item_data_date(item))}">
   <div class="thumb">{image_html}</div>
   <div class="story-body">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">{h(content_kind_label(kind))}</span>
-      {public_reader_badges(item)}
-      {'<span class="badge">已載入本機全文</span>' if has_body else ''}
-      <span class="badge">{h(item_date(item))}</span>
-    </div>
+    <div>{reader_status_badges(item, has_body)}</div>
     <h2><a href="{h(article_href(item))}">{h(item_display_title(item))}</a></h2>
     <p class="summary">{h(summary)}</p>
     {public_tag_chips(item)}
@@ -659,12 +937,7 @@ def news_row(item: dict, depth: int = 0) -> str:
     has_body = bool(item_body_markdown(item))
     return f"""
 <article class="news-item" data-reader-item data-item-date="{h(item_data_date(item))}">
-  <div>
-    <span class="badge">{h(content_kind_label(item_display_kind(item)))}</span>
-    {public_reader_badges(item)}
-    {'<span class="badge">已載入本機全文</span>' if has_body else ''}
-    <span class="badge">{h(item_date(item))}</span>
-  </div>
+  <div>{reader_status_badges(item, has_body)}</div>
   <h3><a href="{h(prefix + article_href(item))}">{h(item_display_title(item))}</a></h3>
   <p class="summary">{h(summary)}</p>
   {public_tag_chips(item, 5)}
@@ -691,7 +964,7 @@ def edit_record_html(item: dict) -> str:
     return "<ul>" + "".join(f"<li>{h(line)}</li>" for line in lines) + "</ul>"
 
 
-def metadata_html(item: dict) -> str:
+def metadata_html(item: dict, display_title: str = "") -> str:
     metadata = item.get("reading_metadata") if isinstance(item.get("reading_metadata"), dict) else {}
     rows = [
         ("original_site_title", "原始網站標題", metadata.get("original_site_title") or metadata.get("title") or item.get("title")),
@@ -701,8 +974,11 @@ def metadata_html(item: dict) -> str:
         ("original_license", "原始網站授權", metadata.get("original_license")),
     ]
     items = []
+    display_title_key = normalized_title_key(display_title)
     for key, label, value in rows:
         text = clean_text(value, 520)
+        if key == "translated_zh_title" and display_title_key and normalized_title_key(text) == display_title_key:
+            continue
         if not text:
             text = "未標示"
         source = clean_text(metadata.get(f"{key}_source"), 120)
@@ -710,13 +986,19 @@ def metadata_html(item: dict) -> str:
     return "<ul>" + "".join(items) + "</ul>"
 
 
-def article_page(item: dict, repo_url: str, branch: str) -> str:
-    kind = item_display_kind(item)
+def article_page(item: dict, repo_url: str, branch: str, previous_item: dict | None = None, next_item: dict | None = None) -> str:
     body_markdown = item_body_markdown(item)
-    article_html = markdown_to_html(body_markdown) if body_markdown else "<p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p>"
     note_key = h(clean_text(item.get("id")))
     source_url = clean_text(item.get("url"))
     title = item_display_title(item)
+    article_markdown = strip_duplicate_leading_heading(body_markdown, title)
+    has_article_markdown = bool(article_markdown)
+    fulltext_heading = "已載入本機全文" if has_article_markdown else "尚未載入全文"
+    article_html = (
+        markdown_to_html(article_markdown)
+        if has_article_markdown
+        else "<p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p>"
+    )
     title_html = (
         f'<a class="article-title-link" href="{h(source_url)}" target="_blank" rel="noreferrer" title="開啟原始連結">{h(title)}</a>'
         if source_url
@@ -733,7 +1015,7 @@ def article_page(item: dict, repo_url: str, branch: str) -> str:
   <h2>編輯紀錄</h2>
   {edit_record_html(item)}
   <h2>原始 metadata</h2>
-  {metadata_html(item)}
+  {metadata_html(item, title)}
 </aside>
 <script>
 const noteKey = "ian-open-news-note:{note_key}";
@@ -745,23 +1027,24 @@ document.getElementById("note-save").addEventListener("click", () => {{
 </script>
 """
     body = f"""
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) {{ history.back(); return false; }}">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">{h(content_kind_label(kind))}</span>
-      {public_reader_badges(item)}
-      {'<span class="badge">已載入本機全文</span>' if body_markdown else '<span class="badge">尚未載入全文</span>'}
-      <span class="badge">{h(item_date(item))}</span>
-    </div>
-    <h2>{title_html}</h2>
-    <p class="lede">{h(item_zh_summary(item, 520))}</p>
-    {public_tag_chips(item, 8)}
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) {{ history.back(); return false; }}">返回</a>
-    </div>
-    <section class="article-body">{article_html}</section>
-  </article>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta">{reader_status_badges(item, has_article_markdown)}</div>
+      <h1>{title_html}</h1>
+      <p class="lede">{h(item_zh_summary(item, 620))}</p>
+      {public_tag_chips(item, 8)}
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>{h(fulltext_heading)}</h2>
+      <div class="article-text article-markdown">{article_html}</div>
+    </section>
+    {article_sequence_nav(previous_item, next_item)}
+  </div>
   {side}
 </div>
 """
@@ -852,8 +1135,11 @@ def main() -> None:
     for stale in articles_dir.glob("*.html"):
         if stale.name not in expected_files:
             stale.unlink()
-    for item in items:
-        write_clean(articles_dir / article_filename(item), article_page(item, repo_url, branch))
+    ordered_articles = reader_homepage_order(items)
+    for index, item in enumerate(ordered_articles):
+        previous_item = ordered_articles[index - 1] if index > 0 else None
+        next_item = ordered_articles[index + 1] if index < len(ordered_articles) - 1 else None
+        write_clean(articles_dir / article_filename(item), article_page(item, repo_url, branch, previous_item, next_item))
     removed_conflicts += cleanup_conflict_copies(articles_dir)
     conflict_note = f", removed {removed_conflicts} duplicate copies" if removed_conflicts else ""
     print(f"wrote {output_dir} ({len(items)} items, {len(items)} article pages{conflict_note})")

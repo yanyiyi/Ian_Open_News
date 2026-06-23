@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>每支新手機都該檢查的 7 項隱私設定 - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,42 +463,67 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>每支新手機都該檢查的 7 項隱私設定</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">可用材料 / 可進編輯台</span>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-21 08:00</span></div>
+      <h1><a class="article-title-link" href="https://www.zdnet.com/article/phone-privacy-settings-to-disable-review-avoid-exposing-data/" target="_blank" rel="noreferrer" title="開啟原始連結">每支新手機都該檢查的 7 項隱私設定</a></h1>
+      <p class="lede">這篇文章主張，新手機或 App 更新後應定期檢查敏感權限，避免讓應用程式取得超出用途所需的資料。文中先說明 Android 與 iOS 大致可從隱私與安全設定進入權限管理，再逐項提醒定位、相機、麥克風、聯絡人與簡訊等權限可能帶來的風險。作者建議多數 App 應限制為「使用期間允許」、每次詢問或直接拒絕，尤其是定位可暴露住家、工作地點與常去場所，相機與麥克風若常開則可能造成環境與對話被不當收集。整體是一篇面向一般使用者的手機隱私健檢指南。</p>
+      <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><h1>I always change these 7 phone privacy settings on every new device - here&#x27;s why</h1>
+<p>Follow ZDNET: Add us as a preferred source on Google.ZDNET&#x27;s key takeaways Smartphone permissions can quietly invade your privacy.Reviewing app permissions can help prevent data exposure.Check these permissions first, then audit them regularly.Your smartphone, whether you favor Android, iOS, or a niche mobile operating system, can leave trails that those who know how to follow can track.Every app I use requires some level of permission. When you want to order a takeaway, you might need to allow GPS to pinpoint your location; a utility app for speeding up mobile performance may need access to files and folders; or a social media platform may need permission to send push notifications. Also: This silent Android feature scans your photos for &#x27;sensitive content&#x27; - how to uninstall itWhile convenient, unless smartphone permissions are properly managed, you might be granting apps far more control than they need -- and this opens the door to your private data being exposed. You can decide exactly what your smartphone reveals about you, and when. By running a health check and tweaking the permissions below, you can drastically reduce your digital footprint and avoid unnecessary data exposure. Where do I find my phone permissions? Before I explore each permission and what you should enable or disable, you should know where you can find the permission settings. The exact location will depend on the make and model of your smartphone, whether you have an Android or iOS handset, and the version of its operating system your device is running. Also: How to clear your Android phone cache - the 30-second routine every user should be doingHowever, on Android, you typically need to go to Settings &gt; Security and privacy &gt; More privacy settings &gt; Permission manager. On iOS, you will likely find what you need under Settings &gt; Privacy and Security, or Settings &gt; the app you want to examine. Which permissions should I review or dsable? When you install an app or it receives a major update, you will be asked which permissions to grant the app. For example, a weather application might ask for location data &quot;all the time&quot; to give you accurate weather reports, and a delivery service might ask you for the same to assist its delivery staff in finding you. Also: The best way to protect your phone from a warrantless search in 2026If an app asks for a permission that is considered sensitive, such as access to your location or to your smartphone&#x27;s microphone, you will be asked whether to allow it &quot;all the time,&quot; &quot;while using the app,&quot; &quot;ask every time,&quot; or &quot;never.&quot; To preserve your privacy, as a general rule, apps you use only casually should be limited to &quot;while using the app&quot; permissions -- but I will go into more detail on each permission below and when it may be appropriate to grant wider permissions, or none at all. 1. Location settings As location permissions rely on GPS and can be used to track you directly or pinpoint your frequent haunts over time, location settings are the first you should audit. Also: These warning signs could mean spyware is on your phone - and 9 ways to keep it secureIf you leave this permission on all of the time, you may be broadcasting where you are at home, at work, and in areas you frequently visit. This can be especially dangerous in cases of stalking or domestic abuse, although some of us do leave location sharing on so friends and family know where I am.In general, leave this one to &quot;only when using the app,&quot; or turn it on manually as and when you need to. 2. Camera settings There&#x27;s no need for your smartphone camera to be on all of the time. Not only will this drain your battery, but it&#x27;s a gross invasion of privacy to be watched or recorded when you don&#x27;t expect it. Also: 7 ways to lock down your phone before heading to a protestI recommend allowing permissions only &quot;when using the app.&quot; This goes for camera filter apps, video calling, and social media. I have yet to encounter a single mobile app that could justify always-on access to your camera. 3. Microphone settings Unbridled access to your microphone is another critical permission that could expose your data or invade your privacy. Unless the app you&#x27;ve downloaded has an obvious need for access to your microphone, such as for calls or voice assistance and controls, either say &quot;ask every time&quot; or &quot;never.&quot; For example, a news app should never need to be connected to your microphone or audio recordings. Also: How to enable Advanced Protection on Android 16 - and why you shouldn&#x27;t skip itThis can be especially concerning if an app also asks for camera access, unless it is a dedicated and trusted app for purposes such as video calls. Together, they could record your environment, your movements, and what you are saying. 4. Contacts and SMSContact and SMS messaging permissions are often requested by a variety of mobile apps, ranging from social media platforms to automotive features, such as Android Auto. Be cautious about allowing this, as it can reveal data about your close family ties, work, friends, and more -- as well as what you are saying to each other. Also: How to turn on Lockdown Mode on iPhone - so even the FBI can&#x27;t get inFor example, Instagram or TikTok might ask for permission to sync with known contacts and provide friend recommendations -- but this data could be used for profiling and targeted demographic advertising. It&#x27;s up to you whether you allow this, and you can always disable this permission later on. 5. CalendarsGranting every app on your handset access to your calendar could be asking for trouble. Apps like Google and Microsoft services, email, video conferencing, and system apps often require this, but you can opt for &quot;ask every time&quot; or &quot;only while using this app&quot; to limit the flow of your data. Also: Your phone is sharing data without your knowledge - how to stop it ASAPIf you aren&#x27;t controlling access to your calendar, this could reveal your schedule, where you will likely be, any travel -- potentially exposing when you will be away from home -- and any medical appointments you have booked. 6. Health data accessYour health and fitness information is a gold mine for companies that may use it for insurance, marketing, and even training large language models. Also: What is antivirus software and do you still need it in 2026?You should exercise extreme caution in allowing apps access to this data, especially if there doesn&#x27;t appear to be any reason for it. For example, why would a shopping app, phone utility, or game ask for it? By default, say no, unless the request is made by apps specifically focused on health and fitness services. 7. More permissions to checkPhotos &amp; videos: Our photos and videos can be personal and sensitive, and some may contain metadata that reveals information about us and our location. Opt for no or limited access when you can.Physical activity: Access to your physical data and activity, such as what map apps sometimes request, should be treated the same way as access to medical and fitness information, as it can be just as sensitive and personal.Notifications: Watch out for any app that might ask for notification permissions. While some just want this permission to send you notifications and alerts, others might ask for this to intercept 2FA codes and security messages.Bluetooth, nearby devices: Bluetooth and nearby devices permissions are often needed for Bluetooth-connected products like home speakers or smart doorbells, but to keep a tight lid on these connections, only allow them when in use. What should I do when apps ask for extensive permissions? Before you immediately agree to every permission request in order to start using your new software, take a step back and think about why an app wants a specific permission. Also: The best data removal services of 2026: Expert tested and reviewedDemands for overextended app permissions could indicate that the mobile application you have downloaded is harboring a malicious secret -- especially if it asks for worrying combinations, such as access to your files and folders, camera, and microphone. Or, malware aside, the app&#x27;s developer simply wants access to as much of your data as possible. Using a mobile app or smartphone service is your choice, as is the volume of data you share. If it&#x27;s too much, uninstall and delete such software, or disable certain features on your handset. How often should I check permissions?I recommend that you review your app permissions every few months. The more apps you install and use, the more frequently you should run a permissions check. Also: The best mobile antivirus software of 2026: Expert tested and reviewedEven if you don&#x27;t often install new software, it&#x27;s still worth making sure you understand what apps have access to your data and why. If you haven&#x27;t used an app for a while, you should delete it. As a final note, keep your operating system and apps updated, and install new versions as soon as they are available. An app might be trustworthy, but older software could contain vulnerabilities that can be exploited. You should also take action by deleting software if an app suddenly starts acting strangely, as there have been cases of apps starting off innocent, but later being updated to become malicious.</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-288dd3aaebc007f6.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">AI 會點燃科學復興，還是擴散單一化？</span>
+</a>
 
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2026-06-21 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="https://www.zdnet.com/article/phone-privacy-settings-to-disable-review-avoid-exposing-data/" target="_blank" rel="noreferrer" title="開啟原始連結">每支新手機都該檢查的 7 項隱私設定</a></h2>
-    <p class="lede">這篇文章主張，新手機或 App 更新後應定期檢查敏感權限，避免讓應用程式取得超出用途所需的資料。文中先說明 Android 與 iOS 大致可從隱私與安全設定進入權限管理，再逐項提醒定位、相機、麥克風、聯絡人與簡訊等權限可能帶來的風險。作者建議多數 App 應限制為「使用期間允許」、每次詢問或直接拒絕，尤其是定位可暴露住家、工作地點與常去場所，相機與麥克風若常開則可能造成環境與對話被不當收集。整體是一篇面向一般使用者的手機隱私健檢指南。</p>
-    <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>I always change these 7 phone privacy settings on every new device - here&#x27;s why</h1>
-<p>Follow ZDNET: Add us as a preferred source on Google.ZDNET&#x27;s key takeaways Smartphone permissions can quietly invade your privacy.Reviewing app permissions can help prevent data exposure.Check these permissions first, then audit them regularly.Your smartphone, whether you favor Android, iOS, or a niche mobile operating system, can leave trails that those who know how to follow can track.Every app I use requires some level of permission. When you want to order a takeaway, you might need to allow GPS to pinpoint your location; a utility app for speeding up mobile performance may need access to files and folders; or a social media platform may need permission to send push notifications. Also: This silent Android feature scans your photos for &#x27;sensitive content&#x27; - how to uninstall itWhile convenient, unless smartphone permissions are properly managed, you might be granting apps far more control than they need -- and this opens the door to your private data being exposed. You can decide exactly what your smartphone reveals about you, and when. By running a health check and tweaking the permissions below, you can drastically reduce your digital footprint and avoid unnecessary data exposure. Where do I find my phone permissions? Before I explore each permission and what you should enable or disable, you should know where you can find the permission settings. The exact location will depend on the make and model of your smartphone, whether you have an Android or iOS handset, and the version of its operating system your device is running. Also: How to clear your Android phone cache - the 30-second routine every user should be doingHowever, on Android, you typically need to go to Settings &gt; Security and privacy &gt; More privacy settings &gt; Permission manager. On iOS, you will likely find what you need under Settings &gt; Privacy and Security, or Settings &gt; the app you want to examine. Which permissions should I review or dsable? When you install an app or it receives a major update, you will be asked which permissions to grant the app. For example, a weather application might ask for location data &quot;all the time&quot; to give you accurate weather reports, and a delivery service might ask you for the same to assist its delivery staff in finding you. Also: The best way to protect your phone from a warrantless search in 2026If an app asks for a permission that is considered sensitive, such as access to your location or to your smartphone&#x27;s microphone, you will be asked whether to allow it &quot;all the time,&quot; &quot;while using the app,&quot; &quot;ask every time,&quot; or &quot;never.&quot; To preserve your privacy, as a general rule, apps you use only casually should be limited to &quot;while using the app&quot; permissions -- but I will go into more detail on each permission below and when it may be appropriate to grant wider permissions, or none at all. 1. Location settings As location permissions rely on GPS and can be used to track you directly or pinpoint your frequent haunts over time, location settings are the first you should audit. Also: These warning signs could mean spyware is on your phone - and 9 ways to keep it secureIf you leave this permission on all of the time, you may be broadcasting where you are at home, at work, and in areas you frequently visit. This can be especially dangerous in cases of stalking or domestic abuse, although some of us do leave location sharing on so friends and family know where I am.In general, leave this one to &quot;only when using the app,&quot; or turn it on manually as and when you need to. 2. Camera settings There&#x27;s no need for your smartphone camera to be on all of the time. Not only will this drain your battery, but it&#x27;s a gross invasion of privacy to be watched or recorded when you don&#x27;t expect it. Also: 7 ways to lock down your phone before heading to a protestI recommend allowing permissions only &quot;when using the app.&quot; This goes for camera filter apps, video calling, and social media. I have yet to encounter a single mobile app that could justify always-on access to your camera. 3. Microphone settings Unbridled access to your microphone is another critical permission that could expose your data or invade your privacy. Unless the app you&#x27;ve downloaded has an obvious need for access to your microphone, such as for calls or voice assistance and controls, either say &quot;ask every time&quot; or &quot;never.&quot; For example, a news app should never need to be connected to your microphone or audio recordings. Also: How to enable Advanced Protection on Android 16 - and why you shouldn&#x27;t skip itThis can be especially concerning if an app also asks for camera access, unless it is a dedicated and trusted app for purposes such as video calls. Together, they could record your environment, your movements, and what you are saying. 4. Contacts and SMSContact and SMS messaging permissions are often requested by a variety of mobile apps, ranging from social media platforms to automotive features, such as Android Auto. Be cautious about allowing this, as it can reveal data about your close family ties, work, friends, and more -- as well as what you are saying to each other. Also: How to turn on Lockdown Mode on iPhone - so even the FBI can&#x27;t get inFor example, Instagram or TikTok might ask for permission to sync with known contacts and provide friend recommendations -- but this data could be used for profiling and targeted demographic advertising. It&#x27;s up to you whether you allow this, and you can always disable this permission later on. 5. CalendarsGranting every app on your handset access to your calendar could be asking for trouble. Apps like Google and Microsoft services, email, video conferencing, and system apps often require this, but you can opt for &quot;ask every time&quot; or &quot;only while using this app&quot; to limit the flow of your data. Also: Your phone is sharing data without your knowledge - how to stop it ASAPIf you aren&#x27;t controlling access to your calendar, this could reveal your schedule, where you will likely be, any travel -- potentially exposing when you will be away from home -- and any medical appointments you have booked. 6. Health data accessYour health and fitness information is a gold mine for companies that may use it for insurance, marketing, and even training large language models. Also: What is antivirus software and do you still need it in 2026?You should exercise extreme caution in allowing apps access to this data, especially if there doesn&#x27;t appear to be any reason for it. For example, why would a shopping app, phone utility, or game ask for it? By default, say no, unless the request is made by apps specifically focused on health and fitness services. 7. More permissions to checkPhotos &amp; videos: Our photos and videos can be personal and sensitive, and some may contain metadata that reveals information about us and our location. Opt for no or limited access when you can.Physical activity: Access to your physical data and activity, such as what map apps sometimes request, should be treated the same way as access to medical and fitness information, as it can be just as sensitive and personal.Notifications: Watch out for any app that might ask for notification permissions. While some just want this permission to send you notifications and alerts, others might ask for this to intercept 2FA codes and security messages.Bluetooth, nearby devices: Bluetooth and nearby devices permissions are often needed for Bluetooth-connected products like home speakers or smart doorbells, but to keep a tight lid on these connections, only allow them when in use. What should I do when apps ask for extensive permissions? Before you immediately agree to every permission request in order to start using your new software, take a step back and think about why an app wants a specific permission. Also: The best data removal services of 2026: Expert tested and reviewedDemands for overextended app permissions could indicate that the mobile application you have downloaded is harboring a malicious secret -- especially if it asks for worrying combinations, such as access to your files and folders, camera, and microphone. Or, malware aside, the app&#x27;s developer simply wants access to as much of your data as possible. Using a mobile app or smartphone service is your choice, as is the volume of data you share. If it&#x27;s too much, uninstall and delete such software, or disable certain features on your handset. How often should I check permissions?I recommend that you review your app permissions every few months. The more apps you install and use, the more frequently you should run a permissions check. Also: The best mobile antivirus software of 2026: Expert tested and reviewedEven if you don&#x27;t often install new software, it&#x27;s still worth making sure you understand what apps have access to your data and why. If you haven&#x27;t used an app for a while, you should delete it. As a final note, keep your operating system and apps updated, and install new versions as soon as they are available. An app might be trustworthy, but older software could contain vulnerabilities that can be exploited. You should also take action by deleting software if an app suddenly starts acting strangely, as there have been cases of apps starting off innocent, but later being updated to become malicious.</p></section>
-  </article>
+<a class="article-sequence-link" href="item-288cc363e4fb71ad.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">「代理就是 LLM 加上外掛框架」：Nvidia 如何看待 OpenClaw</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>

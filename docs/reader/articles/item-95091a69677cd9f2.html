@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>潤泰建築生活基金會贊助 OCF 與 MOPCON 2018 - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,40 +463,53 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>潤泰建築生活基金會贊助 OCF 與 MOPCON 2018</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">純新聞 / 小消息</span>
-
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2024-01-15 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="https://en.archilife.org/modules/wfsection/article.php?articleid=952" target="_blank" rel="noreferrer" title="開啟原始連結">潤泰建築生活基金會贊助 OCF 與 MOPCON 2018</a></h2>
-    <p class="lede">這篇基金會頁面說明潤泰建築生活基金會因看重資訊科技與數位化對未來生活的影響，自 2011 年起贊助台灣大型開源論壇。文中列舉 COSCUP、OSDC.tw、SITCON、g0v Summit 等活動，並提到當年度持續年度贊助開放文化基金會與 MOPCON，希望支持開源軟體、開放資料、開放政府，以及南台灣行動科技社群的發展。</p>
-    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span><span class="tag-chip">SITCON</span><span class="tag-chip">OCF</span><span class="tag-chip">開放文化基金會</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>- Archilife Research Foundation</h1>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
+      <h1><a class="article-title-link" href="https://en.archilife.org/modules/wfsection/article.php?articleid=952" target="_blank" rel="noreferrer" title="開啟原始連結">潤泰建築生活基金會贊助 OCF 與 MOPCON 2018</a></h1>
+      <p class="lede">這篇基金會頁面說明潤泰建築生活基金會因看重資訊科技與數位化對未來生活的影響，自 2011 年起贊助台灣大型開源論壇。文中列舉 COSCUP、OSDC.tw、SITCON、g0v Summit 等活動，並提到當年度持續年度贊助開放文化基金會與 MOPCON，希望支持開源軟體、開放資料、開放政府，以及南台灣行動科技社群的發展。</p>
+      <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span><span class="tag-chip">SITCON</span><span class="tag-chip">OCF</span><span class="tag-chip">開放文化基金會</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><h1>- Archilife Research Foundation</h1>
 <ul>
 <li><a href="https://en.archilife.org" target="_blank" rel="noreferrer">Home</a></li>
 <li><a href="https://en.archilife.org/modules/wfsection" target="_blank" rel="noreferrer">News Reports</a></li>
@@ -308,7 +518,7 @@
 <li><a href="https://www.archilife.org/" target="_blank" rel="noreferrer">中文</a></li>
 <li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=952#" target="_blank" rel="noreferrer">GO</a></li>
 </ul>
-<h3>Recent Reports</h3>
+<h4>Recent Reports</h4>
 <ul>
 <li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1228" target="_blank" rel="noreferrer">Sketch of Public Policy Communion, April 2026</a></li>
 <li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1225" target="_blank" rel="noreferrer">Sketch of Public Policy Communion, March 2026</a></li>
@@ -316,14 +526,14 @@
 <li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1219" target="_blank" rel="noreferrer">Sketch of Public Policy Communion, February 2026</a></li>
 <li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1226" target="_blank" rel="noreferrer">Sheet of Wormhole Bookish Assembly, January 2026</a></li>
 </ul>
-<h3>WF-Section Spotlight</h3>
-<h3>WF-Section Random Articles</h3>
+<h4>WF-Section Spotlight</h4>
+<h4>WF-Section Random Articles</h4>
 <ul>
 <li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=794" target="_blank" rel="noreferrer">Sketch of Public Policy Communion, April 2015</a> (1583)</li>
 <li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=1138" target="_blank" rel="noreferrer">Sketch of Archilife Study Tour, January 2024</a> (663)</li>
 <li><a href="https://en.archilife.org/modules/wfsection/article.php?articleid=822" target="_blank" rel="noreferrer">Archilife Living Special Team Conferences</a> (2939)</li>
 </ul>
-<h3>Other Categories</h3>
+<h4>Other Categories</h4>
 <ul>
 <li><a href="https://en.archilife.org/modules/wfsection/viewarticles.php?category=3" target="_blank" rel="noreferrer">Activity</a></li>
 <li><a href="https://en.archilife.org/modules/wfsection/viewarticles.php?category=2" target="_blank" rel="noreferrer">Exchanges</a></li>
@@ -336,8 +546,20 @@
 <li><a href="https://en.archilife.org/modules/contact/" target="_blank" rel="noreferrer">Contact Us</a> |</li>
 <li>+886-2-25676220</li>
 <li>Powered by XOOPS</li>
-</ul></section>
-  </article>
+</ul></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-af4a019ed7052bbb.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">臺東縣延平鄉公所轉知 COSCUP 2023 活動資訊</span>
+</a>
+
+<a class="article-sequence-link" href="item-281eaa6319281f6b.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">潤泰創新國際基金會贊助開放文化基金會與 MOPCON 2022</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>
@@ -349,7 +571,7 @@
   <h2>編輯紀錄</h2>
   <ul><li>本機決定：direct-pr-small-news / 2026-06-18T13:08:46+00:00</li><li>審稿備註：2026-06-18T13:08:46+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：- Archilife Research Foundation（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：潤泰建築生活基金會贊助 OCF 與 MOPCON 2018（Codex）</li><li><strong>原始作者</strong>：Archilife Research Foundation（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+  <ul><li><strong>原始網站標題</strong>：- Archilife Research Foundation（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>原始作者</strong>：Archilife Research Foundation（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-95091a69677cd9f2";

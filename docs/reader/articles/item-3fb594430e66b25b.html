@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>聯合聲明：必須停止 AI 加速戰爭 - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,40 +463,53 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>聯合聲明：必須停止 AI 加速戰爭</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">可用材料 / 可進編輯台</span>
-
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2026-06-17 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="https://www.apc.org/en/pubs/joint-statement-ai-accelerated-warfare-must-stop" target="_blank" rel="noreferrer" title="開啟原始連結">聯合聲明：必須停止 AI 加速戰爭</a></h2>
-    <p class="lede">摘要指出，嵌入軍事殺傷鏈的 AI 系統正在加快軍事攻擊的速度與規模，並為衝突中的究責帶來重大新風險。由於目前只看到開頭片段，能保守判斷這是一份反對 AI 加速戰爭的公民社會聲明，但不能確認它提出哪些政策要求或證據。</p>
-    <div class="tag-chip-list"><span class="tag-chip">OCF</span><span class="tag-chip">開放文化基金會</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>Joint statement: AI-accelerated warfare must stop</h1>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
+      <h1><a class="article-title-link" href="https://www.apc.org/en/pubs/joint-statement-ai-accelerated-warfare-must-stop" target="_blank" rel="noreferrer" title="開啟原始連結">聯合聲明：必須停止 AI 加速戰爭</a></h1>
+      <p class="lede">摘要指出，嵌入軍事殺傷鏈的 AI 系統正在加快軍事攻擊的速度與規模，並為衝突中的究責帶來重大新風險。由於目前只看到開頭片段，能保守判斷這是一份反對 AI 加速戰爭的公民社會聲明，但不能確認它提出哪些政策要求或證據。</p>
+      <div class="tag-chip-list"><span class="tag-chip">OCF</span><span class="tag-chip">開放文化基金會</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><h1>Joint statement: AI-accelerated warfare must stop</h1>
 <p>We, the undersigned organizations and individuals, are deeply alarmed by the rapid militarization of artificial intelligence (AI) technologies. AI systems embedded into military kill chains are accelerating the speed and scale of military assaults in a manner that creates significant new risks for accountability in conflict and risks facilitating violations of international criminal, human rights, and humanitarian law. We therefore call for tech companies and states to halt the provision of AI systems for use in the military kill chain and to take all steps to ensure that other AI systems they provide do not cause or contribute to violations of international humanitarian law (IHL) and international human rights law (IHRL). This includes the use of AI decision-support systems, including target generation systems, remote biometric surveillance, and multimodal AI models, including large language models (LLMs). AI-accelerated warfare is rapidly becoming a means of rubber-stamping killing at speed and at scale, and currently no technical or procedural fixes can effectively prevent the lethal and devastating consequences that stem from the fundamental challenges it poses to international law. All companies, including those contracting with government military agencies across the AI supply chain, from licensing and training ‘frontier’ models to providing data processing and storage functionalities, must take all possible steps to ensure that their products and services are not <a href="https://www.ohchr.org/sites/default/files/documents/publications/guidingprinciplesbusinesshr_en.pdf" target="_blank" rel="noreferrer">causing, contributing to, or being directly linked to human rights abuses</a> and international crimes. <a href="https://www.undp.org/publications/heightened-human-rights-due-diligence-business-conflict-affected-contexts-guide" target="_blank" rel="noreferrer">In armed conflict, this responsibility extends to respecting international humanitarian and criminal law</a>, given the <a href="https://www.undp.org/publications/heightened-human-rights-due-diligence-business-conflict-affected-contexts-guide" target="_blank" rel="noreferrer">heightened risk of facilitating gross human rights abuses</a>, including grave violations of international law, in such contexts. Where <a href="https://www.icrc.org/en/publication/private-businesses-and-armed-conflict-introduction-relevant-rules-international" target="_blank" rel="noreferrer">companies cannot meaningfully prevent or mitigate such risks</a>, they must not enter into or fulfill such contracts. AI-enabled data storage and analysis systems used in the kill chain, including <a href="https://archive.ph/D3t6T" target="_blank" rel="noreferrer">Anthropic’s Claude large language model</a>and the <a href="https://x.com/PalantirTech/status/2032142543022960980" target="_blank" rel="noreferrer">Maven Smart System</a>, are, according to an NBC investigation, <a href="https://www.nbcnews.com/tech/tech-news/us-military-using-ai-help-plan-iran-air-attacks-sources-say-lawmakers-rcna262150" target="_blank" rel="noreferrer">playing a role</a>in supporting US and Israeli attacks on Iran. <a href="https://openai.com/index/our-agreement-with-the-department-of-war/" target="_blank" rel="noreferrer">Open AI recently agreed</a> to provide AI services to the US Department of Defense (DoD); <a href="https://www.war.gov/News/Contracts/Contract/Article/4243673/contracts-for-jul-14-2025/" target="_blank" rel="noreferrer">Google has contracted with the DoD</a>, like Anthropic, to “develop prototype frontier AI capabilities to address critical national security challenges in across warfighting and enterprise domains”; <a href="https://www.usaspending.gov/award/CONT_AWD_SP470122F0200_9700_N6600119D0019_9700" target="_blank" rel="noreferrer">Microsoft</a>, <a href="https://www.war.gov/News/Releases/Release/Article/4354916/the-war-department-unleashes-ai-on-new-genaimil-platform/" target="_blank" rel="noreferrer">Google</a>, and <a href="https://aws.amazon.com/blogs/publicsector/aws-selected-for-u-s-department-of-defense-joint-warfighting-cloud-capability-contract/" target="_blank" rel="noreferrer">Amazon</a>have for years provided data storage, processing, and other enterprise infrastructure services to DoD <a href="https://www.war.gov/News/Releases/Release/Article/3239378/department-of-defense-announces-joint-warfighting-cloud-capability-procurement/" target="_blank" rel="noreferrer">“warfighting” programs</a>. According to <a href="https://www.theguardian.com/technology/2026/mar/03/iran-war-heralds-era-of-ai-powered-bombing-quicker-than-speed-of-thought" target="_blank" rel="noreferrer">media reports</a> and <a href="https://www.war.gov/News/Transcripts/Transcript/Article/4434484/secretary-of-war-pete-hegseth-and-chairman-of-the-joint-chiefs-air-force-gen-da/" target="_blank" rel="noreferrer">official statements by the DoD</a>, the rapid generation of targets by AI tools has enabled the increase in speed, scale, intensity, and destructive force of US strikes on Iran. Within the first 48 hours of strikes, Israel and the US <a href="https://abcnews.com/International/us-israeli-strikes-iran-hit-operation/story?id=130683839" target="_blank" rel="noreferrer">reportedly struck</a>nearly 2,000 targets in Iran. While much remains unclear about the precise role played by AI systems in these military attacks on Iran, the strikes have had a <a href="https://www.nytimes.com/2026/03/11/us/politics/iran-school-missile-strike.html" target="_blank" rel="noreferrer">devastating impact</a> on civilians and <a href="https://www.amnesty.org/en/latest/news/2026/03/middle-east-all-parties-to-the-conflict-must-refrain-from-unlawful-attacks-on-energy-infrastructure/" target="_blank" rel="noreferrer">civilian infrastructure</a>. The adoption of AI targeting systems in this campaign follows the example of the Israeli government’s <a href="https://www.972mag.com/mass-assassination-factory-israel-calculated-bombing-gaza/" target="_blank" rel="noreferrer">weaponization of data analysis and machine learning tools</a>, <a href="https://www.theguardian.com/world/2025/aug/06/microsoft-israeli-military-palestinian-phone-calls-cloud" target="_blank" rel="noreferrer">powered by mass surveillance</a>, in its <a href="https://www.ohchr.org/en/press-releases/2025/09/israel-has-committed-genocide-gaza-strip-un-commission-finds" target="_blank" rel="noreferrer">genocidal attacks on Gaza</a>. By diluting human responsibility for life-and-death decisions, Israel’s use of <a href="https://www.hrw.org/news/2024/09/10/questions-and-answers-israeli-militarys-use-digital-tools-gaza" target="_blank" rel="noreferrer">systems such as Lavender, Gospel, and Where’s Daddy</a>may contribute to the obfuscation of international crimes behind a veneer of perceived algorithmic objectivity while also obfuscating accountability. <a href="https://www.aljazeera.com/features/2023/11/17/israels-weapons-industry-is-the-gaza-war-its-latest-test-lab" target="_blank" rel="noreferrer">Not for the first time</a>, we are seeing Palestine used as a <a href="https://www.youtube.com/watch?v=5pPQydBGwQY" target="_blank" rel="noreferrer">laboratory</a> for experimental and dehumanizing methods of warfare, including through corporate tech partnerships with Israeli military agencies. <a href="https://blogs.microsoft.com/on-the-issues/2025/09/25/update-on-ongoing-microsoft-review/" target="_blank" rel="noreferrer">Microsoft</a><strong>,</strong><a href="https://www.theguardian.com/us-news/2025/oct/29/google-amazon-israel-contract-secret-code" target="_blank" rel="noreferrer">Google</a>, <a href="https://www.business-humanrights.org/it/latest-news/palantir-allegedly-enables-israels-ai-targeting-amid-israels-war-in-gaza-raising-concerns-over-war-crimes/" target="_blank" rel="noreferrer">Palantir</a>, and other tech companies may have contributed to or enabled the Israeli government’s access to mass data storage, processing and analysis systems that are aiding their ongoing destruction and genocide in Gaza, which has so far led to the killing of <a href="https://www.ochaopt.org/content/reported-impact-snapshot-gaza-strip-11-march-2026" target="_blank" rel="noreferrer">at least 72,000</a>Palestinians. Legal scholars and <a href="https://abolitionistlawcenter.org/wp-content/uploads/2025/12/Microsoft-Corporation-Provided-with-Notice-of-Exposure-to-Liability.pdf" target="_blank" rel="noreferrer">practitioners</a>, <a href="https://thebulletin.org/2025/07/ai-for-good-with-caveats-how-a-keynote-speaker-was-censored-during-an-international-artificial-intelligence-summit/" target="_blank" rel="noreferrer">technical experts</a>, <a href="https://www.democracynow.org/2022/9/1/google_project_nimbus_israeli_military_unionizing" target="_blank" rel="noreferrer">tech workers</a>, <a href="https://www.un.org/unispal/document/a-hrc-59-23-from-economy-of-occupation-to-economy-of-genocide-report-special-rapporteur-francesca-albanese-palestine-2025/" target="_blank" rel="noreferrer">UN special rapporteurs</a>, and <a href="https://www.business-humanrights.org/en/latest-news/leaked-documents-reveal-googles-alleged-awareness-of-human-rights-risks-in-israels-project-nimbus-deal/" target="_blank" rel="noreferrer">investigative journalists</a>have long warned against the development and deployment of AI in warfare, given the heightened risk of international crimes. Despite <a href="https://www.lineofdeparture.army.mil/Journals/Field-Artillery/FA-2024-Issue-1/Enhancing-Tactical-Level-Targeting/" target="_blank" rel="noreferrer">claims by their proponents that AI tools are making warfare more effective, precise, or humane</a>, real-world deployments indicate that <a href="https://www.theguardian.com/us-news/ng-interactive/2026/mar/15/ai-defense-warfare-companies" target="_blank" rel="noreferrer">AI is actually facilitating more violent, dehumanizing, and destructive methods of warfare</a>. In particular, we are profoundly concerned that the use of LLMs for target generation and prioritization is pushing military actors into a form of warfare where foundational principles of international humanitarian law –– including the principles of distinction, proportionality and precaution –– are not, and arguably cannot be, sufficiently respected, given the sheer speed and scale of such technologies, in addition to the unreliable, biased, and <a href="https://www.amnesty.org/en/latest/news/2026/05/global-enormous-data-pipelines-powering-major-generative-ai-systems-are-rooted-in-mass-invasions-of-privacy-by-design/" target="_blank" rel="noreferrer">often illegally obtained input data</a>. And we further assert that these dynamics risk facilitating <a href="https://storage.courtlistener.com/recap/gov.uscourts.cand.465515/gov.uscourts.cand.465515.82.0.pdf" target="_blank" rel="noreferrer">human rights abuses, crimes against humanity, and war crimes</a>. Moreover, the opacity that comes with the use of these tools fundamentally threatens the possibility of attributing moral or legal responsibility in cases where errors are made. As Anthropic has stated themselves “…today, frontier AI systems <a href="https://www.anthropic.com/news/statement-department-of-war" target="_blank" rel="noreferrer">are simply not reliable enough</a> to power fully autonomous weapons. We will not knowingly provide a product that puts America’s warfighters and civilians at risk”. Actors who choose to deploy AI systems that are used to commit international crimes must be held criminally responsible. Our concerns are not limited to the errors that may result from such systems malfunctioning but encompass how these systems fundamentally transform military operations. We therefore reject the premise that at present, technical or functional fixes, whether that be a purported ‘human in the loop’ or supposedly hardcoded guardrails in AI models, can prevent the lethal and devastating consequences of AI-accelerated kill chains. These propositions allow for the <a href="https://www.fastcompany.com/91502340/the-pentagon-anthropic-feud-is-quietly-obscuring-the-real-fight-over-military-ai" target="_blank" rel="noreferrer">normalization and proliferation</a> of embedding AI in military decision-making to the detriment of vulnerable communities and populations. At present, meaningful human control, genuine accountability, oversight, and transparency of these technologies are not possible in their current form. Even where AI systems used for target acquisition do not make the final decision to kill, they risk becoming <a href="https://www.fastcompany.com/91502340/the-pentagon-anthropic-feud-is-quietly-obscuring-the-real-fight-over-military-ai" target="_blank" rel="noreferrer">rubber-stamping mechanisms</a> for killing at scale because they appeal to false notions of objectivity and may displace accountability and due diligence, which can ultimately serve to expedite and streamline mass killing. Layering such systems with even more ‘frictionless’ techniques of surveillance, target acquisition, and command operations, e.g., in the form of large AI models, such as LLMs, automates dehumanization by reducing questions of life and death to a simple chat prompt. The decision to kill another human being carries a grave moral and legal weight and must never be devolved to purely accepting or rejecting the recommendations of AI systems. When militaries rely on AI to expedite target identification with such speed and routinization that any human review risks becoming a rubber stamp without meaningful human control, mass killing can and will often ensue, in direct violation of the principle of precaution under IHL. Companies have a responsibility to respect human rights and refrain from causing or contributing to human abuses and other violations of international law, including providing material or financial support to states engaged in international crimes. As reflected in the <a href="https://www.ohchr.org/sites/default/files/documents/publications/guidingprinciplesbusinesshr_en.pdf" target="_blank" rel="noreferrer">UN Guiding Principles on Business and Human Rights</a>, companies engaged in such conduct must immediately cease their contribution to harm. Even when a company is not causing or contributing to harm but is merely linked to it, it is expected to use its leverage to seek to bring an end to these violations. Once they have entered military contracts, companies may have limited agency over how their products and services are used, demonstrated through <a href="https://www.theguardian.com/technology/2026/mar/13/anthropic-pentagon-artificial-intelligence" target="_blank" rel="noreferrer">Anthropic’s standoff with the US government</a>, as well as reports of Google and Amazon <a href="https://www.theguardian.com/us-news/2025/oct/29/google-amazon-israel-contract-secret-code" target="_blank" rel="noreferrer">suspending the applicability of their terms of services</a> in contracts with the Israeli government. As recently as 27 April 2026, more than <a href="https://www.ft.com/content/9270ce04-558c-44e8-816f-a40219cd5007?syn-25a6b1a6=1" target="_blank" rel="noreferrer">560 Google employees signed an open letter</a> to Google’s CEO, urging the company to refuse to let the US government use its AI technology in classified military operations. Tech companies and their executives should take seriously their potential culpability in cases where their technologies play a role in violations of international law before entering these lucrative defense contracts, and refrain from doing so where they cannot make such an assessment. Beyond that, they must also understand the role they have to play in reshaping the normative architecture of the use of AI in conflict. We, the undersigned organizations and individuals, call for:</p>
 <ul>
 <li>Refrain from entering into or fulfilling contracts with military agencies or armed groups that commit possible violations of international law, including human rights violations and atrocity crimes;</li>
@@ -517,8 +727,20 @@
 <li>Wanda Muñoz, <em>Red Feminista de Inteligencia Artificial en América Latina y el Caribe</em></li>
 <li>William Fitzgerald, <em>The Worker Agency</em></li>
 <li>Zach Parent, <em>OpenAI</em></li>
-</ul></section>
-  </article>
+</ul></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-1fb3e91e86289eda.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">自由開放的網路正在 IETF 遭受攻擊</span>
+</a>
+
+<a class="article-sequence-link" href="item-eea5db8d6bafa93d.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">美國聯邦資料：國會需改善補助與付款資格資料的互通性</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>
@@ -531,7 +753,7 @@
   <ul><li>本機決定：accepted-for-editing / 2026-06-19T04:55:49+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
 2026-06-19T04:55:49+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。</li></ul>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Joint statement: AI-accelerated warfare must stop（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：聯合聲明：必須停止 AI 加速戰爭（Codex）</li><li><strong>原始作者</strong>：Various（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Joint statement: AI-accelerated warfare must stop（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Various（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-3fb594430e66b25b";

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Rust Taiwan 在 COSCUP 主辦「Everything in Rust」議程回顧 - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,40 +463,53 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>Rust Taiwan 在 COSCUP 主辦「Everything in Rust」議程回顧</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">純新聞 / 小消息</span>
-
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2024-01-15 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="https://tigercosmos.xyz/post/2019/08/rust2019/" target="_blank" rel="noreferrer" title="開啟原始連結">Rust Taiwan 在 COSCUP 主辦「Everything in Rust」議程回顧</a></h2>
-    <p class="lede">這篇是 Rust Taiwan 成員對 COSCUP 中「Everything in Rust」議程的回顧。摘要描述 COSCUP 作為亞洲大型開源年會，由多個社群各自主辦議程，也提到 Rust Taiwan 邀集來自多地的講者，讓現場大量參與者接觸 Rust 語言與社群。它的價值比較像社群經驗與活動史料，而不是即時新聞。</p>
-    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>Review of “Everything in Rust” of COSCUP 2019</h1>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
+      <h1><a class="article-title-link" href="https://tigercosmos.xyz/post/2019/08/rust2019/" target="_blank" rel="noreferrer" title="開啟原始連結">Rust Taiwan 在 COSCUP 主辦「Everything in Rust」議程回顧</a></h1>
+      <p class="lede">這篇是 Rust Taiwan 成員對 COSCUP 中「Everything in Rust」議程的回顧。摘要描述 COSCUP 作為亞洲大型開源年會，由多個社群各自主辦議程，也提到 Rust Taiwan 邀集來自多地的講者，讓現場大量參與者接觸 Rust 語言與社群。它的價值比較像社群經驗與活動史料，而不是即時新聞。</p>
+      <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><h1>Review of “Everything in Rust” of COSCUP 2019</h1>
 <h2><a href="https://tigercosmos.xyz/post/2019/08/rust2019/#My-experience-with-Rust-Taiwan-community-in-COSCUP-2019" target="_blank" rel="noreferrer">¶</a>My experience with Rust Taiwan community in COSCUP 2019</h2>
 <p>Sunshine, blue sky, and sprinkles of rain — such diverse weather on August 16th-17th echoed the lively atmosphere at NTUST in Taipei, where the <a href="https://coscup.org/2019/en/" target="_blank" rel="noreferrer">COSCUP</a> was held. Participating in the conference, <a href="https://www.facebook.com/rust.tw" target="_blank" rel="noreferrer">Rust Taiwan</a> community hosted the “Everything in Rust” track with 11 talks, which were relevant to Rust. Speakers came from all over the world, including India, Netherlands, China, Hong Kong, and Taiwan, representing for some of the top influencers in the global Rust community. With more than one thousand attendees in COSCUP, it was the first time for these hundreds of people encountered the efflorescence of the Rust programming language.</p>
 <h2><a href="https://tigercosmos.xyz/post/2019/08/rust2019/#Preface" target="_blank" rel="noreferrer">¶</a>Preface</h2>
@@ -332,8 +542,20 @@
 <h3><a href="https://tigercosmos.xyz/post/2019/08/rust2019/#COSCUP-Keynote-Five-year-on-the-Rust-core-team" target="_blank" rel="noreferrer">¶</a>COSCUP Keynote: Five year on the Rust core team</h3>
 <p>Steve’s talk was COSCUP’s keynote which was not a part of “Everything in Rust” track, but the talk is about Rust. It is a remarkable lecture that reveals the principle and the future of Rust governance. Shall Rust chooses BDFL (Benevolent Dictator For Life) or core team to make decisions? Some projects adopt BDFL just like Python and BDFL has its merits — it is simple and consistent. However, the founders of Rust thought Rust belongs to everyone, which can be taken to mean that all people have a chance to voice for their ideas, and therefore, they choose the core team mechanism. Introducing the core team, RFC and working groups of Rust, Steve stated that there is still room for improvement. In the end, he said he hoped there would be a foundation for Rust so that Rust can work even well, though there would be abundant jobs if there had been one.</p>
 <h2><a href="https://tigercosmos.xyz/post/2019/08/rust2019/#Conclusion" target="_blank" rel="noreferrer">¶</a>Conclusion</h2>
-<p>It was interesting but also hard to be a host at a conference. I am so honored to invite these wonderful speakers. It’s my pleasure to work with the Rust Taiwan community. I think we all did a good job at COSCUP 2019. I cannot hide the sheer joys on my face since I am so proud of these things. 如果您覺得這篇文章有幫助，您可以 <a href="https://tigercosmos.xyz/donation/" target="_blank" rel="noreferrer">贊助</a> 這個網站！ 此外也可以去 <a href="https://tigercosmos.xyz/message" target="_blank" rel="noreferrer">全站留言板</a> 來留言喔！</p></section>
-  </article>
+<p>It was interesting but also hard to be a host at a conference. I am so honored to invite these wonderful speakers. It’s my pleasure to work with the Rust Taiwan community. I think we all did a good job at COSCUP 2019. I cannot hide the sheer joys on my face since I am so proud of these things. 如果您覺得這篇文章有幫助，您可以 <a href="https://tigercosmos.xyz/donation/" target="_blank" rel="noreferrer">贊助</a> 這個網站！ 此外也可以去 <a href="https://tigercosmos.xyz/message" target="_blank" rel="noreferrer">全站留言板</a> 來留言喔！</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-0d7d2f2ec7d55c51.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">Ubuntu Weekly Newsletter 第 797 期封存</span>
+</a>
+
+<a class="article-sequence-link" href="item-27a55237909aff29.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">MySQL 參與印度、京都與 COSCUP 活動巡迴</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>
@@ -345,7 +567,7 @@
   <h2>編輯紀錄</h2>
   <ul><li>本機決定：direct-pr-small-news / 2026-06-18T13:16:53+00:00</li><li>審稿備註：2026-06-18T13:16:53+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Review of “Everything in Rust” of COSCUP 2019（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：Rust Taiwan 在 COSCUP 主辦「Everything in Rust」議程回顧（Codex）</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Review of “Everything in Rust” of COSCUP 2019（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-f8d01d3c87d3fd12";

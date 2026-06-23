@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>跨越兩岸，開源人遇見 COSCUP - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,55 +463,68 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>跨越兩岸，開源人遇見 COSCUP</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">純新聞 / 小消息</span>
-
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2024-01-15 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="https://blog.csdn.net/kaiyuanshe/article/details/132331754" target="_blank" rel="noreferrer" title="開啟原始連結">跨越兩岸，開源人遇見 COSCUP</a></h2>
-    <p class="lede">這則資料看起來是同一篇〈跨越兩岸，開源人遇見 COSCUP〉在 CSDN 的版本，內容介紹 COSCUP 的開源社群背景、開發者與使用者直接交流的重要性，以及開源社參與 COSCUP 2023 的情況。摘要補充指出文章聚焦台灣 COSCUP 年度研討會、全球開源社群交流，以及開源透明協作如何支撐軟體品質。</p>
-    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>跨越两岸，开源人遇见 COSCUP-CSDN博客</h1>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
+      <h1><a class="article-title-link" href="https://blog.csdn.net/kaiyuanshe/article/details/132331754" target="_blank" rel="noreferrer" title="開啟原始連結">跨越兩岸，開源人遇見 COSCUP</a></h1>
+      <p class="lede">這則資料看起來是同一篇〈跨越兩岸，開源人遇見 COSCUP〉在 CSDN 的版本，內容介紹 COSCUP 的開源社群背景、開發者與使用者直接交流的重要性，以及開源社參與 COSCUP 2023 的情況。摘要補充指出文章聚焦台灣 COSCUP 年度研討會、全球開源社群交流，以及開源透明協作如何支撐軟體品質。</p>
+      <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><h1>跨越两岸，开源人遇见 COSCUP-CSDN博客</h1>
 <h2>跨越两岸，开源人遇见 COSCUP</h2>
 <p><strong>COSCUP 是由台湾开放原始码社群联合推动的年度研讨会，起源于 2006 年，是台湾自由软体运动 (FOSSM) 重要的推动者之一。</strong>活动包括有讲座、摊位、社团同乐会等，除了邀请国际的重量级演讲者之外，台湾本土的自由软体推动者也经常在此发表演说，会议的发起人、工作人员与讲者都是志愿参与的志工。COSCUP 的宗旨在于提供一个联结开放原始码开发者、使用者与推广者的平台。希望藉由每年一度的研讨会，来推动自由及开放原始码软体 (FLOSS)。由于有许多赞助商及热心捐助者，所有议程都是免费参加。 开源 (Open Source) 是在 1998 年出现的名词，大家早已耳熟能详。这种在网路上已经进行二、三十年的软体开发模式之所以能成功，有许多原因。其中一个极为关键的因素，就是开发者与使用者的直接接触。无屏障的交流加速了问题的回报和修补机制，而当这个机制被网路效应放大到极限时，Linus 定律就出现了：「臭虫难逃众人法眼」(With enough eyeballs, all bugs are shallow)，软体品质因此显著提升。 <strong>在开放原始码的模式中，开发者和使用者中间的人不再是销售员或客服，而是让软体更容易被接受的推广者 (Promoters)，他们打包套件让软体更好装、写说明文件让软体更易学、办推广活动让更多人接触到好软体、在网路上回答问题解决使用者的疑惑，而且不会把开发者藏在背后产生资讯的不对称。</strong> 开发者 (Coders)、使用者 (Users) 和推广者 (Promoters) 是让自由及开放原始码软体发光发热的三大支柱，这个研讨会就是专为这三种人举办的：你可以是 A 软体的开发者、B 软体的推广者、C 软体的使用者，不论你是已经踏入自由及开放原始码软体领域，还是一直站在门口不知如何入门，欢迎你来参加 <strong>COSCUP — Conference for Open Source Coders, Users and Promoters!</strong> 为期两日的活动，COSCUP 收录了超过 38 个论坛，每日有 28 个实体会议室同时进行不同论坛议题的发表，有超过 50 个社区一同大放异彩，其中也包含开源社在内，线下参与者也超过数千人。<strong>开源社本次以远程的形式参与发表于 Golang 、综合议题、Open World Tour 等论坛，采用会议软件实时与台下观众进行问答环节的互动，问答也十分踊跃，即便是远程进行会议也能够进行深度交流。</strong> 可惜的是，这次的盛会，开源社顾问委员会委员以及正式成员们有十几位报名提交了演讲，然而由于签证问题，最后只有林旅强、高须正和以及刘天栋（Ted）三位能到场参加和分享，余者只能远程分享。以下的大会精彩内容即是刘天栋等人亲身参与的记录。 无论是在中国开源年会、FOSSASIA Summit 或是在 COSCUP，我们总是能见到开源社正式成员 “高须正和” （穿红衣者）活跃的身影，尤其是 party，他不会错过滴！ 刘天栋由于参加了 Linux 基金会 7 月 27 日在日内瓦举办的 Open Source Congress（另有专文介绍，请关注），因此只能参加 7 月 30 日的 COSCUP&#x27;23 第二天议程，无法参加这个热闹的会前接待 party 了。 <strong>大会议程：</strong>https://coscup.org/2023/zh-TW/session</p>
-<h3><strong>什么是开源？之兄弟戏墙</strong></h3>
+<h4><strong>什么是开源？之兄弟戏墙</strong></h4>
 <p><strong>https://coscup.org/2023/zh-TW/session/ZSZAKG</strong> By 林旅强 Richard &amp; 練喆明 Matthew Lien 最右边这位讲者 <strong>林旅强（人称强哥）</strong>就是大名鼎鼎的斜杠开源青年（唱歌、弹琴、弹吉他、作曲、翻译、开发者关系、开源治理合规、社区发展与运营...），之前担任华为云 AI 开发者生态总监，翻译了一部大作是 “开发者关系方法与实践”。 为什么叫 “兄弟戏墙” 呢？因为二人转的这二位长得比较像，连我乍看之下也容易搞错。同时二人对开源入门者的学习及参与的路径观点各抒己见，很是精彩有趣。</p>
-<h3><strong>COSCUP 2023 國際交流，我們的所見所聞</strong></h3>
+<h4><strong>COSCUP 2023 國際交流，我們的所見所聞</strong></h4>
 <p><strong>https://coscup.org/2023/zh-TW/session/YLXCSK</strong> 本场精彩的分享由大会议程组的<strong>游崇祐 Mac</strong><strong>，Su</strong> 携手分享 “如何参加国际开源会议，一直玩一直爽！”。 我听完了只能说 ”年轻人真会玩”，TA 们分享了游学 FOSDEM&#x27;23 (2 月 4-5 日，布鲁塞尔），FOSSASIA Summit（4 月 13-15 日，新加坡；另有专文介绍，请关注）、HKOSCon&#x27;23 (6 月 9-10 日，香港），印象中应该还有韩国的开源大会等的经历，很是精彩有趣。</p>
-<h3><strong>OpenAI Licenses 及其争议案例讨论 - Copilot 还是 Co-copier？</strong></h3>
+<h4><strong>OpenAI Licenses 及其争议案例讨论 - Copilot 还是 Co-copier？</strong></h4>
 <p><strong>https://coscup.org/2023/zh-TW/session/GUQJMY</strong> <strong>共笔:</strong> https://hackmd.io/@coscup/SJOPmy1sn <strong>Slide:</strong> https://www.dropbox.com/scl/fi/beucny4epy6bal4497max/20230730-OpenAI-Licenses.pdf?rlkey=h8d52t5jhdzs1kuo8fvwxc74i&amp;dl=0 <strong>林诚夏</strong>老师是台湾开放文化基金会法制顾问，同时也是开源社法律咨询委员会的委员。他的分享非常精彩，深入浅出。推荐大家阅读或下载他的演讲 PDF。</p>
-<h3><strong>開源可以當飯吃！從國際企業的開源辦公室看開源職涯</strong></h3>
+<h4><strong>開源可以當飯吃！從國際企業的開源辦公室看開源職涯</strong></h4>
 <p><strong>https://coscup.org/2023/zh-TW/session/TXHYET</strong> <strong>分享大纲：</strong>https://hackmd.io/WlrJSpUCRsWviv_EtfBlxg 这场由台湾开放文化基金会执行长暨 COSCUP&#x27;23 大会召集人之一的<strong>李欣颖 Singing</strong>介绍开源管理办公室（OSPO）的分享，收罗了一些国际企业 OSPO 的实践（内容也引用了不少 OpenChain、CHAOSS 和 TODO Group 的材料），并鼓励开源爱好者纳入未来职业生涯发展路径考量。现场也问了是否有人听过或是参与过 OSPO，结果只有我一个人举手，可见 OSPO 或许是台湾企业在开源治理方面待发展的领域。 分享结束后我找了 Singing 聊天，我个人认为 OSPO 的职位比较适合在开源领域里浸淫比较久的贡献者甚或引领者，初入门开源的使用者或是参与者（例如参与开源活动：COSCUP、中国开源年会 COSCon、或是各种 meetup 等），可能还需要透过直接贡献开源项目及社区，积累更多经验，同时还要具备跨部门（纵向及横向）沟通协调，甚至是布道者等能力。</p>
-<h3><strong>Google 开放半导体计划与大学合作计划</strong></h3>
+<h4><strong>Google 开放半导体计划与大学合作计划</strong></h4>
 <p><strong>https://coscup.org/2023/zh-TW/session/VCUYP8</strong> By Google 台湾区总经理马大康博士 Jason Ma 聆听了文质彬彬学养俱佳的 Google 台湾区总经理<strong>马大康博士 Jason</strong> 的演讲，感觉 Google 对市场扎根很用心，对精尖科技、人才培育、产学研合作的投入长期投资，布局深远。</p>
-<h3><strong>Building an open source silicon ecosystem</strong></h3>
+<h4><strong>Building an open source silicon ecosystem</strong></h4>
 <p><strong>https://coscup.org/2023/zh-TW/session/QYNZL9</strong> 紧接在马大康博士之后的是他 Google 的同事 <strong>Aaron</strong>。Aaron 介绍了 Google 对半导体/芯片设计（如 RISC-V）的种种开源举措与资源，包含免费培训课程等。我虽然不懂半导体和芯片，但是也能感受到 Google 的可持续发展开源战略的宏大绵长。</p>
-<h3><strong>Open source RISC-V GPGPU</strong></h3>
+<h4><strong>Open source RISC-V GPGPU</strong></h4>
 <p><strong>https://coscup.org/2023/zh-TW/session/ZSZAKG</strong> 高朋满座，可见台湾对开源硬件（包含 RISC-V）的关注度非常高！ 这次让我印象非常深刻的还有大会提供的一系列友好便利的<strong>参会指南、App 及工具</strong>。开源社目前也在打造一系列开源社区运营相关的全开源的工具百宝箱，例如开放黑客松平台、开放会务系统、KToken（开源贡献激励机制平台）、OSSChat（跨即时/异步通讯平台沟通机器人）等。看到 COSCUP 诸多好用的会务工具，国内开源社区（包含开源社）应该可以借镜或直接拿来用。 <strong>官网：</strong>https://coscup.org/2023/zh-TW/</p>
 <ul>
 <li>手机版适配的很赞，一目了然。</li>
@@ -352,8 +562,20 @@
 <ul>
 <li>分享</li>
 </ul>
-<p>复制链接 分享到 QQ 分享到新浪微博 扫一扫</p></section>
-  </article>
+<p>复制链接 分享到 QQ 分享到新浪微博 扫一扫</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-d1abca4bc637d529.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">開源星手村 COSCUP 領航導覽系列活動</span>
+</a>
+
+<a class="article-sequence-link" href="item-4e6cb5b0a570af9c.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">跨越兩岸，開源人遇見 COSCUP</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>
@@ -365,7 +587,7 @@
   <h2>編輯紀錄</h2>
   <ul><li>本機決定：direct-pr-small-news / 2026-06-18T13:16:53+00:00</li><li>審稿備註：2026-06-18T13:16:53+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：跨越两岸，开源人遇见 COSCUP-CSDN博客（RSS/頁面標題）</li><li><strong>原始語言</strong>：zh-Hans（html lang）</li><li><strong>自動翻譯中文標題</strong>：跨越兩岸，開源人遇見 COSCUP（Codex）</li><li><strong>原始作者</strong>：成就一亿技术人!（頁面 byline）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+  <ul><li><strong>原始網站標題</strong>：跨越两岸，开源人遇见 COSCUP-CSDN博客（RSS/頁面標題）</li><li><strong>原始語言</strong>：zh-Hans（html lang）</li><li><strong>原始作者</strong>：成就一亿技术人!（頁面 byline）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-70ca92c2e5b0a3f3";

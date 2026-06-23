@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FSFE：數位主權、公共程式碼、Apple 互通性訴訟與歐洲自由軟體近況 - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,40 +463,53 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>FSFE：數位主權、公共程式碼、Apple 互通性訴訟與歐洲自由軟體近況</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">可用材料 / 可進編輯台</span>
-
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2026-06-07 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="https://fsfe.org/news/nl/nl-202606.en.html" target="_blank" rel="noreferrer" title="開啟原始連結">FSFE：數位主權、公共程式碼、Apple 互通性訴訟與歐洲自由軟體近況</a></h2>
-    <p class="lede">這篇 FSFE 月報把多個歐洲自由軟體政策進展放在同一篇：歐盟技術主權政策包納入「公共資金，公共程式碼」原則，FSFE 認為若要成為真正轉向，仍需要具約束力的規則、長期資金與公民社會參與；NHS England 曾因擔心公開程式碼被 AI 掃描找漏洞而將多數公共程式碼庫設為私有，FSFE 批評這並不能帶來真正安全，反而削弱外部檢視與再利用，後續英國政府數位服務也發布指引，主張公共機關應預設公開程式碼。文中也提到 FSFE 參與 Horizon Europe 下的 Restack 計畫，將為大量自由軟體專案提供法律與授權支援；另一個重點是 FSFE 獲准介入 Apple 挑戰歐盟執委會 DMA 互通性要求的案件，試圖在平台監管訴訟中代表公民社會與軟體自由觀點。</p>
-    <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">public code</span><span class="tag-chip">FSF</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>數十年努力的勝利、Apple 調查發現、法律工作坊成果與第 50 集 podcast</h1>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-07 08:00</span></div>
+      <h1><a class="article-title-link" href="https://fsfe.org/news/nl/nl-202606.en.html" target="_blank" rel="noreferrer" title="開啟原始連結">FSFE：數位主權、公共程式碼、Apple 互通性訴訟與歐洲自由軟體近況</a></h1>
+      <p class="lede">這篇 FSFE 月報把多個歐洲自由軟體政策進展放在同一篇：歐盟技術主權政策包納入「公共資金，公共程式碼」原則，FSFE 認為若要成為真正轉向，仍需要具約束力的規則、長期資金與公民社會參與；NHS England 曾因擔心公開程式碼被 AI 掃描找漏洞而將多數公共程式碼庫設為私有，FSFE 批評這並不能帶來真正安全，反而削弱外部檢視與再利用，後續英國政府數位服務也發布指引，主張公共機關應預設公開程式碼。文中也提到 FSFE 參與 Horizon Europe 下的 Restack 計畫，將為大量自由軟體專案提供法律與授權支援；另一個重點是 FSFE 獲准介入 Apple 挑戰歐盟執委會 DMA 互通性要求的案件，試圖在平台監管訴訟中代表公民社會與軟體自由觀點。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">public code</span><span class="tag-chip">FSF</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><h1>數十年努力的勝利、Apple 調查發現、法律工作坊成果與第 50 集 podcast</h1>
 <h2>數位主權需要自由軟體</h2>
 <p>過去幾週，我們第二次獲准在歐盟法院就 Apple 相關案件提出介入（！）；同時，歐盟執委會也把「Public Money? Public Code!（公共資金？公共程式碼！）」原則納入其「技術主權套案」。請持續關注！一個新的歐洲聯盟即將啟動，而我們也是其中一員。 這個月一開始就有好消息：歐盟執委會在新發布的「技術主權套案」中，納入了自由軟體基金會歐洲分會（Free Software Foundation Europe, FSFE）的「Public Money? Public Code!」原則；該套案也包含新的「開源策略」。如果真正落實，這可能象徵一場典範轉移，讓公帑資助的軟體能以自由軟體形式釋出。不過，現在還不是可以鬆懈的時候：<a href="https://fsfe.org/news/2026/news-20260603-01.en.html" target="_blank" rel="noreferrer">它的成功將取決於具約束力的規則、長期資金，以及有意義的公民社會參與</a>。 然而，並非所有公共行政機關都抱持相同想法。英格蘭國民保健署（NHS England）基於擔心公開程式碼儲存庫可能被 AI 系統掃描、用來找出漏洞，已預設將多數公開原始碼儲存庫改為私有。FSFE 對此立場很清楚：<a href="https://fsfe.org/news/2026/news-20260504-01.en.html" target="_blank" rel="noreferrer">NHS England 不應把公共程式碼藏在閉門之後</a>。下架公開內容不會讓程式碼變得沒有人看過，也不會移除既有副本，更不是有效的安全措施。相反地，這會移除安全的一項根本支柱：讓獨立專家、研究者與其他公共機關能夠檢視、重複使用、改進程式碼，並回報安全問題的能力。 我們呼籲自由軟體社群透過簽署<a href="https://keepthingsopen.com/" target="_blank" rel="noreferrer">給 NHS England 的公開信</a>，要求他們維持程式碼開放，來推動撤回這項決定。社群反應相當強烈，在我們發出呼籲後的幾個小時內，就新增超過 500 份連署。不久後，英國 Government Digital Service 發布新的指引，明確指出公共機關應預設維持程式碼公開。 透過自由軟體實現數位主權，也是我們最新一集 Software Freedom Podcast 的主題。在這集中，Bonnie 與 Johannes 與 X-Road 的 Petteri 對談，討論公共行政中的自由軟體專案目前面臨的挑戰。<a href="https://fsfe.org/news/podcast/2026/episode-51.en.html" target="_blank" rel="noreferrer">歡迎收聽！</a> 你可能已經知道，儘管歐洲需要數位主權，<a href="https://fsfe.org/news/2024/news-20240719-01.en.html" target="_blank" rel="noreferrer">Next Generation Internet Zero（NGI0）等歐洲專案的資金卻遭到刪減</a>。我們很高興能分享這方面的好消息：我們最近宣布了一個新的歐洲聯盟，目標是打造具韌性、在地生長的歐洲科技生態系，也就是 Restack 專案。 在 Horizon Europe 架構下，<a href="https://fsfe.org/news/2026/news-20260528-01.en.html" target="_blank" rel="noreferrer">FSFE 是這項階梯式資助計畫的合作夥伴，該計畫旨在延續 NGI Zero 方法的優勢</a>。我們的角色將是為可能超過 200 個自由軟體專案提供法律與授權支援，並協助它們成長為更廣泛歐洲數位公地的一部分。</p>
 <h3>在歐洲捍衛互通性</h3>
@@ -308,8 +518,20 @@
 <h3>Youth Hacking 4 Freedom 2026</h3>
 <p>2026 年度的 <a href="https://yh4f.org" target="_blank" rel="noreferrer">Youth Hacking 4 Freedom</a> 正進入高峰。程式開發期間將在本月底結束，參與者終於可以喘口氣，而評審團也將開始評估他們的專案。今年 10 月，我們將在布魯塞爾的頒獎典禮週末見到本屆 6 位得獎者。 第五屆 YH4F 共有來自 21 個國家的超過 80 位參與者！我們已經迫不及待想看看他們開發出了什麼成果。我們也已經在規劃下一屆，敬請期待！</p>
 <h3>從各個舞台：Ada、數位主權、PIWO 與更多活動</h3>
-<p>5 月非常忙碌！我們的波蘭在地小組參與了 P.I.W.O.（Poznań Free Software Event，波茲南自由軟體活動），志工們設攤推廣自由軟體。雖然活動名稱可能讓人想到免費的「piwo」（波蘭文的啤酒），但參與者得到的是免費披薩。 在柏林，我們的小組舉辦了 Linux 展示日，讓大家可以試用 Linux 筆電，並獲得關於 Linux 筆電各種疑問的解答。 此外，除了參與 SCIDA，我們也在布魯塞爾參加了一場關於 DMA 的座談。在 CPDP conference 期間，我們參與了題為<a href="https://www.cpdpconferences.org/panels/it-takes-two-to-tango-public-and-private-enforcement-of-the-digital-markets-act" target="_blank" rel="noreferrer">「It takes two to tango: Public and private enforcement of the Digital Markets Act」</a>的<a href="https://www.cpdpconferences.org/panels/it-takes-two-to-tango-public-and-private-enforcement-of-the-digital-markets-act" target="_blank" rel="noreferrer">座談</a>，介紹我們在 DMA 執法上的工作，包括我們在<a href="https://fsfe.org/activities/apple-litigation/apple-litigation.en.html" target="_blank" rel="noreferrer">歐盟法院對 Apple 提出的訴訟</a>。 數位主權也是雷根斯堡一系列講座中的主題。在觀看動畫電影《Ada &amp; Zangemann》之後，我們參與了關於這個主題的討論。 <strong>FSFE 即將滿 25 歲！我們想和你一起慶祝！</strong> 7 月 18 日與 19 日，歡迎到克拉科夫參加充滿自由軟體的一個週末，現場將有演講、交流，當然還有蛋糕！想知道更多嗎？請寫信給我們：contact@fsfe.org Ada 也出現在多場活動中：我們在 Tübingen Digital Freedom Days 舉辦了電影放映與兒童工作坊，並設置攤位。在烏特勒支的 NLUUG conference，我們的攤位同樣聚焦 Ada &amp; Zangemann。不過本月亮點在義大利：我們的義大利社群在佩薩羅與 50 多位國小學童一起舉辦活動，慶祝 Ada 三週年，還有冰淇淋分享給每個人！ 最後，如果你會德文，或想練習德文能力，這裡有一個推薦：<a href="https://engineeringkiosk.dev/podcast/episode/270-ada-und-zangemann-ein-m%C3%A4rchen-%C3%BCber-software-skateboards-und-himbeereis-mit-matthias-kirschner-von-der-fsfe/?pkn=shortlink" target="_blank" rel="noreferrer">收聽 Engineering Kiosk podcast 最新一集，主題是 Ada &amp; Zangemann！</a> 在節目中，Matthias 與 Andy、Wolfgang 聊了許多關於這本繪本故事的有趣幕後細節。</p></section>
-  </article>
+<p>5 月非常忙碌！我們的波蘭在地小組參與了 P.I.W.O.（Poznań Free Software Event，波茲南自由軟體活動），志工們設攤推廣自由軟體。雖然活動名稱可能讓人想到免費的「piwo」（波蘭文的啤酒），但參與者得到的是免費披薩。 在柏林，我們的小組舉辦了 Linux 展示日，讓大家可以試用 Linux 筆電，並獲得關於 Linux 筆電各種疑問的解答。 此外，除了參與 SCIDA，我們也在布魯塞爾參加了一場關於 DMA 的座談。在 CPDP conference 期間，我們參與了題為<a href="https://www.cpdpconferences.org/panels/it-takes-two-to-tango-public-and-private-enforcement-of-the-digital-markets-act" target="_blank" rel="noreferrer">「It takes two to tango: Public and private enforcement of the Digital Markets Act」</a>的<a href="https://www.cpdpconferences.org/panels/it-takes-two-to-tango-public-and-private-enforcement-of-the-digital-markets-act" target="_blank" rel="noreferrer">座談</a>，介紹我們在 DMA 執法上的工作，包括我們在<a href="https://fsfe.org/activities/apple-litigation/apple-litigation.en.html" target="_blank" rel="noreferrer">歐盟法院對 Apple 提出的訴訟</a>。 數位主權也是雷根斯堡一系列講座中的主題。在觀看動畫電影《Ada &amp; Zangemann》之後，我們參與了關於這個主題的討論。 <strong>FSFE 即將滿 25 歲！我們想和你一起慶祝！</strong> 7 月 18 日與 19 日，歡迎到克拉科夫參加充滿自由軟體的一個週末，現場將有演講、交流，當然還有蛋糕！想知道更多嗎？請寫信給我們：contact@fsfe.org Ada 也出現在多場活動中：我們在 Tübingen Digital Freedom Days 舉辦了電影放映與兒童工作坊，並設置攤位。在烏特勒支的 NLUUG conference，我們的攤位同樣聚焦 Ada &amp; Zangemann。不過本月亮點在義大利：我們的義大利社群在佩薩羅與 50 多位國小學童一起舉辦活動，慶祝 Ada 三週年，還有冰淇淋分享給每個人！ 最後，如果你會德文，或想練習德文能力，這裡有一個推薦：<a href="https://engineeringkiosk.dev/podcast/episode/270-ada-und-zangemann-ein-m%C3%A4rchen-%C3%BCber-software-skateboards-und-himbeereis-mit-matthias-kirschner-von-der-fsfe/?pkn=shortlink" target="_blank" rel="noreferrer">收聽 Engineering Kiosk podcast 最新一集，主題是 Ada &amp; Zangemann！</a> 在節目中，Matthias 與 Andy、Wolfgang 聊了許多關於這本繪本故事的有趣幕後細節。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-3ceea11e45df322a.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">AI Agent 如何串接兩個 Hugging Face Spaces 建出 3D 巴黎藝廊</span>
+</a>
+
+<a class="article-sequence-link" href="item-3b0a836f05270ae2.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">版權勒索式索賠的回潮</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>

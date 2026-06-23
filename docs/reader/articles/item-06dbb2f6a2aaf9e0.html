@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>從大型石油到大型演算法：投入私人模型的公共資金 - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,40 +463,53 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>從大型石油到大型演算法：投入私人模型的公共資金</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">可用材料 / 可進編輯台</span>
-
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2026-05-05 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="http://privacyinternational.org/long-read/5767/big-oil-big-algorithm-public-money-private-models" target="_blank" rel="noreferrer" title="開啟原始連結">從大型石油到大型演算法：投入私人模型的公共資金</a></h2>
-    <p class="lede">標題指出公共資金流向私人演算法或 AI 模型的問題，可能批判政府資源如何支持大型科技企業，並追問公共利益、透明度與責任分配。全文是判斷其深度的必要條件。</p>
-    <div class="tag-chip-list"><span class="tag-chip">數位人權</span><span class="tag-chip">開源 AI 發展</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>From Big Oil to Big Algorithm: Public Money in Private Models</h1>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-05-05 08:00</span></div>
+      <h1><a class="article-title-link" href="http://privacyinternational.org/long-read/5767/big-oil-big-algorithm-public-money-private-models" target="_blank" rel="noreferrer" title="開啟原始連結">從大型石油到大型演算法：投入私人模型的公共資金</a></h1>
+      <p class="lede">標題指出公共資金流向私人演算法或 AI 模型的問題，可能批判政府資源如何支持大型科技企業，並追問公共利益、透明度與責任分配。全文是判斷其深度的必要條件。</p>
+      <div class="tag-chip-list"><span class="tag-chip">數位人權</span><span class="tag-chip">開源 AI 發展</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><h1>From Big Oil to Big Algorithm: Public Money in Private Models</h1>
 <p>As governments rush to adopt artificial intelligence in public services, Privacy International asks who controls these systems, how people’s data is protected, and whether public services are becoming private black boxes.</p>
 <ul>
 <li>There seems to be a shift occurring in the regulatory attitude under pressure by the AI race - and the public sector is fertile ground for observing the emerging trend of so-called ‘GovAI’, or ‘GovTech’.</li>
@@ -343,7 +553,7 @@
 <p>The argument made for deploying AI in the civil service is that it could help cut down on public spending and boost efficiency by better streamlining tedious administrative tasks. However, UK shadow science secretary Alan Mak cautioned that economic mismanagement could preclude any promised benefits. If a council website deploys an AI chatbot to service constituents who opt to speak with a human agent anyway, is the procurement and deployment of that chatbot a responsible use of taxpayers’ funds? In parallel to these GovAI initiatives, there is a <a href="https://privacyinternational.org/campaigns/militarisation-of-tech" target="_blank" rel="noreferrer">rapid and largely opaque race</a> within military and defence administrations. The <a href="https://privacyinternational.org/news-analysis/5744/what-does-it-mean-when-big-tech-goes-war" target="_blank" rel="noreferrer">recent fall out between Anthropic and the US Department of War</a> has illustrated how the same frontier models are deployed for war and can raise serious concerns around control and accountability. Yet, despite this technological convergence, policy initiatives aimed at regulating for civilian public services often deliberately exclude military and defence uses—most notably under the EU AI Act. This largely artificial institutional separation is not only problematic from a <a href="https://privacyinternational.org/long-read/5671/key-concerns-regarding-governance-era-militarisation-tech" target="_blank" rel="noreferrer">regulatory perpective</a>; it also entrenches the militarisation of technology by masking how AI developed under logics of conflict, secrecy, and exceptionalism can spill over into civilian governance, normalising intrusive practices and undermining citizens’ rights, accountability, and democratic oversight.</p>
 <h3>What we <em>don’t</em> know, and the privacy risks and implications to citizens</h3>
 <p>Given the current state of play, what we’re concerned about is how little we actually know about how these AI tools work and what their long-term impact will be to citizens, especially as governments have access to troves of sensitive personal data in order to further develop and fine tune the technology. How are government AI models storing and processing data about public servants, citizens and/or residents of a country, whether in experimental sandboxes or beyond? There are merits to streamlining tedious administrative tasks, but there are still big questions that must be answered around data privacy, transparency and automated decision-making if the government is about to promote and embed wide-spread agentic AI use for civil services.</p>
-<h3>Data privacy</h3>
+<h4>Data privacy</h4>
 <p>On the data privacy front, several questions arise:</p>
 <ul>
 <li>How will personal data, including sensitive data, be processed and used by the AI tools deployed? What data protection safeguards will be in place to prevent data leakage?</li>
@@ -353,7 +563,7 @@
 <p>Data protection in the govAI context is especially important when we consider how highly sensitive, and sometimes secret, government data might be that could end up being processed by a black box algorithm - e.g., where an employee or colleague lives, any confidential documents that appear in meeting notes, etc. To understand the data privacy concerns embedded in AI, we first provide a quick explainer about how AI is developed and fine-tuned. Recall that large language models (LLMs) are advanced machine learning models, such as chatbots or AI assistants, designed to understand and generate content like a human being. LLMs are trained on huge troves of data in order to learn complex patterns in language to perform a wide variety of tasks, such as delivering chatbot responses, predicting text in email-writing, or summarising textual or verbal material.</p>
 <h2><a href="https://privacyinternational.org/explainer/5357/humans-ai-loop-data-labelers-behind-some-most-powerful-llms-training-datasets" target="_blank" rel="noreferrer">Humans in the AI loop: the data labelers behind some of the most powerful LLMs&#x27; training datasets</a></h2>
 <p>Who are the workers behind the training datasets powering the biggest LLMs on the market? In this explainer, we delve into data labeling as part of the AI supply chain, the labourers behind this data labeling, and how this exploitative labour ecosystem functions, aided by algorithms and larger systemic governance issues that exploit microworkers in the gig economy. In the context of government-deployed AI, the personal data of public servants, citizens and residents are crucial building blocks from the conception of the AI, to the fine-tuning of the AI, especially if a government service continually retrains its in-house AI. The answers to the above questions on data privacy may vary depending on what purpose the AI tool is serving and what types of data the tool is processing. An AI tool that organises constituents’ emails or sorts them based on household data may require a higher level of scrutiny than an AI tool that simply processes admin data (e.g., a civil servant using an AI assistant to schedule calendar meetings). Nonetheless, it is crucial for governments to clarify exactly how individuals’ data is being processed, particularly how long data is retained by the AI system and whether this data is being held for further fine-tuning. Deployers (i.e., government deployers) should also be clear about what purposes the AI serves in order to more clearly outline the type of data being processed for what purpose. This can also help risk mitigation and data orchestration efforts to ensure that other types of data not covered by these purposes are not somehow being processed by this AI tool. It is also important for governments to have robust contractual safeguards in their procurement agreements with third-party vendours that clearly and adequately protect subjects’ data from being accessible by non-government entities. These contracts should also include strict interoperability and transferability clauses in case of termination to avoid lock-in effects. As we have <a href="https://privacyinternational.org/our-demands/safeguards-public-private-surveillance-partnerships" target="_blank" rel="noreferrer">observed already</a>, the privatisation of public responsibilities can be deeply problematic if deployed without the safeguards required to ensure human rights are not quietly abused. Private companies have been known to play with the limits of what can legally and ethically be done with individuals’ identities and data, without the same level of accountability required of public authorities – a significant affront to fundamental rights when used to deliver a public service. We had identified <a href="https://privacyinternational.org/our-demands/safeguards-public-private-surveillance-partnerships" target="_blank" rel="noreferrer">a number of issues</a> common to public-private partnerships that involve surveillance technology and/or the mass processing of data. To address these issues, we have defined corresponding safeguards that we recommend for implementation by public authorities and companies who intend to enter into such partnerships that could inform GovAI agreements with companies. There is little information right now about how government AI tools are properly safeguarding individuals’ data. For instance, when ‘Consult AI’ is processing consultation submissions, how is the LLM processing and storing personal data about the individuals who submitted the consultation or any personal data contained in the text of the submission? Or, if a city government is using a third-party AI tool for administrative work, such as <a href="https://www.sf.gov/news-mayor-lurie-brings-ai-technology-to-san-francisco-government-cementing-city-as-global-ai-leader" target="_blank" rel="noreferrer">San Francisco City Council using Microsoft Copilot</a>, what happens to the personal data that might be contained within emails? Does the third-party AI vendour have any access to that data? How long might they retain that data and for what purposes, beyond legal compliance obligations? There is also the added question of data security when AI systems require significant computing power and data centres that only larger providers can afford to provide. If a local council explores a third-party vendour to supply a constituent-facing chatbot, does this mean personal data on residents could reside in the data centres of private AI companies? Of course, this latter point is not dissimilar to what we’ve already seen with third-party cloud providers. Due to the high compute power required for the normal functioning of today’s more advanced web and digital systems, cloud service providers, particularly big ones who can afford to run these huge centres like AWS and Azure, are necessary to the functioning of any online service. But AI adds existing and new levels of concern around data protection, because not only might data be collected, stored and retained; data might also be continually fed back into an AI model for fine-tuning, and there is still not enough information about whether this data may reappear elsewhere and how protected it really is. Data protection safeguards and mechanisms are crucial if governments are to deploy AI internally so quickly and widely. These attempts across different global governments at addressing data protection safeguards should be standardised to a stricter degree that residents can trust, whether this means a stricter application of GDPR to AI systems or new and more robust impact assessments that addresses AI-specific harms.</p>
-<h3>Transparency, explainability and legal basis for processing</h3>
+<h4>Transparency, explainability and legal basis for processing</h4>
 <p>These data privacy questions lead us to further questions around transparency and legal basis for processing:</p>
 <ul>
 <li>How will the use of AI in public services and/or within government be disclosed to citizens whose data may be subjected to AI processing?</li>
@@ -378,8 +588,20 @@
 <h2><a href="https://privacyinternational.org/long-read/4989/welfare-policy-uk-today-governments-flawed-approach-fraud" target="_blank" rel="noreferrer">Welfare policy in the UK today: the government&#x27;s flawed approach to fraud</a></h2>
 <p>After a consultation held in 2021 to which Privacy International responded, the government has now decided <a href="https://www.gov.uk/government/consultations/consultation-on-the-expansion-of-the-national-fraud-initiative-nfi-data-matching-powers-and-the-new-code-of-data-matching-practice/outcome/government-response-consultation-on-extending-the-national-fraud-initiative-nfi-data-matching-to-new-purposes" target="_blank" rel="noreferrer">not to expand the powers of its &quot;National Fraud Initiative&quot;</a>. However, recent changes in the UK welfare landscape point to troubling plans for the future.</p>
 <h2><a href="https://privacyinternational.org/long-read/4944/world-bank-social-protection-during-crises-privacy-trade" target="_blank" rel="noreferrer">The World Bank &amp; social protection during crises: a privacy trade-off?</a></h2>
-<p>Privacy International (&quot;PI&quot;) researched a number of social safety-net projects financed by the World Bank during the COVID-19 pandemic. To inform the World Bank&#x27;s future implementation of these kinds of projects, this article reflects on how certain aspects of social protection projects can inadvertently lead to excessive surveillance of marginalised communities, impact equal access to urgent social protection disbursements, and interfere with people&#x27;s dignity and right to privacy.</p></section>
-  </article>
+<p>Privacy International (&quot;PI&quot;) researched a number of social safety-net projects financed by the World Bank during the COVID-19 pandemic. To inform the World Bank&#x27;s future implementation of these kinds of projects, this article reflects on how certain aspects of social protection projects can inadvertently lead to excessive surveillance of marginalised communities, impact equal access to urgent social protection disbursements, and interfere with people&#x27;s dignity and right to privacy.</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-e425bb53952b33e4.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">2026 維護者月：向支撐開源運作的人們致敬</span>
+</a>
+
+<a class="article-sequence-link" href="item-76fc28489bf6a3f3.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">FSFE 月報：Apple、DMA、無線電裝置軟體自由與第 50 集 Podcast</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>
@@ -392,7 +614,7 @@
   <ul><li>本機決定：accepted-for-editing / 2026-06-21T12:32:48+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
 2026-06-21T12:32:48+00:00 本機確認收下；下一步跑 skill 做摘要、切角與文章編修，整理好後再送 PR。</li></ul>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：From Big Oil to Big Algorithm: Public Money in Private Models</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：從大型石油到大型演算法：投入私人模型的公共資金（Codex）</li><li><strong>原始作者</strong>：@privacyint（twitter:creator）</li><li><strong>原始網站授權</strong>：Creative Commons Attribution-ShareAlike 4.0 International（rights）</li></ul>
+  <ul><li><strong>原始網站標題</strong>：From Big Oil to Big Algorithm: Public Money in Private Models</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>原始作者</strong>：@privacyint（twitter:creator）</li><li><strong>原始網站授權</strong>：Creative Commons Attribution-ShareAlike 4.0 International（rights）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-06dbb2f6a2aaf9e0";

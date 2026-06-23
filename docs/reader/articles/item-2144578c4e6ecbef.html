@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>用真正開放的基礎打造無障礙檢測工具 - Ian Open News</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -16,6 +17,9 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
+      --paper: #fffaf0;
+      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,17 +29,82 @@
       font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       line-height: 1.62;
     }
-    header { background: #fff; border-bottom: 1px solid var(--line); }
-    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
     main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
     h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
     h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
     h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
     p { margin: 8px 0; }
     a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
     a:hover { color: var(--accent); }
-    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-    nav a, .button, button {
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
       border: 0;
       border-radius: 6px;
       padding: 9px 12px;
@@ -50,8 +119,8 @@
       justify-content: center;
       gap: 6px;
     }
-    nav a:hover, .button:hover, button:hover { color: #fff; }
-    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
     .button.quiet, button.quiet { background: #273244; }
     .lede { max-width: 820px; color: var(--muted); }
     .generated { color: var(--muted); font-size: 13px; }
@@ -65,6 +134,10 @@
       display: inline-flex;
       margin: 0 4px 4px 0;
     }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
     .badge--reading { background: #fff8db; color: #7a5a00; }
     .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
     .tag-chip {
@@ -79,6 +152,11 @@
       font-size: 12px;
       font-weight: 800;
       line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
     }
     .help-dot {
       display: inline-grid;
@@ -235,14 +313,25 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
-    .article-panel, .side-panel {
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 16px;
     }
-    .article-body { max-width: 760px; }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
     .article-title-link {
       color: var(--ink);
       text-decoration: none;
@@ -251,9 +340,117 @@
       color: var(--link);
       text-decoration: underline;
     }
-    .article-body img { max-width: 100%; height: auto; }
-    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
-    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: .01em;
+      line-height: 2.05;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
     textarea {
       width: 100%;
       min-height: 180px;
@@ -266,47 +463,72 @@
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
       .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
     }
   </style>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <div class="masthead">
-      <h1>用真正開放的基礎打造無障礙檢測工具</h1>
-      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
 
-<nav>
+<nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="" href="../index.html">精選與觀點</a>
   <a class="" href="../news.html">小消息</a>
 </nav>
 
+          </div>
+        </details>
+      </div>
     </div>
   </header>
   <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
 <div class="article-layout">
-  <article class="article-panel">
-    <div>
-      <span class="badge">開放科技</span>
-      <span class="badge">可用材料 / 可進編輯台</span>
-      <span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span>
-      <span class="badge">已載入本機全文</span>
-      <span class="badge">2026-05-21 08:00</span>
-    </div>
-    <h2><a class="article-title-link" href="https://allenai.org/blog/global-accessibility-awareness-day-2026" target="_blank" rel="noreferrer" title="開啟原始連結">用真正開放的基礎打造無障礙檢測工具</a></h2>
-    <p class="lede">這篇介紹 Brendan Works 開發的 PointCheck：一套用 Playwright 模擬鍵盤使用者操作，再結合 MolmoWeb、Molmo 與 Olmo 3 判讀網頁畫面的無障礙檢測工具。文章重點在於，傳統自動化檢測常只看 HTML 或規範符合度，但實際畫面上焦點是否可見、鍵盤操作是否能順利移動，才會直接影響使用者能不能完成任務。PointCheck 也納入縮放、色覺模擬、對比、表單錯誤與結構分析，最後產出較容易給產品與設計人員理解的報告。開源模型與自託管是另一個重點，因為檢測時可能涉及網站畫面與內部服務，不必把截圖交給第三方。</p>
-    <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span><span class="tag-chip">無障礙</span><span class="tag-chip">數位近用</span></div>
-    <div class="actions">
-      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
-    </div>
-    <section class="article-body"><h1>用真正開放的基礎打造無障礙檢測工具 | Ai2</h1>
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-05-21 08:00</span></div>
+      <h1><a class="article-title-link" href="https://allenai.org/blog/global-accessibility-awareness-day-2026" target="_blank" rel="noreferrer" title="開啟原始連結">用真正開放的基礎打造無障礙檢測工具</a></h1>
+      <p class="lede">這篇介紹 Brendan Works 開發的 PointCheck：一套用 Playwright 模擬鍵盤使用者操作，再結合 MolmoWeb、Molmo 與 Olmo 3 判讀網頁畫面的無障礙檢測工具。文章重點在於，傳統自動化檢測常只看 HTML 或規範符合度，但實際畫面上焦點是否可見、鍵盤操作是否能順利移動，才會直接影響使用者能不能完成任務。PointCheck 也納入縮放、色覺模擬、對比、表單錯誤與結構分析，最後產出較容易給產品與設計人員理解的報告。開源模型與自託管是另一個重點，因為檢測時可能涉及網站畫面與內部服務，不必把截圖交給第三方。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span><span class="tag-chip">無障礙</span><span class="tag-chip">數位近用</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>已載入本機全文</h2>
+      <div class="article-text article-markdown"><h1>用真正開放的基礎打造無障礙檢測工具 | Ai2</h1>
 <h2>用真正開放的基礎打造無障礙檢測工具</h2>
 <p>Brendan Works 是西雅圖的一名技術產品與專案經理，專注於輔助型公共運輸服務（paratransit）：這類服務能協助身心障礙者前往工作場所、學校與醫療院所。他近距離看見，數位工具有多常讓最仰賴它們的人失望。 「當預約工具無法使用，或螢幕閱讀器無法瀏覽班表頁面時，這不只是造成不便而已，」Works 說。「它會讓某個人沒辦法去見朋友，或去上課。」 他描述的許多使用者，都仰賴線上輔助科技。低視能者可能會使用瀏覽器縮放或高對比模式。有動作障礙的人，可能完全靠鍵盤瀏覽，按 Tab 鍵從一個互動元素移到下一個。 如果網站在設計時沒有把這些人納入考量，這些工具就會失效。市面上有軟體試圖避免這種情況，但多數都有根本限制：它們只檢查底層程式碼，並把檢查結果與標準無障礙指南比對。問題在於，即使程式碼符合規範，頁面仍可能難以使用。 Works 想要一個能抓出這類情況的工具。於是他利用自己的時間，打造了 <a href="https://pointcheck.org/" target="_blank" rel="noreferrer">PointCheck</a> 這個網頁應用程式，把 <a href="https://allenai.org/molmo" target="_blank" rel="noreferrer">Molmo</a>、<a href="https://allenai.org/blog/molmoweb" target="_blank" rel="noreferrer">MolmoWeb</a> 與 <a href="https://allenai.org/olmo" target="_blank" rel="noreferrer">Olmo 3</a> 串接在一起，從螢幕實際呈現的畫面評估網頁無障礙，而不只是看 HTML 裡有什麼。</p>
 <h3><strong>用於無障礙檢測的視覺檢查器</strong></h3>
 <p>為了補上感知層面的落差，Works 知道他需要兩件事：一種能像鍵盤使用者那樣操作真實瀏覽器的方法，以及一種能以像素層級細節檢查畫面的方法。他在開放框架與模型中找到了兩者。 PointCheck 建構在 Playwright 之上。Playwright 是一套開放的瀏覽器自動化工具，會在背景的 Chromium 視窗中載入目標頁面。Works 撰寫的腳本會先掃描常見鍵盤問題，包括使用者無法用 Tab 鍵離開某個元素、損壞的連結模式、不應互動的元素上綁了點擊處理器，以及會覆蓋頁面自然閱讀順序的 tab-order 數值。 PointCheck 會像使用者一樣用 Tab 鍵逐步瀏覽網頁，並在每一步截圖。第一輪檢測時，Works 選擇 MolmoWeb，因為它是為網頁上的視覺指向任務而設計。每張截圖都會連同提示「找出目前具有鍵盤焦點的元素」送進模型，MolmoWeb 則回傳該元素所在的像素座標。接著，PointCheck 會把同一個區域送到 Molmo，直接詢問畫面上有什麼，包括焦點框是否真的可見。這讓 PointCheck 能確認焦點指示器確實在螢幕上可見，而不只是定義在某個樣式表裡。 焦點指示器是當使用者用 Tab 鍵移到按鈕或連結時，出現在其周圍的視覺提示，通常是彩色外框或輪廓線。它是只用鍵盤的使用者在頁面上定位自己的方式，相當於看見游標正在移動。焦點指示器可能通過所有自動化程式碼檢查，卻因為與背景對比不足而完全看不見。對數百萬只靠鍵盤瀏覽的人來說，這個提示就是知道自己停在「立即購買」按鈕上，或不小心按到「取消」之間的差別。 在 PointCheck 中，鍵盤瀏覽與焦點可見性在底層是兩個獨立測試，用來評估不同缺陷。Works 也加入 200% 縮放測試、針對最常見色盲類型「綠色盲」（deuteranopia）的模擬與對比檢查、以無效資料提交表單，以及頁面標記結構分析。 當 PointCheck 的所有測試模組完成後，Olmo 3 會用淺白英文撰寫結果摘要。Works 選擇 Olmo，是因為報告需要對產品經理或設計師有用，而不只是給無障礙專家閱讀；Olmo 3 在白話綜整方面已經足以勝任。</p>
 <h3><strong>透明度的重要性</strong></h3>
-<p>Works 曾考慮為 PointCheck 使用專有的視覺與文字 API，但最後決定不用。 「PointCheck 的核心就是它應該能完全自行託管，」他說。「你不應該為了取得無障礙判定，就必須把自己頁面的截圖送給[第三方]。有了 Molmo 和 Olmo，你可以取得權重，在自己的基礎架構上執行，沒有任何資料會離開你的環境。」 Works 在一個週末內完成了 PointCheck 的第一版。讓 Playwright 用 Tab 鍵瀏覽頁面並擷取截圖並不困難。比較難的部分，是在不耗盡 VRAM 的情況下，把三個模型塞進單張 A10G GPU，並處理推論程式碼中的邊緣相容性問題。 「但核心概念很快就跑起來了，這讓我能繼續做下去，」Works 說。「我本質上是產品人。我喜歡把東西完成，讓它超越原型。所以我買了網域、切了 DNS、設定基本分析，還做了 logo。」 早期回饋來自曾以無障礙為專業工作的人。一位曾在華盛頓州社會與健康服務部門負責無障礙的前同事告訴 Works：「我有兩年時間一直希望有這樣的東西。關掉螢幕、只靠鍵盤瀏覽，沒有什麼比這更有效，但那很難規模化。」 因此，Works 認為 PointCheck 是現有工具的補充，而不是替代品；它涵蓋的是程式碼檢查永遠碰不到的範圍。 「我感興趣的是，進一步推進到那些據說只有人工驗證才能涵蓋的領域，」Works 說。「我指的是感知層面的東西，也就是那些必須真的看見頁面才需要處理的事。」 PointCheck 很好地示範了開源模型與工具能促成什麼樣的專案。我們釋出權重、訓練資料與程式碼，是因為我們相信，最具變革性的應用，往往是我們事先無法預料的那些。在全球無障礙關注日，我們很高興能參與一項努力，讓開放網路對每個人都更容易瀏覽。 <em>PointCheck 是 Brendan Works 的獨立專案，與他的雇主或 Ai2 無關。Works 以個人身分發言。</em></p></section>
-  </article>
+<p>Works 曾考慮為 PointCheck 使用專有的視覺與文字 API，但最後決定不用。 「PointCheck 的核心就是它應該能完全自行託管，」他說。「你不應該為了取得無障礙判定，就必須把自己頁面的截圖送給[第三方]。有了 Molmo 和 Olmo，你可以取得權重，在自己的基礎架構上執行，沒有任何資料會離開你的環境。」 Works 在一個週末內完成了 PointCheck 的第一版。讓 Playwright 用 Tab 鍵瀏覽頁面並擷取截圖並不困難。比較難的部分，是在不耗盡 VRAM 的情況下，把三個模型塞進單張 A10G GPU，並處理推論程式碼中的邊緣相容性問題。 「但核心概念很快就跑起來了，這讓我能繼續做下去，」Works 說。「我本質上是產品人。我喜歡把東西完成，讓它超越原型。所以我買了網域、切了 DNS、設定基本分析，還做了 logo。」 早期回饋來自曾以無障礙為專業工作的人。一位曾在華盛頓州社會與健康服務部門負責無障礙的前同事告訴 Works：「我有兩年時間一直希望有這樣的東西。關掉螢幕、只靠鍵盤瀏覽，沒有什麼比這更有效，但那很難規模化。」 因此，Works 認為 PointCheck 是現有工具的補充，而不是替代品；它涵蓋的是程式碼檢查永遠碰不到的範圍。 「我感興趣的是，進一步推進到那些據說只有人工驗證才能涵蓋的領域，」Works 說。「我指的是感知層面的東西，也就是那些必須真的看見頁面才需要處理的事。」 PointCheck 很好地示範了開源模型與工具能促成什麼樣的專案。我們釋出權重、訓練資料與程式碼，是因為我們相信，最具變革性的應用，往往是我們事先無法預料的那些。在全球無障礙關注日，我們很高興能參與一項努力，讓開放網路對每個人都更容易瀏覽。 <em>PointCheck 是 Brendan Works 的獨立專案，與他的雇主或 Ai2 無關。Works 以個人身分發言。</em></p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-49cf10ef959cb725.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">開源組織共同回應作業系統年齡驗證要求</span>
+</a>
+
+<a class="article-sequence-link" href="item-045202e181d6702e.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">TODO Group 成立 Agentic AI 工作小組，協助 OSPO 面對 AI 代理工作流</span>
+</a>
+</nav>
+  </div>
 
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>
@@ -319,7 +541,7 @@
   <ul><li>本機決定：accepted-for-editing / 2026-06-23T03:27:40+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
 2026-06-23T03:27:40+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Building accessibility tools on a truly open foundation | Ai2</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：用真正開放的基礎打造無障礙檢測工具（Codex）</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：著作權保護（頁面文字推斷）（推斷）</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Building accessibility tools on a truly open foundation | Ai2</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：著作權保護（頁面文字推斷）（推斷）</li></ul>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:item-2144578c4e6ecbef";
