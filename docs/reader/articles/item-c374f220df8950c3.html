@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>研究體系中的開源研究軟體永續 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T17:21:57+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
+<div class="article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-24 00:45</span></div>
+      <h1><a class="article-title-link" href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/" target="_blank" rel="noreferrer" title="開啟原始連結">研究體系中的開源研究軟體永續</a></h1>
+      <p class="lede">這份 Ithaka S+R 材料聚焦開源研究軟體（OSRS）在高等教育與研究體系中的永續問題。它指出，許多研究者開發軟體是為了完成研究，而不是把軟體本身視為需要長期維護、治理與服務使用者的成果；在重視期刊論文的學術制度中，開源軟體維護也常被低估。材料將永續性拆成社群經營、資金或機構支持、專案治理、技術基礎設施、營運與法律授權等面向，並強調 OSRS 還面臨補助依賴、使用者分散與學術文化障礙。它認為要讓程式碼分享與 OSRS 永續成為常態，可能需要像開放資料與開放取用那樣長期投入與制度化支持。</p>
+
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Sustaining Open Source Software in the Research Enterprise - Ithaka S+R</h1>
+<h2>Sustaining Open Source Software in the Research Enterprise</h2>
+<h2>Findings from a One-Day Workshop</h2>
+<ul>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#" target="_blank" rel="noreferrer">Table of Contents</a></li>
+</ul>
+<p><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#introduction" target="_blank" rel="noreferrer">Introduction</a></p>
+<ul>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#workshop-activities" target="_blank" rel="noreferrer">Workshop activities</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#defining-sustainability-in-open-source-research-software" target="_blank" rel="noreferrer">Defining sustainability in open source research software</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#challenge-1-what-is-the-value-proposition-for-universities-why-should-they-prioritize-osrs" target="_blank" rel="noreferrer">Challenge 1: What is the value proposition for universities? Why should they prioritize OSRS?</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#challenge-2-how-can-we-know-who-is-or-could-be-using-an-osrs-product" target="_blank" rel="noreferrer">Challenge 2: How can we know who is or could be using an OSRS product?</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#challenge-3-how-can-we-overcome-researchers-cultural-barriers-to-open-culture" target="_blank" rel="noreferrer">Challenge 3: How can we overcome researchers’ cultural barriers to open culture?</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#challenge-4-who-should-be-responsible-for-sustaining-osrs" target="_blank" rel="noreferrer">Challenge 4: Who should be responsible for sustaining OSRS?</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#challenge-5-what-extra-institutional-support-is-needed-to-sustain-osrs" target="_blank" rel="noreferrer">Challenge 5: What extra-institutional support is needed to sustain OSRS?</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#policy-recommendations" target="_blank" rel="noreferrer">Policy recommendations</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#glossary" target="_blank" rel="noreferrer">Glossary</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#appendix-1" target="_blank" rel="noreferrer">Appendix 1</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#appendix-2" target="_blank" rel="noreferrer">Appendix 2</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#appendix-3" target="_blank" rel="noreferrer">Appendix 3</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#practical-guide-for-sustaining-open-source-software-in-the-research-enterprise" target="_blank" rel="noreferrer">Practical Guide for Sustaining Open Source Software in the Research Enterprise</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#endnotes" target="_blank" rel="noreferrer">Endnotes</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#introduction" target="_blank" rel="noreferrer">Introduction</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#workshop-activities" target="_blank" rel="noreferrer">Workshop activities</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#defining-sustainability-in-open-source-research-software" target="_blank" rel="noreferrer">Defining sustainability in open source research software</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#challenge-1-what-is-the-value-proposition-for-universities-why-should-they-prioritize-osrs" target="_blank" rel="noreferrer">Challenge 1: What is the value proposition for universities? Why should they prioritize OSRS?</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#challenge-2-how-can-we-know-who-is-or-could-be-using-an-osrs-product" target="_blank" rel="noreferrer">Challenge 2: How can we know who is or could be using an OSRS product?</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#challenge-3-how-can-we-overcome-researchers-cultural-barriers-to-open-culture" target="_blank" rel="noreferrer">Challenge 3: How can we overcome researchers’ cultural barriers to open culture?</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#challenge-4-who-should-be-responsible-for-sustaining-osrs" target="_blank" rel="noreferrer">Challenge 4: Who should be responsible for sustaining OSRS?</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#challenge-5-what-extra-institutional-support-is-needed-to-sustain-osrs" target="_blank" rel="noreferrer">Challenge 5: What extra-institutional support is needed to sustain OSRS?</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#policy-recommendations" target="_blank" rel="noreferrer">Policy recommendations</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#glossary" target="_blank" rel="noreferrer">Glossary</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#appendix-1" target="_blank" rel="noreferrer">Appendix 1</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#appendix-2" target="_blank" rel="noreferrer">Appendix 2</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#appendix-3" target="_blank" rel="noreferrer">Appendix 3</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#practical-guide-for-sustaining-open-source-software-in-the-research-enterprise" target="_blank" rel="noreferrer">Practical Guide for Sustaining Open Source Software in the Research Enterprise</a></li>
+<li><a href="https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#endnotes" target="_blank" rel="noreferrer">Endnotes</a></li>
+</ul>
+<h2>Introduction</h2>
+<p>Open source software (OSS) is increasingly recognized as a core component of open science. [[1]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-1) Higher education has served as the seedbed for highly successful OSS such as Apache, Linux, R, Python, Jupyter, and Scalar. [[2]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-2) Universities have also played a significant role in advancing OSS for their own use, including for teaching and learning and administration, partly in response to concerns about the cost of higher education and the movement towards open academic and administrative systems. The most visible and largest-scale products to result from these investments include learning management platforms like Open edX, Sakai, and Moodle, as well as administrative platforms such as Kuali and OpenCampus. [[3]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-3) While the open source software used for scholarly research (referred to throughout this report as “open source research software,” or OSRS) often shares with these products an origin in higher education, it has significant features that differentiate it from these other contexts. For example, researchers who develop OSRS are often more focused on the scholarship they are pursuing than on the software they develop to facilitate that pursuit. Indeed, in an environment that incentivizes peer-reviewed journal articles over other research outputs, open source research software is often regarded as little more than a means to a specific end. Sustainability is a major challenge for even the most successful open source software. OSS with any meaningful user base typically requires ongoing community engagement to improve and maintain code. [[4]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-4) OSS sustainability also includes identifying a viable model for funding or institutional support; project governance (e.g., decision-making on product roadmaps); technology infrastructure (e.g., code repositories, bug-tracking software, etc.); business operations (e.g., accounting, invoicing, etc.); and navigating legal and licensing issues. Indeed, estimates suggest that many academic open source software projects are abandoned within their first few years because of limited understanding of sustainability needs and models. [[5]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-5) Open source research software often faces further challenges, such as a reliance on grant funding and the devaluation of open source development and maintenance in the academic incentive structure. [[6]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-6) Dispersed across specialized research communities, OSRS in particular has yet to secure a firm institutional footprint, and its “maintenance, continued growth, and improvement historically has been deprioritized by institutions, publishers, and funders as a less important byproduct of the researc... OSRS sustainability will not be achieved quickly. Through the concerted efforts of many stakeholders in the research enterprise and the development of and investment in supportive infrastructure, it has taken over 10 years to make data sharing an established practice, and over 20 years to reach a point where Open Access publication is widely accepted. A comparable level of investment is likely necessary to normalize code sharing and OSRS sustainability. “Sustaining Open Source Software in the Research Enterprise” (SOSSRE), a one-day in-person workshop made possible with generous funding from the National Science Foundation, [[8]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-8) Alfred P. Sloan Foundation, [[9]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-9) and a gift from Chan Zuckerberg Initiative, was designed to accomplish the following goals in support of bolstering the ecosystem of open source research software and developing holistic pathways for sustaining it within higher education:</p>
+<ul>
+<li>Define sustainability in the context of open source research software and articulate unique sustainability challenges and resources in that context.</li>
+<li>Identify potential methods for sustaining OSRS within higher education, determine their feasibility, and prioritize them for implementation.</li>
+<li>Strengthen a sense of community among people who use and/or develop OSRS and catalyze relationships between this group and people in other OSS communities.</li>
+</ul>
+<p>For details about the workshop organizers, see Appendix 1. For information about the participants, see Appendix 2. This report primarily focuses on OSRS in the higher education context, although it also has relevance to OSRS in other parts of the research enterprise including national laboratories and other government labs as well as industry research labs.</p>
+<h3>Executive summary</h3>
+<p>The SOSSRE workshop took place on August 8, 2025. The following report provides a detailed account of the workshop activities and findings about the sustainability of open source research software. Several key challenges and opportunities emerged from workshop discussions:</p>
+<ul>
+<li><strong>Define a value proposition:</strong>Until a clear and meaningful value proposition for OSRS sustainability is defined and widely accepted, it will be difficult to achieve.</li>
+<li><strong>Recognize software as scholarship:</strong> Existing incentive structures for researchers do not adequately acknowledge the scholarly value of open source research software. Sustainability requires a movement to reform incentives to recognize software as a research artifact and to transform existing citation practices and requirements throughout the research enterprise.</li>
+<li><strong>Embrace student workforce development:</strong>Students have much to contribute to the open source workforce given their willingness to do routine tasks in service of their own learning. Students also benefit from contributing to OSS, gaining critical workforce skills and experience solving real-world problems. This alignment between open source goals and the teaching and learning mission of universities creates opportunities for sustainability, both in terms of strengthening OSRS communities and in terms of convincing campus partners to support open source projects.</li>
+<li><strong>Coordinate campus-wide OSS activity:</strong>A central point for institutional OSS coordination is integral to OSRS sustainability. Whether that is an administrator, an Open Source Program Office (OSPO), a Tech Transfer Office (TTO), or the library, it is valuable to have someone at an institution whose job it is to advocate for open source trainings, develop organizational open source policies (e.g., licensing, RTP), and serve as a knowledgeable link between individual researchers developing OSS and the wider OSS ecosystem.</li>
+<li><strong>Break down academic silos</strong>: OSRS sustainability depends on integrating the distinct perspectives of the researcher community and the open source community and creating more opportunities for them to work together. Researchers looking to sustain OSRS should look beyond their institution to the wider OSS ecosystem and form collaborative relationships with outside entities. [[10]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-10)</li>
+<li><strong>Fund OSS as infrastructure:</strong>Perpetual grant funding is not a viable sustainability solution for most OSRS. The types of funding systems used to finance buildings and utilities may be a better approach. Many potential models could work, including government budget line items, endowments, new funding models for grants (e.g., the FAIR model), [[11]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-11) institutional membership dues, stock options, and user donation subscriptions. While not all these ideas are feasible in the short term, the common underlying factor is the provision of a continuous, reliable funding stream that OSS projects could rely upon.</li>
+<li><strong>Build software catalogs:</strong>A key challenge for OSRS sustainability is discovery. A system for categorizing and tagging software—likely developed by an entity outside the academy—would improve many sustainability challenges, although it is not clear what model would be most effective. Proposed ideas include: software archives for the purpose of reproducibility and transparency; software maps of usage and dependencies in order to calculate impact factor; and software “nutrition labels” to encourage adoption and trust.</li>
+<li><strong>Develop sector-wide standards:</strong>Sustainability differs depending on the goals of the project: while some OSS should be actively maintained indefinitely, others should be documented and archived. The OSS community would benefit from collectively developing a set of standards whereby researchers can determine which of these two categories their project belongs to at a given time. Funder mandates, which have been essential to other open science cultural shifts, would help disseminate standards throughout the research enterprise.</li>
+</ul>
+<p>This is one of two reports on the SOSSRE workshop. A companion report, published by the Apereo Foundation, will include a practical guide and recommendations for researchers.</p>
+<h2>Workshop activities</h2>
+<p>The one-day SOSSRE workshop comprised four sessions. The two morning sessions were aimed at establishing a shared vision of the problems to be solved, while the two afternoon sessions were designed to generate solutions to the problems. The morning sessions began with a plenary roundtable discussion to begin articulating the success factors common to all OSS. Plenary participants included:</p>
+<ul>
+<li>Patrick Masson, Executive Director, The Apereo Foundation (moderator)</li>
+<li>Cat Allman, VP, Open Source, Digital Science</li>
+<li>Dr. Karmen Condic-Jurkic, Executive Director, Open Molecular Software Foundation</li>
+<li>Clare Dillon, Community Lead, CURIOSS</li>
+<li>Dr. Allison Randal, Senior Researcher, Capabilities Limited</li>
+</ul>
+<p>The panelists described the definitions, metrics, and working models of sustainability in their sector(s). Then, participants were divided into five assigned groups of eight people each for the first breakout session, where they discussed sustainability factors relevant to their experience and identified five critical challenges specific to open source research software:</p>
+<ul>
+<li>Challenge 1: What is the value proposition for universities? Why should they prioritize OSRS?</li>
+<li>Challenge 2: How can we know who is or could be using an OSRS product?</li>
+<li>Challenge 3: How can we overcome researchers’ cultural barriers to open culture?</li>
+<li>Challenge 4: Who should be responsible for sustaining OSRS?</li>
+<li>Challenge 5: What extra-institutional support is needed to sustain OSRS?</li>
+</ul>
+<p>The afternoon sessions began with a breakout into five groups, each responsible for solving one of the five challenges. Participants selected the group they wanted to work on and completed a Think-Pair-Share exercise to generate a mock grant proposal around a solution to the table’s challenge. After solving the first challenge in depth, participants completed a lightning round, during which they were encouraged to quickly move to each of the other tables in turn and generate solutions to the remaining four challenges. At the end of the day, each table’s moderator summarized for the entire group the solutions to their challenges discussed during the afternoon sessions. The full workshop agenda is presented in Appendix 3. The thought-partnership of the workshop continued in the post-workshop survey, where participants were asked to describe the solutions or ideas presented at the workshop that they found most promising and that they would be most interested in developing. Workshop participants were also given access to a conference website on the open source XWiki platform, where 12 people chose to contribute to a discussion board with sustainability advice and useful references. [[12]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-12) The outcomes from the discussion board, along with the survey results, have been incorporated into the discussion below. Additional commentary has been added to contextualize participants’ comments.</p>
+<h2>Defining sustainability in open source research software</h2>
+<p>In the SOSSRE workshop’s morning sessions, participants examined the concept of sustainability and its relevance to OSRS with an eye toward establishing common ground and a shared understanding of the problems to be solved. The concept of sustainability was borrowed from the environmental sciences. It was not originally a software term, as plenary speakers explained, yet it provides a helpful model for understanding OSS communities. Several participants throughout the day accordingly used botanical analogies to define OSS sustainability. For example, one participant compared OSS to a plant that needs time and resources to grow. In another example, participants compared OSS to a rainforest, a finite resource that will be depleted if we consume it without contributing to it. However, a limitation with this analogy is its faulty assumption that all OSS <em>should</em> be sustained (see “Motivational sustainability” below). Perhaps a better analogy proposed by participants is that OSS is a garden, a space maintained by people for a purpose. Other workshop participants referenced past efforts to define sustainability, which emphasized the persistence of software over time alongside its ability to meet new needs and fulfill its intent. [[13]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-13) Throughout the morning session, participant discussions revealed four interdependent dimensions that together define OSRS sustainability:</p>
+<ul>
+<li><strong>Motivational:</strong>Sustainability is defined by the purpose of the software and the individual incentives of the people working on it.</li>
+<li><strong>Infrastructural:</strong>Sustainability is defined by the extent to which software is considered to be infrastructure, a communal resource to which other communal resources flow.</li>
+<li><strong>Archival:</strong>Sustainability is defined by preservation in the scholarly record and is conceptualized as similar to cataloguing and documenting the provenance of historical artifacts.</li>
+<li><strong>Relational:</strong>Sustainability is defined by the strength and resilience of relationships between people and depends on the leadership and culture of communities.</li>
+</ul>
+<p>Each of these four approaches to defining sustainability surfaced different challenges and opportunities, as we describe below.</p>
+<h3>Motivational sustainability</h3>
+<h4>Goals of the project</h4>
+<p>One of the most important prerequisites for defining sustainability in OSRS is identifying why you are sustaining the software in the first place. Sustainability only has meaning in the context of the purpose or goal of the software itself. Participants noted that sustainability can be measured by the difference between what a piece of software is and what the community of users and developers would like it to be. [[14]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-14) In some cases, the purpose of the software may be defined by the number of users: plenary speaker Cat Allman memorably described purpose-built software for a single person as “more of a Q-tip than a hammer—you don’t reuse Q-tips.” Someone who creates OSRS to solve a specific research problem may have no interest in sustaining it beyond that use. Some projects may never be large enough to sustain a community or business model and may have only been open-sourced due to funder requirements, in which case the software should be sustained by being archived or forked. However, software that can be used by others or repurposed for other functions should be designed with these other uses in mind in order to be sustainable. The purpose of the software can also be defined by the type of users. OSRS projects with a small individual user base and little potential for expansion may operate below the notice of their home institutions. However, for OSRS with wider applications, the potential for institutional adoption brings larger questions about institutional policy to the fore. Institutional adoption of OSRS projects occurs at three levels. At the enterprise level, OSRS can be installed and maintained by central IT, available to anyone on campus. While this is uncommon, Harvard’s Dataverse and some other project management tools and data repositories provide examples. At the integrated level, OSRS can be adopted and supported by an individual campus department or unit, such as Dartmouth’s Geospatial Learning Hub which supports several open source GIS applications. [[15]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-15) At this level, OSRS may be installed on campus machines in a computer lab or be maintained by a departmental IT tech who handles troubleshooting; some degree of institutional sanction of the software is necessary to receive install permissions and allocate resources for maintenance. Finally, at the individual level, some university personnel are writing their own code. Institutions may maintain standards and requirements for software created on campus that delineate everything from copyright and licensing to how code is posted to GitHub. For example, MIT’s SuperCloud HPC includes instructions for installing R an... The purpose of the software can also be defined by its real-world impacts on the research enterprise. That is, what sustainability means for a given software project depends on whether the software is 1) commercially viable; 2) not commercially viable but socially valuable in terms of its impact (e.g., “if five people make software that cures cancer, that’s a big impact”); or 3) neither commercially nor socially valuable, but valuable in terms of scientific transparency. Software’s social impact affects how important it is that it be actively maintained, how many resources should be allocated to it, etc. One challenge to sustainability is that many higher ed administrators are unaware of the social impacts of the open source research software being created and maintained at their institutions. The purpose of the software can also be defined by its adaptability. Some OSS tools are foundational, and there’s a desire for them to never change; for example, “no one should touch” the COBOL code. But with other software, there is a need for constant maintenance to keep pace with scientific advances, add new features, and respond to the user community’s needs. Sustainability means something different in each of these cases. Sustainability can also shift quickly when new security issues arise. Thus, sustainability has a different meaning for research software across various axes, such as the number and type of users, the real-world impact, and the code’s adaptability. Participants again drew on an environmental model of sustainability to note that, according to evolutionary principles, it may be inevitable that some software dies or forks. However, it may be valuable to develop criteria to determine which OSRS should be maintained and which should not. One participant suggested that the Open Source Program Offices (OSPOs) that have opened at several universities could play a role in helping make these judgment calls.</p>
+<h4>Goals of the people</h4>
+<p>Sustainability can also be defined by the motivations of the people working on it. Historically, many OSS workers have been motivated by “fun” and “profit;” that is, intrinsic and extrinsic motivations, respectively. [[17]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-17) The earliest developers were volunteers who viewed their work on OSS as addressing a personal need, and many people who work on OSS today still view it in this way. Some OSS workers are happy to give their labor away for free because they enjoy the process and the products. However, while this is a strength, it is also a weakness when it comes to sustaining open source research software: much of the critical maintenance work that needs to be done to sustain OSRS is “toil,” [[18]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-18) or “grunt work,” as one of the participants put it, and there is a tension between what users need and what the community of contributors want to spend their free time working on. This gap, between the work that must be done and the fact that no one will do it for fun or profit, is a major sustainability challenge in OSRS. Some researchers today are motivated to work on research software out of a desire to monetize it, creating a disconnect between what might be most profitable and what the project needs. However, the desire to earn money from labor on OSRS can help sustain motivation. The rise of the research software engineer (RSE) career path is one major area where the financial motive intersects with OSRS. RSEs are highly specialized software developers who are also scholarly researchers, often with a PhD in their research domain, and who may or may not have a passion or interest in open source principles. [[19]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-19) RSEs are paid to develop research software, but one participant characterized them as expensive and hard to retain. Though RSEs’ expertise makes them a vital part of sustaining open source research software, some participants also spoke about RSEs’ responsibility to recognize the other, important non-development labor that makes a project successful and to mentor others with less advanced coding literacy. [[20]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-20) One participant stated that it would be useful to understand how the day-to-day working lives and needs of RSEs differ from those of people who work in the commercial tech industry, proposing this as an area for further study. This brings us to the other personal motivations of OSS workers, beyond “fun” and “profit,” that might sustain open source research software. Most OSRS is developed and used in the context of academia, and academia has a built-in teaching and learning aspect. Students are often willing to do the “grunt work” that no one else wants to do if it can serve as a learning experience or an apprenticeship of sorts, an onboarding pathway to other open source work that they would rather do in the future. One participant noted that at their institution, “we have an army of students who are glad to work” on open source research software. Including open source maintenance and contributions as part of coursework, independent studies, or work study programs could help sustain projects while also providing students with workforce skills. Traditional academic incentive structures can motivate faculty and staff in higher ed to work on open source research software. For example, faculty creation of or contribution to OSRS can be considered scholarship or service and thus count towards retention, tenure, and promotion, graduate fellowships can be awarded to open source contributors, and staff performance evaluations can factor in open source contributions. Some institutions have already made strides towards incorporating data and software into traditional incentive structures; for example, the University of Maryland considers “software applications or other media products” to meet the criteria for modified tenure. [[21]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-21) However, most institutions do not currently incentivize researchers to produce long-term outputs like OSRS, instead encouraging serial publications and treating OSRS as an add-on to scholarship rather than as a research output in its own right. This creates a challenge for OSRS sustainability since researchers have limited time and prefer to spend it on tasks that will advance their careers, earn them institutional recognition, and allow them to keep their jobs. One participant also pointed out that the dichotomy between “fun” and “profit” as motivations for researchers misses the goal of utility. OSRS tools are built to support bleeding edge research where the tools researchers need don’t already exist. An aspect of OSS sustainability that takes on unique features in the academic research context is the impact of novelty on individual motivation. As one participant put it, “is the continuous cycle of new people [in academia] an opportunity or a challenge?” On the one hand, novelty is an opportunity. Participants noted that it is human nature to find new projects in OSRS to be exciting. Novelty motivates people to work and additional motivations are not needed. One participant shared that postdoctoral fellowships at their institution are short and that this poses an exciting and motivating challenge for the postdocs to see what they can accomplish in that short time. Novel OSS projects are also easier to fund. However, the flip side of this is that software operating costs and overhead—or any project to improve what already exists rather than create new features—are “boring” and thus difficult to fund. OSRS developers in academia typically work under PIs whose academic incentives prioritize novelty, which can make these PIs non-ideal custodians of OSRS. This, and the constant churn of new student workers, could make it difficult to establish a sustainable governance model.</p>
+<h3>Infrastructural sustainability</h3>
+<p>After motivation, participants’ most salient approach to defining sustainability in open source research software was to consider OSRS as a form of infrastructure. [[22]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-22) In this view, sustaining OSRS—the virtual spaces where research takes place—is understood as equivalent to maintaining physical research spaces such as labs and equipment, buildings, roads, utilities, etc. This dimension of OSRS sustainability focuses heavily on open source software as an ecosystem with complex and unexpected dependencies, on open source funding and business models, and on support systems within and outside institutions.</p>
+<h4>Awareness of dependencies</h4>
+<p>A report on US <em>physical</em>infrastructure describes it as “taken for granted.” [[23]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-23) This seems to be an inevitable characterization of all infrastructure, since it is human nature to be incognizant of the proverbial water we swim in, the systems we rely on every day without recognizing the circumstances that allow them to persist. This same lack of awareness applies to the view of OSS as infrastructure. Many researchers who are not computer scientists depend on these tools without knowing their origin or their maintenance needs, never anticipating that they could disappear one day. As one SOSSRE participant noted, OSS is similar to a forest where “you’re consuming more than you produce. Eventually you’ll have no trees left. Software is similar, we’re consuming it and not thinking about the fact that someone had to create it, fix the bugs, provide the hosting, pay the workers. It’s very easy to use OSS and not think about how someone, somewhere, had to produce it.” As with university indirect costs and overhead funding, [[24]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-24) it is not immediately obvious to the untrained how the resources that sustain OSS are used, so their necessity is thrown into doubt. Participants spoke about convincing senior administrators in higher ed to care about open source research software at their institutions by emphasizing that it is being used and develop... Because obliviousness presents a risk to sustainability, participants advocated for a marketing campaign to draw attention to OSS’s centrality among university stakeholders, funders and policymakers, and the general public. “Building more awareness of the importance of OSS in our lives is critical to gaining more support for sustainability (from the public, funders, institutions, etc.),” one participant noted. Participants proposed marketing campaigns such as a Day Without OSS where all OSS was turned off, or a translation of campaigns on rainforest deforestation that would “show” people what the tech debt of sustaining OSS looks like and bring consciousness to the loss that would take place if OSS disappeared. The complex dependencies within the open source ecosystem make awareness critical. Participants stressed that the value proposition of OSS is its ubiquity: 90 percent of all software is OSS, it is “the underpinning of the entire digital infrastructure.” [[25]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-25) Our economy is dependent on OSS in the same way as it is dependent on raw materials. In order to innovate, you need a foundation to innovate from: OSS is that foundation. In this way OSS serves as a “commons”—a resource used by everyone but which no one is responsible for. [[26]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-26) Participants stressed that it is critical for administrators to understand how dependent the university is on OSS. On the one hand, this dependency can serve as a metric for the maturity and real-world impact of open source research software, showcasing the good work researchers contribute to the community. On the other, if administrators do not know which university operations depend on OSS, they can’t ensure operational systems are designed properly, and they may be blindsided by security threats. For example, departmental computer labs with OSRS installed may be at risk if the software is not kept up to date. One participant proposed a model for OSRS projects to test and reveal their infrastructural dependencies. Just as banks perform “stress tests” to game out the consequences of shifts in the financial system, so these software “challenge events” could be used as a scenario to strengthen OSRS project sustainability. For instance, when presented with a hypothetical crisis such as “your primary developer has a major health crisis and can no longer be involved,” the OSRS community could work to document how they would respond, in the process uncovering sustainability challenges that they could then mitigate.</p>
+<h4>Resource allocation</h4>
+<p>Participants noted that, like other infrastructure, OSRS needs a continuous, reliable infusion of funding. Participants referenced the Principles of Open Scholarly Infrastructure—a values-based framework adopted by many open science organizations—and its assertion that one-time funding should not be used for ongoing needs. [[27]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-27) Participants gave several examples of the current state of affairs where OSS does not receive the sustainable funding it needs: funders supporting software development but not maintenance; projects with year-to-year budgets; the stress of continuous grant applications; and institutional funding for open source software that excludes OSRS. In contrast, participants pointed to funding systems for existing infrastructure as models for what they consider to be sustainable funding. For example, campus research infrastructure is often funded with indirect costs received from grants (although this arrangement is currently being reexamined). Universities support some of their operations with interest earned on endowments. Public universities receive government appropriations from tax dollars. Infrastructure outside the academy (for example, some nonprofits) can on occasion be funded sustainably through crowdsourcing or through a subscription model. Participants also referenced funding models that have worked for other OSS: Drupal and WordPress thrive through multi-vendor ecosystems and broad adoption, while GIS software has longevity partly due to state-level investments and public sector support. While none of these models is a perfect fit for funding the majority of OSRS, participants hoped that they could serve as an inspiration to create a sustainable funding stream for OSRS. Participants gave particular attention to solutions for a constant funding stream that revolved around an office that already exists and is institutionalized at many universities: the Tech Transfer Office (TTO). Given the slow speed and difficulty of change in academia, linking maintenance of OSRS to infrastructure that already exists holds a lot of appeal. However, there were barriers to this idea. TTOs are designed to generate revenue which supports their own operations through software developed at the institution. While the market for some software (e.g., for collaboration or file management) might be able to generate profit and be commercially viable for a private company, the market for research software is usually too small to be profitable; instead, research software generally aims to be self-sustaining, though it still requires initial funding outlays to get to that point. This creates a structural disadvantage for open source projects in comparison with proprietary research outputs: OSRS projects need adoption before investment, but they need investment before adoption. Furthermore, TTOs can be skeptical of OSS; [[28]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-28) one participant described interacting with a TTO that did not see OSS as part of their mission. See “Institutional level” below for potential solutions involving TTOs. Participants’ discussions of how funding should flow to OSRS projects also focused on the question of responsibility for sustaining those projects. When infrastructure is held in common by many people who depend on it—and who have varying levels of awareness of that dependency—whose responsibility is it to keep that software running? One participant noted that this question “gets into capitalism and socialism and worldviews. There’s not one right answer.” It’s clear that OSRS projects need a better safety net or checkpoints for sustainability, but it’s not clear who will provide those things. Part of the difficulty of determining responsibility for sustaining OSRS is the distributed nature of decision making in higher ed. While companies might declare software to be “mission critical” and enforce this hierarchically, academia’s shared governance model means that researchers work for themselves and that institutions cannot mandate their behavior. Different stakeholders pursuing their own objectives can create a responsibility vacuum: one participant gave an example of a particular IT department which runs a high performance computing (HPC) resource on campus without understanding how faculty members at the institution are using the resource. There is no one in a position of authority above both groups who is responsible for integrating their two perspectives, so there is no one to determine how resources should best be allocated to address all stakeholders’ needs. The question of responsibility also relates to project ownership. When it is difficult to determine who owns an OSS project (the researchers, the institution, the funder, etc.), it is also difficult to determine who is responsible for sustaining it. Participants asked: “Who pays to maintain datasets, core infrastructure, or software after the initial funding lifecycle ends?” This is a question, not just of where the money comes from, but of determining whose job it is to ensure the project has the resources it needs to continue to exist. Defining open source research software as infrastructure necessitates raising public awareness about its complex dependencies, creating a reliable and constant funding stream, and assigning responsibility to particular entities to carry out these tasks.</p>
+<h3>Archival sustainability</h3>
+<p>The third dimension of defining sustainability that featured prominently in SOSSRE discussions was the lens of the scholarly record. In this view, open source research software is treated as a form of scholarship, and sustainability is primarily accomplished by ensuring that OSRS is cataloged, tracked, and properly attributed. “Discoverability is critical for the reproducibility of science,” participants noted. Just as the Open Science agenda has raised expectations that researchers will publish their findings in open access venues and append data to their publications, [[29]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-29) funders are increasingly requiring that sponsored software development result in open source applications. This momentum towards publishing the code used to realize research findings pertains regardless of whether the code is being actively maintained—even “Q-tip software” or one-time-use code must be made available in the interests of transparency, as other scholars will want to look at, review, and run the code as part of future research. Participants mentioned Software Heritage, an organization whose mission is to create a “Library of Alexandria” for publicly available code, and Invest in Open Infrastructure’s Infra Finder, noting that software can only be repurposed and reused if it can be found. Preserved in this way, OSS can still be sustained even if it is not maintained. As with data publication, code discoverability is especially important for publicly-funded research. When taxpayers fund its development, it is important that OSS be available as a public good (according to the “Public Money, Public Code” principle), yet participants felt that funder support for maintaining these tools over time should be expanded and universalized. Some federal funding application requirements are purposefully vague as to whether software is a research product; this leaves consideration of OSRS sustainability up to the researcher. One participant described a situation where they relied explicitly on funder requirements for OSRS sustainability to push back against institutional resistance. Discoverability is also important in terms of trust. For individual researchers who consider adopting an OSRS application, it may be difficult to determine whether the software should be used for a research task: Does the software do what it is supposed to? Is it scientifically up-to-date? Is it being actively maintained for troubleshooting and so that new feature requests can be incorporated? Potential institutional adopters may also have concerns about the trustworthiness of code: Will it be fixed if it breaks? Does it present a security risk to install on campus computers? Will it be around long enough to merit the resource expenditure of maintaining it? Institutional IT procurement procedures typically ensure due-diligence for the acquisition of proprietary software through Requests For Proposals (RFPs). Such assessments determine whether the proprietary software vendor is solvent, how many employees they have, whether they are involved in litigation, etc. [[30]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-30) For OSRS that might be adopted at the enterprise or departmental level, it is possible to adapt these same procurement procedures by applying the same due-diligence: Is the project active according to its current version date, release cycle frequency, etc.? How many contributors does it have? How many bug reports/issues are unresolved? CHAOSS’s metrics models could be incorporated into existing procurement processes. [[31]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-...</p>
+<blockquote>Which bucket of faculty responsibilities does software development fall into—teaching, research, or service, or perhaps professional development?</blockquote>
+<p>The matter of tracking the usage and adoption of open source research software (necessary for archival sustainability) is further complicated by a lack of consensus around determining credit, authorship, and ownership. The rotating cast of people doing the work on an open source project doesn’t always match up with the official governance structure, and it may even be difficult to determine which people belong to which group. Then there is the issue of whether OSRS is owned by the researcher(s), the institution, or the funder, and whether they are aware of what ownership means. According to SOSSRE participants, “universities are overly protective of intellectual property, and researchers are afraid of being scooped,” particularly when financial risk is involved. Funders who are knowledgeable about open source issues may be able to pressure institutions’ legal departments to allow software to be open-sourced, but this workaround does not apply in all cases. And finally there is the question of whether the software itself should count as a publication, or if it is instead a tool that <em>leads</em> to publications and is cited in them. Which bucket of faculty responsibilities does software development fall into—teaching, research, or service, or perhaps professional development? This thorny set of problems around who has permission to publish OSRS and how it should be cited must be solved before archival sustainability can be achieved.</p>
+<h3>Relational sustainability</h3>
+<p>The fourth prominent approach to defining sustainability in open source research software focuses on the management and leadership of the community and group dynamics of the workers on an open source project. Separate from individuals’ motivation for participating, this approach focused on the persistence of the group over time and its ability to self-perpetuate, in terms of change management, leadership, governance, communication, and culture. As one participant put it, having “a dedicated passionate group of people” is the most essential feature for ensuring project sustainability. Planning for the future is an important metric of organizational success: sustainability should be a concern from the inception of a project. Yet few standardized playbooks exist for sustaining OSS projects. Without a widespread, shared body of practice, projects often reinvent the wheel or collapse when leadership or funding ends. One participant stressed the importance of open-sourcing a project from the very beginning; [[32]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-32) postponing the open source release often makes it more difficult to get all the stakeholders on board. Participants described change as a constant in OSS projects and stated that the most sustainable projects are those that build resilience and adaptability into their leaders and developers, citing studies of change management that show that regular small changes are more tolerable than occasional large changes. Teaching the skill of change management (which one participant compared to “therapy”) to community members is necessary in the context of open source research software in order to deal with the “artificially forced timescale of engagement at the four-year university”—which makes knowledge transfer difficult—and to promote innovation. Regular monitoring and review of community goals can identify misalignment and provide a direction for needed changes. According to some participants, change should be driven by leaders, but leaders can be resistant to change. Meritocracies may not always create leaders with the skills to promote long-term sustainability—if everything must go through one person it can create a bottleneck that strangles the organization. It can be difficult for leaders to let go of control; as one participant put it (referencing the term first used for Guido van Rossum, the creator of Python), “‘benevolent dictators for life’ tend to result in ugly coups,” so it’s necessary to develop succession plans and exit strategies for leaders. For open source research software, different academic roles—e.g., a post-doc who will leave in a few years vs. a tenured researcher—represent different levels of sustainability risk. One participant suggested that developing personas or profiles of OSS leadership styles could help researchers determine where they fit. Embrace of change is also necessary to ensure that the culture of an OSS community remains open to new contributors. Without regular reflection about their governance model, community members can develop private in-jokes, jargon, and assumptions about others’ knowledge base, making it difficult for newcomers to get involved or for research collaborators to be converted into technical (code) collaborators. Participants emphasized that representation of all stakeholders—developers, users, and institutions—in governance of open source research software was a core concept of democracy and essential for sustainability. Representation feeds adaptability to change because users know what a project needs and developers know what works. The challenge is in making sure that the institution (which likely contributes many of the resources) doesn’t dominate decision making. Participants also spoke about the importance of including non-core developers and non-tech contributors like librarians or archivists. The value of this openness extends to cultivating collaboration over forks, leaving space for people who have left the project to return. Flexible information tools that enable read permissions (transparency), write permissions (inclusion), and administrative permissions (decision rights) can enable the necessary degree of openness to change. Communication is another tool for relational sustainability that participants considered to be non-negotiable, but the research enterprise tends not to recognize the essential nature of communication-related labor (e.g., organizing, coordinating) to the success of a project as much as it recognizes software development. Communication can mean people skills, standards of propriety exemplified in codes of conduct, or documentation and comments in the code. Participants gave many examples of collaboration challenges in OSRS. For example, a project was supposedly transparent about being open source, but its legal department was unaware, emphasizing the importance of communicating with non-technical partners and external infrastructure. In another example, faculty who were highly invested in their own software projects were uncomfortable contributing to a central resource and sharing with each other in a highly productive R1 environment. Communication can refer to both internal and external collaboration, and participants also stressed the importance of establishing an ecosystem of open source research software into which new projects can be socialized. Here, sustainability means taking advantage of existing work, projects, and groups; it means cultivating communities of practice across campus (disciplines, departments) and within and outside institutions; it means leveraging potential partners’ skills, resources, and expertise. It means gaining an awareness of users and potential users and connecting them with each other, not just through the core project. It means working with OSPOs (or other parts of the campus) as a neutral resource to help all potential contributors, projects, departments, and disciplines be more collaborative. According to participants, “growing the community is the only way for sustainability to work, so try to find collaborators with a long-term interest in the software.”</p>
+<blockquote>Sustainability means taking advantage of existing work, projects, and groups; it means cultivating communities of practice across campus (disciplines, departments) and within and outside institutions.</blockquote>
+<h3>Summary of challenges</h3>
+<p>In discussing these definitions of sustainability and what they mean for open source research software, participants emphasized some challenges more than others. The five most salient challenges were:</p>
+<ul>
+<li>Challenge 1: What is the value proposition for universities? Why should they prioritize OSRS?</li>
+<li>Challenge 2: How can we know who is or could be using an OSRS product?</li>
+<li>Challenge 3: How can we overcome researchers’ cultural barriers to open culture?</li>
+<li>Challenge 4: Who should be responsible for sustaining OSRS?</li>
+<li>Challenge 5: What extra-institutional support is needed to sustain OSRS?</li>
+</ul>
+<p>In the following sections, we discuss the results of the afternoon session, where participants generated solutions to each challenge.</p>
+<h2>Challenge 1: What is the value proposition for universities? Why should they prioritize OSRS?</h2>
+<p>In order for institutions to assume responsibility for sustaining open source research software, they need to agree that they should do so, and then they need to incorporate this belief throughout all levels of the institutional structure. SOSSRE participants spoke about their experiences trying to gain support for OSRS efforts from upper administrators, and some shared sample “elevator pitches” for how to convince university leaders that OSRS is important. One participant stated that working together to create an effective value proposition would be the most effective step participants could take after the workshop, and that the value proposition should encompass not only open source research software but also open source enterprise software such as learning management systems, etc. However, participants were not able to define a clear and compelling OSRS value proposition for institutions. It is likely that, rather, several value propositions are necessary to speak to the specific interests and motivations of key university decision makers. Funders and other stakeholders hoping to build on the work of SOSSRE should focus their investment on identifying these value propositions. Participants determined that, once value proposition(s) for OSRS are defined, they need a standardized process for propagating them throughout the institution and throughout the research enterprise as a whole. For example, Offices of Research, OSPOs, and Tech Transfer Offices could play an educational role by embedding open source awareness into compliance and onboarding processes for employees and administrators. Open source advocates could create materials such as playbooks, governance templates, and frameworks to communicate the value of OSRS to policymakers and funders, which institutional leaders could then use to advocate for OSRS funding at the federal and state levels. While brainstorming OSRS value propositions, participants identified two main arguments for prioritizing OSRS:</p>
+<ul>
+<li><strong>Mission alignment:</strong>OSRS is a good fit for universities’ teaching &amp; learning and research missions.</li>
+<li><strong>Reputational benefits:</strong> Institutional investment in OSRS could lead to reputational prestige with the public and other institutions.</li>
+</ul>
+<h3>Mission alignment</h3>
+<p>Most universities incorporate teaching and learning into their mission; many also incorporate research leadership; and many incorporate both. Participants argued that universities should prioritize OSRS because it aligns with both their teaching and learning and their research missions. In teaching and learning, participants argued, engagement with OSS is a high-impact practice that contributes to workforce development, producing graduates better prepared for collaborative, digital-first careers. [[33]](https://sr.ithaka.org/publications/sustaining-open-source-software-in-the-research-enterprise/#post-325189-footnote-33) The OSS community is highly collaborative across geographical and political borders, requiring no official credentials to participate. This creates a low barrier to entry for students at the course and lab level. With a little instructional design assistance, faculty whose courses already include fundamental instruction in coding, computing, and collaboration would be well equipped to build hands-on, active learning experiences with OSRS that strengthen students’ skills in these areas. OSRS also provides opportunities for student internships and work-study, applied research, and interdisciplinary practice, and under some circumstances could earn students a line on their CV or a publication. Graduates with open source skills and hands-on experience in foundational computing, coding, and collaboration will have a leg up in a technology-focused job market that favors teamwork and communication. Open source communities also epitomize the forward-looking research currents of open science, interdisciplinary collaboration, and community engagement. OSRS projects offer opportunities for scholars in many disciplines to contribute: in addition to computer scientists and research field-specific experts, these projects have potential roles for business and law school faculty, data librarians, education researchers and social scientists specializing in organizational or social psychology, and designers or cognitive scientists who work on human-computer interaction. Furthermore, by allowing disparate researchers to come together on a single project, OSRS reduces duplication of effort...</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-d2dfad50644d6f89.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">FSFE：英格蘭 NHS 不應把公共程式碼藏到閉門之後</span>
+</a>
+
+<a class="article-sequence-link" href="item-42f872ac738b80d4.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">肯亞開源軟體堆疊成形：政府設立 OSPO 推動主權數位基礎設施</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-c374f220df8950c3.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-23T17:04:44+00:00</li><li>審稿備註：2026-06-23T17:04:44+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Sustaining Open Source Software in the Research Enterprise - Ithaka S+R</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Chelsea McCracken（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-c374f220df8950c3";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
