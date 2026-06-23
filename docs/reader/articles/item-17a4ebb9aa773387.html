@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FSF 關於 GNU Savannah 安全回報的聲明 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-19 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-19 08:00</span></div>
       <h1><a class="article-title-link" href="http://www.fsf.org/news/statement-regarding-gnu-savannah-security-reports" target="_blank" rel="noreferrer" title="開啟原始連結">FSF 關於 GNU Savannah 安全回報的聲明</a></h1>
       <p class="lede">FSF 發出一則關於 GNU Savannah 安全回報的聲明。從標題只能保守判斷，這可能與自由軟體專案託管平台的安全通報、處理流程或外界報告回應有關；但缺少內文，無法確認事件內容、影響範圍、FSF 立場或是否已有修補行動。</p>
       <div class="tag-chip-list"><span class="tag-chip">FSF</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>Statement regarding GNU Savannah security reports — Free Software Foundation — Working together for free software</h1>
 <h2>Statement regarding GNU Savannah security reports</h2>
 <p>In early May, security researchers from <a href="https://hacktron.ai" target="_blank" rel="noreferrer">Hacktron</a> reported vulnerabilities affecting <a href="https://savannah.gnu.org" target="_blank" rel="noreferrer">GNU Savannah</a> and demonstrated an exploit. We have been working with these researchers since their initial report, and have also addressed additional security issues they submitted. All reported issues have been patched thanks to the hard work of GNU and FSF volunteers, as well as FSF staff. After thorough review, we have found no reason to believe that sensitive project data or credentials were accessed, nor that there has been any compromise of Savannah&#x27;s software supply chain. Nevertheless, we take the security of the GNU system, the tools which make it possible, and the projects we host very seriously. This body of software has become essential to millions (if not billions) of users around the world. We are therefore taking additional precautionary steps. Though the initial security issue was reported to us in early May, the vulnerabilities were discovered in software that was published approximately two years prior. We will be communicating directly with Savannah-hosted projects about steps they can take to review and strengthen the security of their projects. We have also communicated with the other Savane instances we&#x27;re aware of to assist their review of their own environments, and take any steps needed to help protect their users. If you host your own instance of the Savane forge and believe you may be affected, you can contact us for guidance on mitigation steps and patching your systems. We thank Hacktron for informing us about these issues. As we have <a href="https://www.fsf.org/bulletin/2025/spring/defending-savannah-from-ddos-attacks" target="_blank" rel="noreferrer">previously documented</a>, maintaining critical free software infrastructure requires sustained effort, specialized expertise, and long-term resilience. These requirements have increased exponentially in the last few years. Systems like Savannah support essential collaboration across the free software movement, and keeping them reliable and secure depends on the work of dedicated volunteers and staff. If you would like to help us with the increased security challenges we are facing, please consider becoming an <a href="https://my.fsf.org/join" target="_blank" rel="noreferrer">associate member</a> or <a href="https://my.fsf.org/donate" target="_blank" rel="noreferrer">making a donation</a>. This statement is intended as an initial notice. We expect to publish a report on the incident within 30 days.</p>

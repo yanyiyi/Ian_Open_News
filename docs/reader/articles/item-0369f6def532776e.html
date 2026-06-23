@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FSFE：數位主權、公共程式碼、Apple 互通性訴訟與歐洲自由軟體近況 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-07 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-07 08:00</span></div>
       <h1><a class="article-title-link" href="https://fsfe.org/news/nl/nl-202606.en.html" target="_blank" rel="noreferrer" title="開啟原始連結">FSFE：數位主權、公共程式碼、Apple 互通性訴訟與歐洲自由軟體近況</a></h1>
       <p class="lede">這篇 FSFE 月報把多個歐洲自由軟體政策進展放在同一篇：歐盟技術主權政策包納入「公共資金，公共程式碼」原則，FSFE 認為若要成為真正轉向，仍需要具約束力的規則、長期資金與公民社會參與；NHS England 曾因擔心公開程式碼被 AI 掃描找漏洞而將多數公共程式碼庫設為私有，FSFE 批評這並不能帶來真正安全，反而削弱外部檢視與再利用，後續英國政府數位服務也發布指引，主張公共機關應預設公開程式碼。文中也提到 FSFE 參與 Horizon Europe 下的 Restack 計畫，將為大量自由軟體專案提供法律與授權支援；另一個重點是 FSFE 獲准介入 Apple 挑戰歐盟執委會 DMA 互通性要求的案件，試圖在平台監管訴訟中代表公民社會與軟體自由觀點。</p>
       <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">public code</span><span class="tag-chip">FSF</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>數十年努力的勝利、Apple 調查發現、法律工作坊成果與第 50 集 podcast</h1>
 <h2>數位主權需要自由軟體</h2>
 <p>過去幾週，我們第二次獲准在歐盟法院就 Apple 相關案件提出介入（！）；同時，歐盟執委會也把「Public Money? Public Code!（公共資金？公共程式碼！）」原則納入其「技術主權套案」。請持續關注！一個新的歐洲聯盟即將啟動，而我們也是其中一員。 這個月一開始就有好消息：歐盟執委會在新發布的「技術主權套案」中，納入了自由軟體基金會歐洲分會（Free Software Foundation Europe, FSFE）的「Public Money? Public Code!」原則；該套案也包含新的「開源策略」。如果真正落實，這可能象徵一場典範轉移，讓公帑資助的軟體能以自由軟體形式釋出。不過，現在還不是可以鬆懈的時候：<a href="https://fsfe.org/news/2026/news-20260603-01.en.html" target="_blank" rel="noreferrer">它的成功將取決於具約束力的規則、長期資金，以及有意義的公民社會參與</a>。 然而，並非所有公共行政機關都抱持相同想法。英格蘭國民保健署（NHS England）基於擔心公開程式碼儲存庫可能被 AI 系統掃描、用來找出漏洞，已預設將多數公開原始碼儲存庫改為私有。FSFE 對此立場很清楚：<a href="https://fsfe.org/news/2026/news-20260504-01.en.html" target="_blank" rel="noreferrer">NHS England 不應把公共程式碼藏在閉門之後</a>。下架公開內容不會讓程式碼變得沒有人看過，也不會移除既有副本，更不是有效的安全措施。相反地，這會移除安全的一項根本支柱：讓獨立專家、研究者與其他公共機關能夠檢視、重複使用、改進程式碼，並回報安全問題的能力。 我們呼籲自由軟體社群透過簽署<a href="https://keepthingsopen.com/" target="_blank" rel="noreferrer">給 NHS England 的公開信</a>，要求他們維持程式碼開放，來推動撤回這項決定。社群反應相當強烈，在我們發出呼籲後的幾個小時內，就新增超過 500 份連署。不久後，英國 Government Digital Service 發布新的指引，明確指出公共機關應預設維持程式碼公開。 透過自由軟體實現數位主權，也是我們最新一集 Software Freedom Podcast 的主題。在這集中，Bonnie 與 Johannes 與 X-Road 的 Petteri 對談，討論公共行政中的自由軟體專案目前面臨的挑戰。<a href="https://fsfe.org/news/podcast/2026/episode-51.en.html" target="_blank" rel="noreferrer">歡迎收聽！</a> 你可能已經知道，儘管歐洲需要數位主權，<a href="https://fsfe.org/news/2024/news-20240719-01.en.html" target="_blank" rel="noreferrer">Next Generation Internet Zero（NGI0）等歐洲專案的資金卻遭到刪減</a>。我們很高興能分享這方面的好消息：我們最近宣布了一個新的歐洲聯盟，目標是打造具韌性、在地生長的歐洲科技生態系，也就是 Restack 專案。 在 Horizon Europe 架構下，<a href="https://fsfe.org/news/2026/news-20260528-01.en.html" target="_blank" rel="noreferrer">FSFE 是這項階梯式資助計畫的合作夥伴，該計畫旨在延續 NGI Zero 方法的優勢</a>。我們的角色將是為可能超過 200 個自由軟體專案提供法律與授權支援，並協助它們成長為更廣泛歐洲數位公地的一部分。</p>

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>你的 AI 沒壞，是你的資料壞了 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-17 08:00</span></div>
       <h1><a class="article-title-link" href="https://thenewstack.io/clario-data-enterprise-ai-rot/" target="_blank" rel="noreferrer" title="開啟原始連結">你的 AI 沒壞，是你的資料壞了</a></h1>
       <p class="lede">Clario 以企業資料 ROT，也就是 redundant、obsolete、trivial data，解釋許多企業 AI 專案成效不佳的原因。它主張企業檔案庫裡大量重複、過時或無用資料不只增加儲存成本，也會污染內部 agent 與 RAG 系統的資料基礎。這家公司連接 Google Drive、SharePoint、OneDrive、Box、Confluence 等系統，先用 metadata、checksum、命名模式、存取時間與格式支援狀態判斷可疑檔案，再透過 Slack 或 Teams 要內容擁有者決定保留、封存或刪除。文章的亮點在於呈現 AI 基礎建設從模型轉向資料品質治理的產業敘事，但許多數字與案例來自公司說法，需保留查核空間。</p>
 
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><p>企業正把數十億美元投入 AI，換回來的卻是一堆垃圾結果。一家新創公司說，它知道原因，也打造出第一個專門解決這個問題的平台。 Clario 週三脫離隱形模式，宣布取得 600 萬美元種子輪資金，要處理共同創辦人暨執行長 <a href="https://www.linkedin.com/in/yousufakhan/" target="_blank" rel="noreferrer">Yousuf Khan</a> 所稱的資料 ROT 問題：冗餘、過時、瑣碎的檔案推高儲存成本，也從源頭污染 AI 專案。 Khan 在聲明中表示：「ChatGPT 問世四年後，企業已在專案上花了數十億美元，卻沒有產生有意義的影響。『垃圾進，垃圾出』不是陳腔濫調，而是代價極高的錯誤。」 業界估計，所有已儲存的<a href="https://thenewstack.io/how-precog-adds-business-context-to-make-enterprise-data-ai-ready/" target="_blank" rel="noreferrer">企業資料</a>中，有超過三分之一屬於垃圾類別。Gartner 也預測，因為資料品質不佳，到年底將有 60% 的 AI 專案遭到放棄。Clario 自己早期客戶工作的結果，甚至把這個數字推得更高。Khan 說，在與設計合作夥伴進行的測試中，該公司發現垃圾資料比例最高可達 60%。 Khan 曾五度擔任 CIO，在成為 Ridge Ventures 普通合夥人之前，曾在 Pure Storage 與 Moveworks 擔任這個職位。他說，自己在每一站都不斷撞上同一堵牆。他告訴 <em>The New Stack</em>：「我曾多次嘗試用所有大型檔案系統來解決這個問題，但都做不到。」ChatGPT 推出後，AI 生成內容開始湧入企業儲存庫，問題也變得更加嚴重。 共同創辦人暨技術長 <a href="https://www.linkedin.com/in/madhu-vohra/" target="_blank" rel="noreferrer">Madhu Vohra</a> 則帶來基礎架構面的經驗。她的職涯都在打造這些資料最後會進入的系統，包括在 NetApp 設計叢集式 SAN、在 Nutanix 擴展工程團隊，以及領導 Oracle 在 OCI 的區塊與物件儲存。 她告訴 <em>The New Stack</em>：「我曾打造讓人們得以大量累積資料的重要系統。所以我現在是在贖罪。」</p>
 <h2>運作方式</h2>
 <p>Clario 可直接連接企業檔案與內容系統，包括 <a href="https://thenewstack.io/address-high-scale-google-drive-data-exposure-with-bulk-remediation/" target="_blank" rel="noreferrer">Google Drive</a>、SharePoint、OneDrive、Box 與 Confluence，並掃描中繼資料，在完全不開啟檔案本身的情況下找出垃圾。Vohra 說，目前分類是以啟發式規則為基礎，使用檔案 checksum、命名模式、存取時間戳記與格式支援狀態。她也指出，AI 與以 embedding 為基礎的偵測已列入產品路線圖。 當 Clario 標記某個檔案時，它會透過 Slack 或 Teams 觸發工作流程，通知建立或擁有該內容的人，並請對方選擇保留、封存或刪除。系統會從這些決定中學習，逐步建立越來越自動化的清理引擎。Clario 只有在客戶對被標記的檔案採取行動時才收費。這是一種以成果為基礎的模式，讓公司的誘因與實際資料減量保持一致。 ROT 分成三類：冗餘檔案（重複與近似重複檔）、過時檔案（沒有人能開啟的舊格式、多年未被動過的文件、離職員工留下的內容），以及瑣碎檔案（隱藏檔、雜訊）。Vohra 說，早期客戶分析已找出數 TB 的廢棄資料，包括已停產產品線的知識庫文章，以及前員工下載的完整電影長片。 為了避免誤判，Clario 的模型調校方向是重視精準率勝過召回率，也就是只標記它有把握判定為垃圾的內容。 Khan 說：「任何我們認為難以判讀的東西，我們都想先提出來。」他補充，目標是先處理容易摘取的成果，在進入更模糊的領域之前建立信心。</p>

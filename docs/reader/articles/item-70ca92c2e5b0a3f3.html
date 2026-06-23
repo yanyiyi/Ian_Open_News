@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>跨越兩岸，開源人遇見 COSCUP - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2024-01-15 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2024-01-15 08:00</span></div>
       <h1><a class="article-title-link" href="https://blog.csdn.net/kaiyuanshe/article/details/132331754" target="_blank" rel="noreferrer" title="開啟原始連結">跨越兩岸，開源人遇見 COSCUP</a></h1>
       <p class="lede">這則資料看起來是同一篇〈跨越兩岸，開源人遇見 COSCUP〉在 CSDN 的版本，內容介紹 COSCUP 的開源社群背景、開發者與使用者直接交流的重要性，以及開源社參與 COSCUP 2023 的情況。摘要補充指出文章聚焦台灣 COSCUP 年度研討會、全球開源社群交流，以及開源透明協作如何支撐軟體品質。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">COSCUP</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>跨越两岸，开源人遇见 COSCUP-CSDN博客</h1>
 <h2>跨越两岸，开源人遇见 COSCUP</h2>
 <p><strong>COSCUP 是由台湾开放原始码社群联合推动的年度研讨会，起源于 2006 年，是台湾自由软体运动 (FOSSM) 重要的推动者之一。</strong>活动包括有讲座、摊位、社团同乐会等，除了邀请国际的重量级演讲者之外，台湾本土的自由软体推动者也经常在此发表演说，会议的发起人、工作人员与讲者都是志愿参与的志工。COSCUP 的宗旨在于提供一个联结开放原始码开发者、使用者与推广者的平台。希望藉由每年一度的研讨会，来推动自由及开放原始码软体 (FLOSS)。由于有许多赞助商及热心捐助者，所有议程都是免费参加。 开源 (Open Source) 是在 1998 年出现的名词，大家早已耳熟能详。这种在网路上已经进行二、三十年的软体开发模式之所以能成功，有许多原因。其中一个极为关键的因素，就是开发者与使用者的直接接触。无屏障的交流加速了问题的回报和修补机制，而当这个机制被网路效应放大到极限时，Linus 定律就出现了：「臭虫难逃众人法眼」(With enough eyeballs, all bugs are shallow)，软体品质因此显著提升。 <strong>在开放原始码的模式中，开发者和使用者中间的人不再是销售员或客服，而是让软体更容易被接受的推广者 (Promoters)，他们打包套件让软体更好装、写说明文件让软体更易学、办推广活动让更多人接触到好软体、在网路上回答问题解决使用者的疑惑，而且不会把开发者藏在背后产生资讯的不对称。</strong> 开发者 (Coders)、使用者 (Users) 和推广者 (Promoters) 是让自由及开放原始码软体发光发热的三大支柱，这个研讨会就是专为这三种人举办的：你可以是 A 软体的开发者、B 软体的推广者、C 软体的使用者，不论你是已经踏入自由及开放原始码软体领域，还是一直站在门口不知如何入门，欢迎你来参加 <strong>COSCUP — Conference for Open Source Coders, Users and Promoters!</strong> 为期两日的活动，COSCUP 收录了超过 38 个论坛，每日有 28 个实体会议室同时进行不同论坛议题的发表，有超过 50 个社区一同大放异彩，其中也包含开源社在内，线下参与者也超过数千人。<strong>开源社本次以远程的形式参与发表于 Golang 、综合议题、Open World Tour 等论坛，采用会议软件实时与台下观众进行问答环节的互动，问答也十分踊跃，即便是远程进行会议也能够进行深度交流。</strong> 可惜的是，这次的盛会，开源社顾问委员会委员以及正式成员们有十几位报名提交了演讲，然而由于签证问题，最后只有林旅强、高须正和以及刘天栋（Ted）三位能到场参加和分享，余者只能远程分享。以下的大会精彩内容即是刘天栋等人亲身参与的记录。 无论是在中国开源年会、FOSSASIA Summit 或是在 COSCUP，我们总是能见到开源社正式成员 “高须正和” （穿红衣者）活跃的身影，尤其是 party，他不会错过滴！ 刘天栋由于参加了 Linux 基金会 7 月 27 日在日内瓦举办的 Open Source Congress（另有专文介绍，请关注），因此只能参加 7 月 30 日的 COSCUP&#x27;23 第二天议程，无法参加这个热闹的会前接待 party 了。 <strong>大会议程：</strong>https://coscup.org/2023/zh-TW/session</p>

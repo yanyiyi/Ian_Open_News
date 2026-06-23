@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>用真正開放的基礎打造無障礙檢測工具 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-05-21 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-05-21 08:00</span></div>
       <h1><a class="article-title-link" href="https://allenai.org/blog/global-accessibility-awareness-day-2026" target="_blank" rel="noreferrer" title="開啟原始連結">用真正開放的基礎打造無障礙檢測工具</a></h1>
       <p class="lede">這篇介紹 Brendan Works 開發的 PointCheck：一套用 Playwright 模擬鍵盤使用者操作，再結合 MolmoWeb、Molmo 與 Olmo 3 判讀網頁畫面的無障礙檢測工具。文章重點在於，傳統自動化檢測常只看 HTML 或規範符合度，但實際畫面上焦點是否可見、鍵盤操作是否能順利移動，才會直接影響使用者能不能完成任務。PointCheck 也納入縮放、色覺模擬、對比、表單錯誤與結構分析，最後產出較容易給產品與設計人員理解的報告。開源模型與自託管是另一個重點，因為檢測時可能涉及網站畫面與內部服務，不必把截圖交給第三方。</p>
       <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span><span class="tag-chip">無障礙</span><span class="tag-chip">數位近用</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>用真正開放的基礎打造無障礙檢測工具 | Ai2</h1>
 <h2>用真正開放的基礎打造無障礙檢測工具</h2>
 <p>Brendan Works 是西雅圖的一名技術產品與專案經理，專注於輔助型公共運輸服務（paratransit）：這類服務能協助身心障礙者前往工作場所、學校與醫療院所。他近距離看見，數位工具有多常讓最仰賴它們的人失望。 「當預約工具無法使用，或螢幕閱讀器無法瀏覽班表頁面時，這不只是造成不便而已，」Works 說。「它會讓某個人沒辦法去見朋友，或去上課。」 他描述的許多使用者，都仰賴線上輔助科技。低視能者可能會使用瀏覽器縮放或高對比模式。有動作障礙的人，可能完全靠鍵盤瀏覽，按 Tab 鍵從一個互動元素移到下一個。 如果網站在設計時沒有把這些人納入考量，這些工具就會失效。市面上有軟體試圖避免這種情況，但多數都有根本限制：它們只檢查底層程式碼，並把檢查結果與標準無障礙指南比對。問題在於，即使程式碼符合規範，頁面仍可能難以使用。 Works 想要一個能抓出這類情況的工具。於是他利用自己的時間，打造了 <a href="https://pointcheck.org/" target="_blank" rel="noreferrer">PointCheck</a> 這個網頁應用程式，把 <a href="https://allenai.org/molmo" target="_blank" rel="noreferrer">Molmo</a>、<a href="https://allenai.org/blog/molmoweb" target="_blank" rel="noreferrer">MolmoWeb</a> 與 <a href="https://allenai.org/olmo" target="_blank" rel="noreferrer">Olmo 3</a> 串接在一起，從螢幕實際呈現的畫面評估網頁無障礙，而不只是看 HTML 裡有什麼。</p>

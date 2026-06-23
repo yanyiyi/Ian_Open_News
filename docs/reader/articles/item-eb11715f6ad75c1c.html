@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>G7 如何區分「開源 AI」與「開放權重」 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-02 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-06-02 08:00</span></div>
       <h1><a class="article-title-link" href="https://redmonk.com/sogrady/2026/06/02/g7-open-weights/" target="_blank" rel="noreferrer" title="開啟原始連結">G7 如何區分「開源 AI」與「開放權重」</a></h1>
       <p class="lede">Stephen O&#x27;Grady 分析 G7 最新 AI openness 文件，指出 G7 一方面肯定開源與 AI 開放性帶來的社會與經濟價值，另一方面也承認「Open Source AI」與「Open-Weight」的意義仍有爭議。文章的核心判斷是，AI 模型的開放程度無法像傳統程式碼一樣用開源／閉源二分法界定，因為模型權重、部署程式碼、訓練程式碼、訓練資料與使用限制都會影響實際可重製性與可用性。G7 因此提出四層分類，從完整開放資料與程式碼的 Open Source AI with Open Data，到只開放權重與部分程式碼但含使用限制的 Weights Available AI。作者認為這等於承認單一定義難以同時滿足原則派與務實派，並可能讓「開放權重」成為比「開源 AI」更可操作的產業語言。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">free software</span><span class="tag-chip">開源 AI</span><span class="tag-chip">開放權重</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>The G7 on Open Source vs Open Weights</h1>
 <h4><a href="https://redmonk.com/sogrady" target="_blank" rel="noreferrer">tecosystems</a></h4>
 <p>By <a href="https://redmonk.com/sogrady/author/sogrady/" target="_blank" rel="noreferrer">Stephen O&#x27;Grady</a> | <a href="https://twitter.com/sogrady" target="_blank" rel="noreferrer">@sogrady</a> | June 2, 2026 Share via Twitter Share via Facebook Share via Linkedin Share via Reddit The term “open source” was <a href="https://opensource.com/article/18/2/coining-term-open-source-software" target="_blank" rel="noreferrer">coined in 1998</a>, at least in part, because the term that preceded it was unclear and required explanation. Free software was descriptive and understood within technical communities familiar with it, but misleading to newcomers who understood free in commercial rather than philosophical terms. It was clear, in other words, that a new descriptor was required, and open source was the result. Two years after the introduction of a proposed definition for open source AI, adoption has been minimal and there is an increasing awareness that unlike with pure source code, the assets that make up an AI model cannot be reduced to a single, binary open and closed definition. It’s not that the licenses and promises of open source as they pertain to source code are simple. They can be complex, nuanced and difficult to explain. But they are, at least, that binary. Code is either open source or it’s not. By contrast, it’s now clear that open source AI – of which code is only a small part – is going to have to be defined along a spectrum from closed to open. The <a href="https://en.wikipedia.org/wiki/G7" target="_blank" rel="noreferrer">G7 nations</a> – with input from parties like <a href="https://opensource.org/blog/open-source-initiative-helps-g7-deliver-vision-on-ai-openness" target="_blank" rel="noreferrer">the OSI</a> – apparently concur. Their <a href="https://www.entreprises.gouv.fr/files/files/Actualites/2026/g7/vision-AI-openness-opportunities-and-shared-language.pdf" target="_blank" rel="noreferrer">paper</a> published this week, “G7 Vision on AI openness opportunities and shared language,” has several important takeaways. Among them:</p>

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SFC 發布 FOSS 貢獻使用 LLM 生成式 AI 的建議 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-18 08:00</span></div>
       <h1><a class="article-title-link" href="https://sfconservancy.org/news/2026/jun/18/llm-backed-generative-ai-recommendations/" target="_blank" rel="noreferrer" title="開啟原始連結">SFC 發布 FOSS 貢獻使用 LLM 生成式 AI 的建議</a></h1>
       <p class="lede">Software Freedom Conservancy 發布一份給 FOSS 貢獻者參考的 LLM 生成式 AI 使用建議，由其 Copyleft 與 Software Right to Repair 團隊和自由軟體社群志工共同草擬，並納入公開場次、會議及會員專案的回饋。文章強調，LLM 生成式 AI 對 FOSS 貢獻者帶來困難抉擇，因此這份文件不是定義或強制要求，而是最佳實務建議，目標是在開發者拒用、被雇主要求使用，或自願使用相關系統時，盡量減少專有系統對自由軟體生態造成的傷害。SFC 也預告後續會持續補充教學、問答、podcast 等材料並修訂建議。</p>
       <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>SFC 發布 FOSS 貢獻者使用 LLM 生成式 AI 的建議</h1>
 <p>Software Freedom Conservancy（SFC）今日發布<a href="https://sfconservancy.org/llm-gen-ai/llm-backed-generative-ai-recommendations.html" target="_blank" rel="noreferrer">《FOSS 貢獻者使用 LLM 支援的生成式 AI 系統時的建議》</a>。SFC 的 Copyleft 與軟體維修權團隊，與自由軟體社群的一組志工合作，共同起草了這份政策建議。這些建議也納入了 SFC 在持續舉辦的公開場次，以及與 SFC 會員專案會議中收到的大量回饋。 這些建議反映出，這類系統對 FOSS 貢獻者造成的極其困難的兩難處境。SFC 與志工們理解，FOSS 開發者是從各種不同角度看待 LLM 生成式 AI（LLM-gen-AI）。無論 FOSS 貢獻者拒絕 LLM 生成式 AI，或選擇使用它們（不論是自願，或因雇主要求），這份建議都提供實務協助，以盡量降低使用專有系統所造成的傷害。 這些建議是最佳實務，但不是定義或要求；它們是 SFC 與志工們在仔細研究 FOSS 貢獻者日益增加的 LLM 生成式 AI 使用情形後所制定。SFC 接下來會推出一<a href="https://sfconservancy.org/llm-gen-ai" target="_blank" rel="noreferrer">系列支援材料</a>，包括文件、線上教學、公開問答、<a href="https://sfconservancy.org/casts/the-corresponding-source/" target="_blank" rel="noreferrer">Podcast</a>，以及其他社群參與活動。SFC 將定期修訂這些建議，並持續支持 FOSS 貢獻者在這個困難局面中前進。</p></div>
     </section>

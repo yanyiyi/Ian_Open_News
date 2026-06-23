@@ -127,6 +127,7 @@ TRACK_META = {
     },
 }
 TRACK_ORDER = ["open-tech-open-industry", "digital-humanities-local-knowledge", "unclassified"]
+ONLINE_READER_BASE_URL = "https://technews.ospo.tw/reader"
 LOCAL_TIMEZONE = ZoneInfo("Asia/Taipei")
 SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast", "facebook", "inoreader-monitor", "spreadsheet", "manual"]
 SOURCE_STATUSES = ["active", "paused", "archived"]
@@ -2313,6 +2314,15 @@ def item_detail_href(item: dict) -> str:
     return f"/items/view?id={quote(str(item.get('id', '')))}"
 
 
+def public_reader_article_filename(item: dict) -> str:
+    item_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(item.get("id")) or "item").strip("-")
+    return f"{item_id}.html"
+
+
+def public_reader_article_url(item: dict) -> str:
+    return f"{ONLINE_READER_BASE_URL}/articles/{public_reader_article_filename(item)}"
+
+
 def resolve_final_url(url: str, timeout: int = 12) -> tuple[str, str]:
     url = unwrap_google_alert_url(clean_text(url))
     if not url:
@@ -2855,6 +2865,8 @@ def action_icon(action: str) -> str:
         "preview": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
         "refresh": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5"></path><path d="M4 18v-5h5"></path><path d="M19 11a7 7 0 0 0-12-4"></path><path d="M5 13a7 7 0 0 0 12 4"></path></svg>',
         "edit": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11a2.5 2.5 0 0 0-4-4L4 16z"></path><path d="M13 6l5 5"></path></svg>',
+        "share": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 8l5-5 5 5"></path><path d="M5 12v7h14v-7"></path></svg>',
+        "copy": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
         "translate": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h10"></path><path d="M9 5v14"></path><path d="M4 19h10"></path><path d="M16 10h4l-2 8"></path><path d="M15 18h6"></path></svg>',
         "note": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M8 8h8"></path><path d="M8 12h8"></path><path d="M8 16h5"></path></svg>',
         "tag": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.5l-7 7a2 2 0 0 1-2.8 0L3 12.8V4h8.8l8.7 8.7a2 2 0 0 1 0 2.8z"></path><circle cx="7.5" cy="8" r="1.5"></circle></svg>',
@@ -3417,7 +3429,7 @@ def page(title: str, body: str) -> bytes:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{h(title)} - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {{
       --ocf-primary: #6450dc;
       --ocf-light: #d7dcf0;
@@ -3435,9 +3447,9 @@ def page(title: str, body: str) -> bytes:
       --accent: var(--ocf-primary);
       --humanities: var(--ocf-dark);
       --danger: #9f2525;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
-      --paper: #fffaf0;
+      --paper: #fffdf7;
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -3494,32 +3506,107 @@ def page(title: str, body: str) -> bytes:
     h1 {{ font-size: 28px; margin: 0 0 12px; }}
     h2 {{ font-size: 20px; margin: 30px 0 12px; }}
     h3 {{ font-size: 16px; margin: 0 0 8px; }}
-    .title-editor {{
-      margin: 0 0 10px;
+    .article-title-block {{
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }}
+    .article-title-heading {{
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      min-width: 0;
+    }}
+    .article-title-heading h1 {{
+      flex: 1 1 auto;
+      min-width: 0;
+      margin: 0;
+      color: var(--ocf-dark);
+    }}
+    .article-title-tools {{
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding-top: 2px;
+    }}
+    .article-title-menu {{
+      position: relative;
+      margin: 0;
       padding: 0;
       border: 0;
       background: transparent;
     }}
-    .title-editor summary {{
+    .article-title-menu summary {{
       cursor: pointer;
       list-style: none;
-      display: grid;
-      gap: 2px;
     }}
-    .title-editor summary::-webkit-details-marker {{ display: none; }}
-    .title-editor summary h1 {{ margin-bottom: 2px; color: var(--ocf-dark); }}
-    .title-editor summary:hover h1 {{ color: var(--link); }}
-    .title-editor form {{
-      max-width: 760px;
+    .article-title-menu summary::-webkit-details-marker {{ display: none; }}
+    .title-icon-button {{
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--ocf-dark);
+      display: inline-grid;
+      place-items: center;
+      box-shadow: 0 1px 2px rgba(15,25,35,.05);
+    }}
+    .title-icon-button:hover,
+    .article-title-menu[open] .title-icon-button {{
+      border-color: var(--ocf-cyan);
+      background: #eefcff;
+      color: #00699f;
+      text-decoration: none;
+      transform: none;
+    }}
+    .title-icon-button svg {{
+      width: 18px;
+      height: 18px;
+    }}
+    .title-popover {{
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      z-index: 80;
+      width: min(720px, calc(100vw - 56px));
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
+      box-shadow: 0 14px 34px rgba(15,25,35,.16);
+    }}
+    .title-editor form {{
+      max-width: none;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
     }}
     .title-editor-fields {{
       display: grid;
       gap: 12px;
-      margin-top: 10px;
+    }}
+    .share-panel {{
+      width: min(360px, calc(100vw - 56px));
+    }}
+    .share-url-field {{
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      font: inherit;
+      color: var(--ocf-dark);
+      background: #f8fafc;
+    }}
+    .copy-status {{
+      min-height: 1.2em;
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }}
     p {{ margin: 8px 0; }}
     a {{ color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }}
@@ -4589,7 +4676,9 @@ def page(title: str, body: str) -> bytes:
       font-family: var(--article-serif);
       font-weight: 260;
       line-height: 2.05;
-      letter-spacing: .01em;
+      letter-spacing: 0;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
       box-shadow: 0 14px 34px rgba(58, 45, 18, .10), 0 1px 0 rgba(255,255,255,.85) inset;
     }}
     .reader-card .fulltext-panel .article-text {{
@@ -4653,6 +4742,11 @@ def page(title: str, body: str) -> bytes:
       border-left: 4px solid var(--ocf-cyan);
       background: #f7fbfe;
       color: #30445f;
+    }}
+    .article-markdown strong,
+    .article-markdown b,
+    .article-markdown a {{
+      font-weight: 550;
     }}
     .article-markdown a {{ overflow-wrap: anywhere; }}
     .article-markdown code {{
@@ -4729,6 +4823,9 @@ def page(title: str, body: str) -> bytes:
       .article-sequence-link span {{ display: none; }}
       .item-hero {{ grid-template-columns: 1fr; }}
       .article-title-grid {{ grid-template-columns: 1fr; }}
+      .article-title-heading {{ display: grid; gap: 8px; }}
+      .article-title-tools {{ padding-top: 0; }}
+      .title-popover {{ left: 0; right: auto; }}
       .item-image--compact {{ height: 180px; }}
       .metric-row {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .layout-toggle {{ width: 100%; justify-content: space-between; }}
@@ -4848,6 +4945,43 @@ def page(title: str, body: str) -> bytes:
         peer.classList.toggle("is-active", active);
         peer.setAttribute("aria-pressed", active ? "true" : "false");
       }});
+    }});
+  }});
+
+  document.querySelectorAll(".article-title-menu").forEach((menu) => {{
+    menu.addEventListener("toggle", () => {{
+      if (!menu.open) return;
+      document.querySelectorAll(".article-title-menu").forEach((other) => {{
+        if (other !== menu) other.open = false;
+      }});
+    }});
+  }});
+
+  document.querySelectorAll("[data-copy-share-url]").forEach((button) => {{
+    button.addEventListener("click", async () => {{
+      const url = button.dataset.copyShareUrl || "";
+      const panel = button.closest(".share-panel");
+      const input = panel?.querySelector("[data-share-url-field]");
+      const status = panel?.querySelector("[data-copy-share-status]");
+      let ok = false;
+      try {{
+        if (navigator.clipboard?.writeText) {{
+          await navigator.clipboard.writeText(url);
+          ok = true;
+        }}
+      }} catch (_error) {{
+        ok = false;
+      }}
+      if (!ok && input) {{
+        input.focus();
+        input.select();
+        try {{
+          ok = document.execCommand("copy");
+        }} catch (_error) {{
+          ok = false;
+        }}
+      }}
+      if (status) status.textContent = ok ? "已複製線上版網址" : "已選取網址，可以手動複製";
     }});
   }});
 
@@ -8521,21 +8655,32 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         translation_panel = translation_panels_html(item)
         fulltext_hidden = "" if article_markdown or article_text else " hidden"
         fulltext_message = (
-            f"已載入 Markdown 閱讀版，約 {article_meta.get('article_markdown_chars', len(article_markdown)) or article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_markdown_method') or article_meta.get('article_text_method', 'metadata')}。"
+            f"Markdown 閱讀版，約 {article_meta.get('article_markdown_chars', len(article_markdown)) or article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_markdown_method') or article_meta.get('article_text_method', 'metadata')}。"
             if article_markdown or article_text
             else "按「展開全文」後會從原始連結往下抓全文，載入完成後以 Markdown 閱讀版顯示在這裡。"
         )
         note = personal_note_text(item)
         item_url = clean_text(item.get("url"), 1200)
+        online_article_url = public_reader_article_url(item)
         external_title_action = (
-            f"""
-    <div class="button-row article-title-actions">
-      <a class="button secondary reader-action-button" href="{h(item_url)}" target="_blank" rel="noreferrer">{button_content("開啟網頁", "external", "L")}</a>
-    </div>
-"""
+            f'<a class="title-icon-button" href="{h(item_url)}" target="_blank" rel="noreferrer" aria-label="開啟原始網頁" title="開啟原始網頁">{icon_span("external", "", "icon reader-action-icon")}</a>'
             if item_url
             else ""
         )
+        share_title_action = f"""
+    <details class="article-title-menu share-menu">
+      <summary class="title-icon-button" aria-label="分享線上版" title="分享線上版">{icon_span("share", "", "icon reader-action-icon")}</summary>
+      <div class="title-popover share-panel">
+        <label>線上版網址</label>
+        <input class="share-url-field" value="{h(online_article_url)}" readonly data-share-url-field onclick="this.select()">
+        <div class="button-row">
+          <button type="button" class="button button-small" data-copy-share-url="{h(online_article_url)}">{button_content("複製網址", "copy")}</button>
+          <a class="button button-small secondary" href="{h(online_article_url)}" target="_blank" rel="noreferrer">{button_content("開啟線上版", "external")}</a>
+        </div>
+        <p class="copy-status" data-copy-share-status></p>
+      </div>
+    </details>
+"""
         note_updated = ""
         personal_notes = item.get("personal_notes")
         if isinstance(personal_notes, dict) and personal_notes.get("updated_at"):
@@ -8752,33 +8897,39 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 <div class="article-detail-main">
 <div class="article-title-grid">
   <div>
-    <details class="title-editor">
-      <summary title="編輯標題與原始網址">
+    <div class="article-title-block">
+      <div class="article-title-heading">
         <h1>{h(display_title)}</h1>
-        <span class="help">原始標題：{h(original_title)}</span>
-      </summary>
-      <div class="title-editor-fields">
-        <form method="post" action="/items/update-title">
-          <input type="hidden" name="id" value="{h(item_id)}">
-          <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
-          <label>對外顯示標題</label>
-          <input name="title" value="{h(display_title)}" placeholder="輸入要顯示的中文標題">
-          <button type="submit">儲存標題</button>
-        </form>
-        <form method="post" action="/items/update-url">
-          <input type="hidden" name="id" value="{h(item_id)}">
-          <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
-          <label>原始網址</label>
-          <p class="muted break-anywhere"><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('url') or '尚未填寫')}</a></p>
-          <input name="url" value="{h(item.get('url', ''))}" placeholder="https://example.com/article">
-          <div class="button-row">
-            <button type="submit" name="action" value="save">儲存網址</button>
-            <button type="submit" name="action" value="resolve" class="secondary">帶入跳轉後網址</button>
-          </div>
-        </form>
+        <div class="article-title-tools">
+          {external_title_action}
+          <details class="article-title-menu title-editor">
+            <summary class="title-icon-button" aria-label="編輯標題與原始網址" title="編輯標題與原始網址">{icon_span("edit", "", "icon reader-action-icon")}</summary>
+            <div class="title-popover title-editor-fields">
+              <form method="post" action="/items/update-title">
+                <input type="hidden" name="id" value="{h(item_id)}">
+                <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+                <label>對外顯示標題</label>
+                <input name="title" value="{h(display_title)}" placeholder="輸入要顯示的中文標題">
+                <button type="submit">儲存標題</button>
+              </form>
+              <form method="post" action="/items/update-url">
+                <input type="hidden" name="id" value="{h(item_id)}">
+                <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+                <label>原始網址</label>
+                <p class="muted break-anywhere"><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item.get('url') or '尚未填寫')}</a></p>
+                <input name="url" value="{h(item.get('url', ''))}" placeholder="https://example.com/article">
+                <div class="button-row">
+                  <button type="submit" name="action" value="save">儲存網址</button>
+                  <button type="submit" name="action" value="resolve" class="secondary">帶入跳轉後網址</button>
+                </div>
+              </form>
+            </div>
+          </details>
+          {share_title_action}
+        </div>
       </div>
-    </details>
-    {external_title_action}
+      <span class="help">原始標題：{h(original_title)}</span>
+    </div>
     <p class="lede break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
   </div>
   {image_html}
@@ -8799,7 +8950,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 
 <section class="card fulltext-panel source-card source-card--source" id="fulltext-panel"{fulltext_hidden}>
   <div class="section-kicker">原始主文</div>
-  <h2>展開全文載入的 Markdown 閱讀版</h2>
+  <h2>原始主文</h2>
   <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
   <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
   <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
@@ -9434,7 +9585,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             article_html = markdown_to_html(article_markdown) if article_markdown else ""
             translation_actions_markup = translation_actions_html(response_item or {}, item_id, redirect_to)
             message = (
-                f"已載入 Markdown 閱讀版，約 {metadata.get('article_markdown_chars', len(article_markdown)) or metadata.get('article_text_chars', len(article_text))} 字；"
+                f"Markdown 閱讀版，約 {metadata.get('article_markdown_chars', len(article_markdown)) or metadata.get('article_text_chars', len(article_text))} 字；"
                 f"抽取方式：{metadata.get('article_markdown_method') or metadata.get('article_text_method', 'metadata')}。"
                 if article_markdown or article_text
                 else "已嘗試讀取原始網址，但這次沒有抓到可顯示的主文。"

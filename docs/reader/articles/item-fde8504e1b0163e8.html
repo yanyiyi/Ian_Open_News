@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>開放與封閉：追逐前沿模型的競爭 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-05-15 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-05-15 08:00</span></div>
       <h1><a class="article-title-link" href="https://redmonk.com/sogrady/2026/05/15/open-ai-models/" target="_blank" rel="noreferrer" title="開啟原始連結">開放與封閉：追逐前沿模型的競爭</a></h1>
       <p class="lede">Stephen O&#x27;Grady 以軟體史中的開放與封閉循環切入，指出今日所謂 frontier models 幾乎都由專有或封閉模式主導，即使它們建立在大量開源基礎之上。文章認為，開放模型是否會挑戰封閉模型並不是問題，真正值得問的是追趕速度與競爭效果。作者也提醒，現階段衡量模型能力多半仍依賴 benchmarks，但這些指標有資料污染、廠商自報、測試方式不標準、無法涵蓋真實使用情境等限制。最後，文章開始釐清「open」在 AI 模型中的不同層次，尤其是開源授權模型與帶有限制的 open weight 模型之間不能混為一談。</p>
 
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>Open and Closed: The Pursuit of Frontier Models</h1>
 <h4><a href="https://redmonk.com/sogrady" target="_blank" rel="noreferrer">tecosystems</a></h4>
 <p>By <a href="https://redmonk.com/sogrady/author/sogrady/" target="_blank" rel="noreferrer">Stephen O&#x27;Grady</a> | <a href="https://twitter.com/sogrady" target="_blank" rel="noreferrer">@sogrady</a> | May 15, 2026 Share via Twitter Share via Facebook Share via Linkedin Share via Reddit In the beginning, software was open. Not because that was thought to be the correct strategic approach, but rather because <a href="https://redmonk.com/sogrady/2011/05/24/the-age-of-data/" target="_blank" rel="noreferrer">software was an afterthought</a>. Hardware was what mattered. Less than two decades later, the hardware was cheaper and consequently mattered less. In search of greater returns on capital, the focus swung back to software. To maximize those returns, software was turned from open to closed. Ever since, software has been in constant tug of war between open and closed. With operating systems, virtualization software, mobile and other categories, closed software led the way and open gave chase. For big data, containers, programming languages and web servers, the roles were reversed. Open source typically led, while closed and proprietary models have had to keep up. Models, for all that they are built and utterly dependent on a foundation of open source, are very much in the former camp. What <a href="https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf" target="_blank" rel="noreferrer">began open</a> became closed. “Frontier” models – which is to say models that push the “frontier” – are universally proprietary or closed, OpenAI’s name notwithstanding. Ever since Chat-GPT was unleashed on the world on the 22nd of November, 2022, however, there have been – inevitably – efforts to counter the dominance of proprietary models with “open” alternatives (we’ll come back to what open means in this context). The technology industry has a long history of both dominant players, and federated resistance to those dominant players. At a recent industry event, an AI executive likened the open models chasing their closed frontier counterparts to a “pack of wolves.” Casual observers of the industry could be forgiven for not knowing open alternatives existed, because almost all of the media’s attention is consumed by coverage of Anthropic and OpenAI’s latest achievements – though arguably that is in part because of the latter’s notable tendency to strategically time its releases around Google AI announcements to minimize their impact. Whether open will compete with closed, then, is not the interesting question. It always has, it always will. The question to ask is instead: how well? Put another way, will the “pack of wolves” ever catch their prey, and if so, how quickly? Evaluation of AI models is challenging for many reasons. Anecdotal experimentation is useful – anyone who used models before and after November of last year would be struck by the difference in capability – but it obviously doesn’t scale. The only real standardized quantitative measurement available, however, is industry benchmarks. Given that benchmarks were gamed almost to the point of irrelevance decades ago during the TPC-C wars, they would not otherwise be the first choice for evaluation, but at this point they are the least worst method of measuring performance model vs model. That being said, there are many other specific concerns for benchmarks generally and those selected here. Among them:</p>

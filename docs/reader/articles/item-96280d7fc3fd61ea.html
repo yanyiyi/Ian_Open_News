@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>COSCUP 2020 分享：從 BlurHash 看圖片上傳架構 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2020-08-03 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2020-08-03 08:00</span></div>
       <h1><a class="article-title-link" href="https://techblog.funliday.com/2020/08/03/%E5%9C%A8-COSCUP-2020-%E5%88%86%E4%BA%AB%E7%9A%84%E3%80%8C%E6%A8%A1%E7%B3%8A%E4%B9%9F%E6%98%AF%E4%B8%80%E7%A8%AE%E7%BE%8E-%E5%BE%9E-BlurHash-%E6%8E%A2%E8%A8%8E%E5%89%8D%E5%BE%8C%E7%AB%AF%E4%B8%8A%E5%82%B3%E5%9C%96%E7%89%87%E6%9E%B6%E6%A7%8B%E3%80%8D/" target="_blank" rel="noreferrer" title="開啟原始連結">COSCUP 2020 分享：從 BlurHash 看圖片上傳架構</a></h1>
       <p class="lede">這篇 Funliday 技術文章延伸作者在 COSCUP 2020 的 BlurHash 分享，說明團隊如何把 BlurHash 實作到 Web 與 Android，並回答會後常見問題。內容談到 signed URL 如何讓沒有 access key 的端點處理 S3 檔案、用 UUID 避免檔名衝突、BlurHash decode 可能造成前端短暫卡頓而可交給 Web Worker，以及團隊後來從 server side 上傳改為 client side 上傳的原因。</p>
       <div class="tag-chip-list"><span class="tag-chip">COSCUP</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>在 COSCUP 2020 分享的「模糊也是一種美 - 從 BlurHash 探討前後端上傳圖片架構」</h1>
 <p>上星期大家都有來聽小編在 COSCUP 分享的「模糊也是一種美 - 從 BlurHash 探討前後端上傳圖片架構」嗎？這個技術已經有實作在 Funliday 的 Web 跟 Android 囉。這個議題結束後，有朋友問了一些問題，這裡順便來統整回答一下。</p>
 <h2>1. client side upload 方式從 server 產出的 signed URL 是個什麼樣的東西？</h2>

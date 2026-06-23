@@ -30,6 +30,7 @@ from local_web import (
     load_jsonl,
     markdown_to_html,
     normalized_title_key,
+    public_reader_article_filename,
     reader_month_key,
     reader_period_key,
     reader_period_label,
@@ -90,8 +91,7 @@ def branch_name() -> str:
 
 
 def article_filename(item: dict) -> str:
-    item_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(item.get("id")) or "item").strip("-")
-    return f"{item_id}.html"
+    return public_reader_article_filename(item)
 
 
 def article_href(item: dict, from_article: bool = False) -> str:
@@ -258,12 +258,10 @@ def reader_kind_badge(kind: str) -> str:
 
 def reader_status_badges(item: dict, has_body: bool) -> str:
     track_label = track_meta(item.get("track", ""))["short"]
-    fulltext_label = "已載入本機全文" if has_body else "尚未載入全文"
     return (
         reader_badge(track_label, "opentech")
         + reader_kind_badge(item_display_kind(item))
         + public_reader_badges(item)
-        + reader_badge(fulltext_label, "neutral")
         + reader_badge(item_date(item), "date")
     )
 
@@ -420,7 +418,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{h(title)} - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {{
       --ink: #111827;
       --muted: #5b6472;
@@ -432,8 +430,8 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }}
     * {{ box-sizing: border-box; }}
@@ -771,8 +769,10 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }}
     .article-text img {{ max-width: 100%; height: auto; border-radius: 6px; }}
     .article-text pre {{ white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }}
@@ -827,6 +827,9 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     .article-text p {{ margin: 0 0 1.25em; }}
     .article-text ul, .article-text ol {{ margin: 0 0 1.25em 1.4em; padding: 0; }}
     .article-text li {{ margin: .45em 0; }}
+    .article-text strong,
+    .article-text b,
+    .article-text a {{ font-weight: 550; }}
     .side-panel {{
       position: sticky;
       top: 84px;
@@ -993,7 +996,7 @@ def article_page(item: dict, repo_url: str, branch: str, previous_item: dict | N
     title = item_display_title(item)
     article_markdown = strip_duplicate_leading_heading(body_markdown, title)
     has_article_markdown = bool(article_markdown)
-    fulltext_heading = "已載入本機全文" if has_article_markdown else "尚未載入全文"
+    fulltext_heading = "原始主文" if has_article_markdown else "尚未載入全文"
     article_html = (
         markdown_to_html(article_markdown)
         if has_article_markdown

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>企業導入 AI 代理的四個原則：快速實驗，但高度謹慎 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-18 08:00</span></div>
       <h1><a class="article-title-link" href="https://www.zdnet.com/article/rolling-out-ai-agents-move-fast-and-furious-but-with-extreme-caution/" target="_blank" rel="noreferrer" title="開啟原始連結">企業導入 AI 代理的四個原則：快速實驗，但高度謹慎</a></h1>
       <p class="lede">這篇整理兩位企業 AI 負責人在導入 AI agents 時的經驗：速度與謹慎不是二選一。文章主張企業應從使用者痛點與可重複流程出發，保留人的主導角色，透過短週期實驗找出真正有價值的應用；但在擴大前，必須先處理乾淨資料、清楚流程、權責歸屬與可用資料邊界。文章也強調 governance 與 guardrails 要依風險高低調整，低風險個人工具不需要過度控管，但面向消費者或會自動發送訊息的 agentic use case 則需要更高層級的監督。整體重點不是介紹某個新工具，而是企業如何把 AI agent 納入可控、可擴張的營運架構。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>Rolling out AI agents? 4 ways to move fast and furious - but with extreme caution</h1>
 <p>Follow ZDNET: Add us as a preferred source on Google. ZDNET&#x27;s key takeaways Fast and furious or cautious? AI requires both.Leaders from PwC and NBCUniversal share their AI journeys.Be ready with the right data before introducing AI.Getting started and capturing the essence and value of AI can be exhausting. It also poses a vexing question: Is the way forward to move fast and furious, jumping on every model that comes online, or is it to proceed with a plan and extreme caution? Testimonials from two enterprise IT leaders suggest that a mix of both approaches is necessary.Also: 5 ways to grow your business with AI - without leaving employees behind Divergent experiences in launching and maintaining AI momentum were shared at a recent conference hosted by Section, a consultancy led by storied NYU professor Scott Galloway. 1. The human is the loop For starters, don&#x27;t just hand over the keys to AI agents -- any endeavor needs to remain human-instigated and human-led. &quot;Stop being the human in the loop. The human is the loop,&quot; said Scott Likens, global chief AI engineer at PwC. Also: Building an agentic AI strategy that pays off - without risking business failure Getting started means starting with the end user and working backward to determine the right tool for the job. &quot;Start with easily repeatable processes and data. Start with the pain point,&quot; said Lasherelle Morgan, senior vice president of AI innovation and acceleration for NBCUniversal. &quot;Don&#x27;t just bring in an AI tool. Ask, &#x27;what are you struggling with?&#x27; &#x27;What are you spending five hours of your day on?&#x27;&quot; 2. Experimentation is important Be willing to experiment on a wide scale to determine where AI can deliver, Likens said. PwC, for example, rolls out AI-driven experiments in one-day or five-day cycles. The challenge is to urge business leaders to think about the possibilities AI brings versus simply achieving 2% or 3% in cost savings. &quot;All this talk of tokens just started a couple of months ago, and now all of a sudden there is a cost focus with AI,&quot; Likens said. &quot;That&#x27;s the wrong way to look at it. Experimentation is really important and so easy nowadays, and you get feedback fast,&quot; Likens said.Also: How this travel company&#x27;s AI rollout drove a 73% satisfaction boost: A 5-step playbook for your business This calls for a radical shift in thinking among many business leaders, especially at the midtier level, Likens said. &quot;Many are not used to one- or two-week cycles; it&#x27;s a different architectural mindset,&quot; Likens said. &quot;Top executives and board members may be on board, as are new employees that have already been there. It&#x27;s that frozen middle, those experts and managers who don&#x27;t want to change their ways. It&#x27;s a human challenge.&quot; 3. Blow up a bad process For those excited about AI, there&#x27;s a perception that the technology will quickly fix gummed-up processes and speed up business decisions. There&#x27;s an important caveat to such thinking, Morgan said. &quot;You have to have clean data, and a workflow that is clean from start to finish. You need to literally get a pen and paper and write out the process, and show me who is the owner of that process. One thing AI is really good at is blowing up a bad process,&quot; said Morgan.With that pen and paper, find out from users: &quot;what do you have to do repeatedly that you hate doing?&quot; Morgan said. &quot;Then work from there. Meet people from where they are. Also, where there is a lot of data that is easily repeatable as well. Start with things easily fixable by AI and start there.&quot; Also: How to build better AI agents for your business - without creating trust issues At PwC, the pace of AI innovation and development has been furious, but underneath it is a well-planned data foundation formulated before AI was a big part of the picture. The company addressed data issues in regulated pieces of the business, such as accounting and auditing, Likens said. Likens said the challenge was providing context to the data, which &quot;usually sits in peoples&#x27; heads. How do you extract tacit knowledge?&quot; Likens said the goal of PwC&#x27;s AI efforts is &quot;tacit knowledge collection, telemetry, what agents are doing which then feeds into tacit knowledge collection.&quot; That calls for a &quot;focus on the architecture first, so it can scale for our people, so when they use it, they know it&#x27;s safe, they know what they can use it for, they have access to the right data they are allowed to have access to.&quot; 4. Governance and guardrails At NBCUniversal, governance and guardrails are essential pieces of the process. Still, the amount of oversight depends on the amount of risk to the organization, which Morgan refers to as the potential &quot;blast radius.&quot; &quot;With a use case as simple as an agentic tool that presets my lunch on my calendar or something like that, that&#x27;s low risk, we don&#x27;t need a human in the loop. If we have something agentic that is automatically sending our messages to consumers, that is a bigger deal because it is a higher risk for the company,&quot; said Morgan.NBCUniversal&#x27;s governance process consists of intake forms. These help Morgan&#x27;s team track and measure the potential impact of AI and agents on the organization. Also: 96% of IT pros use AI now: Their top 7 agentic applications and biggest implementation roadblocks At PwC, AI responsibility is centralized around &quot;one percent of the organization -- those are the deep AI engineers,&quot; Likens said. &quot;These engineers set standards, create the chassis that is trusted and safe. and do the builds. Then we have 10% who are hands-on builders distributed across the business. building for clients, who directly understand an industry or function.&quot;</p></div>
     </section>

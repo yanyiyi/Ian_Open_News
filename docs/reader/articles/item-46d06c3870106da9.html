@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>公部門 AI 缺少的基礎：資料信任與流程可視性 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-22 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-22 08:00</span></div>
       <h1><a class="article-title-link" href="https://www.openaccessgovernment.org/the-missing-foundation-of-public-sector-ai-data-trust-and-process-visibility/210592/" target="_blank" rel="noreferrer" title="開啟原始連結">公部門 AI 缺少的基礎：資料信任與流程可視性</a></h1>
       <p class="lede">文章主張，公部門導入 AI 前，真正的基礎不是先把模型放進服務流程，而是先建立對資料與流程的信任。作者指出，政府機關常面對分散多年的資料系統、跨部門流程與高度問責要求；如果無法追蹤資料來源、轉換與使用方式，也無法看清案件處理中哪些系統、人工審查與核准步驟影響結果，AI 產出的建議就很難被公眾、稽核者或決策者信任。文章因此提出「decision lineage」的概念，將資料 lineage 擴展到完整決策流程，強調負責任的公部門 AI 需要同時具備資料可追溯性與流程可視性。</p>
       <div class="tag-chip-list"><span class="tag-chip">public sector AI</span><span class="tag-chip">data trust</span><span class="tag-chip">responsible AI</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h2>Finworks 的 Marc Hoogstad 談公部門 AI 缺少的基礎要素，特別聚焦資料信任與流程可視性</h2>
 <p>人工智慧（AI）正成為公部門數位轉型的核心支柱。英國政府正在探索 AI 如何改善服務提供、強化決策、降低行政負擔，並協助組織在資源有限的情況下做得更多。 雖然 AI 技術持續快速進展，但一個較不顯眼的挑戰正在浮現：許多組織試圖在破碎的資料環境與彼此斷裂的作業流程之上部署 AI。結果，就是信任落差愈來愈大。 公部門組織在能夠信任 AI 生成的洞察、建議或決策之前，必須先信任支撐這些結果的資料與流程。這也是資料脈絡（data lineage）與流程可視性，正成為成功採用 AI 的關鍵基礎的原因。</p>
 <h3>政府對可信任 AI 的需求日益增加</h3>

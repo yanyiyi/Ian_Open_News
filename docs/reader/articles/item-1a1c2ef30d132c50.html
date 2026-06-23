@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fable 5 遭禁後，四個開放權重模型如何成為企業備援選項 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-18 08:00</span></div>
       <h1><a class="article-title-link" href="https://thenewstack.io/fable-ban-open-weights/" target="_blank" rel="noreferrer" title="開啟原始連結">Fable 5 遭禁後，四個開放權重模型如何成為企業備援選項</a></h1>
       <p class="lede">這篇文章以 Anthropic 的 Fable 5 / Mythos 5 因政府安全疑慮被迫暫停供應為開場，主張企業若把關鍵自動化流程綁在單一託管模型上，可能在政策或合規事件中瞬間失去核心能力。作者接著整理幾個開放權重或可替代模型，包括 Cohere 的 North Mini Code、Moonshot 的 Kimi K2.7-Code、Zhipu 的 GLM 5.2 與較早的 Xiaomi MiMo-V2.5-Pro，重點放在授權、部署條件、成本、硬體門檻與測試可信度。整體論點是：企業不一定會選出唯一贏家，而是會為不同任務預先驗證多個模型，讓敏感程式碼、本地部署、低成本批次任務和外部 API 各有備援。文章可作為「開放模型是基礎設施韌性」的案例素材，但其中政策事件、模型表現與榜單主張都需要再查證。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>Fable 5 ban: 4 open models responded before Anthropic could restore access</h1>
 <ul>
 <li><a href="https://thenewstack.io/fable-5-opus-comparison/" target="_blank" rel="noreferrer">Fable 5 vs Opus 4.8: The real stakes, not the spec sheet</a></li>

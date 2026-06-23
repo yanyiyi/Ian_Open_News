@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>《What’s the Question?》：先釐清真正想知道什麼 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-17 08:00</span></div>
       <h1><a class="article-title-link" href="https://thelivinglib.org/whats-the-question-deciding-what-you-really-want-to-know/" target="_blank" rel="noreferrer" title="開啟原始連結">《What’s the Question?》：先釐清真正想知道什麼</a></h1>
       <p class="lede">這是 David Hand 書籍的介紹，主旨是統計與資料科學在使用工具前，必須先清楚界定想知道什麼或想達成什麼。摘要強調，模糊的目標會導致錯誤結論與錯誤行動，書中探討如何提出清楚問題。</p>
 
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>What’s the Question? Deciding What You Really Want to Know</h1>
 <p><a href="https://www.taylorfrancis.com/books/mono/10.1201/9781003726821/question-david-hand" target="_blank" rel="noreferrer">Book</a>by David Hand: “Statistics and data science aim to extract understanding from data and guide decision-making. However, before applying any analytical tools, we need absolute clarity about what we want to know or accomplish. Ambiguous objectives inevitably lead to mistaken conclusions and flawed actions. This book investigates the deeper challenges of formulating clear questions and matching analytical methods to those questions – issues that apply as much to elementary statistical tools as to sophisticated techniques. Rather than focusing on standard statistical misuses or data provenance issues, this work examines the critical step of ensuring your analysis actually answers the question you mean to ask. Drawing from collaborative work across finance, medicine, government, manufacturing, defence, and other fields, the book deliberately emphasises basic and familiar tools so the fundamental issues are accessible to everyone. Following John Tukey’s insight about the simplest problems of data analysis, the most detailed discussions centre on averages and comparisons between distributions, though the principles apply with even greater force to advanced methods that fewer people fully understand. • Focusses on question formulation rather than computational techniques, addressing the step that precedes all successful data analysis • Emphasises basic statistical tools (averages, comparisons) to make fundamental challenges visible to all practitioners • Contains 130 text boxes presenting essential ideas in non-technical language, creating a “two-in-one” book accessible to both mathematical and non-mathematical readers • Provides real-world examples drawn from diverse fields including finance, healthcare, government, manufacturing, and defence • Offers a deep-dive analysis of a specific comparison method to illustrate the care required for precise statistical reasoning • Presents a progression from general principles through detailed mathematical exploration to practical applications across various analytical scenarios This book serves as an essential guide for statisticians, data scientists, researchers, and anyone who uses data to make decisions. Whether you’re a practitioner seeking to improve your analytical approach or a student learning to think critically about statistical questions, this work will help you use data analytical tools more effectively and avoid the costly mistakes that arise from asking the wrong questions of your data…(<a href="https://www.taylorfrancis.com/books/mono/10.1201/9781003726821/question-david-hand" target="_blank" rel="noreferrer">More</a>)”.</p>
 <h4>Share</h4>

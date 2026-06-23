@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>公司如何從你的智慧型手機使用行為建立個人輪廓，以及如何降低追蹤 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-18 08:00</span></div>
       <h1><a class="article-title-link" href="https://www.zdnet.com/article/companies-profiling-you-smartphone-how-stop-them/" target="_blank" rel="noreferrer" title="開啟原始連結">公司如何從你的智慧型手機使用行為建立個人輪廓，以及如何降低追蹤</a></h1>
       <p class="lede">這篇說明企業與行銷廣告機構如何透過智慧型手機與網路活動建立使用者輪廓。文章指出，瀏覽網站、搜尋、接受 cookie、購物、社群互動、造訪地點與使用 App 都可能留下訊號；這些訊號可和 IP、email、社群帳號或裝置識別碼連結，形成包含位置、購買紀錄、收入區間、興趣、工作與健康紀錄等資訊的影子檔案。文章的價值在於把資料剖析拆成日常手機使用情境，讓讀者理解看似零散的行為如何被聚合成可用於定向廣告與行為影響的資料資產。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><p>行銷與廣告公司想要你的資料。各種組織想知道你的位置、購物方式，還有更多關於你的資訊。以下整理常見的個人輪廓建立方式，以及你可以如何減少資料外流、維護隱私權。 企業掌握的個人資料，往往比你以為的更多；而且許多用來描繪你個人輪廓的紀錄，並不需要你明確、知情地同意。每當你瀏覽網站、送出搜尋查詢、接受 cookie 通知、購物、在社群媒體發文，甚至只是造訪某個地點，你的活動都可能被記錄下來。 單次造訪某個網站，未必能讓行銷人員了解太多關於你、你的興趣，或你可能想買什麼；但隨著時間與多次互動累積，一幅關於你的詳細圖像就會逐漸形成。 你的個人資料、所在位置、購買紀錄、收入級距、興趣等資訊，都可能被記錄下來，並與你的 IP 位址、電子郵件或社群媒體足跡連結。這些個人輪廓也可能在行銷代理商與其他第三方之間被分享、出售或交換，讓各種組織能進行精準廣告投放，並運用各種心理手法誘使你消費。 要完全避免資訊落入代理商與資料掮客手中並不容易。不過，以下會說明你在網路上最常被建立個人輪廓的方式，以及你可以如何減少資料流出。</p>
 <h2>為什麼公司想要我的資訊？他們會拿來做什麼？</h2>
 <p>資料現在就是貨幣。對提供分析、消費科技、行銷、旅宿等各種服務的公司來說，你的資訊與注意力都是龐大的營收來源。 只要資料夠多，組織就能為個別消費者建立詳細報告，也就是所謂的「影子個人檔案」（shadow profile）。每一個訊號都可能被用於精準廣告、客製化溝通，並調整行銷活動，引導你做出購買決定，或造訪它們在網路上的聯盟夥伴與合作對象。 我們的智慧型手機如今已是日常活動的中心。我們用它上網、購物、在社群媒體上與他人溝通、查地圖，也用來記錄健康與健身資料，類似情境不勝枚舉。透過每一筆資料點，或稱為「訊號」，公司都能了解我們在哪裡、有哪些習慣、對什麼感興趣、跟誰交談，以及喜歡買什麼。 公司可能透過你的智慧型手機蒐集的資訊包括：</p>

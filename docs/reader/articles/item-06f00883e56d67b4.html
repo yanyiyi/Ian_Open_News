@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>加拿大推進具爭議的監控法案，EFF 警告將威脅加密 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-18 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-18 08:00</span></div>
       <h1><a class="article-title-link" href="https://www.eff.org/deeplinks/2026/06/canada-forging-ahead-its-dangerous-surveillance-bill" target="_blank" rel="noreferrer" title="開啟原始連結">加拿大推進具爭議的監控法案，EFF 警告將威脅加密</a></h1>
       <p class="lede">EFF 指出加拿大 Bill C-22 正快速推進，且缺乏充分辯論。摘要稱該法案可能要求 metadata 留存、擴大與外國政府資訊共享，並讓公共安全部門要求企業建立後門，實質破壞加密。Citizen Lab 與加拿大公民自由協會已提出深入批判，多家科技公司與 VPN 業者也反對；部分服務可能因此限制加拿大使用者功能，甚至退出加拿大市場。</p>
       <div class="tag-chip-list"><span class="tag-chip">數位人權</span><span class="tag-chip">cybersecurity</span><span class="tag-chip">數位監控</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>Canada Is Forging Ahead with Its Dangerous Surveillance Bill</h1>
 <p>With no serious debate, including on proposed amendments, Canada is blazing full speed ahead with Bill C-22, which would threaten encryption and increase surveillance. Also known as the Lawful Access Bill, Bill C-22 is currently moving forward quickly to a vote despite the many, many criticisms <a href="https://ccla.org/privacy/ccla-joins-in-statement-denouncing-government-move-to-end-debate-on-contentious-surveillance-bill-c-22/" target="_blank" rel="noreferrer">civil liberty groups</a> and <a href="https://www.theglobeandmail.com/politics/article-signal-warns-it-would-pull-out-of-canada-if-made-to-comply-with-lawful/" target="_blank" rel="noreferrer">the tech industry</a> have hurled at it. <a href="https://www.eff.org/deeplinks/2026/05/canadas-bill-c-22-repackaged-version-last-years-surveillance-nightmare" target="_blank" rel="noreferrer">As we’ve discussed before</a> , Bill C-22 is dangerous on multiple levels. It pushes for requirements for metadata retention, expands information sharing with foreign governments, and establishes a mechanism that allows Canada’s Ministry of Public Safety to demand that companies create backdoors, effectively breaking encryption. That <a href="https://openmedia.org/press/item/government-prematurely-ends-debate-on-bill-c-22-without-dealing-with-dangerous-surveillance-powers" target="_blank" rel="noreferrer">mechanism was a key facet of Part 2</a> in Bill C-22, and the government prevented it from being independently debated. <a href="https://citizenlab.ca/research/analysis-of-proposed-surveillance-law-expansion-under-bill-c-22/" target="_blank" rel="noreferrer">In a deep analysis of the bill</a> , Citizen Lab and the Canadian Civil Liberties Association detail every one of flaws of this proposal, concluding that most elements are unsalvageable. A wide <a href="https://globalnews.ca/news/11886905/lawful-access-bill-c-22-companies-services-canada/" target="_blank" rel="noreferrer">range of tech companies agree</a> . Signal, Apple, Google, and several VPN providers oppose the bill, and some have said they’d likely be forced to either cut Canadians off from certain features or shut down services in Canada altogether. The Canadian government wants this dangerous, complicated, overreaching bill <a href="https://nationalpost.com/news/politics/public-safety-minister-wants-police-search-powers-bill-to-become-law-by-june-19" target="_blank" rel="noreferrer">passed before June 19</a> . Bill C-22 is riddled with privacy problems that affect millions of people. It should be debated and studied fully, not jammed through on an arbitrary deadline.</p></div>
     </section>

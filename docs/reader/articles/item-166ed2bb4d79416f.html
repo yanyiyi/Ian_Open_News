@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ubuntu Desktop 推出 Myna 語音轉文字計畫 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-17 08:00</span></div>
       <h1><a class="article-title-link" href="https://discourse.ubuntu.com/t/introducing-myna-speech-to-text-for-ubuntu-desktop/84251" target="_blank" rel="noreferrer" title="開啟原始連結">Ubuntu Desktop 推出 Myna 語音轉文字計畫</a></h1>
       <p class="lede">Ubuntu Desktop 介紹 Project Myna，目標是把語音轉文字聽寫做成桌面上的一等功能。初期方向是讓使用者按下快捷鍵後直接說話，文字就輸入到正在使用的應用程式，並提供清楚的聽寫狀態回饋。Myna 的語音辨識模型會在本機執行，初版預計聚焦 Ubuntu 26.10、Wayland 與 GNOME 驗證環境。</p>
       <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>Introducing Myna: Speech to Text for Ubuntu Desktop</h1>
 <p>Speech To Text is an important accessibility feature, but it’s also a useful productivity tool for anyone who finds it easier to speak than to type. Today I’m excited to introduce Project Myna, a new initiative to bring speech to text dictation to Ubuntu Desktop. Named after the myna bird , known fo…</p></div>
     </section>

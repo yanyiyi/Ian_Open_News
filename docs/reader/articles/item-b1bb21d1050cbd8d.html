@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>COSCUP 2020 徵稿：從技術重新思考開放文化 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:53+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2020-05-06 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2020-05-06 08:00</span></div>
       <h1><a class="article-title-link" href="https://news.idea-show.com/post/coscup-2020-call-for-proposals/" target="_blank" rel="noreferrer" title="開啟原始連結">COSCUP 2020 徵稿：從技術重新思考開放文化</a></h1>
       <p class="lede">這則 COSCUP 2020 徵稿資料以「技術」作為理解開放文化的核心，引用海德格對技術本質的思考，主張開放文化不應只被理解成科技工具或自由軟體實作，也需要納入人文科學、藝術與跨領域理論。摘錄也列出議程徵求方向、投稿期限、活動日期，並說明演講錄影將以 CC 姓名標示-相同方式分享 4.0 釋出，入選議程也需提供英文版資訊。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>COSCUP 2020 : Call for Proposals – 點子秀</h1>
 <h2>COSCUP 2020 : Call for Proposals</h2>
 <p>早在20世紀初，德國哲學家馬丁·海德格（Martin Heidegger）便提到，技術的本質並非只是人類為了某種目的使用的工具，實際上它就是人類現實的一環，並構成開放與侷限併存的狀態。本議程軌便試圖發掘在「開放文化」之中，扮演著關鍵角色的「技術」之本質，並重新思索這種兩面性與激進潛能。 有鑑於當前人們對於「開放文化」的理解大多侷限在科技領域，對應的思維也圍繞著工具理性進行，我們認為有必要在COSCUP上重新引入人文科學、藝術領域等相關實踐、理論，並且徵求下列議題： 將「開放」文化本身視為一種技術，探討伴隨出現的世界觀分析將「開放」文化本身視為一種技術，探討伴隨出現的世界觀分析 將「開放」文化本身視為一種技術，探討其本身存在的視角侷限 不同領域的「開放」相關理論，且能透過當前案例舉例說明 不同領域的「開放」相關實踐，且能就內在技術本身進行分析 我們相信唯有透過跨領域的思想衝擊，我們才能重新思考「開放文化」自身的侷限與潛能，並從這基礎上重拾改造當下世界的願景與熱情。 一如往常，COSCUP 徵求各式各樣與自由/開源軟體相關的演講，歡迎各方俠女豪傑於 5 月 11 日前透過表單投稿，在經過社群審稿後我們預定於六月初公布完整的議程表。 這是一個倡導開放的研討會，所有演講將錄影並以創用 CC 姓名標示-相同方式分享 4.0 釋出。如果您的演講有任何不能錄影或不願以此條款釋出的狀況，請務必於投稿表單上註明。 **投稿前，請先查閱 <a href="http://blog.coscup.org/2020/04/coscup-2020-cfp-is-now-open.html" target="_blank" rel="noreferrer">COSCUP 網誌上的各議程軌介紹</a>！**</p>

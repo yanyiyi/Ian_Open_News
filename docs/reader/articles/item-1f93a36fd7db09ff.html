@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>每支新手機都該檢查的 7 項隱私設定 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-21 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-21 08:00</span></div>
       <h1><a class="article-title-link" href="https://www.zdnet.com/article/phone-privacy-settings-to-disable-review-avoid-exposing-data/" target="_blank" rel="noreferrer" title="開啟原始連結">每支新手機都該檢查的 7 項隱私設定</a></h1>
       <p class="lede">這篇文章主張，新手機或 App 更新後應定期檢查敏感權限，避免讓應用程式取得超出用途所需的資料。文中先說明 Android 與 iOS 大致可從隱私與安全設定進入權限管理，再逐項提醒定位、相機、麥克風、聯絡人與簡訊等權限可能帶來的風險。作者建議多數 App 應限制為「使用期間允許」、每次詢問或直接拒絕，尤其是定位可暴露住家、工作地點與常去場所，相機與麥克風若常開則可能造成環境與對話被不當收集。整體是一篇面向一般使用者的手機隱私健檢指南。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>I always change these 7 phone privacy settings on every new device - here&#x27;s why</h1>
 <p>Follow ZDNET: Add us as a preferred source on Google.ZDNET&#x27;s key takeaways Smartphone permissions can quietly invade your privacy.Reviewing app permissions can help prevent data exposure.Check these permissions first, then audit them regularly.Your smartphone, whether you favor Android, iOS, or a niche mobile operating system, can leave trails that those who know how to follow can track.Every app I use requires some level of permission. When you want to order a takeaway, you might need to allow GPS to pinpoint your location; a utility app for speeding up mobile performance may need access to files and folders; or a social media platform may need permission to send push notifications. Also: This silent Android feature scans your photos for &#x27;sensitive content&#x27; - how to uninstall itWhile convenient, unless smartphone permissions are properly managed, you might be granting apps far more control than they need -- and this opens the door to your private data being exposed. You can decide exactly what your smartphone reveals about you, and when. By running a health check and tweaking the permissions below, you can drastically reduce your digital footprint and avoid unnecessary data exposure. Where do I find my phone permissions? Before I explore each permission and what you should enable or disable, you should know where you can find the permission settings. The exact location will depend on the make and model of your smartphone, whether you have an Android or iOS handset, and the version of its operating system your device is running. Also: How to clear your Android phone cache - the 30-second routine every user should be doingHowever, on Android, you typically need to go to Settings &gt; Security and privacy &gt; More privacy settings &gt; Permission manager. On iOS, you will likely find what you need under Settings &gt; Privacy and Security, or Settings &gt; the app you want to examine. Which permissions should I review or dsable? When you install an app or it receives a major update, you will be asked which permissions to grant the app. For example, a weather application might ask for location data &quot;all the time&quot; to give you accurate weather reports, and a delivery service might ask you for the same to assist its delivery staff in finding you. Also: The best way to protect your phone from a warrantless search in 2026If an app asks for a permission that is considered sensitive, such as access to your location or to your smartphone&#x27;s microphone, you will be asked whether to allow it &quot;all the time,&quot; &quot;while using the app,&quot; &quot;ask every time,&quot; or &quot;never.&quot; To preserve your privacy, as a general rule, apps you use only casually should be limited to &quot;while using the app&quot; permissions -- but I will go into more detail on each permission below and when it may be appropriate to grant wider permissions, or none at all. 1. Location settings As location permissions rely on GPS and can be used to track you directly or pinpoint your frequent haunts over time, location settings are the first you should audit. Also: These warning signs could mean spyware is on your phone - and 9 ways to keep it secureIf you leave this permission on all of the time, you may be broadcasting where you are at home, at work, and in areas you frequently visit. This can be especially dangerous in cases of stalking or domestic abuse, although some of us do leave location sharing on so friends and family know where I am.In general, leave this one to &quot;only when using the app,&quot; or turn it on manually as and when you need to. 2. Camera settings There&#x27;s no need for your smartphone camera to be on all of the time. Not only will this drain your battery, but it&#x27;s a gross invasion of privacy to be watched or recorded when you don&#x27;t expect it. Also: 7 ways to lock down your phone before heading to a protestI recommend allowing permissions only &quot;when using the app.&quot; This goes for camera filter apps, video calling, and social media. I have yet to encounter a single mobile app that could justify always-on access to your camera. 3. Microphone settings Unbridled access to your microphone is another critical permission that could expose your data or invade your privacy. Unless the app you&#x27;ve downloaded has an obvious need for access to your microphone, such as for calls or voice assistance and controls, either say &quot;ask every time&quot; or &quot;never.&quot; For example, a news app should never need to be connected to your microphone or audio recordings. Also: How to enable Advanced Protection on Android 16 - and why you shouldn&#x27;t skip itThis can be especially concerning if an app also asks for camera access, unless it is a dedicated and trusted app for purposes such as video calls. Together, they could record your environment, your movements, and what you are saying. 4. Contacts and SMSContact and SMS messaging permissions are often requested by a variety of mobile apps, ranging from social media platforms to automotive features, such as Android Auto. Be cautious about allowing this, as it can reveal data about your close family ties, work, friends, and more -- as well as what you are saying to each other. Also: How to turn on Lockdown Mode on iPhone - so even the FBI can&#x27;t get inFor example, Instagram or TikTok might ask for permission to sync with known contacts and provide friend recommendations -- but this data could be used for profiling and targeted demographic advertising. It&#x27;s up to you whether you allow this, and you can always disable this permission later on. 5. CalendarsGranting every app on your handset access to your calendar could be asking for trouble. Apps like Google and Microsoft services, email, video conferencing, and system apps often require this, but you can opt for &quot;ask every time&quot; or &quot;only while using this app&quot; to limit the flow of your data. Also: Your phone is sharing data without your knowledge - how to stop it ASAPIf you aren&#x27;t controlling access to your calendar, this could reveal your schedule, where you will likely be, any travel -- potentially exposing when you will be away from home -- and any medical appointments you have booked. 6. Health data accessYour health and fitness information is a gold mine for companies that may use it for insurance, marketing, and even training large language models. Also: What is antivirus software and do you still need it in 2026?You should exercise extreme caution in allowing apps access to this data, especially if there doesn&#x27;t appear to be any reason for it. For example, why would a shopping app, phone utility, or game ask for it? By default, say no, unless the request is made by apps specifically focused on health and fitness services. 7. More permissions to checkPhotos &amp; videos: Our photos and videos can be personal and sensitive, and some may contain metadata that reveals information about us and our location. Opt for no or limited access when you can.Physical activity: Access to your physical data and activity, such as what map apps sometimes request, should be treated the same way as access to medical and fitness information, as it can be just as sensitive and personal.Notifications: Watch out for any app that might ask for notification permissions. While some just want this permission to send you notifications and alerts, others might ask for this to intercept 2FA codes and security messages.Bluetooth, nearby devices: Bluetooth and nearby devices permissions are often needed for Bluetooth-connected products like home speakers or smart doorbells, but to keep a tight lid on these connections, only allow them when in use. What should I do when apps ask for extensive permissions? Before you immediately agree to every permission request in order to start using your new software, take a step back and think about why an app wants a specific permission. Also: The best data removal services of 2026: Expert tested and reviewedDemands for overextended app permissions could indicate that the mobile application you have downloaded is harboring a malicious secret -- especially if it asks for worrying combinations, such as access to your files and folders, camera, and microphone. Or, malware aside, the app&#x27;s developer simply wants access to as much of your data as possible. Using a mobile app or smartphone service is your choice, as is the volume of data you share. If it&#x27;s too much, uninstall and delete such software, or disable certain features on your handset. How often should I check permissions?I recommend that you review your app permissions every few months. The more apps you install and use, the more frequently you should run a permissions check. Also: The best mobile antivirus software of 2026: Expert tested and reviewedEven if you don&#x27;t often install new software, it&#x27;s still worth making sure you understand what apps have access to your data and why. If you haven&#x27;t used an app for a while, you should delete it. As a final note, keep your operating system and apps updated, and install new versions as soon as they are available. An app might be trustworthy, but older software could contain vulnerabilities that can be exploited. You should also take action by deleting software if an app suddenly starts acting strangely, as there have been cases of apps starting off innocent, but later being updated to become malicious.</p></div>
     </section>

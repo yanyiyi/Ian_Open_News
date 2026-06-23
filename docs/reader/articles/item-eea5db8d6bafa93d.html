@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>美國聯邦資料：國會需改善補助與付款資格資料的互通性 - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@260;400;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
       --ink: #111827;
       --muted: #5b6472;
@@ -17,8 +17,8 @@
       --magenta: #ce0058;
       --soft: #eef1fb;
       --link: #193f8f;
-      --paper: #fffaf0;
-      --article-serif: "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
       --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
     }
     * { box-sizing: border-box; }
@@ -356,8 +356,10 @@
       font-family: var(--article-serif);
       font-size: 16px;
       font-weight: 260;
-      letter-spacing: .01em;
+      letter-spacing: 0;
       line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
@@ -412,6 +414,9 @@
     .article-text p { margin: 0 0 1.25em; }
     .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
     .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
     .side-panel {
       position: sticky;
       top: 84px;
@@ -477,7 +482,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-23T10:54:52+00:00</p>
+            <p class="generated">產生時間：2026-06-23T11:19:28+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -501,14 +506,14 @@
 <div class="article-layout">
   <div class="article-main">
     <article class="article-summary-card">
-      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--neutral">已載入本機全文</span><span class="badge badge--date">2026-06-17 08:00</span></div>
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-17 08:00</span></div>
       <h1><a class="article-title-link" href="https://thelivinglib.org/federal-data-congressional-action-needed-to-improve-interoperability-of-award-and-payment-eligibility-data/" target="_blank" rel="noreferrer" title="開啟原始連結">美國聯邦資料：國會需改善補助與付款資格資料的互通性</a></h1>
       <p class="lede">美國政府問責署報告指出，聯邦機關可使用超過 100 個資料來源，或組合多個資料來源，確認受款者是否符合聯邦計畫資格。這些檢核可發生在補助生命週期中的預先篩選、事後監測與付款驗證等階段；截至 2025 年 9 月，摘要提到其中包含多項資料來源，但細節未完整呈現。</p>
       <div class="tag-chip-list"><span class="tag-chip">open data</span></div>
     </article>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>已載入本機全文</h2>
+      <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>Federal Data: Congressional Action Needed to Improve Interoperability of Award and Payment Eligibility Data</h1>
 <p><a href="https://www.gao.gov/products/gao-26-107466" target="_blank" rel="noreferrer">Report</a> by the US Government Accountability Office: “Agencies can use more than 100 federal data sources—or a combination of them—to verify if recipients meet the eligibility criteria for federal programs throughout the award life cycle (which includes pre-award screening, post-award monitoring, and payment validation). As of September 2025, these included 28 data sources in the Do Not Pay working system (DNP) or designated for inclusion in DNP. However, weaknesses in data interoperability may hinder agencies’ ability to efficiently determine award and payment eligibility. <strong>Data interoperability</strong> is the ability to share and disseminate standardized data in a way that is efficient, consistent, and accessible across different systems and users, for which high-quality data are essential. Without it, the risk of improper awards or payments increases, and the potential use of artificial intelligence and advanced analytics to assist agencies in making eligibility determinations is limited. GAO found that, for more than 30 years, several laws and guidance have established general requirements related to data interoperability but have not established specific requirements for enforcing interoperability, such as for recipient eligibility data, throughout the federal government. Many of the data sources GAO identified, including those in DNP, were created to comply with legal requirements or to manage specific federal programs—not to support eligibility determinations for other agencies. GAO also found a variety of obstacles and challenges that can affect the interoperability of the nine selected data sources that agencies may use for eligibility determinations (see figure). Summary Comparison of Key Elements GAO Assessed to Eligibility Data Interoperability Needs and Observations GAO also found that insufficient or improperly documented validation rules contributed to data quality issues. All nine selected data sources had data quality issues (e.g., missing, invalid, and duplicate data), and seven data sources had inconsistences between them, such as overlap in mutually exclusive data. These data quality issues undermine data reliability and interoperability for agencies seeking to make eligibility determinations…(<a href="https://www.gao.gov/products/gao-26-107466" target="_blank" rel="noreferrer">More</a>)”.</p>
 <h4>Share</h4>
