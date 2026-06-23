@@ -74,10 +74,12 @@ def main() -> None:
 
     codex_message = ""
     if os.environ.get("IAN_OPEN_NEWS_AUTO_CODEX", "1") != "0":
-        write_status({"phase": "codex", "message": "RSS 已抓完，正在補 Codex 閱讀建議與摘要。"})
+        write_status({"phase": "codex", "message": "RSS 已抓完，正在隨機使用 Codex 或 Claude Code 補閱讀建議與摘要。"})
         codex_command = [
             sys.executable,
             str(ROOT / "scripts" / "codex_enrich_reviews.py"),
+            "--provider",
+            "random",
             "--target",
             "candidates",
             "--limit",
@@ -94,20 +96,20 @@ def main() -> None:
                 timeout=1800,
             )
             if codex_result.returncode == 0:
-                codex_message = "Codex 建議與摘要已補上。"
-                write_status({"phase": "finished", "message": "RSS 抓取與 Codex 補寫完成。"})
+                codex_message = "AI 閱讀建議與摘要已補上。"
+                write_status({"phase": "finished", "message": "RSS 抓取與 AI 補寫完成。"})
             else:
-                codex_message = "Codex 補寫失敗，請打開本機網頁手動按鈕補跑。"
+                codex_message = "AI 補寫失敗，請打開本機網頁手動按鈕補跑。"
                 write_status({"phase": "finished-with-errors", "message": codex_message})
                 print(codex_result.stdout)
                 print(codex_result.stderr, file=sys.stderr)
         except (OSError, subprocess.TimeoutExpired) as exc:
-            codex_message = "Codex 補寫逾時或無法啟動，請打開本機網頁手動補跑。"
+            codex_message = "AI 補寫逾時或無法啟動，請打開本機網頁手動補跑。"
             write_status({"phase": "finished-with-errors", "message": codex_message})
             print(f"Codex enrichment failed: {exc}", file=sys.stderr)
     else:
-        codex_message = "已略過 Codex 自動補寫。"
-        write_status({"phase": "finished", "message": "RSS 抓取完成，已略過 Codex 自動補寫。"})
+        codex_message = "已略過 AI 自動補寫。"
+        write_status({"phase": "finished", "message": "RSS 抓取完成，已略過 AI 自動補寫。"})
 
     candidates = load_jsonl(CANDIDATES)
     keep_count = sum(1 for item in candidates if (item.get("triage") or {}).get("recommendation") == "suggest-keep")

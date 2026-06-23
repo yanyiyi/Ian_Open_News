@@ -163,6 +163,24 @@ def normalize_url_for_match(value: object) -> str:
     return urlunparse(normalized).rstrip("/")
 
 
+def record_duplicate_urls(record: dict) -> set[str]:
+    metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
+    reference = record.get("reference") if isinstance(record.get("reference"), dict) else {}
+    values = [
+        record.get("url"),
+        metadata.get("canonical_url"),
+        metadata.get("final_url"),
+        metadata.get("source_url"),
+        metadata.get("url_before_update"),
+        reference.get("original_url"),
+        reference.get("resolved_from_url"),
+    ]
+    guid = clean_text(reference.get("guid"))
+    if guid.startswith(("http://", "https://")):
+        values.append(guid)
+    return {normalized for value in values if (normalized := normalize_url_for_match(value))}
+
+
 def record_date(record: dict) -> datetime | None:
     for key in ["captured_at", "published_at", "dismissed_at"]:
         parsed = parse_date(clean_text(record.get(key)))
@@ -789,7 +807,7 @@ def main() -> None:
         duplicate_cutoff,
     )
     seen_ids = {item.get("id") for item in duplicate_history}
-    seen_urls = {normalize_url_for_match(item.get("url")) for item in duplicate_history if item.get("url")}
+    seen_urls = set().union(*(record_duplicate_urls(item) for item in duplicate_history)) if duplicate_history else set()
     seen_guids = {
         (item.get("reference") or {}).get("guid")
         for item in duplicate_history
@@ -908,11 +926,11 @@ def main() -> None:
                 stats["skipped_old"] = int(stats.get("skipped_old") or 0) + 1
                 continue
             record = item_record(source, entry, captured_at)
-            normalized_record_url = normalize_url_for_match(record.get("url"))
+            normalized_record_urls = record_duplicate_urls(record)
             if record["id"] in seen_ids:
                 stats["skipped_duplicate_recent"] = int(stats.get("skipped_duplicate_recent") or 0) + 1
                 continue
-            if normalized_record_url and normalized_record_url in seen_urls:
+            if normalized_record_urls and (normalized_record_urls & seen_urls):
                 stats["skipped_duplicate_recent"] = int(stats.get("skipped_duplicate_recent") or 0) + 1
                 continue
             if entry.guid and entry.guid in seen_guids:
@@ -929,8 +947,7 @@ def main() -> None:
                 record["candidate_status"] = "pending"
             new_items.append(record)
             seen_ids.add(record["id"])
-            if normalized_record_url:
-                seen_urls.add(normalized_record_url)
+            seen_urls.update(normalized_record_urls)
             if entry.guid:
                 seen_guids.add(entry.guid)
             added_for_source += 1

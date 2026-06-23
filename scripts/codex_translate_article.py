@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 from datetime import datetime, timezone
@@ -69,15 +70,30 @@ def provider_label(provider: str) -> str:
     return AI_PROVIDERS.get(provider, AI_PROVIDERS["codex"])["label"]
 
 
-def parse_cli_json(raw: str) -> dict[str, Any]:
-    text = raw.strip()
-    if not text:
+def load_json_from_text(text: str) -> Any:
+    raw = text.strip()
+    if not raw:
         raise RuntimeError("model output is empty")
-    try:
-        payload: Any = json.loads(text)
-    except json.JSONDecodeError:
-        last_line = next((line.strip() for line in reversed(text.splitlines()) if line.strip()), "")
-        payload = json.loads(last_line)
+    candidates = [raw]
+    fence_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, flags=re.S | re.I)
+    if fence_match:
+        candidates.insert(0, fence_match.group(1).strip())
+    object_match = re.search(r"\{.*\}", raw, flags=re.S)
+    if object_match:
+        candidates.append(object_match.group(0).strip())
+    last_line = next((line.strip() for line in reversed(raw.splitlines()) if line.strip()), "")
+    if last_line and last_line not in candidates:
+        candidates.append(last_line)
+    for candidate in candidates:
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+    raise RuntimeError("model output missing valid JSON payload")
+
+
+def parse_cli_json(raw: str) -> dict[str, Any]:
+    payload = load_json_from_text(raw)
     if isinstance(payload, dict) and "zh_markdown" in payload:
         return payload
     if isinstance(payload, dict) and "result" in payload:
@@ -85,7 +101,9 @@ def parse_cli_json(raw: str) -> dict[str, Any]:
         if isinstance(result, dict):
             return result
         if isinstance(result, str):
-            return json.loads(result)
+            result_payload = load_json_from_text(result)
+            if isinstance(result_payload, dict):
+                return result_payload
     if isinstance(payload, dict) and "message" in payload and isinstance(payload["message"], dict):
         return payload["message"]
     raise RuntimeError("model output missing structured payload")

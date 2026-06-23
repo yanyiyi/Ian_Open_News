@@ -120,19 +120,41 @@ def find_records(ids: list[str]) -> list[dict[str, Any]]:
 def record_title(record: dict[str, Any]) -> str:
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
     editorial = record.get("editorial_triage") if isinstance(record.get("editorial_triage"), dict) else {}
+    model_titles = []
+    for key in ("codex_review", "claude_review"):
+        review = editorial.get(key) if isinstance(editorial.get(key), dict) else {}
+        model_titles.append(review.get("zh_title"))
     return (
-        clean_text(metadata.get("translated_zh_title"), 320)
+        clean_text(record.get("editorial_title"), 320)
+        or clean_text(metadata.get("editorial_title"), 320)
+        or next((title for title in (clean_text(value, 320) for value in model_titles) if title), "")
         or clean_text(editorial.get("zh_title"), 320)
+        or clean_text(editorial.get("codex_zh_title"), 320)
+        or clean_text(metadata.get("translated_zh_title"), 320)
         or clean_text(record.get("title"), 320)
+        or clean_text(record.get("url"), 320)
         or clean_text(record.get("id"), 320)
     )
+
+
+def translated_markdown(record: dict[str, Any]) -> str:
+    metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
+    for key in (
+        "codex_translated_article_markdown_zh",
+        "translated_article_markdown_zh",
+        "claude_translated_article_markdown_zh",
+    ):
+        text = clean_text(metadata.get(key), 12000)
+        if text:
+            return text
+    return ""
 
 
 def material_block(record: dict[str, Any]) -> dict[str, Any]:
     """單篇材料的精簡 context；優先用翻譯全文以省 token。"""
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
     editorial = record.get("editorial_triage") if isinstance(record.get("editorial_triage"), dict) else {}
-    translated = clean_text(metadata.get("translated_article_markdown_zh"), 12000)
+    translated = translated_markdown(record)
     if translated:
         body, body_kind = translated, "translated_full"
     else:

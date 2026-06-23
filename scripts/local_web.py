@@ -226,6 +226,7 @@ REJECTION_REASON_CATEGORIES = [
     "地緣脈絡非台資訊",
 ]
 DEFAULT_REJECTION_REASONS = list(REJECTION_REASON_CATEGORIES)
+MIN_REJECTION_REASON_OPTION_COUNT = 3
 SOURCE_KEYWORD_EXCLUSION_REASON = "單一 RSS 專屬關鍵字排除"
 NOISY_TAG_VALUES = {
     "",
@@ -309,6 +310,10 @@ REJECTION_REASON_ALIASES = {
     "來源重複，已由其他資料涵蓋。": "重複/已涵蓋",
     "重複": "重複/已涵蓋",
     "已涵蓋": "重複/已涵蓋",
+    "廣告": "活動公告/宣傳",
+    "廣告宣傳": "活動公告/宣傳",
+    "促銷廣告": "活動公告/宣傳",
+    "徵才文": "活動公告/宣傳",
     "中國訊息": "地緣脈絡非台資訊",
     "中國資料": "地緣脈絡非台資訊",
     "地緣脈絡非台資訊": "地緣脈絡非台資訊",
@@ -317,7 +322,7 @@ REJECTION_REASON_ALIASES = {
 COMMANDS = {
     "fetch_rss": {
         "label": "立刻抓 RSS 候選",
-        "description": "先抓到入庫建檔區，不直接寫進正式資料庫；手動按鈕也會包含「按更新時抓」的來源，抓完接著用 Codex 補閱讀建議、三個理由與中文摘要。",
+        "description": "先抓到入庫建檔區，不直接寫進正式資料庫；手動按鈕也會包含「按更新時抓」的來源，抓完接著隨機用 Codex 或 Claude Code 補閱讀建議、三個理由與中文摘要。",
         "button": "抓到入庫建檔區",
         "command": [
             sys.executable,
@@ -393,12 +398,14 @@ COMMANDS = {
         ],
     },
     "codex_enrich_reviews": {
-        "label": "用 Codex 補閱讀建議與摘要",
-        "description": "針對入庫建檔區與閱讀區中還沒有 Codex review 的項目，產生給 Ian 的一句話推薦、三個閱讀理由、中文標題與中文摘要；未指定項目時會先看長時間標記的正在閱讀材料。",
-        "button": "補 Codex 建議",
+        "label": "隨機補 AI 閱讀建議與摘要",
+        "description": "針對入庫建檔區與閱讀區中還沒有模型 review 的項目，隨機使用 Codex CLI 或 Claude Code CLI 產生給 Ian 的一句話推薦、三個閱讀理由、中文標題與中文摘要；未指定項目時會先看長時間標記的正在閱讀材料。",
+        "button": "隨機補 AI 建議",
         "command": [
             sys.executable,
             str(ROOT / "scripts" / "codex_enrich_reviews.py"),
+            "--provider",
+            "random",
             "--target",
             "both",
             "--workflow-scope",
@@ -1512,15 +1519,18 @@ def record_model_reviews(record: dict) -> list[tuple[str, dict]]:
         review = record_model_review(record, provider)
         if review:
             reviews.append((provider, review))
+    reviews.sort(
+        key=lambda entry: (
+            clean_text(entry[1].get("generated_at") or entry[1].get("created_at") or "9999-12-31T23:59:59"),
+            AI_PROVIDER_ORDER.index(entry[0]) if entry[0] in AI_PROVIDER_ORDER else len(AI_PROVIDER_ORDER),
+        )
+    )
     return reviews
 
 
 def record_preferred_review(record: dict) -> dict:
-    for provider in AI_PROVIDER_ORDER:
-        review = record_model_review(record, provider)
-        if review:
-            return review
-    return {}
+    reviews = record_model_reviews(record)
+    return reviews[0][1] if reviews else {}
 
 
 def candidate_recommendation(candidate: dict) -> str:
@@ -2922,7 +2932,7 @@ def model_review_actions_html(item: dict, compact: bool = False) -> str:
         "<div class='source-card source-card--model source-card--empty'>"
         "<div class='section-kicker'>模型建議</div>"
         "<h3>生成閱讀建議</h3>"
-        "<p class='help'>預設先看 Codex 建議；需要交叉比較時，可再補 Claude Code。兩邊都有生成時會各自顯示成一張卡。</p>"
+        "<p class='help'>有哪個模型先生成，就先顯示哪張卡；需要交叉比較時，可再補另一個模型。兩邊都有生成時會各自顯示成一張卡。</p>"
         f"<div class='button-row'>{''.join(forms)}</div>"
         "</div>"
     )
@@ -3126,6 +3136,8 @@ def infer_rejection_reason(item: dict, current_reason: object = "") -> str:
         return f"社群內部消息{suffix}"
     if re.search(r"活動|報名|徵件|徵稿|招生|議程|研討會|講座|工作坊|論壇|招商|贊助|press release|webinar|conference|event|call for|cfp|sponsor", text, flags=re.I):
         return f"活動公告/宣傳{suffix}"
+    if re.search(r"抽獎|贈獎|優惠|折扣|促銷|廣告|導購|特價|限時|prime day|\bdeals?\b|coupon|sale|discount|promo code|sponsored|advertorial|gift card|all-time low|lowest price|best .* deals|up to \d+% off|% off|職缺|招聘|hiring|job", text, flags=re.I):
+        return f"活動公告/宣傳{suffix}"
     if re.search(r"中國|中国|大陸|大陆|香港|澳門|澳门|央行|銀保監|证监|證監|國務院|国务院|people\.com\.cn|gov\.cn|xinhuanet|cfi\.cn|hkex|moomoo|aastocks", text, flags=re.I):
         return f"地緣脈絡非台資訊{suffix}"
     if re.search(r"股價|買超|賣超|自營商|投信|營收|財報|公告|年報|季報|法人|籌碼|個股|pdf|會議紀錄|逐字稿|transcript|minutes|record only|log", text, flags=re.I):
@@ -3141,6 +3153,16 @@ def automatic_batch_rejection_reason(item: dict) -> str:
     base = rejection_reason_base(infer_rejection_reason(item)) or "主線關聯弱"
     today = datetime.now(LOCAL_TIMEZONE).date().isoformat()
     return f"{base}（{today}，自動批次處理）"
+
+
+def automatic_low_pr_rejection_reason(item: dict, threshold: float = 65) -> str:
+    score = candidate_priority_scores(item)["overall"] * 10
+    today = datetime.now(LOCAL_TIMEZONE).date().isoformat()
+    return (
+        f"PR 未達門檻（{score_label(score)}/100，低於或等於 {score_label(threshold)}/100）："
+        f"本輪建議收魔術棒剔除，先不收並保留原因。"
+        f"（{today}，自動批次處理）"
+    )
 
 
 def latest_source_fetch_stats(source_id: str) -> dict:
@@ -3198,8 +3220,14 @@ def rejection_reason_options(items: list[dict]) -> list[str]:
         reason = re.sub(r"\s+", " ", reason).strip()
         if reason:
             counts[reason] += 1
-    options = [reason for reason, _ in counts.most_common(8)]
-    for reason, _ in counts.most_common(8):
+    options = [
+        reason
+        for reason, count in counts.most_common(12)
+        if count >= MIN_REJECTION_REASON_OPTION_COUNT or reason in REJECTION_REASON_CATEGORIES
+    ]
+    for reason, count in counts.most_common(12):
+        if count < MIN_REJECTION_REASON_OPTION_COUNT and reason not in REJECTION_REASON_CATEGORIES:
+            continue
         if reason and reason not in options:
             options.append(reason)
     for reason in DEFAULT_REJECTION_REASONS:
@@ -3234,7 +3262,7 @@ def suggested_rejection_reasons(item: dict) -> list[str]:
             reasons.append("資料太舊")
     if re.search(r"活動|報名|徵件|徵稿|招生|研討會|講座|工作坊|webinar|conference|event|call for|cfp", text, flags=re.I):
         reasons.append("活動公告/宣傳")
-    if re.search(r"抽獎|優惠|折扣|促銷|廣告|sponsored|coupon|sale|discount|職缺|招聘|hiring|job", text, flags=re.I):
+    if re.search(r"抽獎|贈獎|優惠|折扣|促銷|廣告|導購|特價|限時|prime day|\bdeals?\b|coupon|sale|discount|promo code|sponsored|advertorial|gift card|all-time low|lowest price|best .* deals|up to \d+% off|% off|職缺|招聘|hiring|job", text, flags=re.I):
         reasons.append("活動公告/宣傳")
     if re.search(r"社群內部|內部消息|會務|社群例會|籌備|organizer|maintainer update", text, flags=re.I):
         reasons.append("社群內部消息")
@@ -4710,8 +4738,8 @@ def page(title: str, body: str) -> bytes:
   </div>
   <div class="loading-overlay" id="codex-review-loading" aria-live="polite" aria-hidden="true">
     <div class="loading-card">
-      <strong>正在生成 Codex 閱讀建議</strong>
-      <p class="muted">會先嘗試補抓全文，再把單篇資料送給 Codex 產生中文標題、閱讀理由與摘要。完成後會回到這篇文章。</p>
+      <strong>正在生成 AI 閱讀建議</strong>
+      <p class="muted">會先嘗試補抓全文，再把單篇資料送給你選的模型產生中文標題、閱讀理由與摘要。完成後會回到這篇文章。</p>
       <div class="loading-dots" aria-label="載入中"><span></span><span></span><span></span></div>
     </div>
   </div>
@@ -5638,19 +5666,11 @@ def editor_item_lookup() -> dict[str, dict]:
 
 
 def editor_item_title(record: dict) -> str:
-    metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
-    editorial = record.get("editorial_triage") if isinstance(record.get("editorial_triage"), dict) else {}
-    return (
-        clean_text(metadata.get("translated_zh_title"), 200)
-        or clean_text(editorial.get("zh_title"), 200)
-        or clean_text(record.get("title"), 200)
-        or clean_text(record.get("id"), 200)
-    )
+    return clean_text(item_display_title(record), 200) or clean_text(record.get("id"), 200)
 
 
 def editor_item_has_translation(record: dict) -> bool:
-    metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
-    return bool(clean_text(metadata.get("translated_article_markdown_zh")))
+    return bool(item_translated_markdown(record))
 
 
 def editor_available_materials() -> list[dict]:
@@ -6000,6 +6020,8 @@ class Handler(BaseHTTPRequestHandler):
             self.batch_items(self.read_form())
         elif parsed.path == "/items/auto-batch-skip":
             self.auto_batch_skip_items(self.read_form())
+        elif parsed.path == "/items/auto-batch-keep":
+            self.auto_batch_keep_items(self.read_form())
         elif parsed.path == "/items/personal-note":
             self.save_personal_note(self.read_form())
         elif parsed.path == "/items/update-tags":
@@ -6748,9 +6770,9 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <form method="post" action="/editor/viewpoints/save" class="editor-vp-form tag-picker" data-tag-picker>
       <label class="editor-label">標題<input type="text" name="title" placeholder="例如：開放資料的公共價值"></label>
       <input type="hidden" name="related_item_ids" data-vp-related-items>
-      <label class="editor-label">已關聯材料</label>
-      <div class="editor-vp-selected" data-vp-selected>
-        <p class="muted">尚未關聯材料。</p>
+      <label class="editor-label">觀點關聯池</label>
+      <div class="editor-vp-selected editor-vp-dropzone" data-vp-selected data-vp-dropzone>
+        <p class="muted">搜尋材料後拖進來，或按「加入觀點關聯」。</p>
       </div>
       <label class="editor-label">概念標籤</label>
       <div class="editor-vp-tag-picker">{viewpoint_tag_picker}</div>
@@ -6761,7 +6783,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   </div>
   <aside class="card editor-search-card">
     <h2>搜尋材料</h2>
-    <p class="help">可把可用材料或新聞小消息關聯到這條觀點。搜尋標題、摘要、來源或 tag。</p>
+    <p class="help">可把可用材料或新聞小消息關聯到這條觀點。搜尋標題、摘要、來源或 tag 後，按鈕加入或直接拖進關聯池。</p>
     <div class="editor-search-row">
       <input type="search" id="vp-material-search" placeholder="搜尋材料">
       <button type="button" class="secondary" id="vp-material-search-button">{button_content('搜尋', 'filter')}</button>
@@ -6789,6 +6811,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   .editor-label {{ display:block; margin:10px 0; font-size:14px; }}
   .editor-search-row {{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; }}
   .editor-vp-selected, .editor-vp-results {{ display:grid; gap:8px; }}
+  .editor-vp-dropzone {{ min-height:120px; border:1px dashed var(--line); border-radius:8px; padding:10px; background:#f8fafc; align-content:start; }}
+  .editor-vp-dropzone.is-drag-over {{ border-color:var(--ocf-primary); background:#eef2ff; }}
   .editor-vp-results {{ max-height:300px; overflow:auto; padding-right:2px; }}
   .editor-vp-material {{ border:1px solid var(--line); border-radius:8px; padding:10px; background:#fff; display:grid; gap:6px; }}
   .editor-vp-material-title {{ font-weight:700; color:var(--ocf-dark); }}
@@ -6840,7 +6864,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         <div class="editor-vp-material-meta"><code>${{escapeHtml(id)}}</code>${{badges(item)}}</div>
         <button type="button" class="button button-small quiet" data-vp-remove="${{escapeHtml(id)}}">移除關聯</button>
       </article>`;
-    }}).join("") : '<p class="muted">尚未關聯材料。</p>';
+    }}).join("") : '<p class="muted">搜尋材料後拖進來，或按「加入觀點關聯」。</p>';
   }}
   function renderResults() {{
     var query = (searchInput.value || "").trim();
@@ -6851,16 +6875,23 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     var rows = materials.filter(function(item) {{ return matches(item, query); }}).slice(0, 24);
     results.innerHTML = rows.length ? rows.map(function(item) {{
       var added = selected.has(item.id);
-      return `<article class="editor-vp-material">
+      return `<article class="editor-vp-material" draggable="true" data-vp-material-id="${{escapeHtml(item.id)}}">
         <div class="editor-vp-material-title">${{escapeHtml(item.title)}}</div>
         <p class="muted">${{escapeHtml(item.summary || "沒有摘要。")}}</p>
         <div class="editor-vp-material-meta"><code>${{escapeHtml(item.id)}}</code>${{badges(item)}}</div>
-        <button type="button" class="button button-small" data-vp-add="${{escapeHtml(item.id)}}"${{added ? " disabled" : ""}}>${{added ? "已關聯" : "加入關聯"}}</button>
+        <button type="button" class="button button-small" data-vp-add="${{escapeHtml(item.id)}}"${{added ? " disabled" : ""}}>${{added ? "已關聯" : "加入觀點關聯"}}</button>
       </article>`;
     }}).join("") : '<p class="muted">沒有找到符合的材料。</p>';
   }}
   function findMaterial(id) {{
     return materials.find(function(item) {{ return item.id === id; }});
+  }}
+  function addSelected(id) {{
+    var item = findMaterial(id);
+    if (!item) return;
+    selected.set(item.id, item);
+    renderSelected();
+    renderResults();
   }}
   searchButton.addEventListener("click", renderResults);
   searchInput.addEventListener("keydown", function(event) {{
@@ -6872,10 +6903,27 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   results.addEventListener("click", function(event) {{
     var btn = event.target.closest("[data-vp-add]");
     if (!btn) return;
-    var item = findMaterial(btn.getAttribute("data-vp-add"));
-    if (item) selected.set(item.id, item);
-    renderSelected();
-    renderResults();
+    addSelected(btn.getAttribute("data-vp-add"));
+  }});
+  results.addEventListener("dragstart", function(event) {{
+    var card = event.target.closest("[data-vp-material-id]");
+    if (!card || !event.dataTransfer) return;
+    event.dataTransfer.setData("text/plain", card.getAttribute("data-vp-material-id"));
+    event.dataTransfer.effectAllowed = "copy";
+  }});
+  selectedBox.addEventListener("dragover", function(event) {{
+    event.preventDefault();
+    selectedBox.classList.add("is-drag-over");
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+  }});
+  selectedBox.addEventListener("dragleave", function(event) {{
+    if (!selectedBox.contains(event.relatedTarget)) selectedBox.classList.remove("is-drag-over");
+  }});
+  selectedBox.addEventListener("drop", function(event) {{
+    event.preventDefault();
+    selectedBox.classList.remove("is-drag-over");
+    var id = event.dataTransfer ? event.dataTransfer.getData("text/plain") : "";
+    addSelected(id);
   }});
   selectedBox.addEventListener("click", function(event) {{
     var btn = event.target.closest("[data-vp-remove]");
@@ -7156,6 +7204,10 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         elif (query.get("saved") or [""])[0] == "auto_rejected":
             count = h((query.get("count") or ["0"])[0])
             notice = f'<div class="notice">已用自動批次處理標記不收 {count} 筆，並依每則標題、網址與既有理由寫入新版不收分類。</div>'
+        elif (query.get("saved") or [""])[0] == "auto_pruned":
+            count = h((query.get("count") or ["0"])[0])
+            threshold = h((query.get("threshold") or ["65"])[0])
+            notice = f'<div class="notice">已剔除 PR 未達 {threshold} 分的建議收候選 {count} 筆，並把分數門檻寫進不收原因。</div>'
         elif (query.get("saved") or [""])[0] == "rejected":
             count = h((query.get("count") or ["1"])[0])
             notice = f'<div class="notice">已標記不收 {count} 筆，項目已離開入庫建檔區，原因也已寫進不收學習檔與 review event。</div>'
@@ -7322,15 +7374,19 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         keyword_filter_html = "".join(keyword_filters) if keyword_filters else '<p class="help">目前篩選條件下沒有可用關鍵字 / tag。</p>'
         batch_buttons = batch_reason_buttons(reason_options)
         auto_batch_panel = ""
-        if recommendation_filter == "suggest-skip" and filtered:
-            auto_hidden_inputs = [
+        def auto_batch_hidden_inputs(recommendation: str) -> list[str]:
+            hidden_inputs = [
                 f'<input type="hidden" name="track" value="{h(track_filter)}">',
-                '<input type="hidden" name="recommendation" value="suggest-skip">',
+                f'<input type="hidden" name="recommendation" value="{h(recommendation)}">',
             ]
             if show_all:
-                auto_hidden_inputs.append('<input type="hidden" name="show" value="all">')
+                hidden_inputs.append('<input type="hidden" name="show" value="all">')
             for keyword in sorted(selected_keywords):
-                auto_hidden_inputs.append(f'<input type="hidden" name="keyword" value="{h(keyword)}">')
+                hidden_inputs.append(f'<input type="hidden" name="keyword" value="{h(keyword)}">')
+            return hidden_inputs
+
+        if recommendation_filter == "suggest-skip" and filtered:
+            auto_hidden_inputs = auto_batch_hidden_inputs("suggest-skip")
             auto_batch_panel = f"""
 <div class="card auto-batch-panel">
   <form method="post" action="/items/auto-batch-skip">
@@ -7338,6 +7394,28 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <button type="submit" class="secondary">{button_content("自動批次處理", "wand", "W")}</button>
   </form>
   <p class="help">會處理這個 view 下的 {len(filtered)} 筆「建議不要看」，逐筆推估不收分類，並在原因後加上「{datetime.now(LOCAL_TIMEZONE).date().isoformat()}，自動批次處理」。</p>
+</div>
+"""
+        elif recommendation_filter == "suggest-keep" and filtered:
+            auto_hidden_inputs = auto_batch_hidden_inputs("suggest-keep")
+            low_pr_threshold = 65
+            low_pr_count = sum(1 for _, item in filtered if candidate_priority_scores(item)["overall"] * 10 <= low_pr_threshold)
+            auto_batch_panel = f"""
+<div class="card auto-batch-panel">
+  <div class="button-row">
+    <form method="post" action="/items/auto-batch-keep">
+      {''.join(auto_hidden_inputs)}
+      <input type="hidden" name="mode" value="accept_all">
+      <button type="submit" class="secondary">{button_content("全部收進可用材料區", "wand", "W")}</button>
+    </form>
+    <form method="post" action="/items/auto-batch-keep">
+      {''.join(auto_hidden_inputs)}
+      <input type="hidden" name="mode" value="prune_low_pr">
+      <input type="hidden" name="threshold" value="{low_pr_threshold}">
+      <button type="submit" class="secondary">{button_content("剔除 PR 未達 65 分", "wand", "P")}</button>
+    </form>
+  </div>
+  <p class="help">第一顆會處理這個 view 下全部 {len(filtered)} 筆「建議收」；第二顆只會把 PR 綜合分數 65/100 以下的 {low_pr_count} 筆標記不收，原因會逐筆寫入分數與門檻。</p>
 </div>
 """
         body = f"""
@@ -8381,6 +8459,16 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             else "按「展開全文」後會從原始連結往下抓全文，載入完成後以 Markdown 閱讀版顯示在這裡。"
         )
         note = personal_note_text(item)
+        item_url = clean_text(item.get("url"), 1200)
+        external_title_action = (
+            f"""
+    <div class="button-row article-title-actions">
+      <a class="button secondary reader-action-button" href="{h(item_url)}" target="_blank" rel="noreferrer">{button_content("開啟網頁", "external", "L")}</a>
+    </div>
+"""
+            if item_url
+            else ""
+        )
         note_updated = ""
         personal_notes = item.get("personal_notes")
         if isinstance(personal_notes, dict) and personal_notes.get("updated_at"):
@@ -8623,6 +8711,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         </form>
       </div>
     </details>
+    {external_title_action}
     <p class="lede break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
   </div>
   {image_html}
@@ -8999,6 +9088,60 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         if show_all:
             params.append(("show", "all"))
         params.extend([("saved", "auto_rejected"), ("count", str(count))])
+        self.redirect(href_with_query("/items", params))
+
+    def auto_batch_keep_items(self, data: dict[str, list[str]]) -> None:
+        track_filter = form_value(data, "track", "all")
+        selected_keywords = {keyword for keyword in (data.get("keyword") or []) if keyword}
+        show_all = form_value(data, "show") == "all"
+        mode = form_value(data, "mode", "accept_all")
+        try:
+            threshold = float(form_value(data, "threshold", "65") or 65)
+        except ValueError:
+            threshold = 65.0
+        candidates = load_jsonl(CANDIDATES)
+        items = load_jsonl(ITEMS)
+        inbox_items = [item for item in items if item.get("status") == "inbox"]
+        pending_entries = [("rss", candidate) for candidate in candidates] + [("item", item) for item in inbox_items]
+
+        def matches_auto_batch(record: dict) -> bool:
+            if track_filter != "all" and record.get("track") != track_filter:
+                return False
+            if candidate_recommendation(record) != "suggest-keep":
+                return False
+            if selected_keywords and not (item_triage_keywords(record) & selected_keywords):
+                return False
+            return True
+
+        targets = [record for _, record in pending_entries if matches_auto_batch(record)]
+        count = 0
+        if mode == "prune_low_pr":
+            for item in targets:
+                item_id = clean_text(item.get("id"))
+                if not item_id:
+                    continue
+                score = candidate_priority_scores(item)["overall"] * 10
+                if score <= threshold:
+                    count += self.update_pending_decisions([item_id], "reject", automatic_low_pr_rejection_reason(item, threshold))
+            saved = "auto_pruned"
+        else:
+            for item in targets:
+                item_id = clean_text(item.get("id"))
+                if item_id:
+                    count += self.update_pending_decisions([item_id], "accept")
+            saved = "accepted"
+
+        params = []
+        if track_filter != "all":
+            params.append(("track", track_filter))
+        params.append(("recommendation", "suggest-keep"))
+        for keyword in sorted(selected_keywords):
+            params.append(("keyword", keyword))
+        if show_all:
+            params.append(("show", "all"))
+        params.extend([("saved", saved), ("count", str(count))])
+        if mode == "prune_low_pr":
+            params.append(("threshold", score_label(threshold)))
         self.redirect(href_with_query("/items", params))
 
     def save_personal_note(self, data: dict[str, list[str]]) -> None:

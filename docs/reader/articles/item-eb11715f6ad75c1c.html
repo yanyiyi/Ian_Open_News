@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>G7 如何區分「開源 AI」與「開放權重」 - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>G7 如何區分「開源 AI」與「開放權重」</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">可用材料 / 可進編輯台</span>
+      <span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span>
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-02 08:00</span>
+    </div>
+    <h2><a class="article-title-link" href="https://redmonk.com/sogrady/2026/06/02/g7-open-weights/" target="_blank" rel="noreferrer" title="開啟原始連結">G7 如何區分「開源 AI」與「開放權重」</a></h2>
+    <p class="lede">Stephen O&#x27;Grady 分析 G7 最新 AI openness 文件，指出 G7 一方面肯定開源與 AI 開放性帶來的社會與經濟價值，另一方面也承認「Open Source AI」與「Open-Weight」的意義仍有爭議。文章的核心判斷是，AI 模型的開放程度無法像傳統程式碼一樣用開源／閉源二分法界定，因為模型權重、部署程式碼、訓練程式碼、訓練資料與使用限制都會影響實際可重製性與可用性。G7 因此提出四層分類，從完整開放資料與程式碼的 Open Source AI with Open Data，到只開放權重與部分程式碼但含使用限制的 Weights Available AI。作者認為這等於承認單一定義難以同時滿足原則派與務實派，並可能讓「開放權重」成為比「開源 AI」更可操作的產業語言。</p>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">free software</span><span class="tag-chip">開源 AI</span><span class="tag-chip">開放權重</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
+    </div>
+    <section class="article-body"><h1>The G7 on Open Source vs Open Weights</h1>
+<h3><a href="https://redmonk.com/sogrady" target="_blank" rel="noreferrer">tecosystems</a></h3>
+<p>By <a href="https://redmonk.com/sogrady/author/sogrady/" target="_blank" rel="noreferrer">Stephen O&#x27;Grady</a> | <a href="https://twitter.com/sogrady" target="_blank" rel="noreferrer">@sogrady</a> | June 2, 2026 Share via Twitter Share via Facebook Share via Linkedin Share via Reddit The term “open source” was <a href="https://opensource.com/article/18/2/coining-term-open-source-software" target="_blank" rel="noreferrer">coined in 1998</a>, at least in part, because the term that preceded it was unclear and required explanation. Free software was descriptive and understood within technical communities familiar with it, but misleading to newcomers who understood free in commercial rather than philosophical terms. It was clear, in other words, that a new descriptor was required, and open source was the result. Two years after the introduction of a proposed definition for open source AI, adoption has been minimal and there is an increasing awareness that unlike with pure source code, the assets that make up an AI model cannot be reduced to a single, binary open and closed definition. It’s not that the licenses and promises of open source as they pertain to source code are simple. They can be complex, nuanced and difficult to explain. But they are, at least, that binary. Code is either open source or it’s not. By contrast, it’s now clear that open source AI – of which code is only a small part – is going to have to be defined along a spectrum from closed to open. The <a href="https://en.wikipedia.org/wiki/G7" target="_blank" rel="noreferrer">G7 nations</a> – with input from parties like <a href="https://opensource.org/blog/open-source-initiative-helps-g7-deliver-vision-on-ai-openness" target="_blank" rel="noreferrer">the OSI</a> – apparently concur. Their <a href="https://www.entreprises.gouv.fr/files/files/Actualites/2026/g7/vision-AI-openness-opportunities-and-shared-language.pdf" target="_blank" rel="noreferrer">paper</a> published this week, “G7 Vision on AI openness opportunities and shared language,” has several important takeaways. Among them:</p>
+<ul>
+<li>First, it clearly and unambiguously states that both open source and AI openness have immense societal benefits. It calls the latter, in fact, “<em>an essential contributor to our economies</em>.”</li>
+<li>Second, it acknowledges the risks and potential future harm that can result from the lack of clear, consistent definitions. “<em>This lack of clarity in the field of AI tends to cast doubt on the degree of openness of such technologies, thereby undermining their benefits</em>.”</li>
+<li>Third, it <em>explicitly</em> rejects a strict open or closed definition – “<em>the openness of an AI is not binary</em>.”</li>
+<li>Fourth, it <em>implicitly</em> rejects existing definitions – “<em>the meaning of Open-Weight or Open Source AI remains contested</em>.”</li>
+<li>Lastly, it proposes a four tier system for categorizing AI projects that sit along a spectrum of open.</li>
+</ul>
+<p>The proposed classifications are similar in some respects to existing attempts like the Linux Foundation’s <a href="https://docs.google.com/document/d/1RUNrs4flAsYsikXTPu1jWBH1BAumCyeG/edit?pli=1#heading=h.gjdgxs" target="_blank" rel="noreferrer">Model Openness Framework</a>. Both are built for a landscape in which projects will differ in what specifically is made available, the terms its made available under and what restrictions, if any, are placed on use. But where the MOF is quite granular, grading projects around 17 components across an entire development lifecycle, the G7 vision is simpler. It defines four tiers based on five components (weights, deployment code, training code, training data and use restrictions). In rough terms, those tiers can be described as follows ranging from most open to least:</p>
+<ul>
+<li><strong>Open Source AI with Open Data</strong>: everything is open and under an OSI license – code, data, weights, every asset.</li>
+<li><strong>Open Source AI</strong>: what’s available is open, but it may or may not include training data, though it must include full training code.</li>
+<li><strong>Open Weights AI</strong>: weights and code are available and under an OSI license, but nothing else.</li>
+<li><strong>Weights Available AI</strong>: weights and code are available and open for inspection, but are released under a license which cannot be called open source due to use restrictions or other prohibited limitations.</li>
+</ul>
+<p>It remains to be seen whether or not the industry can adapt to a definition of open that depends on a sliding scale rather a fixed yes/no. But it also doesn’t have a choice. Two years of development and discussion and two years of living with a <a href="https://opensource.org/ai/open-source-ai-definition" target="_blank" rel="noreferrer">proposed definition</a> have gotten us no closer to an industry consensus. Subtly, however, what the G7 nations have done with this document intentionally or unintentionally is to both acknowledge that fact, make it irrelevant and implicitly propose their alternative. The challenge for any single definition of open source AI is that it is not possible to please both definition purists and definition pragmatists. The former point out that any definition that allows for any omission of training data is effectively granting the term open source to a project that cannot ever be independently replicated. Which is legitimate. The latter, on the other hand, point to issues with datasets ranging from the byzantine nature of data licensing to the sheer impracticality of the size of these datasets. Which are also legitimate. You can please one of these groups about an open source definition, but not both. What the G7 is proposing serves as a recognition that that debate is a lost cause. Instead, for all intents and purposes, the G7 is proposing to deprecate the term open source AI in favor of open weights. It is true, on the one hand, that there are not one but two different tiers in the G7’s framework that explicitly cite the term open source. So the deprecation is not literal. There is a definition of open source AI in existence. But if no major competitive models can satisfy that definition, does the definition matter? Two weeks ago, we <a href="https://redmonk.com/sogrady/2026/05/15/open-ai-models/" target="_blank" rel="noreferrer">surveyed</a> a large, representative sample of relevant models. Since then we’ve added a few new models to track. A quick survey of the licensing terms for this sample are suggestive. 28 of the surveyed models are closed, and thus irrelevant in a discussion of openness. Of the 40 remaining in our sample, half are Weights Available AI (non-OSI license) and half are Open Weights AI (OSI license). Which in turn means that none are Open Source AI and none are are Open Source AI with Open Data. To be clear, there are borderline cases: IBM publishes detailed training documentation and methodology, but not the code. Meta has released fine-tuning recipes and scripts (llama-recipes) alongside Llama, but again not the code. Deepseek, meanwhile, arguably went furthest, providing reinforcement learning training code and distillation scripts – but not the full pipeline. None of these, therefore, are considered open source AI by the G7’s definition. Outside of our sample, meanwhile, there are models that provide data, code and weights: AI2’s OLMo and EleutherAI’s Pythia most notably. But they aren’t particularly competitive with the selected open and closed models tracked here and thus are not considered. Put simply, the G7’s proposal at once codifies the open source AI definition while simultaneously making it irrelevant. Open weights becomes the de facto term of art, then, by default – at least until such time in future that truly open source models become more competitive. Instead of blurring the definition of open source AI to meaninglessness, a new, more descriptive term in open weights seeks to mitigate the shortcomings of its predecessor – much as open source itself once did for free software. It is not clear whether even an august body like the G7 can compel adoption of their proposed framework, and there are questions about who should be defining industry terminology: governments, or industry bodies? But if this effort is successful, and the term open source is effectively relegated to just describing source code, that could be the <a href="https://redmonk.com/sogrady/2024/10/22/from-open-source-to-ai/" target="_blank" rel="noreferrer">best possible outcome</a>. Vendors who wish to benefit from the halo of open can do so with a term separate and distinct from open source, and thus one insulated from contamination from use restrictions, lack of training data and other issues that would violate the original spirit and intent of the open source definition. In past debates between open source purists and pragmatists, the latter would frequently argue that a definition of open source that was too strict would never be used. The mistake all along may have been assuming that that was a bad thing. <strong>Disclosure</strong>: neither the G7 nor the OSI are RedMonk clients.</p>
+<h3>About</h3>
+<h3>The Book</h3>
+<h3>Archives</h3>
+<h3>Search</h3>
+<h3>Recent Posts</h3>
+<ul>
+<li><a href="https://redmonk.com/sogrady/2026/06/11/open-source-spectrum/" target="_blank" rel="noreferrer">The Open Source Maturity Spectrum</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/10/paas-unbundling/" target="_blank" rel="noreferrer">The Unbundling and Bundling of the PaaS Market</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/04/bun-two-lessons/" target="_blank" rel="noreferrer">What Bun Can Tell Us About AI, Open Source and Anthropic</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/02/g7-open-weights/" target="_blank" rel="noreferrer">The G7 on Open Source vs Open Weights</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/05/19/oss-summit-2026/" target="_blank" rel="noreferrer">What the OSS Summit Says About OSS in 2026</a></li>
+</ul>
+<h3>Categories</h3>
+<h3>Archives</h3></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-eb11715f6ad75c1c.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-23T03:18:09+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-23T03:11:49+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。
+2026-06-23T03:18:09+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The G7 on Open Source vs Open Weights</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：The G7 on Open Source vs Open Weights（Codex）</li><li><strong>原始作者</strong>：@redmonk（twitter:creator）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-eb11715f6ad75c1c";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

@@ -4,6 +4,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
+import re
 import shutil
 import subprocess
 import sys
@@ -93,16 +95,30 @@ def provider_meta(provider: str) -> dict[str, str]:
     return AI_PROVIDERS.get(provider, AI_PROVIDERS["codex"])
 
 
-def parse_cli_json(raw: str) -> dict[str, Any]:
-    text = raw.strip()
-    if not text:
+def load_json_from_text(text: str) -> Any:
+    raw = text.strip()
+    if not raw:
         raise RuntimeError("model output is empty")
-    payload: Any
-    try:
-        payload = json.loads(text)
-    except json.JSONDecodeError:
-        last_line = next((line.strip() for line in reversed(text.splitlines()) if line.strip()), "")
-        payload = json.loads(last_line)
+    candidates = [raw]
+    fence_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, flags=re.S | re.I)
+    if fence_match:
+        candidates.insert(0, fence_match.group(1).strip())
+    object_match = re.search(r"\{.*\}", raw, flags=re.S)
+    if object_match:
+        candidates.append(object_match.group(0).strip())
+    last_line = next((line.strip() for line in reversed(raw.splitlines()) if line.strip()), "")
+    if last_line and last_line not in candidates:
+        candidates.append(last_line)
+    for candidate in candidates:
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+    raise RuntimeError("model output missing valid JSON payload")
+
+
+def parse_cli_json(raw: str) -> dict[str, Any]:
+    payload = load_json_from_text(raw)
     if isinstance(payload, dict) and "reviews" in payload:
         return payload
     if isinstance(payload, dict) and "result" in payload:
@@ -110,10 +126,32 @@ def parse_cli_json(raw: str) -> dict[str, Any]:
         if isinstance(result, dict):
             return result
         if isinstance(result, str):
-            return json.loads(result)
+            result_payload = load_json_from_text(result)
+            if isinstance(result_payload, dict):
+                return result_payload
     if isinstance(payload, dict) and "message" in payload and isinstance(payload["message"], dict):
         return payload["message"]
     raise RuntimeError("model output missing structured payload")
+
+
+def available_providers() -> list[str]:
+    available: list[str] = []
+    for provider, finder in [("codex", codex_path), ("claude", claude_path)]:
+        try:
+            finder()
+        except RuntimeError:
+            continue
+        available.append(provider)
+    return available
+
+
+def choose_provider(provider: str) -> str:
+    if provider != "random":
+        return provider
+    providers = available_providers()
+    if not providers:
+        raise RuntimeError("找不到可用的 Codex 或 Claude Code CLI。")
+    return random.choice(providers)
 
 
 def has_provider_review(record: dict[str, Any], provider: str) -> bool:
@@ -543,7 +581,7 @@ def process_file(path: Path, kind: str, args: argparse.Namespace) -> tuple[int, 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Use Codex or Claude Code CLI to add reading recommendations and summaries.")
-    parser.add_argument("--provider", choices=sorted(AI_PROVIDERS), default="codex")
+    parser.add_argument("--provider", choices=sorted([*AI_PROVIDERS, "random"]), default="codex")
     parser.add_argument("--target", choices=["candidates", "items", "both"], default="candidates")
     parser.add_argument("--items", type=Path, default=ITEMS)
     parser.add_argument("--candidates", type=Path, default=CANDIDATES)
@@ -560,6 +598,7 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Call Codex but do not write JSONL.")
     parser.add_argument("--report", type=Path, default=REPORT)
     args = parser.parse_args()
+    args.provider = choose_provider(args.provider)
 
     totals: list[tuple[str, int, int]] = []
     if args.target in {"candidates", "both"}:

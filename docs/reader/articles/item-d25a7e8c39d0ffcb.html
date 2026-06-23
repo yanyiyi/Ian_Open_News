@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>社群利益媒體如何推動數位包容：來自實務經驗的學習 - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>社群利益媒體如何推動數位包容：來自實務經驗的學習</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">可用材料 / 可進編輯台</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-22 08:00</span>
+    </div>
+    <h2><a class="article-title-link" href="https://www.apc.org/en/news/community-interest-medias-contribution-digital-inclusion-learning-experience" target="_blank" rel="noreferrer" title="開啟原始連結">社群利益媒體如何推動數位包容：來自實務經驗的學習</a></h2>
+    <p class="lede">APC 與肯亞 IAWR-KE 推出的 community interest media 概念，主張媒體不應只被技術或平台形式定義，而要回到它是否服務社群自己的議程。文章透過印尼 Kasepuhan Gelaralam 原住民族社群的 Radio Swara 與 CIGA TV、墨西哥以音樂與地方敘事為核心的媒體實作，以及肯亞社群網路與內容生產經驗，說明社群媒體可以同時是文化保存、青年參與、地方知識檔案、對外溝通與自主敘事的工具。它對數位包容的提醒是：連線、內容、媒體治理與社群自決不能分開看。</p>
+    <div class="tag-chip-list"><span class="tag-chip">OCF</span><span class="tag-chip">開放文化基金會</span><span class="tag-chip">digital inclusion</span><span class="tag-chip">數位包容</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
+    </div>
+    <section class="article-body"><h1>Community interest media’s contribution to digital inclusion: Learning from experience</h1>
+<p>Community interest media is proposed as a relational and principle-based framework that asks what media serves a community&#x27;s own agenda. Photo from REDES AC What do a community radio station in a traditional community in Indonesia, a music-rooted media collective in rural Mexico, community networks addressing content production in Kenya, and a digital newsroom working on resources for local content share in common? Though tailored to different lived realities, all of these media initiatives share a common focus on addressing their communities’ interests. They are practical examples of community interest media (CIM), a framework recently introduced in the launch of the publication<a href="https://www.apc.org/en/pubs/community-interest-media-emerging-concepts-and-practices-global-majority-and-friends" target="_blank" rel="noreferrer">Community Interest Media: Emerging concepts and practices from the Global Majority (and friends)</a>. Developed by the Association for Progressive Communications (APC) and the<a href="https://iawrt.or.ke/" target="_blank" rel="noreferrer">International Association of Women in Radio and Television in Kenya (IAWR-KE)</a>, the publication pays particular attention to the connections between community networks and community content creation. It looks to experiences where communities are seeking autonomy in shaping both connectivity infrastructure and communication processes. Rather than offering a fixed definition, the CIM concept is proposed as a relational and principle-based framework that asks what media serves a community&#x27;s own agenda. Consequently, the publication works as an invitation to define, amplify and ground existing frameworks around community media and local content creation, as well as to address communities&#x27; need for access to connectivity, information and communication resources.</p>
+<h2><strong>Lessons from the field: Indonesia, Mexico and Kenya</strong></h2>
+<p>The <a href="https://www.apc.org/en/event/tech-together-webinar-community-interest-media-report-launch-and-discussion-practitioners" target="_blank" rel="noreferrer">publication&#x27;s recent launch</a> provided a great opportunity to learn from what those leading the experiences documented, giving texture to what community interest media looks like in practice. It offered a perspective of how different those practices can be, and, at the same time, how they are aligned in aims and also in the barriers to overcome. Daniela Bello López from Mexico, Nelly Moraa Nyangorora from Kenya and Subekti Priyadharma from Indonesia shared three different ways of doing media as a community in different contexts, cultures and regions. Radio Swara and <a href="https://www.youtube.com/@cigatvciptagelar6230" target="_blank" rel="noreferrer">CIGA TV</a>, created by the Indigenous community of Kasepuhan Gelaralam in Indonesia, serve not only as communication channels but also as spaces for learning, cultural preservation and dialogue between the community and the outside world. Their story was documented by researcher Subekti Priyadharma (Ibek) from Common Room through an interview with Yoyo Yogaswara, the community’s <em>jambatan</em> (bridge), which is a role appointed by traditional leader Abah Ugi to manage external communications. Guided by the community’s own calendar of life, the <em>jambatan</em> decides what remains only in local media and what is shared through platforms such as YouTube, Instagram and TikTok, ensuring community control over the circulation of their knowledge and culture. <em>&quot;Radio Swara and CIGA TV were not merely designed to deliver information but also to visualise the life of the adat (customary) community&quot;. Photo provided by the author of the report</em></p>
+<blockquote><em>These media emerge from three converging forces: a practical need because the community was cut off. The second one is an ancestral mission: the Kasepuhan exists to preserve and spread the ancestral order so the existence of the communication tool is necessary to realise this. And lastly, a technological curiosity: Abu...</em>Subekti Priyadharma from <a href="https://www.commonroom.info/" target="_blank" rel="noreferrer">Common Room</a>.</blockquote>
+<p>Priyadharma identified four key impacts of these initiatives: empowering youth through hands-on participation, fostering intergenerational cultural education, creating living archives of ceremonies and local knowledge, and strengthening cultural diplomacy by allowing Indigenous communities to tell their own stories. He also emphasised the importance of community-owned infrastructure: “When you build your own transmitter, your own connectivity and manage them as well, you own the narrative. Sovereignty starts with sovereignty over the means of communications.” From Mexico, <a href="https://cantodecenzontles.org/" target="_blank" rel="noreferrer">Canto de Cenzontles</a> is a weekly radio programme, and <a href="https://periodismodeloposible.com/" target="_blank" rel="noreferrer">Periodismo de lo Posible</a> is a narrative podcast, both available in Spanish. In both, the stories, the sounds and the music are grounded in local communities&#x27; lived realities. Researcher Daniela Bello from REDES A.C. highlighted two key aspects of the Mexican context: “The… exclusion of Indigenous and Afro-descendant peoples from mainstream media and the territorial threats that many communities are facing from extractive industries to extraterritorial racism.”</p>
+<blockquote>“Community interest media can be a response to that, as tools for cultural expression and for defending territory, languages, identity and self-determination,” added Bello.</blockquote>
+<p>López pointed out that new narratives are available now in public media and digital platforms, “with different audiences in mind, especially women, children, sexual and gender-diverse communities, and defenders of land and territory”. <em>Canto de Cenzontles</em> is retransmitted by more than 16 radio stations – public, university, community and Indigenous – in Mexico and in other countries as a result of sustained networking. <em>Periodismo de lo Posible</em> has also become a model for capacity building, combining in-person bootcamps, online training and mentorship with journalists who support community-led podcast production. They came from an alliance with TIC A.C., an Indigenous-run mobile virtual network operator that dedicates 5% of its income to funding community content.</p>
+<blockquote>“Community members are developing skills in order to create those stories. And by means of policy advocacy and networking, communities access resources, gain visibility in public media, and claim their place in the communication spectrum,” she underlined.</blockquote>
+<p>At a midpoint between Mexico and Indonesia, a study from Kenya focused on enhancing digital inclusion through the collaboration between community networks and community media. Interviewing community radios and networks across the country, the research led by Nelly Moraa, together with Racheal Nakitare and Raylenne Kambua, highlights a persistent paradox: meaningful connectivity requires not just infrastructure but also content that reflects the realities of those connected. But at the same time, the research highlights that “without the platforms, the issue of distribution, production and resharing might not be possible without a network, and that is where community networks come in.” The study finds that Kenya&#x27;s regulatory framework remains anchored in traditional mainstream media structures, lacks provisions for community interest media, and stresses the need for policy that contemplates sustainability, accessible licensing, and viable income sources for community media and networks. “Without a community radio sector,” the report notes, “Kenya&#x27;s information landscape leaves many voices without a home.” “More than a licence, more than a radio, more than just news,” is how Nakitare from IAWRT outlined the findings of the research that deliberately moved away from broadcast-era definitions. It asked not only how communities create content but also how they curate information today. “How can a story about Middle East oil prices be brought down to the scale of a single farmer&#x27;s life, and in doing so become genuinely useful for the community?&quot; Nakitare asked. &quot;It&#x27;s just curating that and bringing the bigger picture also to the local communities.&quot;</p>
+<h2><strong>Concepts emerging from experiences</strong></h2>
+<p>Beyond these three concrete experiences from Mexico, Indonesia and Kenya, the publication, <a href="https://www.apc.org/en/pubs/community-interest-media-emerging-concepts-and-practices-global-majority-and-friends" target="_blank" rel="noreferrer">Community Interest Media: Emerging concepts and practices from the Global Majority (and friends)</a>, also features case studies from other countries like Brazil, Nigeria and the Philippines, alongside two cross-regional initiatives, showcasing diverse approaches to community-led communication, connectivity, data governance and digital journalism. Other case studies examine socioenvironmental inclusion in the Niger Delta, rural connectivity in South Africa, community mesh radio from India, research on experiences from Brazil, and the work of collaborative digital journalism platforms such as <a href="https://blog.colmena.media/" target="_blank" rel="noreferrer">Colmena</a> and <a href="https://displayeurope.eu/es" target="_blank" rel="noreferrer">Display</a>. <em>The Tech Together webinar hosted the launch of the publication, presented by their compilers, Nils Brocks and Nelly Moraa Nyangorora.</em> The publication launch brought together researchers, journalists, technologists and community practitioners to discuss the role of community internet media and the conditions needed for it to grow and contribute to digital inclusion in the actual technological context. &quot;The term &#x27;community interest media&#x27; (CIM) did not emerge from a desk,&quot; explained Nils Brock from the <a href="http://apc.org/locnet" target="_blank" rel="noreferrer">Local Networks (LocNet) initiative</a> team, co-compiler of the publication together with Nelly Moraa Nyangorora (IAWRT Kenya). The concept grew out of conversations with practitioners of local experiences reflecting on participatory media-making, community connectivity and sustainability. “The term was created in conversations with people building networks who asked, ‘What are media that are of interest to the communities, to the people?’”</p>
+<h2><strong>The route ahead: Policy and sustainability</strong></h2>
+<p>If there was a thread running through the discussion, it was sustainability as a shared struggle. “It&#x27;s not easy to access funding, but it’s possible. It requires a lot of creativity and collective work, and it depends on the context,” said Bello, adding a caveat of what cannot be traded for funding: “Donors and public broadcasters alike are welcome to support the work, but the moment that support comes with influence over content, it becomes something else entirely.&quot;</p>
+<blockquote>Nyangororaadded that collaboration is key to sustainability:&quot;Shared digital infrastructure, decentralised content sharing systems, collaborative online newsrooms and open-source tech tools – these are strategies towards sustainability,&quot; she emphasised.</blockquote>
+<p>How policy currently treats media, connectivity and digital participation as separate domains was another of the publication&#x27;s central arguments brought to the floor. As Nyangororaargued, they &quot;feed into each other&quot; and should not be treated separately. The call that emerged from the event was for frameworks that recognise community ownership, participatory governance, and local content creation as interconnected pillars – not siloed categories governed by different regulatory bodies, different funding mechanisms and different conceptions about who communities are. The launch of community interest media is not the conclusion of an argument but the opening of one. The research group began with a name without a fully formed concept, and assimilated the publication through debate and collective reflections across countries and regions. What has emerged is not a definition but an orientation towards media that serves communities&#x27; own agendas, which treats content as inseparable from infrastructure and measures success by whether local voices reach local ears – and whether those voices can also, when they choose, reach the world. <em><strong>Read the full publication here:</strong></em><a href="https://www.apc.org/en/pubs/community-interest-media-emerging-concepts-and-practices-global-majority-and-friends" target="_blank" rel="noreferrer">Community Interest Media</a><strong>.</strong></p>
+<h3>Tags</h3>
+<ul>
+<li><a href="https://www.apc.org/en/tags/digital-journalism" target="_blank" rel="noreferrer">digital journalism</a></li>
+<li><a href="https://www.apc.org/en/tags/community-media" target="_blank" rel="noreferrer">community media</a></li>
+</ul></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-d25a7e8c39d0ffcb.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-23T03:18:05+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-23T03:18:05+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Community interest media’s contribution to digital inclusion: Learning from experience</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：Community interest media’s contribution to digital inclusion: Learning from experience（Codex）</li><li><strong>原始作者</strong>：By Florencia Roveri（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-d25a7e8c39d0ffcb";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

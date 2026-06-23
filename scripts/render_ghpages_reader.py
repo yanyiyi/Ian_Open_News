@@ -15,6 +15,7 @@ from local_web import (
     clean_text,
     content_kind_label,
     h,
+    item_article_markdown,
     item_current_reading_age_days,
     item_display_time,
     item_display_title,
@@ -23,6 +24,7 @@ from local_web import (
     item_display_kind,
     item_image_url,
     item_sort_time,
+    item_translated_markdown,
     item_visible_tags,
     item_zh_summary,
     load_jsonl,
@@ -32,7 +34,6 @@ from local_web import (
     reader_period_label,
     track_meta,
 )
-from page_metadata import text_to_markdown
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -218,17 +219,10 @@ def reader_image_url(item: dict, depth: int = 0) -> str:
 
 
 def item_body_markdown(item: dict) -> str:
-    metadata = item.get("reading_metadata") if isinstance(item.get("reading_metadata"), dict) else {}
-    translated = clean_text(metadata.get("translated_article_markdown_zh"))
+    translated = item_translated_markdown(item)
     if translated:
         return translated
-    markdown = clean_text(metadata.get("article_markdown"))
-    if markdown:
-        return markdown
-    article_text = clean_text(metadata.get("article_text"))
-    if article_text:
-        return text_to_markdown(article_text, title=metadata.get("title") or item_display_title(item))
-    return ""
+    return item_article_markdown(item)
 
 
 def item_is_public_reader(item: dict) -> bool:

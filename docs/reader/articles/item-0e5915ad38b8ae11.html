@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>從承諾到實踐：打造更包容的開源生態系 - Ian Open News</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    header { background: #fff; border-bottom: 1px solid var(--line); }
+    .masthead { max-width: 1120px; margin: 0 auto; padding: 26px 22px 18px; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    nav a:hover, .button:hover, button:hover { color: #fff; }
+    nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(260px, 1fr); gap: 18px; align-items: start; }
+    .article-panel, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-body { max-width: 760px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .article-body img { max-width: 100%; height: auto; }
+    .article-body pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-body blockquote { border-left: 4px solid var(--line); padding-left: 12px; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">
+      <h1>從承諾到實踐：打造更包容的開源生態系</h1>
+      <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
+
+<nav>
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+    </div>
+  </header>
+  <main>
+<div class="article-layout">
+  <article class="article-panel">
+    <div>
+      <span class="badge">開放科技</span>
+      <span class="badge">可用材料 / 可進編輯台</span>
+
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-06-22 08:00</span>
+    </div>
+    <h2><a class="article-title-link" href="https://github.blog/open-source/from-pledge-to-practice-building-a-more-inclusive-open-source-ecosystem/" target="_blank" rel="noreferrer" title="開啟原始連結">從承諾到實踐：打造更包容的開源生態系</a></h2>
+    <p class="lede">GitHub 回顧過去一年推動開源可及性的進展，主軸是把先前的承諾轉成社群合作、活動與工具。文章提到 2026 年 5 月在舊金山舉辦的開源輔助科技黑客松，讓維護者、貢獻者、教育者、倡議者與身心障礙者一起處理真實的近用障礙；也整理了開源輔助科技專案、可及性文件、最佳實務指南、GitHub Accessibility Scanner 與 Figma 標註工具等資源。整體適合從開源治理與無障礙實作角度收錄。</p>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">inclusive open source</span><span class="tag-chip">開源包容</span></div>
+    <div class="actions">
+      <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
+    </div>
+    <section class="article-body"><h1>From pledge to practice: Building a more inclusive open source ecosystem</h1>
+<p>Learn about the progress we’ve made toward our accessibility goals and how you can help make open source more inclusive. Last year, GitHub took a <a href="https://github.blog/open-source/social-impact/our-pledge-to-help-improve-the-accessibility-of-open-source-software-at-scale/" target="_blank" rel="noreferrer">pledge to help improve the accessibility of open source</a>, centered on three goals:</p>
+<ul>
+<li>Empower people with disabilities to contribute to open source.</li>
+<li>Increase the availability and adoption of open source assistive technologies.</li>
+<li>Improve the accessibility of mainstream open source projects.</li>
+</ul>
+<p>This pledge came with a clear responsibility: turn intention into practical, community-led action. Over the past year we’ve had the chance to work with maintainers, contributors, educators, accessibility advocates, and people with disabilities who are doing the hard, real work of building a culture of inclusion within open source communities. This post shares our progress over the past year and two ways you can help right now.</p>
+<h3>Mark your calendar</h3>
+<p>If you want to help shape what happens next, start here:</p>
+<ul>
+<li>Register for <a href="https://msit.events.teams.microsoft.com/event/msit.69839bce-f822-484f-894d-9dac01336386@72f988bf-86f1-41af-91ab-2d7cd011db47" target="_blank" rel="noreferrer">Open Source Accessibility Community Day (July 9)</a></li>
+<li>Register for <a href="https://2026.allthingsopen.org/open-source-accessibility-summit" target="_blank" rel="noreferrer">the Open Source Accessibility Summit (October 19)</a></li>
+</ul>
+<h2>Progress since the pledge</h2>
+<p>Our approach has focused on programs, partnerships, and open tooling that support the pledge goals in real projects and communities.</p>
+<h3>Empowering contributors with disabilities in open source</h3>
+<p>In May 2026, we hosted the <a href="https://github.com/open-source-accessibility/Open-Source-Assistive-Technology-Hackathon" target="_blank" rel="noreferrer">Open Source Assistive Technology Hackathon</a> at GitHub headquarters in San Francisco. Over two days, contributors, maintainers, educators, advocates, and people with disabilities collaborated on open source assistive technology projects addressing real access barriers.</p>
+<h3>By the numbers</h3>
+<ul>
+<li>124 attendees on site across two days</li>
+<li>16 featured projects at kickoff</li>
+<li>25+ projects worked on during the event</li>
+<li>190+ registrations, with 120+ people on the waitlist</li>
+<li>Six event partners and supporting organizations</li>
+</ul>
+<p>To support meaningful participation, we also hosted:</p>
+<ul>
+<li>A GitHub Learning Room with hands-on guidance for GitHub workflows, including NVDA screen reader and keyboard-only navigation</li>
+<li>NV Access office hours with the team behind NVDA screen reader to support project teams and troubleshooting</li>
+</ul>
+<h3>Accessibility Documentation</h3>
+<p>The <a href="https://gh.io/accessibility-docs" target="_blank" rel="noreferrer">GitHub accessibility documentation</a> helps empower contributors with disabilities by making it easier to use GitHub products with screen readers and other assistive technologies, while also giving developers guidance for using Copilot and agents with accessibility in mind. Because people with lived experience contribute to and review these guides, the documentation reflects real-world workflows, reduces barriers to participation, and helps more contributors engage confidently in open source projects.</p>
+<h3>Supporting open source assistive technology</h3>
+<p>Hackathon contributors worked across a wide range of projects, including:</p>
+<ul>
+<li>Camera-based assistive technology for blind and low vision users</li>
+<li>PDF-to-accessible-format workflows</li>
+<li>Open wheelchair software and hardware efforts</li>
+<li>Accessibility-aware route planning</li>
+<li>Pronunciation improvements for screen readers</li>
+<li>Accessible gaming</li>
+<li>Tactile experiences for a multiline braille display</li>
+<li>Adaptable physical tools and accessories</li>
+</ul>
+<p>You can follow ongoing updates in the <a href="https://github.com/open-source-accessibility/Open-Source-Assistive-Technology-Hackathon" target="_blank" rel="noreferrer">Open Source Assistive Technology Hackathon repository</a>.</p>
+<h3>Improving accessibility in mainstream open source workflows</h3>
+<p>In October 2025, we hosted the first <a href="https://github.com/open-source-accessibility/open-source-accessibility#open-source-accessibility-summit---2025-recap" target="_blank" rel="noreferrer">Open Source Accessibility Summit (2025)</a> in Raleigh, NC in partnership with <a href="https://allthingsopen.org/" target="_blank" rel="noreferrer">All Things Open</a>. During this one-day in-person event, we brought together members of the disability, accessibility, and open source communities to define a roadmap for improving the accessibility of open source software.</p>
+<h3>By the numbers</h3>
+<ul>
+<li>100 attendees</li>
+<li>500+ people on the waitlist</li>
+<li>6 themes for accessibility improvement in open source identified</li>
+<li>4 lighting talks</li>
+</ul>
+<h3>Improving Workflows</h3>
+<p>We’ve also continued to invest in practical resources and tools that help teams build accessibility into day-to-day development practices:</p>
+<ul>
+<li><a href="https://github.com/open-source-accessibility" target="_blank" rel="noreferrer">Open Source Accessibility organization</a> for shared roadmap and collaboration</li>
+<li><a href="https://gh.io/accessibility-best-practices-os" target="_blank" rel="noreferrer">Open source accessibility best practices guide</a>, including guidance like creating an <code>ACCESSIBILITY.md</code> and integrating accessibility in CI</li>
+<li><a href="https://gh.io/accessibility-docs" target="_blank" rel="noreferrer">GitHub accessibility documentation</a>, including guidance for using GitHub products with assistive technologies</li>
+<li><a href="https://gh.io/a11y-scanner" target="_blank" rel="noreferrer">GitHub Accessibility Scanner</a>, an AI-powered open source scanner that uses GitHub Actions and GitHub Copilot to find, file, and fix accessibility barriers</li>
+<li><a href="https://gh.io/annotation-toolkit" target="_blank" rel="noreferrer">Accessibility Annotation Toolkit</a>, an open source Figma toolkit to support accessibility-focused design and handoff</li>
+</ul>
+<p>These resources are meant to reduce friction by helping teams write better issues, collaborate, and integrate accessibility throughout the development process.</p>
+<h2>Two ways you can help right now</h2>
+<h3>1. Register for the Open Source Accessibility Community Day (July 9, 2026)</h3>
+<p>The <a href="https://msit.events.teams.microsoft.com/event/msit.69839bce-f822-484f-894d-9dac01336386@72f988bf-86f1-41af-91ab-2d7cd011db47" target="_blank" rel="noreferrer">Open Source Accessibility Community Day</a> is a virtual event for contributors, maintainers, accessibility practitioners, and community members who want to make open source more inclusive and accessible. The event features demos and updates from projects that participated in the Open Source Assistive Technology Hackathon, including what teams built, what they learned, and where contributors are needed next.</p>
+<h3>2. Register for the Open Source Accessibility Summit (October 19, 2026)</h3>
+<p>We’re hosting the <a href="https://2026.allthingsopen.org/open-source-accessibility-summit" target="_blank" rel="noreferrer">Open Source Accessibility Summit</a> in Raleigh, North Carolina, with All Things Open. This year’s summit is designed to teach people how to contribute to open source while following accessibility best practices no matter their level of experience. Grounded in the lived experiences of people with disabilities, the event will create opportunities to learn directly from those perspectives while building practical skills. The goal is simple: help more people leave ready to make meaningful, accessibility-focused contributions across the open source ecosystem.</p>
+<h2>Join us</h2>
+<p>Stay connected by following the <a href="https://github.com/open-source-accessibility" target="_blank" rel="noreferrer">Open Source Accessibility organization</a> and joining the <a href="https://join.slack.com/t/opensourceacc-kab3997/shared_invite/zt-39veighf6-ANp0KNyuMnITxGYMGCGFIA" target="_blank" rel="noreferrer">Open Source Accessibility Slack</a>. We’re proud of the progress so far, and we’re even more excited about what we can build together next.</p>
+<h2>Tags</h2>
+<ul>
+<li><a href="https://github.blog/tag/accessibility/" target="_blank" rel="noreferrer">accessibility</a></li>
+<li><a href="https://github.blog/tag/open-source/" target="_blank" rel="noreferrer">open source</a></li>
+</ul>
+<h2>Written by</h2>
+<h3><a href="https://github.blog/author/mlama007/" target="_blank" rel="noreferrer">Maria Lamardo</a></h3>
+<p><a href="https://github.com/mlama007" target="_blank" rel="noreferrer">@mlama007</a> Senior Accessibility Program Manager</p>
+<ul>
+<li><a href="https://github.blog/tag/accessibility/" target="_blank" rel="noreferrer">accessibility</a></li>
+<li><a href="https://github.blog/tag/open-source/" target="_blank" rel="noreferrer">open source</a></li>
+</ul>
+<h2>Table of Contents</h2>
+<ul>
+<li><a href="https://github.blog/open-source/from-pledge-to-practice-building-a-more-inclusive-open-source-ecosystem/#h-progress-since-the-pledge-nbsp" target="_blank" rel="noreferrer">Progress since the pledge</a></li>
+<li><a href="https://github.blog/open-source/from-pledge-to-practice-building-a-more-inclusive-open-source-ecosystem/#h-two-ways-you-can-help-right-now" target="_blank" rel="noreferrer">Two ways you can help right now</a></li>
+<li><a href="https://github.blog/open-source/from-pledge-to-practice-building-a-more-inclusive-open-source-ecosystem/#h-join-us" target="_blank" rel="noreferrer">Join us</a></li>
+</ul>
+<h2>More on <a href="https://github.blog/tag/accessibility/" target="_blank" rel="noreferrer">accessibility</a></h2>
+<h3><a href="https://github.blog/open-source/building-githubs-next-chapter-in-accessibility/" target="_blank" rel="noreferrer">Building GitHub&#x27;s next chapter in accessibility</a></h3>
+<p>Explore our update on GitHub’s accessibility strategy, and learn how you can join us in building a culture of accessibility.</p>
+<h3><a href="https://github.blog/ai-and-ml/github-copilot/building-a-general-purpose-accessibility-agent-and-what-we-learned-in-the-process/" target="_blank" rel="noreferrer">Building a general-purpose accessibility agent—and what we learned in the process</a></h3>
+<p>Learn about the experimental general-purpose accessibility agent that GitHub is piloting.</p>
+<h3><a href="https://github.blog/open-source/maintainers/how-pull-request-limits-are-cutting-down-the-noise/" target="_blank" rel="noreferrer">How pull request limits are cutting down the noise</a></h3>
+<p>Learn how pull request limits can help manage contribution volume in your repositories, and see what’s next on the roadmap.</p>
+<h3><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/" target="_blank" rel="noreferrer">Beyond the engine: 10 open source projects shaping how games actually get made</a></h3>
+<p>Check out these 10 open source tools that help game developers create art, animation, levels, audio, dialogue, debug UIs, and engine-ready assets.</p>
+<h3><a href="https://github.blog/open-source/building-githubs-next-chapter-in-accessibility/" target="_blank" rel="noreferrer">Building GitHub’s next chapter in accessibility</a></h3>
+<p>Explore our update on GitHub’s accessibility strategy, and learn how you can join us in building a culture of accessibility.</p>
+<h2>Explore more from GitHub</h2>
+<h3>Docs</h3>
+<p>Everything you need to master GitHub, all in one place.</p>
+<h3>GitHub</h3>
+<p>Build what’s next on GitHub, the place for anyone from anywhere to build anything.</p>
+<h3>Customer stories</h3>
+<p>Meet the companies and engineering teams that build with GitHub.</p>
+<h3>GitHub Universe 2026</h3>
+<p>Join us October 28-29 in San Francisco or online for GitHub Universe, our flagship developer event uniting people, agents, and the world’s code.</p></section>
+  </article>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-0e5915ad38b8ae11.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-23T02:24:44+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-23T02:24:44+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：From pledge to practice: Building a more inclusive open source ecosystem</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：From pledge to practice: Building a more inclusive open source ecosystem（Codex）</li><li><strong>原始作者</strong>：Maria Lamardo（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-0e5915ad38b8ae11";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

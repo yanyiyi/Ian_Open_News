@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>How much are people across the world paying for their carbon emissions? - Ian Open News</title>
+  <title>Hugging Face 模型授權分布：多數未標明授權，已標示者偏好寬鬆授權 - Ian Open News</title>
   <style>
     :root {
       --ink: #111827;
@@ -272,9 +272,9 @@
 <body>
   <header>
     <div class="masthead">
-      <h1>How much are people across the world paying for their carbon emissions?</h1>
+      <h1>Hugging Face 模型授權分布：多數未標明授權，已標示者偏好寬鬆授權</h1>
       <p class="lede">Ian Open News 開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-      <p class="generated">產生時間：2026-06-23T02:20:16+00:00</p>
+      <p class="generated">產生時間：2026-06-23T05:02:16+00:00</p>
 
 <nav>
   <a class="" href="../index.html">精選與觀點</a>
@@ -288,18 +288,40 @@
   <article class="article-panel">
     <div>
       <span class="badge">開放科技</span>
-      <span class="badge">純新聞 / 小消息</span>
-
-      <span class="badge">尚未載入全文</span>
-      <span class="badge">2026-06-22 08:00</span>
+      <span class="badge">可用材料 / 可進編輯台</span>
+      <span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span>
+      <span class="badge">已載入本機全文</span>
+      <span class="badge">2026-05-12 08:00</span>
     </div>
-    <h2><a class="article-title-link" href="https://ourworldindata.org/how-much-are-people-across-the-world-paying-for-their-carbon-emissions" target="_blank" rel="noreferrer" title="開啟原始連結">How much are people across the world paying for their carbon emissions?</a></h2>
-    <p class="lede">Around 30% of the world’s emissions have some carbon price, but how much extra are people paying?</p>
-    <div class="tag-chip-list"><span class="tag-chip">開放資料</span></div>
+    <h2><a class="article-title-link" href="https://redmonk.com/sogrady/2026/05/12/hugging-face-licensing/" target="_blank" rel="noreferrer" title="開啟原始連結">Hugging Face 模型授權分布：多數未標明授權，已標示者偏好寬鬆授權</a></h2>
+    <p class="lede">這篇文章檢視 Hugging Face 上約 290 萬個模型的授權標記，討論在 OSI 發布開源 AI 定義後，AI 模型究竟如何使用開源或類開源授權。作者先提醒資料有明顯限制：模型可能套用了自己無權授予的授權，有些修改版授權並不真正符合原授權或開源精神，而且將近七成模型沒有標示授權。即使如此，在有授權的模型中，Apache 明顯領先 MIT，OpenRAIL 也是重要類別；整體看來，Hugging Face 上已標示授權的模型偏向寬鬆授權，其中超過三分之二使用 OSI 核准授權。文章可作為觀察 AI 模型開放性、授權治理與「open source AI」定義落差的資料型背景文。</p>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">open source AI</span><span class="tag-chip">Open Source AI Definition</span></div>
     <div class="actions">
       <a class="button secondary" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回</a>
     </div>
-    <section class="article-body"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></section>
+    <section class="article-body"><h1>License Distribution on Hugging Face</h1>
+<h3><a href="https://redmonk.com/sogrady" target="_blank" rel="noreferrer">tecosystems</a></h3>
+<p>By <a href="https://redmonk.com/sogrady/author/sogrady/" target="_blank" rel="noreferrer">Stephen O&#x27;Grady</a> | <a href="https://twitter.com/sogrady" target="_blank" rel="noreferrer">@sogrady</a> | May 12, 2026 Share via Twitter Share via Facebook Share via Linkedin Share via Reddit While it’s been almost eighteen months since the OSI released its open source AI definition, the debate around where, whether and how open source licenses might be applied to AI models continues. The view here <a href="https://redmonk.com/sogrady/2024/10/22/from-open-source-to-ai/" target="_blank" rel="noreferrer">remains</a> <a href="https://www.linkedin.com/feed/update/urn:li:activity:7402729193228324864/?originTrackingId=bagLRp%2FvRfOk8qseYxY0%2FA%3D%3D" target="_blank" rel="noreferrer">unchanged</a>, which is that open source should not be applied to AI, but the industry more broadly has not yet reached a consensus. Unless and until that occurs, then, it is useful to understand how open source licenses are being applied to models and in what proportions. To do this, inspired by a conversation on this subject yesterday, the approximately ~2.9M existing Hugging Face models were scanned for license information. There are some interesting takeaways from the data, but first it is worth noting that there are inherent issues with it.</p>
+<ul>
+<li>First, this analysis cannot account for licensing issues like an illegally licensed project. There are models, for example, that apply an Apache license but trained using Llama. That is not permissible, as you may not convey rights you yourself do not have – particularly if you’re performing actions a given license specifically and explicitly prohibits. This analysis would consider the project Apache-licensed, when in reality that license cannot not be applied.</li>
+<li>Second, this analysis can’t meaningfully discuss every one of the new licenses here, some of which were written by professionals and some of which were self-evidently not. Given the scale, it cannot guarantee that there are no falsely categorized licenses. The some Kimi and Mistral projects, for example, use a “Modified MIT License,” but the modifications make the project neither open source nor MIT. The good news is that projects using this license are typically categorized as “Other,” and are therefore properly not counted as open source here. The bad news is that we can’t guarantee that there might not be exceptions.</li>
+<li>Lastly, as will be discussed in more detail shortly, there is a rather large hole in the data.</li>
+</ul>
+<p>With those warnings out of the way, we’ll start with the Top 20 licenses on Hugging Face. This is a classic long tail distribution, but it is notable just how popular the Apache license is with ~2.5X more licensed projects than its nearest competitor, the MIT license. The next most popular licensing family, perhaps not surprisingly given its Hugging Face pedigree, is Open &amp; Responsible AI Licenses (OpenRAIL). It is the largest single non-OSI, non-model-specific license category in this dataset. Next, let’s look at the distribution of projects by category. This is the hole in the dataset mentioned above. Just as GitHub historically reported that the overwhelming majority of repositories are unlicensed, almost seventy percent of Hugging Face models carry no license at all. This means that the data represented here about licensing distribution covers only a third of the models, though at almost a million the sample size is still large enough to be meaningful. To better understand the distribution, let’s strip out the unlicensed projects and look at only those with one. Notably, as was seen in our <a href="https://redmonk.com/sogrady/2026/03/25/open-source-licensing-2026/" target="_blank" rel="noreferrer">recent look</a> at the state of open source software licensing, Hugging Face is displaying a systemic preference for permissive licensing models. If anything this data is under-representing the preference for permissive-style licenses, because while OpenRAIL licenses cannot be considered Permissive in the OSI-approved sense, in spirit they embody many of the same values. Lastly, given the OSI context above, was to look at the specific breakdown of licensed projects carrying an OSI license vs an unapproved alternative. Happily, among licensed projects, better than two thirds carried an OSI-approved license. We may not yet understand the exact role that open source will play within AI, but until there’s clarification a license style with a clear and unambiguous definition is proving to be the most popular choice – in spite or perhaps because of the contrasting styles of licenses that category contains.</p>
+<h3>About</h3>
+<h3>The Book</h3>
+<h3>Archives</h3>
+<h3>Search</h3>
+<h3>Recent Posts</h3>
+<ul>
+<li><a href="https://redmonk.com/sogrady/2026/06/11/open-source-spectrum/" target="_blank" rel="noreferrer">The Open Source Maturity Spectrum</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/10/paas-unbundling/" target="_blank" rel="noreferrer">The Unbundling and Bundling of the PaaS Market</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/04/bun-two-lessons/" target="_blank" rel="noreferrer">What Bun Can Tell Us About AI, Open Source and Anthropic</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/02/g7-open-weights/" target="_blank" rel="noreferrer">The G7 on Open Source vs Open Weights</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/05/19/oss-summit-2026/" target="_blank" rel="noreferrer">What the OSS Summit Says About OSS in 2026</a></li>
+</ul>
+<h3>Categories</h3>
+<h3>Archives</h3></section>
   </article>
 
 <aside class="side-panel">
@@ -307,16 +329,17 @@
   <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
   <div class="actions">
     <button type="button" id="note-save">儲存到這台瀏覽器</button>
-    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-72f4408fdc65911f.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-c23cb1d3933f2c01.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>編輯紀錄</h2>
-  <ul><li>本機決定：direct-pr-small-news / 2026-06-23T02:01:33+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
-2026-06-23T02:01:33+00:00 本機標記直接送 PR（小消息）；純事實項目，不進編輯台撰稿。</li></ul>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-23T03:26:29+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-23T03:26:26+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。
+2026-06-23T03:26:29+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：How much are people across the world paying for their carbon emissions?</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Hannah Ritchie</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：License Distribution on Hugging Face</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：License Distribution on Hugging Face（Codex）</li><li><strong>原始作者</strong>：@redmonk（twitter:creator）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
 </aside>
 <script>
-const noteKey = "ian-open-news-note:item-72f4408fdc65911f";
+const noteKey = "ian-open-news-note:item-c23cb1d3933f2c01";
 const noteBody = document.getElementById("note-body");
 noteBody.value = localStorage.getItem(noteKey) || "";
 document.getElementById("note-save").addEventListener("click", () => {
