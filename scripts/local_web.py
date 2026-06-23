@@ -1522,14 +1522,31 @@ def metric_tile(value: object, label: str, href: str = "", hint: str = "", class
 def command_card(name: str, config: dict) -> str:
     icon = COMMAND_ICONS.get(name, "read")
     shortcut = COMMAND_SHORTCUTS.get(name, "")
+    supports_provider = "--provider" in (config.get("command") or [])
+    if supports_provider:
+        engine_buttons = "".join(
+            f"<button type='button' class='secondary' data-engine-job "
+            f"data-command='{h(name)}' data-engine='{eng}' data-label='{h(config['label'])}'>{h(label)}</button>"
+            for eng, label in (("random", "隨機"), ("codex", "Codex"), ("claude", "Claude"), ("gemini", "Gemini"))
+        )
+        controls = (
+            "<div class='command-engine-buttons'>"
+            f"{engine_buttons}"
+            "</div>"
+            "<p class='help'>選引擎跑；隨機失敗會自動換另外兩個，指定引擎失敗只提醒不自動換。</p>"
+        )
+    else:
+        controls = (
+            "<form method='post' action='/commands/run' data-command-form>"
+            f"<input type='hidden' name='command' value='{h(name)}'>"
+            f"<button type='submit' class='secondary'>{button_content(config['button'], icon, shortcut)}</button>"
+            "</form>"
+        )
     return (
         "<div class='card command-card'>"
         f"<strong>{icon_span(icon, shortcut)}{h(config['label'])}</strong>"
         f"<p class='muted'>{h(config['description'])}</p>"
-        "<form method='post' action='/commands/run' data-command-form>"
-        f"<input type='hidden' name='command' value='{h(name)}'>"
-        f"<button type='submit' class='secondary'>{button_content(config['button'], icon, shortcut)}</button>"
-        "</form>"
+        f"{controls}"
         "</div>"
     )
 
@@ -4537,6 +4554,8 @@ def page(title: str, body: str) -> bytes:
     .inline-reason .button-row {{ margin-top: 8px; }}
     .danger {{ background: var(--ocf-magenda); }}
     .command-card form {{ margin-top: 8px; }}
+    .command-engine-buttons {{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }}
+    .command-engine-buttons button {{ flex: 0 0 auto; }}
     .command-output {{ margin-top: 16px; }}
     .preview-panel {{
       border: 1px solid var(--line);
@@ -5391,6 +5410,92 @@ def page(title: str, body: str) -> bytes:
     return startElapsedStatus();
   }};
 
+  let pendingJobs = 0;
+  const markJobStart = () => {{ pendingJobs += 1; }};
+  const markJobEnd = () => {{ pendingJobs = Math.max(0, pendingJobs - 1); }};
+  window.addEventListener("beforeunload", (event) => {{
+    if (pendingJobs > 0) {{
+      event.preventDefault();
+      event.returnValue = "還有 AI 或抓取工作在進行，確定要離開或切換頁面嗎？";
+      return event.returnValue;
+    }}
+  }});
+
+  const ENGINE_LABELS = {{ codex: "Codex", claude: "Claude", gemini: "Gemini" }};
+  const ALL_ENGINES = ["codex", "claude", "gemini"];
+
+  // 共用 AI 工作執行器：隨機→失敗自動換另外兩個（每次跳視窗）；指定引擎→只提醒、不自動換。
+  window.runEngineJob = async ({{ label, url, baseBody, engine, onSuccess }}) => {{
+    let order;
+    if (engine === "random") {{
+      order = ALL_ENGINES.slice();
+      for (let i = order.length - 1; i > 0; i--) {{
+        const j = Math.floor(Math.random() * (i + 1));
+        const t = order[i]; order[i] = order[j]; order[j] = t;
+      }}
+    }} else {{
+      order = [engine];
+    }}
+    const allowFallback = engine === "random";
+    markJobStart();
+    let timer = null;
+    try {{
+      for (let i = 0; i < order.length; i++) {{
+        const eng = order[i];
+        openCommandWindow(label, `使用 ${{ENGINE_LABELS[eng] || eng}} 執行中...`);
+        commandLoading.hidden = false;
+        if (timer) window.clearInterval(timer);
+        timer = startElapsedStatus();
+        let payload;
+        try {{
+          const data = new URLSearchParams(baseBody);
+          data.set("format", "json");
+          data.set("provider", eng);
+          data.set("engine", eng);
+          const response = await fetch(url, {{
+            method: "POST",
+            headers: {{ "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With": "local-web-fetch" }},
+            body: data
+          }});
+          payload = await response.json();
+        }} catch (error) {{
+          payload = {{ ok: false, error: String(error) }};
+        }}
+        if (timer) {{ window.clearInterval(timer); timer = null; }}
+        const ok = payload && payload.ok !== false && (payload.returncode === undefined || payload.returncode === 0);
+        if (ok) {{
+          commandLoading.hidden = true;
+          commandStatus.textContent = `✓ ${{ENGINE_LABELS[eng] || eng}} 完成。`;
+          if (payload.output) {{ commandOutput.hidden = false; commandOutput.textContent = payload.output; }}
+          if (onSuccess) onSuccess(payload, eng);
+          return true;
+        }}
+        const errMsg = (payload && (payload.error || payload.summary)) || `exit ${{payload ? payload.returncode : "?"}}`;
+        const others = ALL_ENGINES.filter((e) => e !== eng).map((e) => ENGINE_LABELS[e]).join(" 或 ");
+        if (allowFallback && i < order.length - 1) {{
+          commandLoading.hidden = true;
+          commandStatus.textContent = `✗ ${{ENGINE_LABELS[eng]}} 失敗，改用 ${{ENGINE_LABELS[order[i + 1]]}} 重試…`;
+          window.alert(`${{label}}\n${{ENGINE_LABELS[eng]}} 失敗：${{errMsg}}\n改用 ${{ENGINE_LABELS[order[i + 1]]}} 重試。`);
+          continue;
+        }}
+        commandLoading.hidden = true;
+        commandStatus.textContent = `✗ ${{ENGINE_LABELS[eng] || eng}} 失敗：${{errMsg}}`;
+        commandOutput.hidden = false;
+        commandOutput.textContent = errMsg;
+        if (allowFallback) {{
+          window.alert(`${{label}}\nCodex／Claude／Gemini 三個都失敗了，請稍後再試或檢查登入狀態。`);
+        }} else {{
+          window.alert(`${{label}}\n${{ENGINE_LABELS[eng] || eng}} 失敗：${{errMsg}}\n可改用 ${{others}} 再跑一次。`);
+        }}
+        return false;
+      }}
+    }} finally {{
+      if (timer) window.clearInterval(timer);
+      markJobEnd();
+    }}
+    return false;
+  }};
+
   document.querySelectorAll("form[data-command-form]").forEach((form) => {{
     form.addEventListener("submit", async (event) => {{
       if (!window.fetch) return;
@@ -5400,6 +5505,7 @@ def page(title: str, body: str) -> bytes:
         || form.closest(".card")?.querySelector("h3")?.textContent?.trim()
         || "本機指令";
       openCommandWindow(label);
+      markJobStart();
       if (button) button.disabled = true;
       const data = new URLSearchParams(new FormData(form));
       data.set("format", "json");
@@ -5424,8 +5530,21 @@ def page(title: str, body: str) -> bytes:
       }} finally {{
         if (timer) window.clearInterval(timer);
         commandLoading.hidden = true;
+        markJobEnd();
         if (button) button.disabled = false;
       }}
+    }});
+  }});
+
+  document.querySelectorAll("[data-engine-job]").forEach((btn) => {{
+    btn.addEventListener("click", () => {{
+      if (!window.runEngineJob) return;
+      window.runEngineJob({{
+        label: btn.dataset.label || "AI 工作",
+        url: "/commands/run",
+        baseBody: {{ command: btn.dataset.command }},
+        engine: btn.dataset.engine,
+      }});
     }});
   }});
 
@@ -5438,6 +5557,7 @@ def page(title: str, body: str) -> bytes:
         || document.querySelector("h1")?.textContent?.trim()
         || "RSS";
       openCommandWindow(`手動更新 RSS：${{sourceName}}`, "已送出，正在抓取這個 RSS...");
+      markJobStart();
       if (button) button.disabled = true;
       const data = new URLSearchParams(new FormData(form));
       data.set("format", "json");
@@ -5462,6 +5582,7 @@ def page(title: str, body: str) -> bytes:
       }} finally {{
         if (timer) window.clearInterval(timer);
         commandLoading.hidden = true;
+        markJobEnd();
         if (button) button.disabled = false;
       }}
     }});
@@ -6627,7 +6748,7 @@ class Handler(BaseHTTPRequestHandler):
         available_json = json.dumps(available_payload, ensure_ascii=False).replace("<", "\\u003c")
         selected_json = json.dumps(selected_payload, ensure_ascii=False).replace("<", "\\u003c")
 
-        engine_default = "gemini" if engines.get("gemini") else ("claude" if engines.get("claude") else "codex")
+        engine_default = "random"
 
         def engine_option(name: str, label: str) -> str:
             available = engines.get(name)
@@ -6698,7 +6819,7 @@ class Handler(BaseHTTPRequestHandler):
     <input type="hidden" name="items" data-selected-items>
     <div class="editor-control-grid">
       <label class="editor-label">模型
-        <select name="engine" class="editor-select">{engine_option('gemini', 'Gemini')}{engine_option('claude', 'Claude CLI')}{engine_option('codex', 'Codex CLI')}</select>
+        <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換另外兩個）</option>{engine_option('gemini', 'Gemini')}{engine_option('claude', 'Claude CLI')}{engine_option('codex', 'Codex CLI')}</select>
       </label>
       <label class="editor-label">任務
         <select name="task_type" id="editor-task-type" class="editor-select">{task_options}</select>
@@ -6907,32 +7028,26 @@ class Handler(BaseHTTPRequestHandler):
     hints.forEach(function(el) {{ el.hidden = (el.getAttribute("data-task-hint") !== taskType.value); }});
   }}
   if (taskType) taskType.addEventListener("change", syncHints);
-  var overlay = document.getElementById("editor-loading");
   var statusEl = document.getElementById("editor-run-status");
-  form.addEventListener("submit", async function(event) {{
+  form.addEventListener("submit", function(event) {{
     event.preventDefault();
     var ids = (selectedInput.value || "").trim();
     if (!ids) {{ statusEl.textContent = "請先把至少一篇材料放進草稿庫。"; return; }}
-    var engine = form.querySelector("[name=engine]");
-    if (!engine || !engine.value) {{ statusEl.textContent = "請選一個可用的模型。"; return; }}
-    if (overlay) overlay.classList.add("is-visible");
-    statusEl.textContent = "執行中…";
-    var data = new URLSearchParams(new FormData(form));
-    data.set("format", "json");
-    try {{
-      var res = await fetch("/editor/run", {{
-        method: "POST",
-        headers: {{ "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With": "local-web-fetch" }},
-        body: data
-      }});
-      var payload = await res.json();
-      if (payload.ok && payload.redirect) {{ window.location = payload.redirect; return; }}
-      statusEl.textContent = payload.error || "執行失敗。";
-    }} catch (err) {{
-      statusEl.textContent = "執行失敗：" + err;
-    }} finally {{
-      if (overlay) overlay.classList.remove("is-visible");
-    }}
+    var engineSel = form.querySelector("[name=engine]");
+    var engine = engineSel ? engineSel.value : "";
+    if (!engine) {{ statusEl.textContent = "請選一個模型。"; return; }}
+    if (!window.runEngineJob) {{ statusEl.textContent = "頁面尚未就緒，請重新整理。"; return; }}
+    var taskLabel = (taskType && taskType.options[taskType.selectedIndex]) ? taskType.options[taskType.selectedIndex].text : "任務";
+    var body = {{}};
+    new FormData(form).forEach(function(value, key) {{ body[key] = value; }});
+    statusEl.textContent = "已送出，請看右下角狀態。";
+    window.runEngineJob({{
+      label: "編輯台：" + taskLabel,
+      url: "/editor/run",
+      baseBody: body,
+      engine: engine,
+      onSuccess: function(payload) {{ if (payload && payload.redirect) window.location = payload.redirect; }}
+    }});
   }});
 }})();
 </script>
@@ -7130,12 +7245,9 @@ class Handler(BaseHTTPRequestHandler):
 
         def toolbox_engine_option(name: str, label: str) -> str:
             available = engines.get(name)
-            selected = " selected" if clean_text(session.get("engine")) != name and available else ""
-            if not any(engines.values()) and clean_text(session.get("engine")) == name:
-                selected = " selected"
             disabled = "" if available else " disabled"
             suffix = "" if available else "（未安裝）"
-            return f'<option value="{name}"{selected}{disabled}>{h(label + suffix)}</option>'
+            return f'<option value="{name}"{disabled}>{h(label + suffix)}</option>'
 
         task_options = ""
         for key, label in EDITOR_TASK_LABELS.items():
@@ -7144,11 +7256,11 @@ class Handler(BaseHTTPRequestHandler):
         toolbox_panel = f"""
 <details class="card editor-session-toolbox" open>
   <summary><h2>工具箱</h2><span class="help-dot" title="用同一組材料改跑其他寫法、其他任務，或換另一個 AI。">?</span></summary>
-  <form method="post" action="/editor/run" class="editor-session-toolbox-form">
+  <form method="post" action="/editor/run" class="editor-session-toolbox-form" data-toolbox-form>
     <input type="hidden" name="items" value="{h(related_csv)}">
     <div class="editor-toolbox-grid">
       <label class="editor-label">模型
-        <select name="engine" class="editor-select">{toolbox_engine_option('gemini', 'Gemini')}{toolbox_engine_option('claude', 'Claude CLI')}{toolbox_engine_option('codex', 'Codex CLI')}</select>
+        <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換另外兩個）</option>{toolbox_engine_option('gemini', 'Gemini')}{toolbox_engine_option('claude', 'Claude CLI')}{toolbox_engine_option('codex', 'Codex CLI')}</select>
       </label>
       <label class="editor-label">任務
         <select name="task_type" class="editor-select">{task_options}</select>
@@ -7276,23 +7388,43 @@ document.querySelectorAll("form[data-async-viewpoint]").forEach(function(form) {
     }}
   }});
 }});
-document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form) {{
-  form.addEventListener("submit", async function(event) {{
+function editorFormBody(form) {{
+  var body = {{}};
+  new FormData(form).forEach(function(value, key) {{ body[key] = value; }});
+  return body;
+}}
+document.querySelectorAll("form[data-toolbox-form]").forEach(function(form) {{
+  form.addEventListener("submit", function(event) {{
     event.preventDefault();
-    var btn = form.querySelector("button");
+    if (!window.runEngineJob) return;
+    var sel = form.querySelector("[name=engine]");
+    var engine = sel ? sel.value : "random";
+    var taskSel = form.querySelector("[name=task_type]");
+    var taskLabel = (taskSel && taskSel.options[taskSel.selectedIndex]) ? taskSel.options[taskSel.selectedIndex].text : "任務";
+    window.runEngineJob({{
+      label: "編輯台再跑：" + taskLabel,
+      url: "/editor/run",
+      baseBody: editorFormBody(form),
+      engine: engine,
+      onSuccess: function(payload) {{ if (payload && payload.redirect) window.location = payload.redirect; }}
+    }});
+  }});
+}});
+document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form) {{
+  form.addEventListener("submit", function(event) {{
+    event.preventDefault();
+    if (!window.runEngineJob) return;
+    var sel = form.querySelector("[name=engine]");
+    var engine = sel ? sel.value : "claude";
     var status = form.querySelector(".editor-vp-extract-status");
-    if (btn) btn.disabled = true;
-    if (status) status.textContent = "萃取中…";
-    try {{
-      var res = await fetch(form.action, {{ method: "POST", headers: {{ "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With": "local-web-fetch" }}, body: new URLSearchParams(new FormData(form)) }});
-      var payload = await res.json();
-      if (payload.ok && payload.redirect) {{ window.location = payload.redirect; return; }}
-      if (status) status.textContent = payload.error || "失敗";
-      if (btn) btn.disabled = false;
-    }} catch (err) {{
-      if (status) status.textContent = "失敗：" + err;
-      if (btn) btn.disabled = false;
-    }}
+    if (status) status.textContent = "已送出，請看右下角狀態。";
+    window.runEngineJob({{
+      label: "萃取可存觀點",
+      url: "/editor/run",
+      baseBody: editorFormBody(form),
+      engine: engine,
+      onSuccess: function(payload) {{ if (payload && payload.redirect) window.location = payload.redirect; }}
+    }});
   }});
 }});
 </script>
@@ -11918,7 +12050,14 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 """
             self.send_html(str(config["label"]), body)
             return
-        command = config["command"]
+        command = list(config["command"])
+        requested_provider = clean_text(form_value(data, "provider")).casefold()
+        active_provider = ""
+        if requested_provider in {*AI_PROVIDER_META.keys(), "random"} and "--provider" in command:
+            idx = command.index("--provider")
+            if idx + 1 < len(command):
+                command[idx + 1] = requested_provider
+                active_provider = requested_provider
         write_json(
             COMMAND_STATUS,
             {
@@ -11979,6 +12118,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                     "ok": ok,
                     "label": config["label"],
                     "command": command,
+                    "provider": active_provider,
                     "returncode": response_returncode,
                     "output": output,
                 },
