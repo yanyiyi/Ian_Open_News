@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OTR 通訊 #3：形塑開放轉型與 2026 研討會徵件 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-23T16:51:35+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
+<div class="article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-05-30 08:00</span></div>
+      <h1><a class="article-title-link" href="https://preview.mailerlite.io/preview/1933660/emails/188809474892367261" target="_blank" rel="noreferrer" title="開啟原始連結">OTR 通訊 #3：形塑開放轉型與 2026 研討會徵件</a></h1>
+      <p class="lede">Open Technology Research 宣布發布一份開放草案形式的共享研究議程，並啟動 2026 年 OTR Symposium 的徵件。這份議程聚焦開放技術目前最缺乏的證據與研究問題，包括如何衡量經濟價值、混合治理模式如何運作、部署如何避免曇花一現，以及如何支撐維護者與社群。通訊也說明 Digital Infrastructure Insights Fund 加入成為合作夥伴，並把研討會主題定為「Shaping the Open Transition」，強調從盤點問題走向研究設計、政策實作與跨境連結。後段另整理開源 AI 硬體、UN 開源入口、數位公共財資金、年齡驗證政策、歐盟技術主權與開源供應鏈安全等近期材料。</p>
+      <div class="tag-chip-list"><span class="tag-chip">open technology</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>OTR 通訊 #3：形塑開放轉型：OTR 研討會 6 月 9 日說明會</h1>
+<p>我們達成了開放技術研究（Open Technology Research，簡稱 OTR）的另一個里程碑。 本週，OTR <a href="https://opentechresearch.org/wp-content/uploads/2026/05/Open-Technology-Research-A-Shared-Research-Agenda.pdf" target="_blank" rel="noreferrer">發表</a>了其共同研究議程——這是一份刻意公開的草案，指出了我們在理解、衡量與維持開放技術方面最關鍵的落差——並正式啟動了 <a href="https://symposium.opentechresearch.org/" target="_blank" rel="noreferrer">OTR 2026 研討會</a>（將於 10 月 26 日至 27 日在<a href="https://web.ub.edu/en/" target="_blank" rel="noreferrer">巴塞隆納大學</a>舉行）的<a href="https://pretalx.com/otrsymposium2026/cfp" target="_blank" rel="noreferrer">徵件</a>。我們也歡迎<a href="https://infrastructureinsights.fund/" target="_blank" rel="noreferrer">數位基礎設施洞察基金</a>（Digital Infrastructure Insights Fund，簡稱 D//F）成為正式合作夥伴，為我們帶來豐富的受資助研究與實作洞察，這將直接推動 OTR 正在努力建構的目標。 此研究議程反映了我們在全球諮詢中一致聽到的心聲：用於開放技術投資、監管與採用的證據基礎仍然破碎、資金不足，且向少數高所得國家傾斜。它指出了最重要的關鍵問題；例如，如何以採購人員和預算單位能夠理解的語言來衡量經濟價值、混合治理模式在實務上如何運作、是什麼讓開放技術的部署得以持久而非可逆，以及我們如何支持維護者與社群——他們正是支撐著全球其他地區所仰賴之基礎設施的基石。這是一份草案，因為我們希望聽到您的反對意見與回饋。 OTR 2026 研討會的主題——形塑開放轉型（Shaping the Open Transition）——反映了焦點的刻意轉移：從梳理問題，轉向探討如何走得更遠。主題演講將立足於已經行之有效的實踐。分組會議旨在將研究與政策及實務直接連結。其目標並非呈現既有的結論，而是作為一個真正的「工作會議」，來凝聚優先事項、提出最緊迫的研究設計，並加強該領域目前所缺乏的跨國連結。 若您的工作涉及開放技術與治理、經濟、永續性、資安、人工智慧（AI）或數位主權的交會點，我們非常期待您的參與。請於 7 月 5 日前<a href="https://pretalx.com/otrsymposium2026/cfp" target="_blank" rel="noreferrer">提交</a>您的徵件提案。 若您想在投稿前了解更多資訊或與 OTR 社群建立聯繫，歡迎<a href="https://opentechresearch.org/blog/got-questions-about-the-otr-symposium-2026-join-our-info-sessions-on-9-june/" target="_blank" rel="noreferrer">參加我們即將舉辦的線上說明會</a>。</p>
+<h2>最新開放技術新聞</h2>
+<p><strong>開源 AI 硬體或能削弱科技巨頭對 AI 的壟斷 (2026 年 3 月)</strong> – 耗資 4 億美元的公共利益倡議計畫「Current AI」推出了一款與印度 Bhashini 計畫合作開發的開源、離線 AI 裝置。該裝置可在有限的硬體上於本地運行，並支援 22 種印度語言，旨在作為依賴雲端的科技巨頭 AI 的直接替代方案。這是「簡約 AI」（frugal AI）論點的具體實例：追求越來越大的模型只服務了世界上的一部分人，而開放、可攜式且在本地運行的系統可能更適合服務其他地區。→ <a href="https://restofworld.org/2026/current-ai-bhashini-open-source-handheld-device-2/" target="_blank" rel="noreferrer">閱讀更多</a> <strong>聯合國推出 Open Source United 入口網站 (2026 年 4 月)</strong> – 聯合國推出了 Open Source United (OSU) 入口網站，作為整個聯合國系統內開源活動的集中參考點。→ <a href="https://interoperable-europe.ec.europa.eu/collection/open-source-observatory-osor/news/united-nations-launches-open-source-united-portal" target="_blank" rel="noreferrer">閱讀更多</a> <strong>使研究與創新資金對齊數位公地動態 (2026 年 4 月)</strong> – 歐盟的研究資金架構是為了短期、市場驅動的創新而建，而非維護和治理讓開源基礎設施得以存續的工作，這導致關鍵的數位公地（Digital Commons）長期面臨資金不足的困境。來自 Open Future 的這份簡報提出了一個分層的解決方案：為基礎開源項目提供持續的核心資金（類似於歐盟主權技術基金），並搭配分級管道以協助成功的公地倡議超越試點階段並擴大編制。→ <a href="https://openfuture.eu/publication/aligning-research-and-innovation-funding-to-the-dynamics-of-digital-commons/" target="_blank" rel="noreferrer">閱讀更多</a> <strong>開源組織對美國年齡驗證政策發表意見 (2026 年 5 月)</strong> – 開源促進會（OSI）、Apereo 基金會、FreeBSD 基金會和開源技術改善基金會（OSTIF）發表聯合聲明，要求美國決策者在考慮作業系統的年齡驗證要求時，應與開源社群進行交流。→ <a href="https://opensource.org/?p=411160" target="_blank" rel="noreferrer">閱讀更多</a> <strong>文件揭露歐盟執委會讚揚全疊式技術主權方法 (2026 年 5 月)</strong> – 預計歐盟執委會很快將發布其新的技術主權方案，其中包括開源、雲端服務、AI 和晶片方面的重大新進展。執委會提出的開源策略依然存在，但已成為概述該方案對歐洲技術主權願景的更大型通訊文件中的一個子集。→ <a href="https://www.euractiv.com/news/commission-hails-full-stack-tech-sovereignty-approach-document-reveals/" target="_blank" rel="noreferrer">閱讀更多</a> <strong>駭客在持續進行的供應鏈攻擊中入侵了數十個熱門開源套件 (2026 年 5 月)</strong> – 一場協同供應鏈攻擊藉由入侵開發者帳號，在幾分鐘內劫持了數百個 npm 套件，受害者包括 OpenAI。這些事件並非表明開源本質上較不安全，而是因為在 AI 時代其龐大規模意味著單一漏洞會迅速產生級聯效應。這不是反對開放的論點，而是主張應提供更強大的平台級保護，以配得上全世界對共享程式碼的信任。→ <a href="https://techcrunch.com/2026/05/19/hackers-have-compromised-dozens-of-popular-open-source-packages-in-an-ongoing-supply-chain-attack/" target="_blank" rel="noreferrer">閱讀更多</a> <strong>IBM 與 Red Hat 承諾投入 50 億美元以重新定義 AI 時代開源的未來 (2026 年 5 月)</strong> – IBM 和 Red Hat 宣布了 Project Lightwell，這是一項耗資 50 億美元的計劃，將部署 20,000 名工程師和 AI 工具，為企業級開源建立一個值得信賴的安全清算中心——涵蓋漏洞偵測、驗證補丁以及負責任的上游披露。這是一個重大賭注，表明在大規模保障開源安全時，需要人類專業知識與 AI 能力協同合作，而非厚此薄彼。→ <a href="https://newsroom.ibm.com/2026-05-28-ibm-and-red-hat-commit-5-billion-to-redefine-the-future-of-open-source-in-the-ai-era" target="_blank" rel="noreferrer">閱讀更多</a> <strong>全球數位公共基礎設施 (DPI) 峰會將於 2027 年在印尼舉辦 (2026 年 5 月)</strong> – 全球 DPI 峰會將於 2027 年 3 月在峇里島舉行——這是其首次在亞洲舉辦——這既反映了印尼在 DPI 領域日益增長的領導地位，也反映了目前已在 100 多個國家啟用的基礎數位系統背後不斷擴大的全球動能。隨著關於 DPI 是建構在開放、可重複使用、互操作的基礎上，還是成為另一層專有鎖定的爭論日益激烈，這是一個非常及時的交流場所。→ <a href="https://www.undp.org/digital-innovation/press-releases/global-digital-public-infrastructure-dpi-summit-heads-indonesia-2027" target="_blank" rel="noreferrer">閱讀更多</a> <strong>針對公共從業人員的開源軟體指南 (2026 年 5 月)</strong> – 一份由聯合國開發計劃署（UNDP）支持的開源軟體入門指南，以千里達及托巴哥新成立的開源專案辦公室為主要案例，論證了在小島嶼開發中國家採用開源軟體（OSS）的可行性。其核心論點既具實踐性也具哲學意義：對於預算有限且需要具適應性、互操作性數位基礎設施的政府而言，開源不僅是一項節省成本的措施，更是一項主權策略。→ <a href="https://www.undp.org/trinidad-and-tobago/blog/open-source-software-public-practitioners" target="_blank" rel="noreferrer">閱讀更多</a></p>
+<h2>最新開放技術報告與研究</h2>
+<h3>評估年齡驗證技術：有效性、副作用與接受度 (2026 年 3 月 26 日)</h3>
+<p>本文概述並評估了不同類型的年齡驗證技術（Age Assurance Technologies，簡稱 AAT）。它描述並分析了：1）不同的線上年齡驗證方法（年齡驗證、年齡估算、年齡推斷，以及家長控制與同意），以及 2）不同的年齡驗證架構（線上、基於離線裝置、基於離線憑證），並評估了它們的各種組合在 a) 有效性、b) 副作用 和 c) 接受度方面的表現。→ <a href="https://arxiv.org/pdf/2603.25695" target="_blank" rel="noreferrer">閱讀更多</a></p>
+<h3>開放的辯論：治理、權力與網際網路開放性的極限 (2026 年 4 月)</h3>
+<p>本書是一部編輯合集，探討「網際網路開放性」如何從植根於開放協定的技術理想，轉變為受國家、企業和相互競爭的監管體制所形塑的、充滿爭議的政治與經濟狀態。其核心問題不再是網際網路在原則上是否開放，而是誰有權定義開放，以及當他們定義開放時，由誰來承擔成本。→ <a href="https://cadmus.eui.eu/entities/publication/a8189891-83f0-43d3-812e-37340cc063a5?ref=internet.exchangepoint.tech" target="_blank" rel="noreferrer">閱讀更多</a></p>
+<h3>全球技術轉向與創新對人道救援與發展的影響：關於永續發展路徑的系統性回顧 (2026 年 4 月 1 日)</h3>
+<p>本研究探討人道主義技術（HT）如何重塑全球永續發展（SD）的路徑。它藉由強調創新在促進人類與地球福祉方面的變革潛力，探索了人道主義技術、現有永續發展框架與全球公平之間的關鍵交會點。本研究採用 PRISMA 指南，系統性地評估了 2015 年至 2024 年間以人為本的技術如何有助於實現聯合國的永續發展目標（SDGs），同時指出影響全球永續發展成果的趨勢、差異和政策影響。→ <a href="https://www.sciencedirect.com/science/article/pii/S2590291126003086" target="_blank" rel="noreferrer">閱讀更多</a></p>
+<h3>超越採用：探討行為準則在開源社群中的演變與影響 (2026 年 4 月 15 日)</h3>
+<p>一項針對數千個 GitHub 專案的行為準則（Codes of Conduct，簡稱 CoC）追蹤研究發現，隨著時間推移，採用行為準則能穩定地吸引新的貢獻者——這是開源社群健康的一個重要訊號。然而，隱憂在於：既有的貢獻者在短期內參與度會降低，這表明行為準則雖以獎勵包容的方式改變了社群文化，但這需要謹慎的變革管理。→ <a href="https://ftw.fund/" target="_blank" rel="noreferrer">閱讀更多</a></p>
+<h3>資助網路——從壟斷聯盟到公約 (2026 年 5 月)</h3>
+<p>瀏覽器引擎是 50 億人所使用（開放）的關鍵基礎設施，由每年價值數千億、鮮為人知的搜尋稅（search levy）所維持——然而，卻沒有任何對公眾負責的人來治理它。由數位基礎設施洞察基金資助的 Robin Berjon <a href="https://infrastructureinsights.fund/projects/browser-funding/" target="_blank" rel="noreferrer">最新報告</a>，診斷了這種稅收如何機制性地產生 Google 搜尋壟斷、抽走更廣泛網路的資金，並將我們共享的資訊空間架構留給私營機構。為了應對這一發展，他提出了「網路基礎設施搜尋基金」（Web Infrastructure Search Endowment，簡稱 WISE）——一個多方關係人機構，將現有的稅收置於民主治理之下，將其從壟斷聯盟重組為公約。→ <a href="https://ftw.fund/" target="_blank" rel="noreferrer">閱讀更多</a></p>
+<h3>模擬維護活動變化對依賴關係傳播之生態系統影響：評估 PyPI 網路中的支持策略 (2026 年 5 月 8 日)</h3>
+<p>開源軟體生態系統呈現出密集的依賴網路，其中處於結構核心地位的套件其維護品質下降時，影響會廣泛傳播。儘管人們越來越關注開源的永續性，但現有的支持機制仍缺乏明確的、具依賴感知能力的生態系統級影響概念來引導支持決策。在本文中，我們提出了一個具依賴感知的生態系統影響模型，該模型捕捉了維護活動的變化如何在 Python 套件索引（PyPI）生態系統中傳播並影響其整體狀態。→ <a href="https://arxiv.org/abs/2605.06164" target="_blank" rel="noreferrer">閱讀更多</a></p>
+<h3>開源與閉源：前沿模型的追逐 (2026 年 5 月 15 日)</h3>
+<p>閉源模型正在主導創新的步伐，並從能力角度不斷開拓新領域。然而，開源權重模型正緊追其後，且追趕的週期似乎正在變短。目前沒有明顯的能力護城河，今天的前沿可能就是明天的基本配備。→ <a href="https://redmonk.com/sogrady/2026/05/15/open-ai-models/" target="_blank" rel="noreferrer">閱讀更多</a></p>
+<h2>機會與招標</h2>
+<h2>OSHF 徵求專案經理 (2026 年 5 月)</h2>
+<p>開放科學硬體基金會（Open Science Hardware Foundation，簡稱 OSHF）正在擴編，並尋找新的團隊成員來擔任專案經理（Program Manager）一職。</p>
+<h2>AAIF 大使計劃 (2026 年 6 月)</h2>
+<p>AAIF 大使計劃正式啟動，首批招募了 10 位大使。其目標是透過專案導向的推廣，為 AAIF 專案提供真正的開發者教育、社群曝光度以及採用路徑。</p>
+<h2>徵件啟動 (CFP) - AGNTCon + MCPCon 北美 (2026 年 6 月)</h2>
+<p>本活動匯聚了推動下一代 AI 代理人（AI agents）發展的開發者、研究人員、平台建構者和企業——從核心代理人架構與基礎設施，到使代理人系統具備互操作性的協定與工具。</p>
+<h2>國際電信聯盟學院線上課程開放申請：以安全保障加速數位公共基礎設施建設 (2026 年 6 月)</h2>
+<p>隨著數位公共基礎設施（DPI）成為推動包容性國家數位轉型的主流方法，本課程為政府執行人員 and 數位從業者提供「設計安全保障」（Safeguards-by-Design）框架，以建構基於可重複使用元件、互操作標準和開放架構之值得信賴且具韌性的系統。</p>
+<h2>IMPAC3T-IP™ 學院認證培訓 (2026 年 6 月)</h2>
+<p>IMPAC3T-IP™ 學院提供一項獲得認證且受補助的培訓計劃，旨在介紹 IMPAC3T-IP 工具箱，並提供成為認證工具箱使用者的機會。</p>
+<h2>職缺：G-Research 開源佈道師 (2026 年 6 月)</h2>
+<p>此職缺將作為 G-Research 內部工程領域與外部開源軟體世界之間的連結橋樑。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-3308b90abdbfc10d.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">AI 氣候騙局：大型科技如何漂綠 AI 影響</span>
+</a>
+
+<a class="article-sequence-link" href="item-450703430941afea.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">歐盟新文件近用規則如何降低透明度並保護大型科技公司</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-f80b12bdf94ea898.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-23T15:19:20+00:00</li><li>審稿備註：2026-06-23T15:19:20+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。
+2026-06-23T16:08:59+00:00 彙整式電子報拆 link：新增 15 筆，重複 2 筆，略過 5 筆。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：OTR Newsletter #3: Shaping the Open Transition: OTR Symposium Info session on 9 June</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：OTR 通訊 #3：形塑開放轉型：OTR 研討會 6 月 9 日說明會（Gemini）</li><li><strong>原始作者</strong>：Open Technology Research（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-f80b12bdf94ea898";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
