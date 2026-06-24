@@ -1747,6 +1747,11 @@ def grouped_tags(tags: list[str]) -> list[tuple[str, list[str]]]:
     return groups
 
 
+def taxonomy_primary_tags() -> list[str]:
+    """每個 taxonomy 組別的代表標籤（第一個別名 = 正式名），給新表單當分面建議。"""
+    return [aliases[0] for _label, aliases in TAG_SYNONYM_GROUPS if aliases]
+
+
 def tag_href(tag: object) -> str:
     return href_with_query("/tags", [("tag", clean_text(tag, 120))])
 
@@ -11285,10 +11290,15 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         current_track = (query.get("track") or ["digital-humanities-local-knowledge"])[0]
         if current_track not in TRACK_META:
             current_track = "digital-humanities-local-knowledge"
+        tag_records = load_jsonl(ITEMS)
+        tag_controls = tag_picker_controls_html(
+            [], taxonomy_primary_tags(), all_tag_options(tag_records),
+            placeholder="搜尋或新增標籤（OS、open data 也找得到）",
+        )
         body = f"""
 <h1>手動入庫</h1>
 <p class="lede">用在你看到一篇文章、一個頁面或一個案例，想先丟進入庫建檔區時。這裡新增的是單筆知識項目，不是長期 RSS 來源。</p>
-<form class="form-panel" method="post" action="/items" data-url-preview-form data-preview-kind="item">
+<form class="form-panel tag-picker" method="post" action="/items" data-url-preview-form data-preview-kind="item" data-tag-picker>
   <label>主線</label>
   <select name="track" data-preview-track>{option_list(TRACKS, current_track)}</select>
   <p class="help">這決定它會出現在「開放科技」或「人文與在地知識」哪一個工作台。</p>
@@ -11313,8 +11323,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <textarea name="summary" data-preview-summary></textarea>
   <p class="help">先貼一兩句你覺得重要的脈絡，方便未來審稿時想起來為什麼收。</p>
   <label>標籤</label>
-  <input name="tags" placeholder="用逗號分隔">
-  <p class="help">例如：開放資料, 地方創生, 博物館；不用一開始就很完整。</p>
+  {tag_controls}
+  <p class="help">和單篇頁同一套：輸入別名（OS、open source、OD…）會對到正式標籤；下方依分面有建議。</p>
   <label>備註 / 為什麼值得追</label>
   <textarea name="notes"></textarea>
   <p class="help">寫給未來的自己看：這則資料可能放進哪個議題、有哪些疑問。</p>
@@ -11359,7 +11369,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                     "notes": "由本機網頁加入。",
                 },
             )
-        tags = [tag.strip() for tag in form_value(data, "tags").split(",") if tag.strip()]
+        tags = self.selected_tag_values(data) or [tag.strip() for tag in form_value(data, "tags").split(",") if tag.strip()]
         notes = form_value(data, "notes")
         record = {
             "id": stable_id("item", "manual-web", url, title),
