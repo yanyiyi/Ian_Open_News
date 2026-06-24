@@ -99,16 +99,51 @@ AI_PROVIDER_META = {
     },
 }
 AI_PROVIDER_ORDER = ["codex", "claude", "gemini"]
+# 標籤 taxonomy：每組 = (正式名, [可輸入的同義/別名])。
+# 分面（facet）由 TAG_FACETS 標示；同一面下的每個 group 就是一個子類。
+# 輸入任一別名都會正規化到正式名，且別名可被搜尋找到（help 找標籤）。
 TAG_SYNONYM_GROUPS = [
-    ("開放原始碼 / Open Source", ["開放原始碼", "開源", "open source", "opensource", "FOSS", "free software", "自由軟體"]),
-    ("開放資料 / Open Data", ["開放資料", "開放數據", "open data", "data portal", "資料開放"]),
+    # —— 主題 · 開源核心 ——
+    ("開放原始碼", ["開放原始碼", "開源", "OS", "open source", "opensource", "Open Source", "FOSS", "free software", "software freedom", "自由軟體"]),
+    ("開源治理 / OSPO", ["開源治理", "OSPO", "開源政策", "open source policy", "open source program office", "開源專案辦公室"]),
+    ("開放授權", ["開放授權", "開源授權", "授權", "license", "licence", "licensing", "CC", "Creative Commons", "創用CC"]),
+    # —— 主題 · AI 系列 ——
+    ("開源 AI / OSAID", ["開源 AI", "開源 AI 發展", "OSAID", "open source AI", "open-source AI", "AI 開放性", "開放模型", "open weights", "AI"]),
+    ("AI Agents", ["AI Agents", "AI agent", "agentic"]),
+    # —— 主題 · 開放資料／政府 ——
+    ("開放資料", ["開放資料", "開放數據", "OD", "open data", "data portal", "資料開放", "開放資料知識"]),
+    ("開放政府", ["開放政府", "OG", "open government", "civic tech", "公民科技"]),
+    ("資料治理", ["資料治理", "數據治理", "data governance", "資料保護", "data protection", "DR"]),
+    # —— 主題 · 數位權利 ——
+    ("數位人權", ["數位人權", "digital rights", "human rights", "言論自由"]),
+    ("數位隱私", ["數位隱私", "隱私", "隱私權", "privacy", "個資", "個人資料"]),
+    ("資安 / 供應鏈", ["資安", "cybersecurity", "security", "供應鏈安全", "software supply chain", "supply chain", "SBOM"]),
+    # —— 主題 · 公共數位基建／科技 ——
+    ("公共程式 / 數位基建", ["公共程式", "public code", "public digital infrastructure", "公共數位基礎建設", "DPI"]),
     ("開放科技", ["開放科技", "open technology", "open tech", "開放標準", "open standard", "open standards"]),
-    ("數位人權", ["數位人權", "digital rights", "human rights", "privacy", "隱私權", "言論自由"]),
-    ("資料治理", ["資料治理", "數據治理", "data governance", "資料保護", "data protection"]),
-    ("公共程式 / Public Code", ["公共程式", "public code", "public digital infrastructure", "公共數位基礎建設"]),
-    ("開源政策", ["開源政策", "open source policy", "OSPO", "開源專案辦公室", "open source program office"]),
-    ("供應鏈安全", ["供應鏈安全", "software supply chain", "supply chain", "SBOM", "資安", "cybersecurity"]),
-    ("數位人文", ["數位人文", "digital humanities", "文化記憶", "cultural memory", "數位典藏", "digital archive"]),
+    ("法規政策", ["法規政策", "臺灣法規", "法規", "行政規則", "法制化", "政策", "regulation", "policy", "compliance", "標準"]),
+    # —— 主題 · 數位人文／在地 ——
+    ("數位人文", ["數位人文", "digital humanities", "文化記憶", "cultural memory", "數位典藏", "digital archive", "記憶庫"]),
+    ("在地知識 / 地方", ["在地知識", "地方知識", "地方", "社區", "鐵道"]),
+    # —— 組織 ——
+    ("OCF / 開放文化基金會", ["OCF", "開放文化基金會", "open culture foundation"]),
+    ("FSF", ["FSF", "free software foundation"]),
+    # —— 社群 / 活動 ——
+    ("COSCUP", ["COSCUP"]),
+    ("SITCON", ["SITCON"]),
+]
+# 分面：哪些 group 正式名屬於哪個分面（給建議分群用；其餘歸「其他」）。
+TAG_FACETS = [
+    ("主題", [
+        "開放原始碼", "開源治理 / OSPO", "開放授權",
+        "開源 AI / OSAID", "AI Agents",
+        "開放資料", "開放政府", "資料治理",
+        "數位人權", "數位隱私", "資安 / 供應鏈",
+        "公共程式 / 數位基建", "開放科技", "法規政策",
+        "數位人文", "在地知識 / 地方",
+    ]),
+    ("組織", ["OCF / 開放文化基金會", "FSF"]),
+    ("社群 / 活動", ["COSCUP", "SITCON"]),
 ]
 
 TRACKS = [
@@ -1685,6 +1720,14 @@ def tag_group_label(tag: object) -> str:
     return canonical_tag_label(tag)
 
 
+def tag_facet_rank(group_label: str) -> tuple[int, int]:
+    """依 TAG_FACETS 給組別一個排序權重；未列入者排最後。"""
+    for facet_index, (_facet, labels) in enumerate(TAG_FACETS):
+        if group_label in labels:
+            return (facet_index, labels.index(group_label))
+    return (len(TAG_FACETS), 0)
+
+
 def grouped_tags(tags: list[str]) -> list[tuple[str, list[str]]]:
     groups: list[tuple[str, list[str]]] = []
     index_by_key: dict[str, int] = {}
@@ -1699,6 +1742,8 @@ def grouped_tags(tags: list[str]) -> list[tuple[str, list[str]]]:
         if tag_key(tag) not in {tag_key(value) for value in values}:
             values.append(tag)
         groups[index_by_key[key]] = (label, values)
+    # 依分面（主題 → 組織 → 社群/活動 → 其他）排序，讓建議更有邏輯
+    groups.sort(key=lambda g: tag_facet_rank(g[0]))
     return groups
 
 
@@ -3228,6 +3273,15 @@ def icon_span(action: str, shortcut: str = "", class_name: str = "icon") -> str:
 
 def button_content(label: str, action: str, shortcut: str = "") -> str:
     return f'{icon_span(action, shortcut)}<span>{h(label)}</span>'
+
+
+def back_nav_html(href: str, label: str = "上一頁") -> str:
+    """全站統一的「上一頁」返回列，比照單篇材料頁樣式。"""
+    return (
+        '<nav class="article-top-nav" aria-label="返回">'
+        f'<a class="button article-back-button" href="{h(href or "/")}">{icon_span("back", "", "icon")}{h(label)}</a>'
+        "</nav>"
+    )
 
 
 def action_label(label: str) -> str:
@@ -6798,6 +6852,7 @@ class Handler(BaseHTTPRequestHandler):
         )
 
         body = f"""
+{back_nav_html(self.same_origin_referer_path("/"))}
 <section class="editor-hero">
   <h1>{icon_span("edit")}編輯台</h1>
   <p class="lede">從材料池挑可用材料或新聞小消息，拖進草稿庫後再選模型、寫文模式與任務。只有這裡產出的稿件才稱為 article。</p>
@@ -7331,7 +7386,7 @@ class Handler(BaseHTTPRequestHandler):
 </section>
 """
         body = f"""
-<nav class="article-top-nav"><a class="button" href="/editor">{button_content('回編輯台', 'back')}</a></nav>
+{back_nav_html(self.same_origin_referer_path("/editor"))}
 <section class="card">
   <div class="section-kicker">編輯歷程</div>
   <h1>{h(session.get("task_label") or session.get("task_type"))}</h1>
@@ -7522,6 +7577,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         material_count = sum(1 for record in searchable_items if is_skill_candidate(record))
         small_news_count = sum(1 for record in searchable_items if is_direct_pr_item(record))
         body = f"""
+{back_nav_html(self.same_origin_referer_path("/editor"))}
 <section class="card">
   <h1>{icon_span("note")}觀點庫</h1>
   <p class="muted">這裡以「材料帶出的觀點」為主。單篇材料的個人紀錄、編輯台過程中留下的待補觀點，以及已連結的 article 都會在這裡串起來。</p>
