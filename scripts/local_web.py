@@ -4506,15 +4506,13 @@ def page(title: str, body: str) -> bytes:
     .flow-line {{ margin: 4px 0; color: var(--muted, #64748b); }}
     .flow-line--change {{ margin-top: 10px; }}
     .flow-current {{ display: inline-block; padding: 2px 12px; border-radius: 999px; background: var(--soft, #eef6ff); color: var(--ocf-dark, #14304a); font-weight: 700; }}
-    /* 入庫建檔區：維持語彙色（收=紫 預設、新聞=藍 .secondary、閱讀=黑、不收=洋紅），scoped 不影響他處 */
-    .button-row.flow-options .reading-button {{ background: var(--ocf-dark); }}
-    .reason-presets.flow-options button {{ background: var(--ocf-magenda); color: #fff; }}
-    /* 可用材料區（重新檢視已判斷）：按鈕白底，hover 才上語彙色 */
-    .flow-options--review button, .flow-options--review .button {{ background: #fff; color: var(--ocf-dark); border: 1px solid var(--line); box-shadow: none; transition: color .14s ease, background .14s ease, border-color .14s ease; }}
+    /* 入庫建檔區：完全用原生語彙色，與列表頁(/items)一致 —— 收=紫(預設)、閱讀=洋紅(.reading-button)、
+       新聞=藍(.secondary)、不收=淡粉 chip(.reason-chip--danger)。不另外覆寫。 */
+    /* 可用材料區（重新檢視已判斷）：三顆實心動作鈕白底，hover 才回原生語彙色；不收原因維持原生淡色 chip。 */
+    .button-row.flow-options--review button {{ background: #fff; color: var(--ocf-dark); border: 1px solid var(--line); box-shadow: none; transition: background .14s ease, color .14s ease, border-color .14s ease; }}
     .button-row.flow-options--review button:hover {{ background: var(--ocf-primary); color: #fff; border-color: transparent; }}
     .button-row.flow-options--review .secondary:hover {{ background: var(--ocf-cyan); color: #fff; border-color: transparent; }}
-    .button-row.flow-options--review .reading-button:hover {{ background: var(--ocf-dark); color: #fff; border-color: transparent; }}
-    .reason-presets.flow-options--review button:hover {{ background: var(--ocf-magenda); color: #fff; border-color: transparent; }}
+    .button-row.flow-options--review .reading-button:hover {{ background: var(--ocf-magenda); color: #fff; border-color: transparent; }}
     .batch-panel {{ border-left: 4px solid var(--ocf-cyan); }}
     .auto-batch-panel {{
       border-left: 4px solid var(--ocf-primary);
@@ -11318,8 +11316,15 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         if current_track not in TRACK_META:
             current_track = "digital-humanities-local-knowledge"
         tag_records = load_jsonl(ITEMS)
+        existing_tags = all_tag_options(tag_records, limit=200)
+        # 建議＝資料庫實際有的標籤（依分面分群，含同主題的罕見 tag）＋ taxonomy 骨架（確保空主題也露面），
+        # 讓人一眼看到「已經有哪些分類/資料」。
+        suggestion_tags = []
+        _seen = set()
+        for tag in [*taxonomy_primary_tags(), *existing_tags]:
+            append_unique_tag(suggestion_tags, _seen, tag)
         tag_controls = tag_picker_controls_html(
-            [], taxonomy_primary_tags(), all_tag_options(tag_records),
+            [], suggestion_tags, existing_tags,
             placeholder="搜尋或新增標籤（OS、open data 也找得到）",
             collapse_suggestions=True,
         )
