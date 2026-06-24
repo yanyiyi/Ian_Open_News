@@ -313,12 +313,38 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-top-nav { margin: 0 0 14px; }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
     .article-back-button {
       background: #273244;
       box-shadow: 0 8px 22px rgba(15,25,35,.10);
     }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
+    .article-layout.is-sidebar-hidden .side-panel { display: none; }
     .article-main { display: grid; gap: 18px; min-width: 0; }
     .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
@@ -423,6 +449,21 @@
     }
     .side-panel h2 { font-size: 18px; margin-top: 18px; }
     .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
     .article-sequence-nav {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -482,7 +523,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-24T06:24:52+00:00</p>
+            <p class="generated">產生時間：2026-06-24T06:55:11+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -533,7 +574,7 @@
 <details class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-4" open>
   <summary>
     <h2><span class="reader-period-heading-label">2026 年 6 月 Week 4</span></h2>
-    <p class="reader-period-count">30 筆</p>
+    <p class="reader-period-count">31 筆</p>
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-23T16:39:03+00:00">
@@ -632,6 +673,13 @@
   <h3><a href="articles/item-61a71b2ff280f609.html">代理型 AI 落地的五項關鍵：成果導向、平台管理與授權治理</a></h3>
   <p class="summary">企業正加速導入代理型 AI 推動業務自動化，但實際部署仍有多重阻力。AWS 高管提出五個應用角度，標題顯示其中包括以業務結果為目標，以及透過統一平台管理系統與授權。其餘建議與實證案例尚待全文確認。</p>
   <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
+</article>
+
+<article class="news-item" data-reader-item data-item-date="2026-06-23T00:00:00+00:00">
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-23 08:00</span></div>
+  <h3><a href="articles/item-f8c3bfb8d498cc4a.html">OpenClaw 與 Hermes 對 AI 代理人的定義一致，控制方式卻不同</a></h3>
+  <p class="summary">文章似乎以 AI 代理人平台的控制機制為主題，並以 OpenClaw 與 Hermes 作比較。摘要僅提到 Satya Nadella 對作業系統與應用程式之外新平台轉型的描述，尚不足以重建文章的核心分析。</p>
+
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-23T00:00:00+00:00">

@@ -3394,6 +3394,7 @@ def action_icon(action: str) -> str:
         "note": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M8 8h8"></path><path d="M8 12h8"></path><path d="M8 16h5"></path></svg>',
         "tag": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.5l-7 7a2 2 0 0 1-2.8 0L3 12.8V4h8.8l8.7 8.7a2 2 0 0 1 0 2.8z"></path><circle cx="7.5" cy="8" r="1.5"></circle></svg>',
         "bookmark": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v17l-6-4-6 4z"></path></svg>',
+        "sidebar": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg>',
         "back": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path><path d="M9 12h12"></path></svg>',
         "previous": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>',
         "next": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>',
@@ -3428,6 +3429,16 @@ def action_label(label: str) -> str:
 def help_dot(text: str) -> str:
     text = clean_text(text, 500)
     return f'<span class="help-dot" title="{h(text)}">?</span>' if text else ""
+
+
+def workspace_sidebar_toggle(layout_id: str, sidebar_id: str, storage_key: str, label: str = "工具欄") -> str:
+    return (
+        f'<button type="button" class="workspace-sidebar-toggle quiet" '
+        f'data-workspace-toggle data-workspace-target="{h(layout_id)}" '
+        f'data-sidebar-target="{h(sidebar_id)}" data-sidebar-storage-key="{h(storage_key)}" '
+        f'aria-controls="{h(sidebar_id)}" aria-expanded="true" title="顯示或隱藏{h(label)}">'
+        f'{icon_span("sidebar", "", "icon")}<span data-sidebar-toggle-label>隱藏{h(label)}</span></button>'
+    )
 
 
 def layout_toggle(section_id: str, current: str = "list") -> str:
@@ -4676,6 +4687,75 @@ def page(title: str, body: str) -> bytes:
     }}
     .auto-batch-panel button {{ margin-top: 0; }}
     .auto-batch-panel .help {{ margin: 0; flex: 1 1 280px; }}
+    .workspace-toolbar {{
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin: 14px 0 10px;
+    }}
+    .workspace-sidebar-toggle {{
+      margin: 0;
+      padding: 8px 10px;
+      font-size: 13px;
+      box-shadow: none;
+    }}
+    .workspace-layout {{
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+      gap: 18px;
+      align-items: start;
+    }}
+    .workspace-layout.is-sidebar-hidden {{
+      grid-template-columns: minmax(0, 1fr);
+    }}
+    .workspace-main {{
+      min-width: 0;
+    }}
+    .workspace-main > :first-child,
+    .workspace-sidebar > :first-child {{
+      margin-top: 0;
+    }}
+    .workspace-sidebar {{
+      position: sticky;
+      top: 78px;
+      display: grid;
+      gap: 12px;
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+      overscroll-behavior: contain;
+      align-self: start;
+    }}
+    .workspace-layout.is-sidebar-hidden .workspace-sidebar {{
+      display: none;
+    }}
+    .workspace-sidebar-section {{
+      display: grid;
+      gap: 10px;
+    }}
+    .workspace-sidebar-section > h2 {{
+      margin: 0;
+      font-size: 18px;
+    }}
+    .workspace-sidebar .filter-panel,
+    .workspace-sidebar .batch-panel,
+    .workspace-sidebar .auto-batch-panel {{
+      margin: 0;
+      padding: 14px;
+    }}
+    .workspace-sidebar .form-grid {{
+      grid-template-columns: 1fr;
+    }}
+    .workspace-sidebar .auto-batch-panel {{
+      align-items: stretch;
+    }}
+    .workspace-sidebar .button-row {{
+      gap: 8px;
+    }}
+    .workspace-sidebar .button-row .button,
+    .workspace-sidebar .button-row button {{
+      padding: 8px 10px;
+      font-size: 13px;
+    }}
     .keyword-filters {{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }}
     .keyword-option {{
       display: inline-flex;
@@ -5090,6 +5170,7 @@ def page(title: str, body: str) -> bytes:
       margin: 0 0 14px;
     }}
     .article-top-nav .button {{ margin-top: 0; }}
+    .article-top-nav .workspace-sidebar-toggle {{ margin-left: auto; }}
     .article-back-button {{
       color: var(--ocf-dark);
       background: #fff;
@@ -5126,6 +5207,12 @@ def page(title: str, body: str) -> bytes:
       overflow: auto;
       align-self: start;
       z-index: 12;
+    }}
+    .article-detail-layout.is-sidebar-hidden {{
+      grid-template-columns: minmax(0, 1fr);
+    }}
+    .article-detail-layout.is-sidebar-hidden .article-action-dock {{
+      display: none;
     }}
     .article-action-dock .card {{
       padding: 12px;
@@ -5414,6 +5501,9 @@ def page(title: str, body: str) -> bytes:
       .two-column {{ grid-template-columns: 1fr; }}
       .article-detail-layout {{ grid-template-columns: 1fr; }}
       .article-action-dock {{ position: static; max-height: none; order: -1; }}
+      .workspace-layout {{ grid-template-columns: 1fr; }}
+      .workspace-sidebar {{ position: static; max-height: none; order: -1; }}
+      .workspace-layout.is-sidebar-hidden .workspace-sidebar {{ display: none; }}
       .pdf-relation-grid, .pdf-split-grid {{ grid-template-columns: 1fr; }}
       .article-sequence-nav {{ left: 10px; right: 10px; bottom: 10px; }}
       .article-sequence-link span {{ display: none; }}
@@ -5563,6 +5653,37 @@ def page(title: str, body: str) -> bytes:
         peer.classList.toggle("is-active", active);
         peer.setAttribute("aria-pressed", active ? "true" : "false");
       }});
+    }});
+  }});
+
+  document.querySelectorAll("[data-workspace-toggle]").forEach((button) => {{
+    const layout = document.getElementById(button.dataset.workspaceTarget || "");
+    const sidebar = document.getElementById(button.dataset.sidebarTarget || "");
+    if (!layout || !sidebar) return;
+    const storageKey = `ian-open-news-sidebar:${{button.dataset.sidebarStorageKey || button.dataset.sidebarTarget || "default"}}`;
+    const label = button.querySelector("[data-sidebar-toggle-label]");
+    const applyState = (hidden) => {{
+      layout.classList.toggle("is-sidebar-hidden", hidden);
+      sidebar.setAttribute("aria-hidden", hidden ? "true" : "false");
+      button.setAttribute("aria-expanded", hidden ? "false" : "true");
+      if (label) label.textContent = hidden ? "顯示工具欄" : "隱藏工具欄";
+      button.title = hidden ? "顯示工具欄" : "隱藏工具欄";
+    }};
+    let hidden = false;
+    try {{
+      hidden = window.localStorage.getItem(storageKey) === "hidden";
+    }} catch (_error) {{
+      hidden = false;
+    }}
+    applyState(hidden);
+    button.addEventListener("click", () => {{
+      hidden = !layout.classList.contains("is-sidebar-hidden");
+      applyState(hidden);
+      try {{
+        window.localStorage.setItem(storageKey, hidden ? "hidden" : "visible");
+      }} catch (_error) {{
+        // The layout still works when browser storage is unavailable.
+      }}
     }});
   }});
 
@@ -8816,63 +8937,75 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   {metric_card(counts.get("suggest-keep", 0), "建議收", items_metric_href("suggest-keep"), "只看建議收", "is-active" if recommendation_filter == "suggest-keep" else "")}
   {metric_card(counts.get("suggest-skip", 0), "建議不要看", items_metric_href("suggest-skip"), "只看建議不要看", "is-active" if recommendation_filter == "suggest-skip" else "")}
 </div>
-<h2>篩選入庫建檔</h2>
-<form class="filter-panel" method="get" action="/items" id="items-filter-form">
-  {'<input type="hidden" name="show" value="all">' if show_all else ''}
-  <div class="form-grid">
-    <div>
-      <label>主線</label>
-      <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
-      <p class="help">選完會自動更新。開放科技 {track_counts.get('open-tech-open-industry', 0)}、人文 {track_counts.get('digital-humanities-local-knowledge', 0)}、未分類 {track_counts.get('unclassified', 0)}。</p>
-    </div>
-    <div>
-      <label>系統建議</label>
-      <select name="recommendation" class="auto-filter">{option_list(recommendation_options, recommendation_filter)}</select>
-      <p class="help">已跑 Codex 的項目優先看 Codex 判斷；還沒跑前維持第一段關鍵字初篩。改完關鍵字後可到關鍵字頁重新跑。</p>
-    </div>
-  </div>
-  <label>關鍵字 / tag</label>
-  <div class="keyword-filters">{keyword_filter_html}</div>
-  <div class="button-row">
-    <a class="button secondary" href="/items">清除篩選</a>
-    <a class="button quiet" href="/keywords">調整或重跑關鍵字</a>
-  </div>
-  <p class="help">勾選關鍵字或 tag 後會自動更新；多個條件是「任一命中」就顯示。</p>
-</form>
-{auto_batch_panel}
-<h2>批次處理</h2>
-<div class="card batch-panel">
-  <p><strong id="selected-count">已選取 0 則</strong></p>
-  <div class="button-row">
-    <button type="button" class="secondary" id="select-visible">{button_content("全選目前顯示", "select", "A")}</button>
-    <button type="button" class="quiet" id="clear-selection">{button_content("清除選取", "clear", "L")}</button>
-  </div>
-  <form id="items-batch-form" method="post" action="/items/batch" data-batch-form>
-    <input type="hidden" id="batch-ids" name="ids">
-    <input type="hidden" id="batch-reason" name="reason">
-    <div class="button-row">
-      <button type="submit" name="action" value="accept">{button_content("批次確認收，放入可用材料區", "accept", "A")}</button>
-      <button type="submit" name="action" value="accept_reading" class="reading-button">{button_content("批次閱讀中 / 超想看", "bookmark", "B")}</button>
-      <button type="submit" name="action" value="direct_pr" class="secondary">{button_content("批次直接送 PR（小消息）", "small-news", "P")}</button>
-    </div>
-    <p class="help">批次不收原因</p>
-    <div class="reason-presets">{batch_buttons}</div>
-    <details class="inline-reason">
-      <summary>批次其他原因</summary>
-      <div class="button-row">
-        <input id="batch-custom-reason" name="custom_reason" placeholder="寫一句批次不收原因">
-        <button type="submit" name="action" value="reject" class="reason-chip reason-chip--danger" data-custom-reason="1">{button_content("用這個原因批次不收", "reject", "X")}</button>
-      </div>
-    </details>
-  </form>
-  <p class="help">批次處理只會處理你勾選的項目；處理完會從入庫建檔區消失。</p>
-  <p class="help">批次選到 RSS 新進時，系統會先寫進 database/items.jsonl，再套用確認收或直接送 PR；批次不收會寫入不收學習檔，RSS 新進也會寫入略過清單。</p>
+<div class="workspace-toolbar">
+  {workspace_sidebar_toggle("items-workspace", "items-sidebar", "items", "篩選與批次工具")}
 </div>
-<h2>待入庫材料</h2>
-<p class="muted">符合條件：{len(filtered)} 筆。{'' if show_all else f'目前先顯示 {len(visible)} 筆。'}</p>
-{more_link}
-<div class="list">{''.join(rows)}</div>
-{more_link}
+<div class="workspace-layout" id="items-workspace">
+  <section class="workspace-main">
+    <h2>待入庫材料</h2>
+    <p class="muted">符合條件：{len(filtered)} 筆。{'' if show_all else f'目前先顯示 {len(visible)} 筆。'}</p>
+    {more_link}
+    <div class="list">{''.join(rows)}</div>
+    {more_link}
+  </section>
+  <aside class="workspace-sidebar" id="items-sidebar">
+    <section class="workspace-sidebar-section">
+      <h2>篩選入庫建檔</h2>
+      <form class="filter-panel" method="get" action="/items" id="items-filter-form">
+        {'<input type="hidden" name="show" value="all">' if show_all else ''}
+        <div class="form-grid">
+          <div>
+            <label>主線</label>
+            <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
+            <p class="help">開放科技 {track_counts.get('open-tech-open-industry', 0)}、人文 {track_counts.get('digital-humanities-local-knowledge', 0)}、未分類 {track_counts.get('unclassified', 0)}。</p>
+          </div>
+          <div>
+            <label>系統建議</label>
+            <select name="recommendation" class="auto-filter">{option_list(recommendation_options, recommendation_filter)}</select>
+            <p class="help">優先採用已產生的模型判斷，否則使用關鍵字初篩。</p>
+          </div>
+        </div>
+        <label>關鍵字 / tag</label>
+        <div class="keyword-filters">{keyword_filter_html}</div>
+        <div class="button-row">
+          <a class="button secondary" href="/items">清除篩選</a>
+          <a class="button quiet" href="/keywords">調整關鍵字</a>
+        </div>
+        <p class="help">變更條件會自動更新；多個關鍵字採任一命中。</p>
+      </form>
+    </section>
+    <section class="workspace-sidebar-section">
+      <h2>批次處理</h2>
+      {auto_batch_panel}
+      <div class="card batch-panel">
+        <p><strong id="selected-count">已選取 0 則</strong></p>
+        <div class="button-row">
+          <button type="button" class="secondary" id="select-visible">{button_content("全選目前顯示", "select", "A")}</button>
+          <button type="button" class="quiet" id="clear-selection">{button_content("清除選取", "clear", "L")}</button>
+        </div>
+        <form id="items-batch-form" method="post" action="/items/batch" data-batch-form>
+          <input type="hidden" id="batch-ids" name="ids">
+          <input type="hidden" id="batch-reason" name="reason">
+          <div class="button-row">
+            <button type="submit" name="action" value="accept">{button_content("批次確認收", "accept", "A")}</button>
+            <button type="submit" name="action" value="accept_reading" class="reading-button">{button_content("批次閱讀中", "bookmark", "B")}</button>
+            <button type="submit" name="action" value="direct_pr" class="secondary">{button_content("批次小消息", "small-news", "P")}</button>
+          </div>
+          <p class="help">批次不收原因</p>
+          <div class="reason-presets">{batch_buttons}</div>
+          <details class="inline-reason">
+            <summary>批次其他原因</summary>
+            <div class="button-row">
+              <input id="batch-custom-reason" name="custom_reason" placeholder="寫一句批次不收原因">
+              <button type="submit" name="action" value="reject" class="reason-chip reason-chip--danger" data-custom-reason="1">{button_content("批次不收", "reject", "X")}</button>
+            </div>
+          </details>
+        </form>
+        <p class="help">只處理已勾選項目；完成後會離開入庫建檔區。</p>
+      </div>
+    </section>
+  </aside>
+</div>
 <script>
 const itemCheckboxes = Array.from(document.querySelectorAll(".item-select"));
 const batchIds = document.getElementById("batch-ids");
@@ -9158,21 +9291,33 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
   {metric_card(track_counts.get("digital-humanities-local-knowledge", 0), "人文知識", candidate_metric_href("digital-humanities-local-knowledge"), "只看人文知識", "is-active" if track_filter == "digital-humanities-local-knowledge" else "")}
   {metric_card(track_counts.get("unclassified", 0), "未分類", candidate_metric_href("unclassified"), "只看未分類", "is-active" if track_filter == "unclassified" else "")}
 </div>
-<h2>篩選可用材料</h2>
-<form class="filter-panel" method="get" action="/candidates" id="candidate-filter-form">
-  <label>主線</label>
-  <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
-  <p class="help">選完會自動更新。進編輯台後產出的內容才會成為 article 草稿。</p>
-  <label>關鍵字 / tag</label>
-  <div class="keyword-filters">{keyword_filter_html}</div>
-  <div class="button-row">
-    <a class="button secondary" href="/items">回入庫建檔區</a>
-    <a class="button" href="/editor">打開編輯台</a>
-  </div>
-  <p class="help">勾選關鍵字或 tag 後會自動更新；多個條件是任一命中就顯示。</p>
-</form>
-<h2>已確認收，可進編輯台</h2>
-<div class="list">{''.join(skill_rows)}</div>
+<div class="workspace-toolbar">
+  {workspace_sidebar_toggle("candidates-workspace", "candidates-sidebar", "candidates", "篩選工具")}
+</div>
+<div class="workspace-layout" id="candidates-workspace">
+  <section class="workspace-main">
+    <h2>已確認收，可進編輯台</h2>
+    <p class="muted">符合條件：{len(filtered_skill)} 筆。</p>
+    <div class="list">{''.join(skill_rows)}</div>
+  </section>
+  <aside class="workspace-sidebar" id="candidates-sidebar">
+    <section class="workspace-sidebar-section">
+      <h2>篩選可用材料</h2>
+      <form class="filter-panel" method="get" action="/candidates" id="candidate-filter-form">
+        <label>主線</label>
+        <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
+        <p class="help">選完會自動更新。進編輯台後產出的內容才會成為 article 草稿。</p>
+        <label>關鍵字 / tag</label>
+        <div class="keyword-filters">{keyword_filter_html}</div>
+        <div class="button-row">
+          <a class="button secondary" href="/items">回入庫建檔區</a>
+          <a class="button" href="/editor">打開編輯台</a>
+        </div>
+        <p class="help">多個條件採任一命中。</p>
+      </form>
+    </section>
+  </aside>
+</div>
 <script>
 document.querySelectorAll("#candidate-filter-form .auto-filter").forEach((field) => {{
   field.addEventListener("change", () => document.getElementById("candidate-filter-form").submit());
@@ -9667,57 +9812,63 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
   {metric_card(track_counts.get("digital-humanities-local-knowledge", 0), "人文知識", reader_metric_href(track="digital-humanities-local-knowledge"), "只看人文知識", "is-active" if track_filter == "digital-humanities-local-knowledge" else "")}
   {metric_card(kind_counts.get("small-news", 0), "小消息", reader_metric_href(kind="small-news"), "只看小消息", "is-active" if kind_filter == "small-news" else "")}
 </div>
-<h2>篩選閱讀</h2>
-<form class="filter-panel" method="get" action="/reader" id="reader-filter-form">
-  <div class="form-grid">
-    <div>
-      <label>主線</label>
-      <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
-      <p class="help">分開閱讀開放科技或人文知識，也可以看全部。</p>
-    </div>
-    <div>
-      <label>文章類型</label>
-      <select name="kind" class="auto-filter">{option_list(kind_options, kind_filter)}</select>
-      <p class="help">可用材料適合進編輯台；小消息多半只需要查核與短 PR。</p>
-    </div>
-    <div>
-      <label>閱讀標記</label>
-      <select name="reading" class="auto-filter">{option_list(reading_options, reading_filter)}</select>
-      <p class="help">近期想讀或想分享的文章會集中在優先正在閱讀區。</p>
-    </div>
-    <div>
-      <label>顯示格式</label>
-      <select name="view" class="auto-filter">{option_list(view_options, view_mode)}</select>
-      <p class="help">自動模式會讓精選與觀點優先用卡片，小消息優先用列表。</p>
-    </div>
-    <div>
-      <label>時間</label>
-      <select name="time" class="auto-filter" id="reader-time-filter">{option_list(time_options, time_filter)}</select>
-      <p class="help">可看這三天、這週、最近 30 天、當季、今年、自定區間或全部。</p>
-    </div>
-    <div class="date-range-fields" data-time-custom-fields{custom_hidden}>
-      <div>
-        <label>開始日期</label>
-        <input type="date" name="start" value="{h(start_date)}"{custom_disabled}>
-      </div>
-      <div>
-        <label>結束日期</label>
-        <input type="date" name="end" value="{h(end_date)}"{custom_disabled}>
-      </div>
-    </div>
-  </div>
-  <label>關鍵字 / tag</label>
-  <div class="keyword-filters">{keyword_filter_html}</div>
-  <div class="button-row">
-    <a class="button secondary" href="/reader">清除篩選</a>
-    <a class="button quiet" href="/items">回入庫建檔區</a>
-  </div>
-  <p class="help">勾選關鍵字或 tag 後會自動更新；多個條件是任一命中就顯示。</p>
-</form>
-<h2>文章</h2>
-<p class="muted">符合條件：{len(filtered)} 筆。時間：{h(reader_time_summary(time_filter, start_date, end_date))}。目前顯示最近 {month_limit} 個月份、至多 180 筆。</p>
-{reader_content}
-{more_link}
+<div class="workspace-toolbar">
+  {workspace_sidebar_toggle("reader-workspace", "reader-sidebar", "reader", "篩選工具")}
+</div>
+<div class="workspace-layout" id="reader-workspace">
+  <section class="workspace-main">
+    <h2>文章</h2>
+    <p class="muted">符合條件：{len(filtered)} 筆。時間：{h(reader_time_summary(time_filter, start_date, end_date))}。目前顯示最近 {month_limit} 個月份、至多 180 筆。</p>
+    {reader_content}
+    {more_link}
+  </section>
+  <aside class="workspace-sidebar" id="reader-sidebar">
+    <section class="workspace-sidebar-section">
+      <h2>篩選閱讀</h2>
+      <form class="filter-panel" method="get" action="/reader" id="reader-filter-form">
+        <div class="form-grid">
+          <div>
+            <label>主線</label>
+            <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
+          </div>
+          <div>
+            <label>文章類型</label>
+            <select name="kind" class="auto-filter">{option_list(kind_options, kind_filter)}</select>
+          </div>
+          <div>
+            <label>閱讀標記</label>
+            <select name="reading" class="auto-filter">{option_list(reading_options, reading_filter)}</select>
+          </div>
+          <div>
+            <label>顯示格式</label>
+            <select name="view" class="auto-filter">{option_list(view_options, view_mode)}</select>
+          </div>
+          <div>
+            <label>時間</label>
+            <select name="time" class="auto-filter" id="reader-time-filter">{option_list(time_options, time_filter)}</select>
+          </div>
+          <div class="date-range-fields" data-time-custom-fields{custom_hidden}>
+            <div>
+              <label>開始日期</label>
+              <input type="date" name="start" value="{h(start_date)}"{custom_disabled}>
+            </div>
+            <div>
+              <label>結束日期</label>
+              <input type="date" name="end" value="{h(end_date)}"{custom_disabled}>
+            </div>
+          </div>
+        </div>
+        <label>關鍵字 / tag</label>
+        <div class="keyword-filters">{keyword_filter_html}</div>
+        <div class="button-row">
+          <a class="button secondary" href="/reader">清除篩選</a>
+          <a class="button quiet" href="/items">回入庫建檔區</a>
+        </div>
+        <p class="help">變更條件會自動更新；多個關鍵字採任一命中。</p>
+      </form>
+    </section>
+  </aside>
+</div>
 <script>
 const readerFilterForm = document.getElementById("reader-filter-form");
 const readerTimeFilter = document.getElementById("reader-time-filter");
@@ -10148,6 +10299,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         top_navigation = f"""
 <nav class="article-top-nav" aria-label="返回">
   <a class="button article-back-button" href="{h(self.same_origin_referer_path(context_home))}">{icon_span("back", "", "icon")}上一頁</a>
+  {workspace_sidebar_toggle("article-detail-workspace", "article-detail-sidebar", "article-detail", "文章工具")}
 </nav>
 """
         previous_nav = (
@@ -10208,7 +10360,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   </div>
 """
         action_dock = f"""
-<aside class="article-action-dock">
+<aside class="article-action-dock" id="article-detail-sidebar">
   {inbox_actions}
   <div class="card">
     <h2>閱讀操作 <span class="help-dot" title="這個面板會跟著畫面停在右側，讀到哪裡都能操作。">?</span></h2>
@@ -10233,7 +10385,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         body = f"""
 {top_navigation}
 {notice}
-<div class="article-detail-layout">
+<div class="article-detail-layout" id="article-detail-workspace">
 <div class="article-detail-main">
 <div class="article-title-grid">
   <div>

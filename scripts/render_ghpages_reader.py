@@ -726,12 +726,38 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       justify-content: center;
       margin: 8px 0 30px;
     }}
-    .article-top-nav {{ margin: 0 0 14px; }}
+    .article-top-nav {{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }}
     .article-back-button {{
       background: #273244;
       box-shadow: 0 8px 22px rgba(15,25,35,.10);
     }}
+    .article-sidebar-toggle {{
+      margin-left: auto;
+      padding: 9px 11px;
+    }}
+    .article-sidebar-toggle-icon {{
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }}
+    .article-sidebar-toggle-icon svg {{
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }}
     .article-layout {{ display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }}
+    .article-layout.is-sidebar-hidden {{ grid-template-columns: minmax(0, 1fr); }}
+    .article-layout.is-sidebar-hidden .side-panel {{ display: none; }}
     .article-main {{ display: grid; gap: 18px; min-width: 0; }}
     .article-summary-card, .article-fulltext-card, .side-panel {{
       background: #fff;
@@ -836,6 +862,21 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     }}
     .side-panel h2 {{ font-size: 18px; margin-top: 18px; }}
     .side-panel h2:first-child {{ margin-top: 0; }}
+    .reader-history {{
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }}
+    .reader-history > strong {{
+      color: #7c8594;
+      font-size: 12px;
+    }}
+    .reader-history p {{ margin: 5px 0 0; }}
+    .reader-history ul {{ margin: 5px 0 0; padding-left: 18px; }}
+    .reader-history li {{ margin: 3px 0; }}
     .article-sequence-nav {{
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -963,7 +1004,7 @@ def edit_record_html(item: dict) -> str:
     for request in requests[-3:]:
         lines.append(f"重送 skill：{clean_text(request.get('requested_at'))} / {clean_text(request.get('personal_notes'), 240)}")
     if not lines:
-        return "<p class='lede'>目前沒有本機編輯紀錄。</p>"
+        return "<p>目前沒有公開歷程。</p>"
     return "<ul>" + "".join(f"<li>{h(line)}</li>" for line in lines) + "</ul>"
 
 
@@ -1018,10 +1059,12 @@ def article_page(item: dict, repo_url: str, branch: str, previous_item: dict | N
     <button type="button" id="note-save">儲存到這台瀏覽器</button>
     <a class="button secondary" href="{h(note_pr_url(item, repo_url, branch))}" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
-  <h2>編輯紀錄</h2>
-  {edit_record_html(item)}
   <h2>原始 metadata</h2>
   {metadata_html(item, title)}
+  <div class="reader-history">
+    <strong>歷程</strong>
+    {edit_record_html(item)}
+  </div>
 </aside>
 <script>
 const noteKey = "ian-open-news-note:{note_key}";
@@ -1030,13 +1073,45 @@ noteBody.value = localStorage.getItem(noteKey) || "";
 document.getElementById("note-save").addEventListener("click", () => {{
   localStorage.setItem(noteKey, noteBody.value);
 }});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {{
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+}};
+let articleSideHidden = false;
+try {{
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+}} catch (_error) {{
+  articleSideHidden = false;
+}}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {{
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {{
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  }} catch (_error) {{
+    // Keep the visual toggle available without storage.
+  }}
+}});
 </script>
 """
+    side = side.replace('<aside class="side-panel">', '<aside class="side-panel" id="public-article-side-panel">', 1)
     body = f"""
 <nav class="article-top-nav" aria-label="返回">
   <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) {{ history.back(); return false; }}">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true">{action_icon("sidebar")}</span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
 </nav>
-<div class="article-layout">
+<div class="article-layout" id="public-article-layout">
   <div class="article-main">
     <article class="article-summary-card">
       <div class="article-summary-meta">{reader_status_badges(item, has_article_markdown)}</div>

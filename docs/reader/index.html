@@ -313,12 +313,38 @@
       justify-content: center;
       margin: 8px 0 30px;
     }
-    .article-top-nav { margin: 0 0 14px; }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
     .article-back-button {
       background: #273244;
       box-shadow: 0 8px 22px rgba(15,25,35,.10);
     }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
     .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
+    .article-layout.is-sidebar-hidden .side-panel { display: none; }
     .article-main { display: grid; gap: 18px; min-width: 0; }
     .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
@@ -423,6 +449,21 @@
     }
     .side-panel h2 { font-size: 18px; margin-top: 18px; }
     .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
     .article-sequence-nav {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -482,7 +523,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-24T06:24:52+00:00</p>
+            <p class="generated">產生時間：2026-06-24T06:55:11+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -670,9 +711,19 @@
 <details class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-4" open>
   <summary>
     <h2><span class="reader-period-heading-label">2026 年 6 月 Week 4</span></h2>
-    <p class="reader-period-count">47 筆</p>
+    <p class="reader-period-count">49 筆</p>
   </summary>
   <div class="card-grid">
+<article class="story-card" data-reader-item data-item-date="2026-06-24T05:49:49+00:00">
+  <div class="thumb"><img src="https://mma.prnewswire.com/media/2319830/IBM_LOGO_1.jpg?p=twitter" alt=""></div>
+  <div class="story-body">
+    <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-24 13:49</span></div>
+    <h2><a href="articles/item-d464c8c9470a123d.html">Open Source, After Mythos</a></h2>
+    <p class="summary">The latest news from IBM</p>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
+  </div>
+</article>
+
 <article class="story-card" data-reader-item data-item-date="2026-06-23T17:23:30+00:00">
   <div class="thumb"><img src="https://www.ipa.go.jp/en/k3q2q400000050d7-img/k3q2q400000050dg.jpg" alt=""></div>
   <div class="story-body">
@@ -800,6 +851,16 @@
     <h2><a href="articles/item-9adc78632e5dfd19.html">Digital Public Goods Alliance 路線圖納入 UNESCO Open Solutions</a></h2>
     <p class="summary">UNESCO 表示，其 Open Solutions 已納入 Digital Public Goods Alliance 的路線圖，重點是把知識視為公共財，並透過開放教育資源、開放近用、開放資料與自由開源軟體來支持知識生態與資訊韌性。文本也強調這些數位公共財應有助於降低知識取得的結構性障礙，重視多語近用、公平參與與公共利益資源的再利用，並與全球數位契約和聯合國未來公約的公共治理脈絡相連。</p>
     <div class="tag-chip-list"><span class="tag-chip">digital public goods</span></div>
+  </div>
+</article>
+
+<article class="story-card" data-reader-item data-item-date="2026-06-23T16:39:03+00:00">
+  <div class="thumb"><span>開放科技</span></div>
+  <div class="story-body">
+    <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-24 00:39</span></div>
+    <h2><a href="articles/item-e5d545460263e89c.html">Digital Commons EDIC 擴大至 12 個參與國，並啟動 EU-STF 試點</a></h2>
+    <p class="summary">目前可保守判斷，這則資料是在說 Digital Commons EDIC 已擴大到 12 個參與國，任命 Laurent Rojey 為首任主任，並啟動包含 EU Sovereign Tech Fund 試點在內的初期專案；該試點與德國 Sovereign Tech Agency 合作。不過來源只提供 RSS 摘要片段，且內容接續到另一則 UNESCO 消息，無法確認完整背景與政策意義。</p>
+    <div class="tag-chip-list"><span class="tag-chip">digital public goods</span><span class="tag-chip">sovereign digital infrastructure</span></div>
   </div>
 </article>
 
@@ -2494,7 +2555,7 @@
 <details class="reader-period" data-reader-period data-month-index="1" id="2026-年-5-月-Week-1" open hidden>
   <summary>
     <h2><span class="reader-period-heading-label">2026 年 5 月 Week 1</span></h2>
-    <p class="reader-period-count">4 筆</p>
+    <p class="reader-period-count">2 筆</p>
   </summary>
   <div class="card-grid">
 <article class="story-card" data-reader-item data-item-date="2026-05-07T00:00:00+00:00">
@@ -2516,26 +2577,6 @@
     <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span></div>
   </div>
 </article>
-
-<article class="story-card" data-reader-item data-item-date="2026-05-05T00:00:00+00:00">
-  <div class="thumb"><img src="http://privacyinternational.org/sites/default/files/styles/large/public/2026-05/arvind-vallabh-rqWWhKzVCaU-unsplash.jpg?itok=N1v_2ZH2" alt=""></div>
-  <div class="story-body">
-    <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-05-05 08:00</span></div>
-    <h2><a href="articles/item-06dbb2f6a2aaf9e0.html">從大型石油到大型演算法：投入私人模型的公共資金</a></h2>
-    <p class="summary">標題指出公共資金流向私人演算法或 AI 模型的問題，可能批判政府資源如何支持大型科技企業，並追問公共利益、透明度與責任分配。全文是判斷其深度的必要條件。</p>
-    <div class="tag-chip-list"><span class="tag-chip">數位人權</span><span class="tag-chip">開源 AI 發展</span></div>
-  </div>
-</article>
-
-<article class="story-card" data-reader-item data-item-date="2026-05-05T00:00:00+00:00">
-  <div class="thumb"><span>開放科技</span></div>
-  <div class="story-body">
-    <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-05-05 08:00</span></div>
-    <h2><a href="articles/item-76fc28489bf6a3f3.html">FSFE 月報：Apple、DMA、無線電裝置軟體自由與第 50 集 Podcast</a></h2>
-    <p class="summary">這是一則 FSFE 四月動態彙整，涵蓋 Legal Network 的法律與授權討論、DMA 相關工作、Apple 被指阻擋第三方開發者互通性請求，以及歐盟執委會保護使用者在無線電裝置上安裝任意軟體的倡議成果。它也提到 FSFE podcast 達到第 50 集。</p>
-    <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">FSF</span></div>
-  </div>
-</article>
 </div>
 </details>
 <div class="actions reader-more-row"><button type="button" class="secondary" data-reader-more-months>more：再載入 1 個月</button></div>
@@ -2546,7 +2587,7 @@
 <details class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-4" open>
   <summary>
     <h2><span class="reader-period-heading-label">2026 年 6 月 Week 4</span></h2>
-    <p class="reader-period-count">30 筆</p>
+    <p class="reader-period-count">31 筆</p>
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-23T16:39:03+00:00">
@@ -2645,6 +2686,13 @@
   <h3><a href="articles/item-61a71b2ff280f609.html">代理型 AI 落地的五項關鍵：成果導向、平台管理與授權治理</a></h3>
   <p class="summary">企業正加速導入代理型 AI 推動業務自動化，但實際部署仍有多重阻力。AWS 高管提出五個應用角度，標題顯示其中包括以業務結果為目標，以及透過統一平台管理系統與授權。其餘建議與實證案例尚待全文確認。</p>
   <div class="tag-chip-list"><span class="tag-chip">數據治理</span></div>
+</article>
+
+<article class="news-item" data-reader-item data-item-date="2026-06-23T00:00:00+00:00">
+  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-23 08:00</span></div>
+  <h3><a href="articles/item-f8c3bfb8d498cc4a.html">OpenClaw 與 Hermes 對 AI 代理人的定義一致，控制方式卻不同</a></h3>
+  <p class="summary">文章似乎以 AI 代理人平台的控制機制為主題，並以 OpenClaw 與 Hermes 作比較。摘要僅提到 Satya Nadella 對作業系統與應用程式之外新平台轉型的描述，尚不足以重建文章的核心分析。</p>
+
 </article>
 
 <article class="news-item" data-reader-item data-item-date="2026-06-23T00:00:00+00:00">
@@ -2765,7 +2813,7 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
 <details class="reader-period" data-reader-period data-month-index="0" id="2026-年-6-月-Week-3" open>
   <summary>
     <h2><span class="reader-period-heading-label">2026 年 6 月 Week 3</span></h2>
-    <p class="reader-period-count">50 筆</p>
+    <p class="reader-period-count">49 筆</p>
   </summary>
   <div class="news-list">
 <article class="news-item" data-reader-item data-item-date="2026-06-20T00:00:00+00:00">
@@ -3109,13 +3157,6 @@ The post Cursor quietly acquires Continue, an open-source alternative to GitHub 
   <h3><a href="articles/item-ef19d3f274a51a67.html">向前走，朋友們</a></h3>
   <p class="summary">這是一篇 EFF 成員離職前的告別與回顧。作者表示在 EFF 工作 26 年後離開，回顧組織如何在數位世界中持續捍衛自由與正義，並列舉過去投入的議題，包括加密、程式開發者權利、政府與企業監控、線上私人對話、言論自由、匿名言論、網路中立、安全投票機、專利與著作權等。摘要在後段被截斷，因此目前較能看出情感與歷史脈絡，還不能完整判斷文章後半的重點。</p>
   <div class="tag-chip-list"><span class="tag-chip">數位人權</span></div>
-</article>
-
-<article class="news-item" data-reader-item data-item-date="2026-06-16T00:00:00+00:00">
-  <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-16 08:00</span></div>
-  <h3><a href="articles/item-4a0a385a33461fc4.html">OpenChain 電子報第 87 期</a></h3>
-  <p class="summary">目前只知道這是 OpenChain 第 87 期電子報，無法從提供內容判斷其中是否包含特定活動、政策、工具或社群更新。</p>
-  <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">COSCUP</span></div>
 </article>
 </div>
 </details>
