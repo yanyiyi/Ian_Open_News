@@ -55,19 +55,24 @@ def validate() -> list[str]:
     source_statuses = set(taxonomy.get("source_statuses", ["active", "paused", "archived"]))
     review_steps = set(taxonomy["review_steps"])
 
+    article_statuses = {"draft", "ready", "published"}
+
     sources_path = DATABASE / "sources.jsonl"
     items_path = DATABASE / "items.jsonl"
     rejected_items_path = DATABASE / "rejected-items.jsonl"
     reviews_path = DATABASE / "review-events.jsonl"
+    articles_path = DATABASE / "articles.jsonl"
     sources = load_jsonl(sources_path)
     items = load_jsonl(items_path)
     rejected_items = load_jsonl(rejected_items_path)
     reviews = load_jsonl(reviews_path)
+    articles = load_jsonl(articles_path)
 
     validate_unique(sources, sources_path)
     validate_unique(items, items_path)
     validate_unique(rejected_items, rejected_items_path)
     validate_unique(reviews, reviews_path)
+    validate_unique(articles, articles_path)
 
     errors: list[str] = []
     source_ids = {record["id"] for record in sources}
@@ -169,6 +174,30 @@ def validate() -> list[str]:
                 errors.append(f"{reviews_path}:{review['_line']}: unknown review step {review['step']}")
             if not isinstance(review.get("evidence"), list):
                 errors.append(f"{reviews_path}:{review['_line']}: evidence must be a list")
+        except ValueError as exc:
+            errors.append(str(exc))
+
+    for article in articles:
+        try:
+            require(article, articles_path, "title")
+            require(article, articles_path, "track")
+            require(article, articles_path, "status")
+            if article["track"] not in tracks:
+                errors.append(f"{articles_path}:{article['_line']}: unknown track {article['track']}")
+            if article["status"] not in article_statuses:
+                errors.append(f"{articles_path}:{article['_line']}: unknown article status {article['status']}")
+            if not isinstance(article.get("tags"), list):
+                errors.append(f"{articles_path}:{article['_line']}: tags must be a list")
+            # item_ids / viewpoint_ids 可能指向候選池或已刪觀點，這裡只檢型別、不強制外鍵存在。
+            if not isinstance(article.get("item_ids"), list):
+                errors.append(f"{articles_path}:{article['_line']}: item_ids must be a list")
+            if not isinstance(article.get("viewpoint_ids"), list):
+                errors.append(f"{articles_path}:{article['_line']}: viewpoint_ids must be a list")
+            if "factcheck" in article and not isinstance(article.get("factcheck"), dict):
+                errors.append(f"{articles_path}:{article['_line']}: factcheck must be an object")
+            factcheck = article.get("factcheck")
+            if isinstance(factcheck, dict) and "claims" in factcheck and not isinstance(factcheck.get("claims"), list):
+                errors.append(f"{articles_path}:{article['_line']}: factcheck.claims must be a list")
         except ValueError as exc:
             errors.append(str(exc))
 

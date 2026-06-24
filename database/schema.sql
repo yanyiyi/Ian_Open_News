@@ -54,6 +54,23 @@ CREATE TABLE IF NOT EXISTS review_events (
   FOREIGN KEY (item_id) REFERENCES items(id)
 );
 
+CREATE TABLE IF NOT EXISTS articles (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  slug TEXT,
+  track TEXT NOT NULL,
+  status TEXT NOT NULL,
+  body_markdown TEXT,
+  tags_json TEXT NOT NULL,
+  item_ids_json TEXT NOT NULL,
+  viewpoint_ids_json TEXT NOT NULL,
+  source_session_id TEXT,
+  factcheck_json TEXT NOT NULL,
+  created_at TEXT,
+  updated_at TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_items_track_status ON items(track, status);
 CREATE INDEX IF NOT EXISTS idx_items_source ON items(source_id);
 CREATE INDEX IF NOT EXISTS idx_review_events_item ON review_events(item_id);
+CREATE INDEX IF NOT EXISTS idx_articles_track_status ON articles(track, status);

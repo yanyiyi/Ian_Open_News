@@ -120,6 +120,30 @@ def main() -> None:
                     json.dumps(review.get("evidence", []), ensure_ascii=False),
                 ),
             )
+        for article in load_jsonl(DATABASE / "articles.jsonl"):
+            connection.execute(
+                """
+                INSERT INTO articles
+                (id, title, slug, track, status, body_markdown, tags_json, item_ids_json,
+                 viewpoint_ids_json, source_session_id, factcheck_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    article["id"],
+                    article.get("title", ""),
+                    article.get("slug", ""),
+                    article["track"],
+                    article["status"],
+                    article.get("body_markdown", ""),
+                    json.dumps(article.get("tags", []), ensure_ascii=False),
+                    json.dumps(article.get("item_ids", []), ensure_ascii=False),
+                    json.dumps(article.get("viewpoint_ids", []), ensure_ascii=False),
+                    article.get("source_session_id", ""),
+                    json.dumps(article.get("factcheck", {}), ensure_ascii=False),
+                    article.get("created_at", ""),
+                    article.get("updated_at", ""),
+                ),
+            )
         connection.commit()
     finally:
         connection.close()

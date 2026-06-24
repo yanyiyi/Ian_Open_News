@@ -61,6 +61,7 @@ DATA_COMMIT_STATUS = ROOT / ".cache" / "data-autocommit-status.json"
 COMMAND_STATUS = ROOT / ".cache" / "command-status.json"
 VIEWPOINTS = DATABASE / "viewpoints.jsonl"
 MATERIAL_LINKS = DATABASE / "material-links.jsonl"
+ARTICLES = DATABASE / "articles.jsonl"
 EDITOR_SESSIONS = ROOT / ".cache" / "editor-sessions.jsonl"
 EDITOR_STATUS = ROOT / ".cache" / "editor-status.json"
 PDF_SPLIT_STATUS = ROOT / ".cache" / "pdf-split-status.json"
@@ -75,6 +76,9 @@ EDITOR_TASK_LABELS = {
     "newsletter-extract": "彙整萃取報告",
 }
 EDITOR_CHOICE_LABELS = {"thematic": "主題式", "digest": "彙報式"}
+# 專文（article）＝只有編輯台產出、再經編修台順稿的稿件。狀態為 taxonomy.statuses 的子集。
+ARTICLE_STATUSES = ("draft", "ready", "published")
+ARTICLE_STATUS_LABELS = {"draft": "草稿", "ready": "待發布", "published": "已發布"}
 DATA_AUTOCOMMIT_INTERVAL_SECONDS = 30 * 60
 TAG_SUGGESTION_LIMIT = 12
 CURRENT_READING_PRIORITY_DAYS = 2
@@ -2733,7 +2737,6 @@ def translation_panels_html(item: dict) -> str:
             f"""
 <section class="card fulltext-panel source-card source-card--source" id="translation-panel-{h(provider)}">
   <div class="section-kicker">{h(label)} 中文翻譯</div>
-  <h2>{h(label)} 翻譯成中文</h2>
   <p class="help">翻譯來源：{h(source)} · {h(generated_at)}</p>
   {note_html}
   <div class="article-text article-markdown">{markdown_to_html(markdown)}</div>
@@ -4254,7 +4257,7 @@ def page(title: str, body: str) -> bytes:
       gap: 12px;
     }}
     .original-fulltext-collapsible > summary::-webkit-details-marker {{ display: none; }}
-    .original-fulltext-collapsible > summary h2 {{ margin: 0; }}
+    .original-fulltext-collapsible > summary .section-kicker {{ flex: 1 1 auto; }}
     .original-fulltext-collapsible > summary::after {{
       content: "展開原文";
       flex: 0 0 auto;
@@ -5470,16 +5473,6 @@ def page(title: str, body: str) -> bytes:
       padding-bottom: 7px;
       border-bottom: 1px solid rgba(100,80,220,.24);
     }}
-    .article-markdown h2::after {{
-      content: "";
-      display: block;
-      width: 72px;
-      height: 3px;
-      margin-top: 8px;
-      border-radius: 999px;
-      background: var(--ocf-primary);
-      opacity: .72;
-    }}
     .article-markdown h3 {{
       color: var(--ocf-primary);
       font-size: 19px;
@@ -5655,6 +5648,7 @@ def page(title: str, body: str) -> bytes:
         <div class="nav-menu-links">
           <a href="/editor">{icon_span("edit", "E")}編輯台</a>
           <a href="/editor/viewpoints">{icon_span("note", "V")}觀點庫</a>
+          <a href="/articles">{icon_span("text-lines", "A")}專文</a>
         </div>
       </details>
       <details class="nav-menu">
@@ -5673,8 +5667,12 @@ def page(title: str, body: str) -> bytes:
         </div>
       </details>
     </nav>
+    <form class="omnibar" action="/search" method="get" role="search" autocomplete="off">
+      <input type="search" name="q" id="omnibar-input" placeholder="搜尋標籤 / 材料 / 觀點 / 編輯歷程 / RSS / 專文" aria-label="全站搜尋" aria-expanded="false" aria-controls="omnibar-suggest">
+      <div class="omnibar-suggest" id="omnibar-suggest" role="listbox" hidden></div>
+    </form>
   </header>
-  <main>{body}</main>
+  <main>{body}</main>{OMNIBAR_CSS}{OMNIBAR_JS}
   <section class="command-window" id="command-window" aria-live="polite" aria-hidden="true">
     <header>
       <strong id="command-title">本機指令</strong>
@@ -6907,6 +6905,58 @@ def new_editor_id(prefix: str) -> str:
     return f"{prefix}-{hashlib.sha1(seed).hexdigest()[:12]}"
 
 
+def load_articles() -> list[dict]:
+    """讀取專文正本 database/articles.jsonl。"""
+    return load_jsonl(ARTICLES)
+
+
+def article_lookup() -> dict[str, dict]:
+    """id → 專文記錄，方便單篇查找。"""
+    return {clean_text(record.get("id")): record for record in load_articles() if clean_text(record.get("id"))}
+
+
+def articles_citing_item(item_id: str, articles: list[dict] | None = None) -> list[dict]:
+    """回傳引用了某材料 item 的所有專文（供材料頁雙向連結）。"""
+    target = clean_text(item_id)
+    if not target:
+        return []
+    pool = articles if articles is not None else load_articles()
+    return [a for a in pool if target in {clean_text(i) for i in (a.get("item_ids") or [])}]
+
+
+def articles_with_viewpoint(viewpoint_id: str, articles: list[dict] | None = None) -> list[dict]:
+    """回傳關聯了某觀點的所有專文（供觀點頁雙向連結）。"""
+    target = clean_text(viewpoint_id)
+    if not target:
+        return []
+    pool = articles if articles is not None else load_articles()
+    return [a for a in pool if target in {clean_text(v) for v in (a.get("viewpoint_ids") or [])}]
+
+
+def normalize_article_record(record: dict) -> dict:
+    """把一筆專文補齊欄位、正規化型別，存檔前統一走這裡（P2/P3 共用）。"""
+    article_id = clean_text(record.get("id")) or new_editor_id("art")
+    status = clean_text(record.get("status")) or "draft"
+    if status not in ARTICLE_STATUSES:
+        status = "draft"
+    created_at = clean_text(record.get("created_at")) or now_iso()
+    return {
+        "id": article_id,
+        "title": clean_text(record.get("title")) or "（未命名專文）",
+        "slug": clean_text(record.get("slug")),
+        "track": clean_text(record.get("track")) or "unclassified",
+        "status": status,
+        "body_markdown": record.get("body_markdown") or "",
+        "tags": [t for t in (record.get("tags") or []) if clean_text(t)],
+        "item_ids": [clean_text(i) for i in (record.get("item_ids") or []) if clean_text(i)],
+        "viewpoint_ids": [clean_text(v) for v in (record.get("viewpoint_ids") or []) if clean_text(v)],
+        "source_session_id": clean_text(record.get("source_session_id")),
+        "factcheck": record.get("factcheck") if isinstance(record.get("factcheck"), dict) else {},
+        "created_at": created_at,
+        "updated_at": now_iso(),
+    }
+
+
 def editor_item_lookup() -> dict[str, dict]:
     pool: dict[str, dict] = {}
     for record in load_jsonl(ITEMS):
@@ -6977,6 +7027,511 @@ def editor_material_chip(record: dict) -> str:
         f'<code>{h(payload["id"])}</code>'
         f"{badges}"
     )
+
+
+def article_title_from_markdown(markdown: str) -> str:
+    """從 markdown 抓標題：優先第一個 # 標題，否則第一行非空文字。"""
+    for line in (markdown or "").splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        if text.startswith("#"):
+            return clean_text(text.lstrip("#").strip(), 160)
+        return clean_text(text, 160)
+    return ""
+
+
+def viewpoint_payload(viewpoint: dict) -> dict:
+    return {
+        "id": clean_text(viewpoint.get("id")),
+        "title": clean_text(viewpoint.get("title"), 120) or "（未命名觀點）",
+        "body": clean_text(viewpoint.get("body"), 200),
+        "tags": [clean_text(t) for t in (viewpoint.get("tags") or [])[:4] if clean_text(t)],
+    }
+
+
+def viewpoints_for_items(item_ids: list[str], viewpoints: list[dict] | None = None) -> list[str]:
+    """找出 related_item_ids 與本組材料有交集的觀點 id（建專文時自動帶上）。"""
+    targets = {clean_text(i) for i in item_ids if clean_text(i)}
+    if not targets:
+        return []
+    pool = viewpoints if viewpoints is not None else load_jsonl(VIEWPOINTS)
+    matched: list[str] = []
+    for vp in pool:
+        vp_id = clean_text(vp.get("id"))
+        related = {clean_text(i) for i in (vp.get("related_item_ids") or [])}
+        if vp_id and related & targets:
+            matched.append(vp_id)
+    return matched
+
+
+def latest_factcheck_for_items(item_ids: list[str], sessions: list[dict] | None = None) -> dict | None:
+    """挑出涵蓋這組材料、最近一次的查核 session（重疊最多者優先，再比時間）。"""
+    targets = {clean_text(i) for i in item_ids if clean_text(i)}
+    if not targets:
+        return None
+    pool = sessions if sessions is not None else load_jsonl(EDITOR_SESSIONS)
+    best: dict | None = None
+    best_key: tuple[int, str] = (0, "")
+    for session in pool:
+        if clean_text(session.get("task_type")) != "factcheck":
+            continue
+        session_items = {clean_text(i) for i in (session.get("item_ids") or [])}
+        overlap = len(session_items & targets)
+        if not overlap:
+            continue
+        key = (overlap, clean_text(session.get("created_at")))
+        if key > best_key:
+            best_key = key
+            best = session
+    return best
+
+
+def factcheck_snapshot_from_session(session: dict | None) -> dict:
+    """把查核 session 的 claims/結論收成專文用的快照。"""
+    if not session:
+        return {}
+    data = session.get("output_data") if isinstance(session.get("output_data"), dict) else {}
+    claims = data.get("claims") if isinstance(data.get("claims"), list) else []
+    return {
+        "source_session_id": clean_text(session.get("id")),
+        "captured_at": now_iso(),
+        "session_created_at": clean_text(session.get("created_at")),
+        "claims": claims,
+        "overall_note": clean_text(data.get("overall_note")),
+    }
+
+
+def build_article_from_session(session: dict, articles: list[dict] | None = None) -> dict:
+    """從一次編輯台 session 產生一筆專文草稿（帶入正文、材料、觀點、查核快照）。"""
+    item_ids = [clean_text(i) for i in (session.get("item_ids") or []) if clean_text(i)]
+    body = clean_text(session.get("output_markdown")) or ""
+    title = article_title_from_markdown(body) or clean_text(session.get("task_label")) or "（未命名專文）"
+    lookup = editor_item_lookup()
+    track = "unclassified"
+    for item_id in item_ids:
+        rec = lookup.get(item_id)
+        if rec and clean_text(rec.get("track")):
+            track = clean_text(rec.get("track"))
+            break
+    factcheck = factcheck_snapshot_from_session(latest_factcheck_for_items(item_ids))
+    return normalize_article_record(
+        {
+            "title": title,
+            "track": track,
+            "status": "draft",
+            "body_markdown": session.get("output_markdown") or "",
+            "item_ids": item_ids,
+            "viewpoint_ids": viewpoints_for_items(item_ids),
+            "source_session_id": clean_text(session.get("id")),
+            "factcheck": factcheck,
+        }
+    )
+
+
+def factcheck_status_label(status: str) -> tuple[str, str]:
+    """查核 claim 狀態 → (中文標籤, badge class)。"""
+    mapping = {
+        "supported": ("有來源支持", "suggest-keep"),
+        "unclear": ("尚不明確", "neutral"),
+        "needs-source": ("需要出處", "suggest-skip"),
+    }
+    return mapping.get(clean_text(status), (clean_text(status) or "未標記", "neutral"))
+
+
+# ------------------------------------------------------------------ #
+# 全站搜尋：標籤 / 材料 / 觀點 / 編輯歷程 / RSS / 專文
+# ------------------------------------------------------------------ #
+SEARCH_TYPE_META = {
+    "article": {"icon": "📰", "label": "專文"},
+    "item": {"icon": "📄", "label": "材料 / 消息"},
+    "viewpoint": {"icon": "💬", "label": "觀點"},
+    "tag": {"icon": "🏷️", "label": "標籤"},
+    "session": {"icon": "✏️", "label": "編輯歷程"},
+    "source": {"icon": "📡", "label": "RSS 來源"},
+}
+SEARCH_TYPE_ORDER = ["article", "item", "viewpoint", "tag", "session", "source"]
+
+
+def collect_search_results(query: str, per_type: int | None = None) -> dict[str, list[dict]]:
+    """全站搜尋。回傳 {type: [ {title, subtitle, href, icon, badges} ]}。預設排除已退件 items。"""
+    qn = clean_text(query).lower()
+    out: dict[str, list[dict]] = {t: [] for t in SEARCH_TYPE_ORDER}
+    if not qn:
+        return out
+
+    def add(type_key: str, title: str, href: str, subtitle: str = "", badges: list[str] | None = None) -> None:
+        out[type_key].append(
+            {
+                "type": type_key,
+                "icon": SEARCH_TYPE_META[type_key]["icon"],
+                "title": title or "(未命名)",
+                "subtitle": subtitle,
+                "href": href,
+                "badges": badges or [],
+            }
+        )
+
+    for art in load_articles():
+        art_id = clean_text(art.get("id"))
+        title = clean_text(art.get("title"))
+        hay = " ".join([title, art.get("body_markdown") or "", " ".join(art.get("tags") or [])]).lower()
+        if art_id and qn in hay:
+            badges = [ARTICLE_STATUS_LABELS.get(clean_text(art.get("status")), "")]
+            badges.append(track_meta(art.get("track", "unclassified"))["short"])
+            add("article", title, f"/articles/view?id={quote(art_id)}", "", [b for b in badges if b])
+
+    items = load_jsonl(ITEMS)
+    for it in items:
+        item_id = clean_text(it.get("id"))
+        title = item_display_title(it)
+        hay = " ".join(
+            [title, item_zh_summary(it, 200), clean_text(it.get("source_name")), clean_text(it.get("author")), " ".join(it.get("tags") or [])]
+        ).lower()
+        if item_id and qn in hay:
+            add("item", title, f"/items/view?id={quote(item_id)}", clean_text(it.get("source_name"), 60), [track_meta(it.get("track", "unclassified"))["short"]])
+
+    for vp in load_jsonl(VIEWPOINTS):
+        vp_id = clean_text(vp.get("id"))
+        title = clean_text(vp.get("title")) or "（未命名觀點）"
+        hay = " ".join([title, clean_text(vp.get("body")), " ".join(vp.get("tags") or [])]).lower()
+        if vp_id and qn in hay:
+            add("viewpoint", title, f"/editor/viewpoints?focus={quote(vp_id)}", clean_text(vp.get("body"), 80))
+
+    tag_counts: dict[str, int] = {}
+    for it in items:
+        for tag in it.get("tags") or []:
+            tk = clean_text(tag)
+            if tk:
+                tag_counts[tk] = tag_counts.get(tk, 0) + 1
+    for tag, count in sorted(tag_counts.items(), key=lambda kv: -kv[1]):
+        if qn in tag.lower():
+            add("tag", tag, f"/tags?tag={quote(tag)}", f"{count} 篇材料")
+
+    for s in load_jsonl(EDITOR_SESSIONS):
+        sid = clean_text(s.get("id"))
+        title = clean_text(s.get("task_label")) or clean_text(s.get("task_type"))
+        titles = "、".join(clean_text(t) for t in (s.get("item_titles") or [])[:3])
+        hay = " ".join([title, clean_text(s.get("task_type")), titles]).lower()
+        if sid and qn in hay:
+            add("session", title, f"/editor/session?id={quote(sid)}", clean_text(titles, 80), [clean_text(s.get("engine"))])
+
+    for src in load_jsonl(SOURCES):
+        src_id = clean_text(src.get("id"))
+        name = clean_text(src.get("name"))
+        hay = " ".join([name, clean_text(src.get("site_url")), clean_text(src.get("feed_url")), clean_text(src.get("source_group"))]).lower()
+        if src_id and qn in hay:
+            add("source", name, f"/sources/view?id={quote(src_id)}", clean_text(src.get("source_group"), 60), [track_meta(src.get("track", "unclassified"))["short"]])
+
+    # 標題命中優先排序
+    for type_key, rows in out.items():
+        rows.sort(key=lambda r: 0 if qn in r["title"].lower() else 1)
+        if per_type is not None:
+            out[type_key] = rows[:per_type]
+    return out
+
+
+def search_result_card(res: dict) -> str:
+    badges = "".join(f'<span class="tag-pill">{h(b)}</span>' for b in (res.get("badges") or []) if clean_text(b))
+    subtitle = f'<span class="search-card-sub">{h(res["subtitle"])}</span>' if res.get("subtitle") else ""
+    return (
+        f'<a class="search-card" href="{h(res["href"])}">'
+        f'<span class="search-card-icon" aria-hidden="true">{res["icon"]}</span>'
+        f'<span class="search-card-main"><span class="search-card-title">{h(res["title"])}</span>{subtitle}'
+        f'<span class="search-card-badges">{badges}</span></span></a>'
+    )
+
+
+OMNIBAR_CSS = """
+<style>
+  .omnibar { position:relative; margin-left:auto; flex:0 1 340px; }
+  .omnibar input { width:100%; box-sizing:border-box; padding:7px 14px; border-radius:999px; border:1px solid rgba(255,255,255,0.45); background:rgba(255,255,255,0.16); color:#fff; font:inherit; }
+  .omnibar input::placeholder { color:rgba(255,255,255,0.75); }
+  .omnibar input:focus { background:#fff; color:var(--ocf-dark); outline:none; }
+  .omnibar-suggest { position:absolute; top:calc(100% + 6px); right:0; left:0; background:#fff; color:var(--ocf-dark); border:1px solid var(--line,#e2e8f0); border-radius:12px; box-shadow:0 12px 30px rgba(15,25,35,0.18); max-height:70vh; overflow:auto; z-index:60; padding:6px; }
+  .omnibar-group-label { font-size:12px; color:var(--muted,#64748b); padding:6px 10px 2px; }
+  .omnibar-option { display:flex; gap:8px; align-items:center; padding:7px 10px; border-radius:8px; text-decoration:none; color:inherit; cursor:pointer; }
+  .omnibar-option:hover, .omnibar-option.is-active { background:var(--soft,#eef1fb); }
+  .omnibar-option-icon { font-size:15px; }
+  .omnibar-option-main { display:flex; flex-direction:column; min-width:0; }
+  .omnibar-option-title { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .omnibar-option-sub { font-size:12px; color:var(--muted,#64748b); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  @media (max-width:760px) { .omnibar { flex-basis:100%; order:3; margin:8px 0 0; } }
+</style>
+"""
+
+OMNIBAR_JS = """
+<script>
+(function(){
+  var input = document.getElementById("omnibar-input");
+  var box = document.getElementById("omnibar-suggest");
+  if (!input || !box) return;
+  var timer = null, items = [], active = -1;
+  function esc(t){ return String(t==null?"":t).replace(/[&<>\\"']/g, function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"})[c]; }); }
+  function hide(){ box.hidden = true; box.innerHTML = ""; items = []; active = -1; input.setAttribute("aria-expanded","false"); }
+  function render(groups){
+    items = [];
+    if (!groups || !groups.length){ hide(); return; }
+    var html = "";
+    groups.forEach(function(g){
+      html += '<div class="omnibar-group-label">' + g.icon + ' ' + esc(g.label) + '</div>';
+      g.results.forEach(function(r){
+        var idx = items.length; items.push(r);
+        html += '<a class="omnibar-option" data-idx="' + idx + '" href="' + esc(r.href) + '"><span class="omnibar-option-icon">' + r.icon + '</span><span class="omnibar-option-main"><span class="omnibar-option-title">' + esc(r.title) + '</span>' + (r.subtitle ? '<span class="omnibar-option-sub">' + esc(r.subtitle) + '</span>' : '') + '</span></a>';
+      });
+    });
+    box.innerHTML = html; box.hidden = false; active = -1; input.setAttribute("aria-expanded","true");
+  }
+  function fetchSuggest(q){
+    fetch("/api/search/suggest?q=" + encodeURIComponent(q), { headers:{ "X-Requested-With":"local-web-fetch" } })
+      .then(function(r){ return r.json(); })
+      .then(function(p){ if ((input.value||"").trim() === q) render(p.groups || []); })
+      .catch(function(){ hide(); });
+  }
+  input.addEventListener("input", function(){
+    var q = (input.value||"").trim();
+    if (timer) clearTimeout(timer);
+    if (q.length < 1){ hide(); return; }
+    timer = setTimeout(function(){ fetchSuggest(q); }, 180);
+  });
+  function setActive(n){
+    var opts = box.querySelectorAll(".omnibar-option");
+    if (!opts.length) return;
+    active = (n + opts.length) % opts.length;
+    opts.forEach(function(o,i){ o.classList.toggle("is-active", i === active); });
+    opts[active].scrollIntoView({ block:"nearest" });
+  }
+  input.addEventListener("keydown", function(e){
+    if (box.hidden) return;
+    if (e.key === "ArrowDown"){ e.preventDefault(); setActive(active + 1); }
+    else if (e.key === "ArrowUp"){ e.preventDefault(); setActive(active - 1); }
+    else if (e.key === "Enter"){ if (active >= 0 && items[active]){ e.preventDefault(); window.location = items[active].href; } }
+    else if (e.key === "Escape"){ hide(); }
+  });
+  box.addEventListener("mousedown", function(e){
+    var opt = e.target.closest(".omnibar-option");
+    if (opt){ e.preventDefault(); window.location = opt.getAttribute("href"); }
+  });
+  document.addEventListener("click", function(e){ if (!e.target.closest(".omnibar")) hide(); });
+})();
+</script>
+"""
+
+
+ARTICLE_EDITOR_CSS = """
+<style>
+  .article-editor { display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,380px); gap:16px; align-items:start; }
+  .article-main, .article-sidebar { display:grid; gap:14px; }
+  .article-title-input { width:100%; font-size:20px; font-weight:700; padding:10px 12px; border:1px solid var(--border,#cbd5e1); border-radius:10px; box-sizing:border-box; }
+  .article-saved { font-size:13px; color:var(--muted,#64748b); min-height:18px; }
+  .article-sidebar .card { padding:14px; }
+  .article-pick-list, .article-search-results { display:grid; gap:8px; }
+  .article-search-results { max-height:40vh; overflow:auto; padding-right:2px; }
+  .article-pick-card { border:1px solid var(--line,#e2e8f0); border-radius:8px; padding:8px 10px; background:#fff; display:grid; gap:6px; }
+  .article-pick-title { font-weight:600; }
+  .article-pick-summary { font-size:13px; color:var(--muted,#64748b); margin:0; }
+  .article-pick-meta { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .article-search-row { margin-bottom:8px; }
+  .article-search-row input { width:100%; box-sizing:border-box; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; }
+  .article-claim { border:1px solid var(--line,#e2e8f0); border-radius:8px; padding:8px 10px; margin-bottom:8px; }
+  .article-claim p { margin:6px 0 0; font-size:13px; color:var(--muted,#475569); }
+  .article-field { display:block; font-size:14px; font-weight:600; margin:0 0 4px; }
+  .article-field select { width:100%; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; }
+  @media (max-width:900px) { .article-editor { grid-template-columns:1fr; } .article-search-results { max-height:none; } }
+</style>
+"""
+
+# EasyMDE 離線無 FontAwesome：用文字標籤取代工具列圖示。scope 在 .easymde-host，可被編修台與全文編輯共用。
+EASYMDE_TOOLBAR_CSS = """
+<style>
+  .easymde-host .editor-toolbar i.fa { display:none; }
+  .easymde-host .editor-toolbar i.separator { display:inline-block; }
+  .easymde-host .editor-toolbar button { min-width:auto; padding:4px 7px; font-size:13px; }
+  .easymde-host .editor-toolbar button.bold::after { content:"粗"; }
+  .easymde-host .editor-toolbar button.italic::after { content:"斜"; }
+  .easymde-host .editor-toolbar button.heading::after { content:"標題"; }
+  .easymde-host .editor-toolbar button.quote::after { content:"引用"; }
+  .easymde-host .editor-toolbar button.unordered-list::after { content:"•清單"; }
+  .easymde-host .editor-toolbar button.ordered-list::after { content:"1.清單"; }
+  .easymde-host .editor-toolbar button.link::after { content:"連結"; }
+  .easymde-host .editor-toolbar button.table::after { content:"表格"; }
+  .easymde-host .editor-toolbar button.code::after { content:"程式碼"; }
+  .easymde-host .editor-toolbar button.preview::after { content:"預覽"; }
+  .easymde-host .editor-toolbar button.side-by-side::after { content:"並排"; }
+  .easymde-host .editor-toolbar button.fullscreen::after { content:"全螢幕"; }
+  .easymde-host .editor-toolbar button.guide::after { content:"說明"; }
+</style>
+"""
+
+ARTICLE_EDITOR_JS = """
+<script>
+(function() {
+  var stateEl = document.getElementById("article-state");
+  if (!stateEl) return;
+  var state = JSON.parse(stateEl.textContent || "{}");
+  function blob(id){ var el = document.getElementById(id); try { return JSON.parse((el && el.textContent) || "[]"); } catch (e) { return []; } }
+  var availableMaterials = blob("article-available-materials");
+  var selectedMaterials = new Map();
+  blob("article-selected-materials").forEach(function(m){ if (m && m.id) selectedMaterials.set(m.id, m); });
+  var allViewpoints = blob("article-viewpoints-all");
+  var selectedViewpoints = new Map();
+  blob("article-selected-viewpoints").forEach(function(v){ if (v && v.id) selectedViewpoints.set(v.id, v); });
+
+  function escapeHtml(t){ return String(t==null?"":t).replace(/[&<>\\"']/g, function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"})[c]; }); }
+
+  var titleInput = document.getElementById("article-title");
+  var statusSel = document.getElementById("article-status");
+  var trackSel = document.getElementById("article-track");
+  var bodyArea = document.getElementById("article-body");
+  var savedLabel = document.getElementById("article-saved-label");
+  var tagsForm = document.querySelector("[data-article-tags]");
+
+  var easymde = null;
+  if (window.EasyMDE && bodyArea) {
+    easymde = new EasyMDE({
+      element: bodyArea,
+      autoDownloadFontAwesome: false,
+      spellChecker: false,
+      status: ["lines", "words"],
+      placeholder: "在這裡順稿。右側「事實查核守則」對照有沒有寫翻原本查核過的地方。",
+      toolbar: ["bold","italic","heading","|","quote","unordered-list","ordered-list","|","link","table","code","|","preview","side-by-side","fullscreen","|","guide"]
+    });
+    easymde.codemirror.on("change", function(){ markDirty(); });
+  }
+
+  function currentTags(){
+    if (!tagsForm) return state.tags || [];
+    return Array.from(tagsForm.querySelectorAll('input[name="tags"]')).map(function(i){ return i.value; }).filter(Boolean);
+  }
+  function itemIds(){ return Array.from(selectedMaterials.keys()); }
+  function viewpointIds(){ return Array.from(selectedViewpoints.keys()); }
+
+  var saveTimer = null, dirty = false;
+  function markDirty(){ dirty = true; if (savedLabel) savedLabel.textContent = "編輯中…"; if (saveTimer) clearTimeout(saveTimer); saveTimer = setTimeout(save, 900); }
+  function save(){
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    var body = new URLSearchParams();
+    body.set("id", state.id);
+    body.set("title", titleInput ? titleInput.value : (state.title || ""));
+    body.set("body_markdown", easymde ? easymde.value() : (bodyArea ? bodyArea.value : ""));
+    body.set("track", trackSel ? trackSel.value : (state.track || ""));
+    body.set("status", statusSel ? statusSel.value : (state.status || "draft"));
+    body.set("item_ids", itemIds().join(","));
+    body.set("viewpoint_ids", viewpointIds().join(","));
+    currentTags().forEach(function(t){ body.append("tags", t); });
+    if (savedLabel) savedLabel.textContent = "儲存中…";
+    fetch("/articles/save", { method:"POST", headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With":"local-web-fetch" }, body: body })
+      .then(function(r){ return r.json(); })
+      .then(function(p){ if (p && p.ok) { dirty = false; if (savedLabel) savedLabel.textContent = "已儲存 " + (p.saved_label || ""); } else { if (savedLabel) savedLabel.textContent = "儲存失敗：" + ((p && p.error) || "未知錯誤"); } })
+      .catch(function(e){ if (savedLabel) savedLabel.textContent = "儲存失敗：" + e; });
+  }
+
+  var matSearch = document.getElementById("article-material-search");
+  var matResults = document.getElementById("article-material-results");
+  var matList = document.getElementById("article-material-list");
+  function materialBadges(m){
+    var b = [];
+    if (m.typeLabel) b.push('<span class="tag-pill">' + escapeHtml(m.typeLabel) + '</span>');
+    b.push('<span class="tag-pill">' + escapeHtml(m.trackLabel || "未分類") + '</span>');
+    return b.join("");
+  }
+  function renderMaterials(){
+    if (!matList) return;
+    var ids = itemIds();
+    matList.innerHTML = ids.length ? ids.map(function(id){
+      var m = selectedMaterials.get(id) || { id:id, title:id };
+      return '<div class="article-pick-card"><div class="article-pick-title">' + escapeHtml(m.title || id) + '</div>' +
+        '<div class="article-pick-meta"><code>' + escapeHtml(id) + '</code>' + materialBadges(m) + '</div>' +
+        '<div class="button-row"><a class="button button-small secondary" target="_blank" href="/items/view?id=' + encodeURIComponent(id) + '">打開</a>' +
+        '<button type="button" class="button button-small quiet" data-remove-mat="' + escapeHtml(id) + '">移除</button></div></div>';
+    }).join("") : '<p class="muted">尚未引用任何材料。</p>';
+  }
+  function renderMatResults(){
+    if (!matResults) return;
+    var q = (matSearch.value || "").trim().toLowerCase();
+    if (!q) { matResults.innerHTML = '<p class="muted">輸入關鍵字搜尋材料。</p>'; return; }
+    var rows = availableMaterials.filter(function(m){
+      return [m.id, m.title, m.summary, m.source, m.trackLabel].concat(m.tags || []).join(" ").toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 30);
+    matResults.innerHTML = rows.length ? rows.map(function(m){
+      var added = selectedMaterials.has(m.id);
+      return '<div class="article-pick-card"><div class="article-pick-title">' + escapeHtml(m.title) + '</div>' +
+        '<div class="article-pick-meta">' + materialBadges(m) + '</div>' +
+        '<button type="button" class="button button-small" data-add-mat="' + escapeHtml(m.id) + '"' + (added ? " disabled" : "") + '>' + (added ? "已加入" : "加入引用") + '</button></div>';
+    }).join("") : '<p class="muted">沒有符合的材料。</p>';
+  }
+
+  var vpSearch = document.getElementById("article-viewpoint-search");
+  var vpResults = document.getElementById("article-viewpoint-results");
+  var vpList = document.getElementById("article-viewpoint-list");
+  function renderViewpoints(){
+    if (!vpList) return;
+    var ids = viewpointIds();
+    vpList.innerHTML = ids.length ? ids.map(function(id){
+      var v = selectedViewpoints.get(id) || { id:id, title:id };
+      return '<div class="article-pick-card"><div class="article-pick-title">' + escapeHtml(v.title || id) + '</div>' +
+        (v.body ? '<p class="article-pick-summary">' + escapeHtml(v.body) + '</p>' : '') +
+        '<div class="button-row"><a class="button button-small secondary" target="_blank" href="/editor/viewpoints?focus=' + encodeURIComponent(id) + '">打開觀點</a>' +
+        '<button type="button" class="button button-small quiet" data-remove-vp="' + escapeHtml(id) + '">移除</button></div></div>';
+    }).join("") : '<p class="muted">尚未關聯觀點。</p>';
+  }
+  function renderVpResults(){
+    if (!vpResults) return;
+    var q = (vpSearch.value || "").trim().toLowerCase();
+    if (!q) { vpResults.innerHTML = '<p class="muted">輸入關鍵字搜尋觀點。</p>'; return; }
+    var rows = allViewpoints.filter(function(v){
+      return [v.id, v.title, v.body].concat(v.tags || []).join(" ").toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 20);
+    vpResults.innerHTML = rows.length ? rows.map(function(v){
+      var added = selectedViewpoints.has(v.id);
+      return '<div class="article-pick-card"><div class="article-pick-title">' + escapeHtml(v.title) + '</div>' +
+        (v.body ? '<p class="article-pick-summary">' + escapeHtml(v.body) + '</p>' : '') +
+        '<button type="button" class="button button-small" data-add-vp="' + escapeHtml(v.id) + '"' + (added ? " disabled" : "") + '>' + (added ? "已關聯" : "關聯觀點") + '</button></div>';
+    }).join("") : '<p class="muted">沒有符合的觀點。</p>';
+  }
+
+  document.addEventListener("click", function(e){
+    var t = e.target;
+    if (!t || !t.dataset) return;
+    if (t.dataset.addMat) { var m = availableMaterials.find(function(x){ return x.id === t.dataset.addMat; }); if (m) { selectedMaterials.set(m.id, m); renderMaterials(); renderMatResults(); markDirty(); } }
+    else if (t.dataset.removeMat) { selectedMaterials.delete(t.dataset.removeMat); renderMaterials(); renderMatResults(); markDirty(); }
+    else if (t.dataset.addVp) { var v = allViewpoints.find(function(x){ return x.id === t.dataset.addVp; }); if (v) { selectedViewpoints.set(v.id, v); renderViewpoints(); renderVpResults(); markDirty(); } }
+    else if (t.dataset.removeVp) { selectedViewpoints.delete(t.dataset.removeVp); renderViewpoints(); renderVpResults(); markDirty(); }
+  });
+  if (matSearch) matSearch.addEventListener("input", renderMatResults);
+  if (vpSearch) vpSearch.addEventListener("input", renderVpResults);
+  if (titleInput) titleInput.addEventListener("input", markDirty);
+  if (statusSel) statusSel.addEventListener("change", markDirty);
+  if (trackSel) trackSel.addEventListener("change", markDirty);
+  if (tagsForm) {
+    tagsForm.addEventListener("click", function(){ setTimeout(markDirty, 60); });
+    tagsForm.addEventListener("keydown", function(e){ if (e.key === "Enter") setTimeout(markDirty, 60); });
+  }
+
+  var recheckBtn = document.getElementById("article-recheck");
+  if (recheckBtn) recheckBtn.addEventListener("click", function(){
+    if (!window.runEngineJob) { window.alert("頁面尚未就緒，請重新整理。"); return; }
+    var ids = itemIds();
+    if (!ids.length) { window.alert("這篇沒有引用材料，無法查核。請先在右側加入引用材料。"); return; }
+    window.runEngineJob({
+      label: "重新查核：" + (state.title || "專文"),
+      url: "/editor/run",
+      baseBody: { task_type: "factcheck", items: ids.join(",") },
+      engine: recheckBtn.dataset.engine || "random",
+      statusUrl: "/api/editor/status",
+      onSuccess: function(){
+        var rb = new URLSearchParams(); rb.set("id", state.id);
+        fetch("/articles/refresh-factcheck", { method:"POST", headers:{ "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With":"local-web-fetch" }, body: rb })
+          .then(function(){ window.location.reload(); });
+      }
+    });
+  });
+
+  window.addEventListener("beforeunload", function(e){ if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+  renderMaterials(); renderViewpoints();
+})();
+</script>
+"""
 
 
 def material_article_links_by_item() -> dict[str, list[dict]]:
@@ -7454,6 +8009,16 @@ class Handler(BaseHTTPRequestHandler):
             self.show_editor_session(query)
         elif parsed.path == "/editor/viewpoints":
             self.show_viewpoints(query)
+        elif parsed.path == "/articles/edit":
+            self.show_article_editor(query)
+        elif parsed.path == "/articles/view":
+            self.show_article_view(query)
+        elif parsed.path == "/articles":
+            self.show_articles_index(query)
+        elif parsed.path == "/search":
+            self.show_search(query)
+        elif parsed.path == "/api/search/suggest":
+            self.search_suggest(query)
         elif parsed.path == "/api/editor/status":
             status = load_json(EDITOR_STATUS)
             requested = clean_text((query.get("session") or [""])[0])
@@ -7568,6 +8133,12 @@ class Handler(BaseHTTPRequestHandler):
             self.link_article(self.read_form())
         elif parsed.path == "/editor/unlink-article":
             self.unlink_article(self.read_form())
+        elif parsed.path == "/articles/create-from-session":
+            self.create_article_from_session(self.read_form())
+        elif parsed.path == "/articles/save":
+            self.save_article(self.read_form())
+        elif parsed.path == "/articles/refresh-factcheck":
+            self.refresh_article_factcheck(self.read_form())
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
 
@@ -8172,6 +8743,32 @@ class Handler(BaseHTTPRequestHandler):
   <div class="editor-session-list">{related_history}</div>
 </section>
 """
+
+        # 下一步：把這次產出送進編修台，存成專文
+        session_articles = [a for a in load_articles() if clean_text(a.get("source_session_id")) == session_id]
+        article_panel = ""
+        if clean_text(session.get("output_markdown")):
+            existing_rows = ""
+            for art in session_articles:
+                status_label = ARTICLE_STATUS_LABELS.get(clean_text(art.get("status")), clean_text(art.get("status")))
+                existing_rows += (
+                    f'<a class="editor-session-row" href="/articles/edit?id={quote(clean_text(art.get("id")))}">'
+                    f'<strong>{h(art.get("title"))}</strong>'
+                    f'<span class="tag-pill">{h(status_label)}</span></a>'
+                )
+            existing_block = f'<p class="muted">已編修成專文：</p><div class="editor-session-list">{existing_rows}</div>' if existing_rows else ""
+            cta_label = "再開一篇專文" if session_articles else "編修成專文"
+            article_panel = f"""
+<section class="card">
+  <h2>專文（編修台）</h2>
+  <p class="help">把這次產出的稿件送進編修台，用直覺編輯器順稿、對照事實查核守則，最後存成可發布的專文。</p>
+  {existing_block}
+  <form method="post" action="/articles/create-from-session">
+    <input type="hidden" name="session" value="{h(session_id)}">
+    <button type="submit" class="button">{button_content(cta_label, 'edit')}</button>
+  </form>
+</section>
+"""
         body = f"""
 {back_nav_html(self.same_origin_referer_path("/editor"))}
 <section class="card">
@@ -8184,6 +8781,7 @@ class Handler(BaseHTTPRequestHandler):
 </section>
 {toolbox_panel}
 <section class="card editor-output">{output_html}</section>
+{article_panel}
 {viewpoint_panel}
 {favorites_block}
 {related_panel}
@@ -8309,12 +8907,19 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         )
 
         viewpoints = list(reversed(load_jsonl(VIEWPOINTS)))
+        articles_for_vp = load_articles()
         viewpoint_entries = []
         for vp in viewpoints:
+            vp_id = clean_text(vp.get("id"))
             tags = "".join(f'<span class="tag-pill">{h(t)}</span>' for t in (vp.get("tags") or []))
             source = clean_text(vp.get("source"))
             badge_text = "待補" if source == "suggested" else "自寫"
             related_ids = [clean_text(item_id) for item_id in (vp.get("related_item_ids") or []) if clean_text(item_id)]
+            cite_articles = articles_with_viewpoint(vp_id, articles_for_vp)
+            cite_rows = "".join(
+                f'<li><a href="/articles/view?id={quote(clean_text(a.get("id")))}">{h(a.get("title"))}</a></li>'
+                for a in cite_articles
+            )
             related_rows = ""
             article_rows = ""
             for related_id in related_ids:
@@ -8327,12 +8932,13 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 for link in links_by_item.get(related_id) or []:
                     article_rows += f'<li>{article_link_html(link)}</li>'
             vp_html = f"""
-<article class="card editor-vp">
+<article class="card editor-vp" id="vp-card-{h(vp_id)}">
   <p>{badge(badge_text, "neutral")}{tags} <span class="muted">{h(editor_relative_time(vp.get("updated_at") or vp.get("created_at")))}</span></p>
   <h3>{h(vp.get("title") or "（未命名觀點）")}</h3>
   <p>{h(vp.get("body"))}</p>
   {f'<details open><summary>關聯材料</summary><ul>{related_rows}</ul></details>' if related_rows else '<p class="help">這條觀點還沒有關聯材料；建議之後補上材料關聯，選法檢查才知道它從哪裡來。</p>'}
   {f'<details><summary>相關 article</summary><ul>{article_rows}</ul></details>' if article_rows else ''}
+  {f'<details open><summary>被專文引用（{len(cite_articles)}）</summary><ul>{cite_rows}</ul></details>' if cite_rows else ''}
   <form method="post" action="/editor/viewpoints/delete" onsubmit="return confirm('刪除這條觀點？');">
     <input type="hidden" name="id" value="{h(vp.get("id"))}">
     <button type="submit" class="button button-small">刪除</button>
@@ -8545,6 +9151,20 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   renderSelected();
 }})();
 </script>
+<style>
+  .editor-vp.is-focused {{ outline:3px solid var(--ocf-primary,#6450dc); outline-offset:2px; box-shadow:0 8px 24px rgba(100,80,220,0.2); }}
+</style>
+<script>
+(function(){{
+  var focus = new URLSearchParams(window.location.search).get("focus");
+  if (!focus) return;
+  var card = document.getElementById("vp-card-" + focus);
+  if (!card) return;
+  card.scrollIntoView({{ block:"center", behavior:"smooth" }});
+  card.classList.add("is-focused");
+  setTimeout(function(){{ card.classList.remove("is-focused"); }}, 2600);
+}})();
+</script>
 """
         self.send_html("觀點庫", body)
 
@@ -8617,6 +9237,441 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             self.send_json({"ok": True})
         else:
             self.redirect(self.same_origin_referer_path(f"/items/view?id={quote(item_id)}" if item_id else "/editor"))
+
+    # ------------------------------------------------------------------ #
+    # 專文（article）：編修台
+    # ------------------------------------------------------------------ #
+    def create_article_from_session(self, data: dict[str, list[str]]) -> None:
+        session_id = form_value(data, "session") or form_value(data, "id")
+        session = next((s for s in load_jsonl(EDITOR_SESSIONS) if clean_text(s.get("id")) == session_id), None)
+        if not session:
+            self.send_html("找不到", "<h1>找不到這次編輯紀錄</h1><p><a href='/editor'>回編輯台</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        article = build_article_from_session(session, load_articles())
+        upsert_jsonl(ARTICLES, article)
+        self.redirect(f"/articles/edit?id={quote(article['id'])}")
+
+    def save_article(self, data: dict[str, list[str]]) -> None:
+        article_id = form_value(data, "id")
+        existing = next((a for a in load_articles() if clean_text(a.get("id")) == article_id), None)
+        if not existing:
+            self.send_json({"ok": False, "error": "找不到專文"}, HTTPStatus.NOT_FOUND)
+            return
+        # body_markdown 必須讀原始值，不能走 clean_text（會吃掉換行、縮排與標記）
+        body_markdown = (data.get("body_markdown") or [""])[0].replace("\r\n", "\n").replace("\r", "\n")
+        item_ids = [x for x in re.split(r"[\s,]+", form_value(data, "item_ids")) if x]
+        viewpoint_ids = [x for x in re.split(r"[\s,]+", form_value(data, "viewpoint_ids")) if x]
+        record = normalize_article_record(
+            {
+                **existing,
+                "id": article_id,
+                "title": form_value(data, "title") or existing.get("title"),
+                "track": form_value(data, "track") or existing.get("track"),
+                "status": form_value(data, "status") or existing.get("status") or "draft",
+                "body_markdown": body_markdown,
+                "tags": form_tags(data),
+                "item_ids": item_ids,
+                "viewpoint_ids": viewpoint_ids,
+                "created_at": existing.get("created_at"),
+                "source_session_id": existing.get("source_session_id"),
+                "factcheck": existing.get("factcheck"),
+            }
+        )
+        upsert_jsonl(ARTICLES, record)
+        if self.is_async_request() or form_value(data, "format") == "json":
+            self.send_json({"ok": True, "id": record["id"], "updated_at": record["updated_at"], "saved_label": local_time_label()})
+        else:
+            self.redirect(f"/articles/edit?id={quote(record['id'])}")
+
+    def refresh_article_factcheck(self, data: dict[str, list[str]]) -> None:
+        article_id = form_value(data, "id")
+        existing = next((a for a in load_articles() if clean_text(a.get("id")) == article_id), None)
+        if not existing:
+            if self.is_async_request():
+                self.send_json({"ok": False, "error": "找不到專文"}, HTTPStatus.NOT_FOUND)
+            else:
+                self.send_html("找不到", "<h1>找不到專文</h1>", HTTPStatus.NOT_FOUND)
+            return
+        snapshot = factcheck_snapshot_from_session(latest_factcheck_for_items(existing.get("item_ids") or []))
+        record = normalize_article_record({**existing, "factcheck": snapshot or existing.get("factcheck") or {}})
+        upsert_jsonl(ARTICLES, record)
+        if self.is_async_request():
+            self.send_json({"ok": True, "id": record["id"], "claims": len((record.get("factcheck") or {}).get("claims") or [])})
+        else:
+            self.redirect(f"/articles/edit?id={quote(record['id'])}")
+
+    def show_article_editor(self, query: dict[str, list[str]]) -> None:
+        article_id = clean_text((query.get("id") or [""])[0])
+        article = next((a for a in load_articles() if clean_text(a.get("id")) == article_id), None)
+        if not article:
+            self.send_html("找不到", "<h1>找不到這篇專文</h1><p><a href='/editor'>回編輯台</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        article = normalize_article_record(article)  # 不存檔，只為顯示補齊欄位
+        item_ids = article.get("item_ids") or []
+        viewpoint_ids = article.get("viewpoint_ids") or []
+        body = article.get("body_markdown") or ""  # 原始 markdown，不可走 clean_text
+
+        lookup = editor_item_lookup()
+        available_payload = [editor_material_payload(record) for record in editor_search_items()[:350]]
+        selected_payload = []
+        for item_id in item_ids:
+            rec = lookup.get(item_id)
+            selected_payload.append(
+                editor_material_payload(rec) if rec else {"id": item_id, "title": item_id, "trackLabel": "（已不在材料池）", "tags": []}
+            )
+        viewpoints = load_jsonl(VIEWPOINTS)
+        vp_by_id = {clean_text(v.get("id")): v for v in viewpoints}
+        vp_all_payload = [viewpoint_payload(v) for v in viewpoints]
+        selected_vp_payload = [viewpoint_payload(vp_by_id[i]) for i in viewpoint_ids if i in vp_by_id]
+
+        def js_json(value: object) -> str:
+            return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c")
+
+        state_json = js_json(
+            {
+                "id": article["id"],
+                "title": article["title"],
+                "track": article["track"],
+                "status": article["status"],
+                "tags": article["tags"],
+                "item_ids": item_ids,
+                "viewpoint_ids": viewpoint_ids,
+            }
+        )
+
+        tracks = (load_json(DATABASE / "taxonomy.json") or {}).get("tracks", {})
+        track_options = "".join(
+            f'<option value="{h(key)}"{" selected" if key == article["track"] else ""}>{h(meta.get("name_zh", key))}</option>'
+            for key, meta in tracks.items()
+        )
+        status_options = "".join(
+            f'<option value="{h(key)}"{" selected" if key == article["status"] else ""}>{h(label)}</option>'
+            for key, label in ARTICLE_STATUS_LABELS.items()
+        )
+        all_tags = sorted({clean_text(t) for rec in load_jsonl(ITEMS) for t in (rec.get("tags") or []) if clean_text(t)})
+        tag_controls = tag_picker_controls_html(article.get("tags") or [], [], all_tags, placeholder="搜尋或新增 tag")
+
+        factcheck = article.get("factcheck") or {}
+        claims = factcheck.get("claims") or []
+        claim_rows = ""
+        for claim in claims:
+            label, cls = factcheck_status_label(claim.get("status"))
+            note = clean_text(claim.get("note"))
+            claim_rows += (
+                f'<div class="article-claim"><span class="badge {h(cls)}">{h(label)}</span> '
+                f'{h(clean_text(claim.get("claim")))}'
+                + (f'<p>{h(note)}</p>' if note else "")
+                + "</div>"
+            )
+        if not claims:
+            claim_rows = '<p class="muted">這篇還沒有查核守則。按「重新查核」用三引擎上網找原文核對後，會把結果整理成檢核清單。</p>'
+        overall_note = clean_text(factcheck.get("overall_note"))
+        overall_html = f'<p class="muted">查核總結：{h(overall_note)}</p>' if overall_note else ""
+
+        latest = latest_factcheck_for_items(item_ids)
+        stored_sid = clean_text(factcheck.get("source_session_id"))
+        refresh_banner = ""
+        if latest and clean_text(latest.get("id")) != stored_sid:
+            refresh_banner = (
+                '<form method="post" action="/articles/refresh-factcheck" class="article-refresh-banner">'
+                f'<input type="hidden" name="id" value="{h(article["id"])}">'
+                '<p class="muted">偵測到更新的查核紀錄。</p>'
+                f'<button type="submit" class="button button-small secondary">{button_content("套用最新查核結果", "refresh")}</button></form>'
+            )
+        factcheck_link = ""
+        if stored_sid:
+            factcheck_link = f'<p class="muted"><a href="/editor/session?id={quote(stored_sid)}">查看來源查核紀錄 →</a></p>'
+
+        source_session = clean_text(article.get("source_session_id"))
+        back_href = f"/editor/session?id={quote(source_session)}" if source_session else "/editor"
+
+        body_html = f"""
+{back_nav_html(self.same_origin_referer_path(back_href), "回編輯歷程")}
+<section class="article-editor">
+  <div class="article-main">
+    <div class="card">
+      <div class="section-kicker">編修台 · 專文</div>
+      <input type="text" id="article-title" class="article-title-input" value="{h(article["title"])}" placeholder="專文標題">
+      <p class="article-saved"><span id="article-saved-label">自動儲存：編輯後約 1 秒存檔</span></p>
+    </div>
+    <div class="card easymde-host">
+      <textarea id="article-body">{h(body)}</textarea>
+    </div>
+  </div>
+  <aside class="article-sidebar">
+    <div class="card">
+      <h2>事實查核守則</h2>
+      <p class="help">建立這篇時，已快照同組材料最近一次查核的結論。順稿時對照，別寫翻已經查核過的地方。</p>
+      {refresh_banner}
+      {overall_html}
+      {claim_rows}
+      <div class="button-row">
+        <button type="button" id="article-recheck" class="button button-small" data-engine="random">{button_content("重新查核這版", "wand")}</button>
+      </div>
+      {factcheck_link}
+    </div>
+    <div class="card">
+      <h2>引用材料</h2>
+      <p class="help">這篇引用哪些材料。搜尋後加入，不用手填 id。</p>
+      <div class="article-search-row"><input type="search" id="article-material-search" placeholder="搜尋材料標題、來源或 tag"></div>
+      <div class="article-search-results" id="article-material-results"><p class="muted">輸入關鍵字搜尋材料。</p></div>
+      <h3>已引用</h3>
+      <div class="article-pick-list" id="article-material-list"></div>
+    </div>
+    <div class="card">
+      <h2>關聯觀點</h2>
+      <p class="help">把這篇連到觀點庫裡的觀點，方便日後雙向追蹤。</p>
+      <div class="article-search-row"><input type="search" id="article-viewpoint-search" placeholder="搜尋觀點"></div>
+      <div class="article-search-results" id="article-viewpoint-results"><p class="muted">輸入關鍵字搜尋觀點。</p></div>
+      <h3>已關聯</h3>
+      <div class="article-pick-list" id="article-viewpoint-list"></div>
+    </div>
+    <div class="card">
+      <h2>分類與狀態</h2>
+      <label class="article-field" for="article-track">主線</label>
+      <select id="article-track">{track_options}</select>
+      <label class="article-field" for="article-status" style="margin-top:10px;">狀態</label>
+      <select id="article-status">{status_options}</select>
+      <h3 style="margin-top:12px;">標籤</h3>
+      <form data-tag-picker data-article-tags class="tag-picker" onsubmit="return false">{tag_controls}</form>
+    </div>
+  </aside>
+</section>
+<link rel="stylesheet" href="/reader/assets/vendor/easymde.min.css">
+<script src="/reader/assets/vendor/easymde.min.js"></script>
+{ARTICLE_EDITOR_CSS}
+{EASYMDE_TOOLBAR_CSS}
+<script type="application/json" id="article-state">{state_json}</script>
+<script type="application/json" id="article-available-materials">{js_json(available_payload)}</script>
+<script type="application/json" id="article-selected-materials">{js_json(selected_payload)}</script>
+<script type="application/json" id="article-viewpoints-all">{js_json(vp_all_payload)}</script>
+<script type="application/json" id="article-selected-viewpoints">{js_json(selected_vp_payload)}</script>
+{ARTICLE_EDITOR_JS}
+"""
+        self.send_html("編修台", body_html)
+
+    # ------------------------------------------------------------------ #
+    # 專文：展示索引與成果頁
+    # ------------------------------------------------------------------ #
+    def show_articles_index(self, query: dict[str, list[str]]) -> None:
+        articles = load_articles()
+        articles.sort(key=lambda a: clean_text(a.get("updated_at")), reverse=True)
+        track_filter = clean_text((query.get("track") or ["all"])[0]) or "all"
+        status_filter = clean_text((query.get("status") or ["all"])[0]) or "all"
+        tag_filter = clean_text((query.get("tag") or [""])[0])
+
+        def matches(a: dict) -> bool:
+            if track_filter != "all" and clean_text(a.get("track")) != track_filter:
+                return False
+            if status_filter != "all" and clean_text(a.get("status")) != status_filter:
+                return False
+            if tag_filter and tag_filter not in [clean_text(t) for t in (a.get("tags") or [])]:
+                return False
+            return True
+
+        visible = [a for a in articles if matches(a)]
+        tracks = (load_json(DATABASE / "taxonomy.json") or {}).get("tracks", {})
+        track_opts = '<option value="all">全部主線</option>' + "".join(
+            f'<option value="{h(k)}"{" selected" if k == track_filter else ""}>{h(m.get("name_zh", k))}</option>'
+            for k, m in tracks.items()
+        )
+        status_opts = '<option value="all">全部狀態</option>' + "".join(
+            f'<option value="{h(k)}"{" selected" if k == status_filter else ""}>{h(v)}</option>'
+            for k, v in ARTICLE_STATUS_LABELS.items()
+        )
+
+        cards = ""
+        for a in visible:
+            art_id = clean_text(a.get("id"))
+            status_label = ARTICLE_STATUS_LABELS.get(clean_text(a.get("status")), clean_text(a.get("status")))
+            track_short = track_meta(a.get("track", "unclassified"))["short"]
+            tag_html = "".join(f'<span class="tag-pill">{h(t)}</span>' for t in (a.get("tags") or [])[:6])
+            summary = clean_text(article_title_from_markdown(a.get("body_markdown") or ""))
+            body_preview = clean_text(re.sub(r"[#>*`_\-]+", " ", a.get("body_markdown") or ""), 140)
+            cards += f"""
+<a class="article-index-card" href="/articles/view?id={quote(art_id)}">
+  <div class="article-index-meta">{badge(status_label, "neutral")}{badge(track_short, track_class(a.get("track", "unclassified")))}<span class="muted">{h(editor_relative_time(a.get("updated_at")))}</span></div>
+  <h3>{h(a.get("title"))}</h3>
+  <p class="muted">{h(body_preview)}</p>
+  <div class="article-index-tags">{tag_html}</div>
+</a>"""
+        default_layout = "card" if len(visible) <= 12 else "list"
+        if not visible:
+            cards = '<p class="muted">還沒有符合條件的專文。到編輯台跑出草稿後，在編輯歷程頁按「編修成專文」。</p>'
+
+        body = f"""
+{back_nav_html(self.same_origin_referer_path("/editor"))}
+<section class="card">
+  <div class="section-kicker">編輯台 · 成果</div>
+  <h1>{icon_span("text-lines")}專文</h1>
+  <p class="lede">經過編輯台與編修台順稿、查核後的成果文章。每篇都連到引用的材料與關聯觀點。</p>
+  <form method="get" action="/articles" class="article-index-filters">
+    <select name="track" class="auto-filter" onchange="this.form.submit()">{track_opts}</select>
+    <select name="status" class="auto-filter" onchange="this.form.submit()">{status_opts}</select>
+    {f'<input type="hidden" name="tag" value="{h(tag_filter)}">' if tag_filter else ''}
+    <span class="muted">共 {len(visible)} 篇{f"・標籤：{h(tag_filter)}" if tag_filter else ""}</span>
+    <span style="margin-left:auto;">{layout_toggle("articles-grid", default_layout)}</span>
+  </form>
+</section>
+<div id="articles-grid" data-layout="{default_layout}" class="article-index-grid">{cards}</div>
+<style>
+  .article-index-filters {{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px; }}
+  .article-index-filters select {{ padding:7px 9px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; }}
+  .article-index-grid[data-layout="card"] {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin-top:16px; }}
+  .article-index-grid[data-layout="list"] {{ display:flex; flex-direction:column; gap:10px; margin-top:16px; }}
+  .article-index-grid[data-layout="compact"] {{ display:flex; flex-direction:column; gap:4px; margin-top:16px; }}
+  .article-index-card {{ display:block; border:1px solid var(--line,#e2e8f0); border-radius:12px; padding:14px 16px; background:#fff; text-decoration:none; color:inherit; }}
+  .article-index-card:hover {{ background:var(--soft,#f1f5f9); }}
+  .article-index-card h3 {{ margin:8px 0 6px; }}
+  .article-index-meta {{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }}
+  .article-index-tags {{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }}
+  .article-index-grid[data-layout="compact"] .article-index-card p, .article-index-grid[data-layout="compact"] .article-index-tags {{ display:none; }}
+</style>
+"""
+        self.send_html("專文", body)
+
+    def show_article_view(self, query: dict[str, list[str]]) -> None:
+        article_id = clean_text((query.get("id") or [""])[0])
+        article = next((a for a in load_articles() if clean_text(a.get("id")) == article_id), None)
+        if not article:
+            self.send_html("找不到", "<h1>找不到這篇專文</h1><p><a href='/articles'>回專文列表</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        article = normalize_article_record(article)
+        lookup = editor_item_lookup()
+        material_rows = ""
+        for item_id in article.get("item_ids") or []:
+            rec = lookup.get(item_id)
+            if rec:
+                material_rows += f'<li><a href="/items/view?id={quote(item_id)}">{h(editor_item_title(rec))}</a></li>'
+            else:
+                material_rows += f'<li><code>{h(item_id)}</code> <span class="muted">（已不在材料池）</span></li>'
+        vp_by_id = {clean_text(v.get("id")): v for v in load_jsonl(VIEWPOINTS)}
+        viewpoint_rows = ""
+        for vp_id in article.get("viewpoint_ids") or []:
+            vp = vp_by_id.get(vp_id)
+            title = clean_text(vp.get("title")) if vp else vp_id
+            viewpoint_rows += f'<li><a href="/editor/viewpoints?focus={quote(vp_id)}">{h(title or vp_id)}</a></li>'
+        status_label = ARTICLE_STATUS_LABELS.get(clean_text(article.get("status")), clean_text(article.get("status")))
+        track_short = track_meta(article.get("track", "unclassified"))["short"]
+        tag_html = "".join(f'<a class="tag-pill" href="/tags?tag={quote(t)}">{h(t)}</a>' for t in (article.get("tags") or []))
+        source_session = clean_text(article.get("source_session_id"))
+        source_link = f'<a href="/editor/session?id={quote(source_session)}">原始編輯歷程 →</a>' if source_session else ""
+        body_html = markdown_to_html(article.get("body_markdown") or "（尚無內容）")
+
+        body = f"""
+{back_nav_html(self.same_origin_referer_path("/articles"), "回專文列表")}
+<section class="article-view">
+  <div class="article-view-main">
+    <div class="card">
+      <div class="article-index-meta">{badge(status_label, "neutral")}{badge(track_short, track_class(article.get("track", "unclassified")))}<span class="muted">更新於 {h(editor_relative_time(article.get("updated_at")))}</span></div>
+      <h1>{h(article.get("title"))}</h1>
+      <div class="article-view-tags">{tag_html}</div>
+      <div class="button-row" style="margin-top:10px;">
+        <a class="button" href="/articles/edit?id={quote(article_id)}">{button_content("進編修台編輯", "edit")}</a>
+      </div>
+    </div>
+    <article class="card editor-output">{body_html}</article>
+  </div>
+  <aside class="article-view-side">
+    <div class="card">
+      <h2>引用材料</h2>
+      <ul>{material_rows or '<li class="muted">（無）</li>'}</ul>
+    </div>
+    <div class="card">
+      <h2>關聯觀點</h2>
+      <ul>{viewpoint_rows or '<li class="muted">（無）</li>'}</ul>
+    </div>
+    {f'<div class="card"><p class="muted">{source_link}</p></div>' if source_link else ''}
+  </aside>
+</section>
+<style>
+  .article-view {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,320px); gap:16px; align-items:start; }}
+  .article-view-main, .article-view-side {{ display:grid; gap:14px; }}
+  .article-view-tags {{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }}
+  .article-view-side ul {{ margin:0; padding-left:18px; }}
+  .article-view-side li {{ margin:4px 0; }}
+  @media (max-width:900px) {{ .article-view {{ grid-template-columns:1fr; }} }}
+</style>
+"""
+        self.send_html(clean_text(article.get("title"), 60) or "專文", body)
+
+    def search_suggest(self, query: dict[str, list[str]]) -> None:
+        q = clean_text((query.get("q") or [""])[0])
+        results = collect_search_results(q, per_type=5)
+        groups = []
+        for type_key in SEARCH_TYPE_ORDER:
+            rows = results.get(type_key) or []
+            if not rows:
+                continue
+            groups.append(
+                {
+                    "type": type_key,
+                    "icon": SEARCH_TYPE_META[type_key]["icon"],
+                    "label": SEARCH_TYPE_META[type_key]["label"],
+                    "results": [{"title": r["title"], "subtitle": r["subtitle"], "href": r["href"], "icon": r["icon"]} for r in rows],
+                }
+            )
+        self.send_json({"q": q, "groups": groups})
+
+    def show_search(self, query: dict[str, list[str]]) -> None:
+        q = clean_text((query.get("q") or [""])[0])
+        results = collect_search_results(q, per_type=60)
+        total = sum(len(v) for v in results.values())
+        chips = ""
+        sections = ""
+        for type_key in SEARCH_TYPE_ORDER:
+            rows = results.get(type_key) or []
+            if not rows:
+                continue
+            meta = SEARCH_TYPE_META[type_key]
+            chips += f'<a class="search-chip" href="#search-sec-{type_key}">{meta["icon"]} {h(meta["label"])} {len(rows)}</a>'
+            default_layout = "card" if len(rows) <= 12 else "list"
+            cards = "".join(search_result_card(r) for r in rows)
+            sections += f"""
+<section class="search-section" id="search-sec-{type_key}">
+  <div class="search-section-head">
+    <h2>{meta["icon"]} {h(meta["label"])} <span class="muted">{len(rows)}</span></h2>
+    {layout_toggle(f"search-{type_key}", default_layout)}
+  </div>
+  <div id="search-{type_key}" data-layout="{default_layout}" class="search-results">{cards}</div>
+</section>"""
+        if not q:
+            sections = '<p class="muted">在上方搜尋框輸入關鍵字。</p>'
+        elif total == 0:
+            sections = f'<p class="muted">找不到符合「{h(q)}」的結果。</p>'
+
+        body = f"""
+{back_nav_html(self.same_origin_referer_path("/"))}
+<section class="card">
+  <h1>{icon_span("filter")}搜尋結果</h1>
+  <form method="get" action="/search" class="search-page-form" role="search">
+    <input type="search" name="q" value="{h(q)}" placeholder="搜尋標籤、材料、觀點、編輯歷程、RSS、專文" aria-label="全站搜尋" autofocus>
+    <button type="submit" class="button">{button_content("搜尋", "filter")}</button>
+  </form>
+  {f'<p class="muted">「{h(q)}」共 {total} 筆結果</p><div class="search-chips">{chips}</div>' if q and total else ''}
+</section>
+{sections}
+<style>
+  .search-page-form {{ display:flex; gap:8px; margin-top:10px; }}
+  .search-page-form input {{ flex:1; padding:9px 12px; border-radius:10px; border:1px solid var(--border,#cbd5e1); font:inherit; }}
+  .search-chips {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }}
+  .search-chip {{ text-decoration:none; padding:4px 10px; border-radius:999px; border:1px solid var(--line,#e2e8f0); background:#fff; color:inherit; font-size:13px; }}
+  .search-chip:hover {{ background:var(--soft,#f1f5f9); }}
+  .search-section {{ margin-top:22px; }}
+  .search-section-head {{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }}
+  .search-results[data-layout="card"] {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; margin-top:12px; }}
+  .search-results[data-layout="list"], .search-results[data-layout="compact"] {{ display:flex; flex-direction:column; gap:8px; margin-top:12px; }}
+  .search-card {{ display:flex; gap:10px; align-items:flex-start; border:1px solid var(--line,#e2e8f0); border-radius:10px; padding:10px 12px; background:#fff; text-decoration:none; color:inherit; }}
+  .search-card:hover {{ background:var(--soft,#f1f5f9); }}
+  .search-card-icon {{ font-size:18px; line-height:1.4; }}
+  .search-card-main {{ display:flex; flex-direction:column; gap:3px; min-width:0; }}
+  .search-card-title {{ font-weight:600; }}
+  .search-card-sub {{ font-size:13px; color:var(--muted,#64748b); }}
+  .search-card-badges {{ display:flex; flex-wrap:wrap; gap:5px; }}
+  .search-results[data-layout="compact"] .search-card-sub, .search-results[data-layout="compact"] .search-card-badges {{ display:none; }}
+</style>
+"""
+        self.send_html("搜尋", body)
 
     def show_home(self, query: dict[str, list[str]]) -> None:
         items = load_jsonl(ITEMS)
@@ -9719,7 +10774,6 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
     </div>
     <section class="fulltext-panel source-card source-card--source" id="{fulltext_id}" hidden>
       <div class="section-kicker">原始主文</div>
-      <h3>剛載入的全文</h3>
       <p class="help" data-fulltext-meta></p>
       <div class="button-row" data-translation-actions hidden></div>
       <div class="article-text article-markdown" data-fulltext-body></div>
@@ -10124,7 +11178,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         article_markdown = item_article_markdown(item)
         article_meta = item_reading_metadata(item)
         display_title = item_display_title(item)
-        article_html = markdown_to_html(strip_duplicate_leading_heading(article_markdown, display_title)) if article_markdown else ""
+        display_markdown = strip_duplicate_leading_heading(article_markdown, display_title)
+        article_html = markdown_to_html(display_markdown) if article_markdown else ""
         original_title = item_original_title(item)
         original_language = item_original_language(item)
         translate_actions = translation_actions_html(item, item_id, item_detail_href(item))
@@ -10140,10 +11195,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             original_fulltext_panel = f"""
 <details class="card fulltext-panel source-card source-card--source original-fulltext-collapsible" id="fulltext-panel"{fulltext_hidden}>
   <summary>
-    <div>
-      <div class="section-kicker">原始主文</div>
-      <h2>原始主文</h2>
-    </div>
+    <div class="section-kicker">原始主文</div>
   </summary>
   <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
   <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
@@ -10154,7 +11206,6 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             original_fulltext_panel = f"""
 <section class="card fulltext-panel source-card source-card--source" id="fulltext-panel"{fulltext_hidden}>
   <div class="section-kicker">原始主文</div>
-  <h2>原始主文</h2>
   <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
   <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
   <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
@@ -10486,10 +11537,18 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 f'<button type="submit" class="button button-small">移除</button></form></li>'
             )
         links_list = f'<ul class="editor-links">{link_rows}</ul>' if link_rows else '<p class="muted">尚未連結其他材料或 article。</p>'
+        cited_articles = [] if is_rss_candidate else articles_citing_item(item_id)
+        cited_rows = "".join(
+            f'<li><a href="/articles/view?id={quote(clean_text(a.get("id")))}">{h(a.get("title"))}</a> '
+            f'{badge(ARTICLE_STATUS_LABELS.get(clean_text(a.get("status")), ""), "neutral")}</li>'
+            for a in cited_articles
+        )
+        cited_block = f'<h3 style="margin-top:14px">被專文引用（{len(cited_articles)}）</h3><ul>{cited_rows}</ul>' if cited_rows else ""
         editor_panel = "" if is_rss_candidate else f"""
   <div class="card" id="editor-panel">
     <h2>編輯台 <span class="help-dot" title="把這篇材料丟進編輯台草稿庫，跑選法檢查、撰稿或查核。只有編輯台產出的稿件才稱為 article。">?</span></h2>
     <a class="button" href="/editor?items={quote(item_id)}">{button_content('送進編輯台草稿庫', 'edit')}</a>
+    {cited_block}
     <h3 style="margin-top:14px">連結到 article</h3>
     {links_list}
     <form method="post" action="/editor/link-article">
@@ -11753,18 +12812,37 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 <h1>線上編輯全文</h1>
 <p class="lede">直接修正 markitdown 轉檔的小毛病（缺空格、跑版、亂碼、段落黏在一起）。
 存檔後閱讀區與編輯台都會以這份為準。這裡只改文字，不會改動原始 PDF 檔。</p>
-<form method="post" action="/items/save-fulltext">
+<form method="post" action="/items/save-fulltext" class="easymde-host" id="fulltext-form">
   <input type="hidden" name="id" value="{h(item_id)}">
   <label>標題</label>
   <input name="title" value="{h(item_display_title(item))}">
   <label>全文（Markdown，可用空行分段、## 當小標）</label>
-  <textarea name="markdown" style="min-height:62vh;width:100%;font-family:ui-monospace,Menlo,monospace;line-height:1.6">{h(markdown)}</textarea>
+  <textarea name="markdown" id="fulltext-markdown">{h(markdown)}</textarea>
   <div class="button-row" style="margin-top:12px">
     <button type="submit">{button_content('儲存全文', 'accept')}</button>
     <a class="button secondary" href="{h(detail)}">取消</a>
   </div>
-  <p class="help">共 {len(markdown)} 字。儲存會標記為「線上編輯全文」。</p>
+  <p class="help">儲存會標記為「線上編輯全文」。</p>
 </form>
+<link rel="stylesheet" href="/reader/assets/vendor/easymde.min.css">
+<script src="/reader/assets/vendor/easymde.min.js"></script>
+{EASYMDE_TOOLBAR_CSS}
+<script>
+(function() {{
+  var area = document.getElementById("fulltext-markdown");
+  if (!area || !window.EasyMDE) return;
+  var editor = new EasyMDE({{
+    element: area,
+    autoDownloadFontAwesome: false,
+    spellChecker: false,
+    status: ["lines", "words"],
+    minHeight: "60vh",
+    toolbar: ["bold","italic","heading","|","quote","unordered-list","ordered-list","|","link","table","code","|","preview","side-by-side","fullscreen","|","guide"]
+  }});
+  var form = document.getElementById("fulltext-form");
+  if (form) form.addEventListener("submit", function() {{ editor.codemirror.save(); }});
+}})();
+</script>
 """
         self.send_html("編輯全文", body)
 
