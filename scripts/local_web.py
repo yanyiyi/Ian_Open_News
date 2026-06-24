@@ -3103,6 +3103,61 @@ def update_newsletter_extraction_metadata(parent: dict, stats: dict) -> dict:
     return updated
 
 
+def _split_paragraph_by_sentence(text: str, max_chars: int) -> list[str]:
+    sentences = [s.strip() for s in re.split(r"(?<=[。！？!?；;])\s*|(?<=\.)\s+", text) if s.strip()]
+    chunks: list[str] = []
+    current = ""
+    for sentence in sentences:
+        if current:
+            separator = " " if re.search(r"[A-Za-z0-9,)\]\"']$", current) else ""
+            candidate = current + separator + sentence
+        else:
+            candidate = sentence
+        if current and len(candidate) > max_chars:
+            chunks.append(current)
+            current = sentence
+        else:
+            current = candidate
+    if current:
+        chunks.append(current)
+    return chunks or [text.strip()]
+
+
+def soften_long_paragraphs(markdown: str, max_chars: int = 520) -> str:
+    """把過長的散文段落依句界切成多段，方便閱讀；跳過表格、標題、清單與程式碼。"""
+    if not markdown:
+        return markdown
+    out: list[str] = []
+    for block in re.split(r"\n\s*\n", markdown):
+        stripped = block.strip()
+        if not stripped:
+            continue
+        skip = (
+            len(stripped) <= max_chars
+            or stripped.startswith("#")
+            or "|" in stripped
+            or "```" in stripped
+            or bool(re.match(r"^\s*(?:[-*+>]|\d+\.)\s", stripped))
+        )
+        if skip:
+            out.append(stripped)
+            continue
+        out.extend(_split_paragraph_by_sentence(stripped, max_chars))
+    return "\n\n".join(out)
+
+
+def item_markdown_needs_paragraphs(item: dict) -> bool:
+    """判斷全文是否缺乏段落結構（適合用 AI 重新分段）。"""
+    markdown = str(item_reading_metadata(item).get("article_markdown") or "")
+    if len(markdown) < 1200:
+        return False
+    paragraphs = [p for p in re.split(r"\n\s*\n", markdown) if p.strip()]
+    if not paragraphs:
+        return True
+    longest = max(len(p) for p in paragraphs)
+    return longest > 1500 or (len(markdown) / max(1, len(paragraphs))) > 1100
+
+
 def normalize_pdf_markdown_item(item: dict) -> tuple[dict, bool, str]:
     metadata = dict(item_reading_metadata(item))
     raw_markdown = str(metadata.get("article_markdown") or "").replace("\r\n", "\n").replace("\r", "\n").strip()
@@ -3112,6 +3167,7 @@ def normalize_pdf_markdown_item(item: dict) -> tuple[dict, bool, str]:
     title = item_original_title(item) or item_display_title(item)
     markdown_like = bool(raw_markdown or re.search(r"(?m)^#{1,6}\s+\S|\[[^\]]+\]\(https?://|^\s*[-*]\s+", raw))
     markdown = raw if markdown_like else text_to_markdown(raw, title=title)
+    markdown = soften_long_paragraphs(markdown)
     updated = dict(item)
     metadata.update(
         {
@@ -3265,6 +3321,33 @@ def slice_markdown_by_markers(markdown: str, start_marker: str, end_marker: str,
         return "", start_at, f"找不到結束標記：{clean_text(end_marker, 120)}"
     end = end_start + len(end_marker)
     return markdown[start:end].strip(), end, ""
+
+
+def _loose_marker_span(haystack: str, marker: str, start_at: int = 0) -> tuple[int, int] | None:
+    """寬鬆定位標記：先精確找，找不到再忽略大小寫與空白差異。回傳 (起, 訖) 絕對位置。"""
+    marker = (marker or "").strip()
+    if not marker:
+        return None
+    idx = haystack.find(marker, start_at)
+    if idx >= 0:
+        return idx, idx + len(marker)
+    collapsed = re.sub(r"\s+", " ", marker)
+    pattern = re.escape(collapsed).replace("\\ ", r"\s+")
+    match = re.search(pattern, haystack[start_at:], re.I | re.S)
+    if match:
+        return start_at + match.start(), start_at + match.end()
+    return None
+
+
+def slice_markdown_loose(markdown: str, start_marker: str, end_marker: str) -> tuple[str, bool, bool, str]:
+    """回傳 (內文, 起始是否定位, 結束是否定位, 錯誤訊息)。整篇搜尋、彼此獨立，方便部分成功。"""
+    start_span = _loose_marker_span(markdown, start_marker)
+    if not start_span:
+        return "", False, False, f"找不到起始標記：{clean_text(start_marker, 120)}"
+    end_span = _loose_marker_span(markdown, end_marker, start_span[1])
+    if not end_span:
+        return "", True, False, f"找不到結束標記：{clean_text(end_marker, 120)}"
+    return markdown[start_span[0] : end_span[1]].strip(), True, True, ""
 
 
 def item_cached_image_url(item: dict) -> str:
@@ -7042,6 +7125,7 @@ def pdf_split_proposals_html(item: dict) -> str:
             if not isinstance(section, dict):
                 continue
             marker_state = "起訖都已定位" if section.get("start_found") and section.get("end_found") else "有標記尚未在全文定位，請先修改"
+            error_note = f'<p class="help" style="color:var(--danger,#b00)">上次沒定位到：{h(section.get("error"))}</p>' if clean_text(section.get("error")) else ""
             fields.append(
                 f"""
 <fieldset class="pdf-split-section">
@@ -7051,6 +7135,7 @@ def pdf_split_proposals_html(item: dict) -> str:
   <label>結束標記<textarea name="end_marker" required>{h(section.get('end_marker'))}</textarea></label>
   <label>備註<textarea name="section_notes">{h(section.get('notes'))}</textarea></label>
   <p class="help">{h(marker_state)}</p>
+  {error_note}
 </fieldset>
 """
             )
@@ -7330,6 +7415,8 @@ class Handler(BaseHTTPRequestHandler):
             self.show_item_form(query)
         elif parsed.path == "/items/upload-pdf":
             self.show_pdf_upload_form(query)
+        elif parsed.path == "/items/edit-fulltext":
+            self.show_fulltext_editor(query)
         elif parsed.path == "/sources":
             self.show_sources(query)
         elif parsed.path == "/manual-items":
@@ -7413,6 +7500,10 @@ class Handler(BaseHTTPRequestHandler):
             self.extract_newsletter_links_item(self.read_form())
         elif parsed.path == "/items/pdf-markdown":
             self.normalize_pdf_markdown(self.read_form())
+        elif parsed.path == "/items/save-fulltext":
+            self.save_fulltext_edit(self.read_form())
+        elif parsed.path == "/items/repaginate-fulltext":
+            self.repaginate_fulltext(self.read_form())
         elif parsed.path == "/items/fulltext-link":
             self.save_fulltext_link(self.read_form())
         elif parsed.path == "/items/fulltext-text":
@@ -9981,9 +10072,21 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             notice = '<div class="notice">已更新 PDF 和既有材料的人工確認結果。</div>'
         elif saved == "fulltext":
             notice = '<div class="notice">已補入全文來源，並標明是貼上連結、手動貼文或上傳 PDF。</div>'
+        elif saved == "fulltext_edit":
+            notice = '<div class="notice">已儲存你線上修正後的全文，閱讀區與編輯台都會用這份。</div>'
+        elif saved == "repaginate":
+            notice = '<div class="notice">已用 AI 重新分段（只重排段落、未改字詞）。如不滿意可再「編輯 PDF 全文」手動微調。</div>'
+        elif (query.get("error") or [""])[0] == "repaginate":
+            notice = '<div class="notice">這次沒能順利重新分段（引擎不可用或輸出與原文差太多）。可改用「編輯 PDF 全文」手動分段。</div>'
         elif saved == "pdf_split":
             created = h((query.get("created") or ["0"])[0])
-            notice = f'<div class="notice">已依人工確認的起訖標記拆出 {created} 篇材料，全部先進入入庫建檔區。</div>'
+            failed = clean_text((query.get("failed") or ["0"])[0]) or "0"
+            failed_note = (
+                f"；還有 {h(failed)} 篇沒定位到，已保留你改過的標記在下方提案，修正後可再送一次。"
+                if failed != "0"
+                else "。"
+            )
+            notice = f'<div class="notice">已依人工確認的起訖標記拆出 {created} 篇材料，先進入入庫建檔區{failed_note}</div>'
         elif (query.get("error") or [""])[0] == "read_more":
             notice = '<div class="notice">這次沒有抓到更多資料。可能是網站擋住讀取、網址需要登入，或頁面沒有可抽取的主文。</div>'
         elif (query.get("error") or [""])[0] == "codex_review":
@@ -10220,16 +10323,40 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 f'<a class="button quiet" href="/editor?items={quote(item_id)}&task=newsletter-extract">{button_content("做彙整萃取報告", "note")}</a>'
             )
         if item_is_pdf_like(item):
-            pdf_label = "更新 PDF Markdown 全文" if article_markdown else "補成 PDF Markdown 全文"
-            derived_actions.append(
-                f"""
+            if article_markdown:
+                # 已經有全文 → 主要動作是「線上編輯」修正轉檔；重新抽取改成次要。
+                derived_actions.append(
+                    f'<a class="button" href="/items/edit-fulltext?id={quote(item_id)}">{button_content("編輯 PDF 全文（線上修正）", "edit")}</a>'
+                )
+                if item_markdown_needs_paragraphs(item):
+                    derived_actions.append(
+                        f"""
+    <form method="post" action="/items/repaginate-fulltext">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <input type="hidden" name="provider" value="claude">
+      <button type="submit" class="secondary">{button_content("用 AI 重新分段（快速）", "sparkle")}</button>
+    </form>
+"""
+                    )
+                derived_actions.append(
+                    f"""
     <form method="post" action="/items/pdf-markdown">
       <input type="hidden" name="id" value="{h(item_id)}">
       <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
-      <button type="submit" class="secondary">{button_content(pdf_label, 'text-lines')}</button>
+      <button type="submit" class="quiet">{button_content("重新抽取全文", "text-lines")}</button>
     </form>
 """
-            )
+                )
+            else:
+                derived_actions.append(
+                    f"""
+    <form method="post" action="/items/pdf-markdown">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+      <button type="submit" class="secondary">{button_content("補成 PDF Markdown 全文", "text-lines")}</button>
+    </form>
+"""
+                )
             derived_actions.append(
                 f"""
     <button type="button" class="secondary" data-pdf-split-random data-item-id="{h(item_id)}">{button_content("建議拆分方式（隨機兩個 CLI）", "sparkle")}</button>
@@ -11457,26 +11584,33 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             self.send_html("找不到項目", "<h1>找不到 PDF 材料</h1>", HTTPStatus.NOT_FOUND)
             return
         markdown = pdf_split_source_markdown(parent)
-        cursor = 0
-        sections: list[tuple[str, str, str, str, str]] = []
-        for index, title in enumerate(titles):
-            body, cursor, error = slice_markdown_by_markers(markdown, start_markers[index], end_markers[index], cursor)
-            if error:
-                self.send_html(
-                    "拆分標記找不到",
-                    f"<h1>第 {index + 1} 篇無法定位</h1><p>{h(error)}</p><p><a class='button' href='/items/view?id={quote(item_id)}'>回去修改提案</a></p>",
-                    HTTPStatus.BAD_REQUEST,
-                )
-                return
-            sections.append((title or f"{item_display_title(parent)}（{index + 1}）", start_markers[index], end_markers[index], notes[index] if index < len(notes) else "", body))
 
         keyword_config = load_json(TRIAGE_KEYWORDS)
         editorial_context = build_editorial_context([*records, *load_jsonl(REJECTED_ITEMS)], keyword_config)
         existing_ids = {clean_text(item.get("id")) for item in records}
         created: list[dict] = []
+        failed_sections: list[dict] = []
         captured_at = now_iso()
-        for title, start_marker, end_marker, note, body in sections:
-            child_id = stable_id("item", "pdf-split", item_id, title, start_marker, end_marker)
+        for index, title in enumerate(titles):
+            start_marker = start_markers[index]
+            end_marker = end_markers[index]
+            note = notes[index] if index < len(notes) else ""
+            display_title = title or f"{item_display_title(parent)}（{index + 1}）"
+            body, start_found, end_found, error = slice_markdown_loose(markdown, start_marker, end_marker)
+            if error or not body:
+                failed_sections.append(
+                    {
+                        "title": display_title,
+                        "start_marker": start_marker,
+                        "end_marker": end_marker,
+                        "notes": note,
+                        "start_found": start_found,
+                        "end_found": end_found,
+                        "error": error,
+                    }
+                )
+                continue
+            child_id = stable_id("item", "pdf-split", item_id, display_title, start_marker, end_marker)
             if child_id in existing_ids:
                 continue
             child = {
@@ -11484,7 +11618,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 "track": clean_text(parent.get("track")) or "unclassified",
                 "status": "inbox",
                 "priority": "normal",
-                "title": title,
+                "title": display_title,
                 "url": clean_text(parent.get("url")),
                 "source_id": clean_text(parent.get("source_id")),
                 "source_name": clean_text(parent.get("source_name")) or "本機 PDF",
@@ -11532,12 +11666,138 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             created.append(child)
             existing_ids.add(child_id)
 
-        if created:
-            write_jsonl(ITEMS, [*records, *created])
-            for child in created:
-                link_materials(child, parent, "split-from")
-                append_jsonl(REVIEW_EVENTS, review_event(child, "pdf-split-created", f"由 PDF {item_id} 的 {ai_provider_label(provider)} 拆分草案建立。"))
-        self.redirect(f"/items/view?id={quote(item_id)}&saved=pdf_split&created={len(created)}")
+        # 把這次編輯後、尚未成功的篇回寫到提案：保留使用者改過的標題與起訖標記，
+        # 成功的篇從提案移除，失敗的留著讓使用者續修，避免一來一回就全部不見。
+        updated_parent = dict(parent)
+        parent_metadata = dict(item_reading_metadata(updated_parent))
+        proposals = dict(parent_metadata.get("pdf_split_proposals")) if isinstance(parent_metadata.get("pdf_split_proposals"), dict) else {}
+        proposal = dict(proposals.get(provider)) if isinstance(proposals.get(provider), dict) else {}
+        if failed_sections:
+            proposal["sections"] = failed_sections
+            proposal["updated_at"] = captured_at
+            proposals[provider] = proposal
+        else:
+            proposals.pop(provider, None)
+        parent_metadata["pdf_split_proposals"] = proposals
+        updated_parent["reading_metadata"] = parent_metadata
+        final_records = [updated_parent if clean_text(item.get("id")) == item_id else item for item in records]
+        write_jsonl(ITEMS, [*final_records, *created])
+        for child in created:
+            link_materials(child, parent, "split-from")
+            append_jsonl(REVIEW_EVENTS, review_event(child, "pdf-split-created", f"由 PDF {item_id} 的 {ai_provider_label(provider)} 拆分草案建立。"))
+        self.redirect(f"/items/view?id={quote(item_id)}&saved=pdf_split&created={len(created)}&failed={len(failed_sections)}")
+
+    def _find_item_any(self, item_id: str) -> tuple[dict | None, Path]:
+        for it in load_jsonl(ITEMS):
+            if clean_text(it.get("id")) == item_id:
+                return it, ITEMS
+        for it in load_jsonl(CANDIDATES):
+            if clean_text(it.get("id")) == item_id:
+                return it, CANDIDATES
+        return None, ITEMS
+
+    def _apply_fulltext_edit(self, item_id: str, markdown: str, new_title: str, method: str, label: str, note: str) -> bool:
+        for path in (ITEMS, CANDIDATES):
+            records = load_jsonl(path)
+            changed = False
+            out = []
+            for it in records:
+                if clean_text(it.get("id")) != item_id:
+                    out.append(it)
+                    continue
+                updated = dict(it)
+                md = dict(item_reading_metadata(updated))
+                md["article_markdown"] = markdown
+                md["article_markdown_chars"] = len(markdown)
+                md["article_markdown_method"] = method
+                md["article_markdown_label"] = label
+                md["article_markdown_status"] = "ok" if len(markdown) >= 280 else "short"
+                md["article_text"] = markdown
+                md["article_text_chars"] = len(markdown)
+                md["article_text_method"] = method
+                md["fulltext_edited_at"] = now_iso()
+                updated["reading_metadata"] = md
+                if new_title:
+                    updated["title"] = new_title
+                updated["review"] = append_review_note(updated.get("review") or {}, note)
+                out.append(updated)
+                changed = True
+            if changed:
+                write_jsonl(path, out)
+                return True
+        return False
+
+    def show_fulltext_editor(self, query: dict[str, list[str]]) -> None:
+        item_id = form_value(query, "id")
+        item, _path = self._find_item_any(item_id)
+        if not item:
+            self.send_html("找不到項目", "<h1>找不到可編輯的材料</h1><p><a class='button' href='/items'>回入庫建檔區</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        metadata = item_reading_metadata(item)
+        markdown = str(metadata.get("article_markdown") or metadata.get("article_text") or item.get("summary") or "")
+        detail = item_detail_href(item)
+        body = f"""
+<h1>線上編輯全文</h1>
+<p class="lede">直接修正 markitdown 轉檔的小毛病（缺空格、跑版、亂碼、段落黏在一起）。
+存檔後閱讀區與編輯台都會以這份為準。這裡只改文字，不會改動原始 PDF 檔。</p>
+<form method="post" action="/items/save-fulltext">
+  <input type="hidden" name="id" value="{h(item_id)}">
+  <label>標題</label>
+  <input name="title" value="{h(item_display_title(item))}">
+  <label>全文（Markdown，可用空行分段、## 當小標）</label>
+  <textarea name="markdown" style="min-height:62vh;width:100%;font-family:ui-monospace,Menlo,monospace;line-height:1.6">{h(markdown)}</textarea>
+  <div class="button-row" style="margin-top:12px">
+    <button type="submit">{button_content('儲存全文', 'accept')}</button>
+    <a class="button secondary" href="{h(detail)}">取消</a>
+  </div>
+  <p class="help">共 {len(markdown)} 字。儲存會標記為「線上編輯全文」。</p>
+</form>
+"""
+        self.send_html("編輯全文", body)
+
+    def save_fulltext_edit(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        markdown = (data.get("markdown") or [""])[0].replace("\r\n", "\n").replace("\r", "\n").strip()
+        new_title = form_value(data, "title")
+        redirect_to = f"/items/view?id={quote(item_id)}"
+        if len(markdown) < 1:
+            self.redirect(f"/items/edit-fulltext?id={quote(item_id)}")
+            return
+        ok = self._apply_fulltext_edit(
+            item_id, markdown, new_title, "manual-edit", "線上編輯全文",
+            f"{now_iso()} 線上手動編輯全文（修正轉檔）。",
+        )
+        if not ok:
+            self.send_html("找不到項目", "<h1>找不到可編輯的材料</h1>", HTTPStatus.NOT_FOUND)
+            return
+        self.redirect(f"{redirect_to}&saved=fulltext_edit")
+
+    def repaginate_fulltext(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        provider = clean_text(form_value(data, "provider", "claude")) or "claude"
+        redirect_to = f"/items/view?id={quote(item_id)}"
+        item, _path = self._find_item_any(item_id)
+        if not item:
+            self.send_html("找不到項目", "<h1>找不到材料</h1>", HTTPStatus.NOT_FOUND)
+            return
+        command = [
+            sys.executable, str(ROOT / "scripts" / "pdf_paragraph_fix.py"),
+            "--id", item_id, "--provider", provider,
+        ]
+        try:
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=600)
+            payload = json.loads(result.stdout.strip().splitlines()[-1]) if result.stdout.strip() else {}
+        except (subprocess.TimeoutExpired, json.JSONDecodeError, IndexError):
+            payload = {"ok": False}
+        markdown = str(payload.get("markdown") or "").replace("\r\n", "\n").replace("\r", "\n").strip() if payload.get("ok") else ""
+        if not payload.get("ok") or len(markdown) < 200:
+            self.redirect(f"{redirect_to}&error=repaginate")
+            return
+        self._apply_fulltext_edit(
+            item_id, markdown, "", "ai-repaginate", f"AI 重新分段（{clean_text(payload.get('provider')) or provider}）",
+            f"{now_iso()} 以 {clean_text(payload.get('provider')) or provider} 重新分段全文（只重排段落、不改字詞）。",
+        )
+        self.redirect(f"{redirect_to}&saved=repaginate")
 
     def read_more_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
