@@ -5808,6 +5808,8 @@ def page(title: str, body: str) -> bytes:
       input.value = "";
       menu.hidden = true;
     }};
+    // 暴露給其他 widget（例如觀點頁選材料時，把材料既有標籤預先放進來）
+    form.tagPickerAddTag = addTag;
 
     const removeTag = (value) => {{
       const key = tagKeyClient(value);
@@ -7722,6 +7724,11 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     selected.set(item.id, item);
     renderSelected();
     renderResults();
+    // #4：把選中材料的既有標籤先放進觀點的標籤區（你可自行移除）
+    var picker = document.querySelector("form[data-tag-picker]");
+    if (picker && typeof picker.tagPickerAddTag === "function") {{
+      (item.tags || []).forEach(function(tag) {{ picker.tagPickerAddTag(tag); }});
+    }}
   }}
   searchButton.addEventListener("click", renderResults);
   searchInput.addEventListener("keydown", function(event) {{
