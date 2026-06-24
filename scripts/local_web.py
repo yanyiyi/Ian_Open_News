@@ -4485,6 +4485,13 @@ def page(title: str, body: str) -> bytes:
     .decision-panel {{ border-top: 1px solid var(--line); padding-top: 10px; }}
     .reason-presets {{ display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }}
     .reason-presets button {{ margin-top: 0; }}
+    .flow-line {{ margin: 4px 0; color: var(--muted, #64748b); }}
+    .flow-line--change {{ margin-top: 10px; }}
+    .flow-current {{ display: inline-block; padding: 2px 12px; border-radius: 999px; background: var(--soft, #eef6ff); color: var(--ocf-dark, #14304a); font-weight: 700; }}
+    .flow-options .button, .flow-options button {{ color: #64748b; background: #f3f4f6; border: 1px solid #e5e7eb; box-shadow: none; transition: color .14s ease, background .14s ease, border-color .14s ease; }}
+    .flow-options .button:hover, .flow-options button:hover {{ color: #00699f; background: #e6f6fd; border-color: #78cde5; }}
+    .flow-options .reading-button:hover {{ color: #7a5a00; background: #fff4d6; border-color: #f0d27a; }}
+    .flow-options .danger:hover {{ color: #b42318; background: #fde8e8; border-color: #f1a9a0; }}
     .batch-panel {{ border-left: 4px solid var(--ocf-cyan); }}
     .auto-batch-panel {{
       border-left: 4px solid var(--ocf-primary);
@@ -9356,17 +9363,32 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 </div>
 """
         else:
-            action_title = "待整理決定" if item.get("status") == "inbox" else "修改分流"
+            action_title = "分流"
             action_help = (
-                "這則還在待整理。可先直接分流；下方仍保留 Codex、來源與關鍵字判斷供比較。"
+                "這則還在待整理。下方「修改為」可直接分流；Codex、來源與關鍵字判斷在下面供比較。"
                 if item.get("status") == "inbox"
-                else "這則已經做過決斷；你仍可重新標成可進編輯台、近期正在讀、小消息，或改成不收。"
+                else "可重新分流：標成可進編輯台、近期正在讀、小消息，或改成不收。"
             )
+            _flow_status = clean_text(item.get("status"))
+            if _flow_status in {"rejected", "archived"}:
+                flow_current = "不收 / 封存"
+            elif is_direct_pr_item(item):
+                flow_current = "小消息（直接送 PR）"
+            elif item_is_current_reading(item):
+                flow_current = "閱讀中 / 超想看"
+            elif _flow_status == "inbox":
+                flow_current = "入庫建檔區（待整理）"
+            elif is_skill_candidate(item) or _flow_status == "triaged":
+                flow_current = "可用材料（可進編輯台）"
+            else:
+                flow_current = status_label(_flow_status) or "待整理"
             reason_options = rejection_reason_options(load_jsonl(ITEMS))
             inbox_actions = f"""
 <div class="card">
   <h2>{h(action_title)} <span class="help-dot" title="{h(action_help)}">?</span></h2>
-  <div class="button-row">
+  <p class="flow-line">目前為：<span class="flow-current">{h(flow_current)}</span></p>
+  <p class="flow-line flow-line--change">修改為：</p>
+  <div class="button-row flow-options">
     <form method="post" action="/items/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
       <input type="hidden" name="redirect" value="{h(decision_redirect)}">
@@ -9384,8 +9406,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         <button type="submit" class="secondary">{button_content("直接送 PR（小消息）", "small-news", "P")}</button>
     </form>
   </div>
-  <p class="help">不收原因</p>
-  <div class="reason-presets">{inline_reject_buttons(item_id, prioritized_rejection_reasons(item, reason_options), action="/items/reject", redirect_to=decision_redirect)}</div>
+  <p class="help">或改成不收（選原因）</p>
+  <div class="reason-presets flow-options">{inline_reject_buttons(item_id, prioritized_rejection_reasons(item, reason_options), action="/items/reject", redirect_to=decision_redirect)}</div>
   <details class="inline-reason">
     <summary>其他原因</summary>
     <form method="post" action="/items/reject">
