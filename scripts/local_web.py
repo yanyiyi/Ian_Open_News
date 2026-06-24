@@ -2845,6 +2845,11 @@ def markdown_to_html(markdown: str) -> str:
             level = min(len(heading.group(1)), 5)
             parts.append(f"<h{level}>{inline_markdown_html(heading.group(2))}</h{level}>")
             continue
+        if re.match(r"^(-{3,}|\*{3,}|_{3,})$", line):
+            flush_paragraph()
+            close_list()
+            parts.append("<hr>")
+            continue
         if line.startswith("> "):
             flush_paragraph()
             close_list()
@@ -4156,6 +4161,8 @@ def page(title: str, body: str) -> bytes:
     .nav-menu-links a {{ display: flex; align-items: center; gap: 8px; }}
     h1 {{ font-size: 28px; margin: 0 0 12px; }}
     h2 {{ font-size: 20px; margin: 30px 0 12px; }}
+    /* 標題本身已有底線時，緊接著的 --- 分隔線是多餘的第二條，藏起來只留一條 */
+    h1 + hr, h2 + hr, h3 + hr, h4 + hr, h5 + hr {{ display: none; }}
     h3 {{ font-size: 16px; margin: 0 0 8px; }}
     .article-title-block {{
       display: grid;
@@ -5668,7 +5675,7 @@ def page(title: str, body: str) -> bytes:
       </details>
     </nav>
     <form class="omnibar" action="/search" method="get" role="search" autocomplete="off">
-      <input type="search" name="q" id="omnibar-input" placeholder="搜尋標籤 / 材料 / 觀點 / 編輯歷程 / RSS / 專文" aria-label="全站搜尋" aria-expanded="false" aria-controls="omnibar-suggest">
+      <input type="search" name="q" id="omnibar-input" placeholder="搜尋標籤 / 材料 / 觀點 / 編輯歷程 / RSS / 專文" aria-label="全站搜尋" aria-expanded="false" aria-controls="omnibar-suggest" data-omnibar-input data-omnibar-box="omnibar-suggest">
       <div class="omnibar-suggest" id="omnibar-suggest" role="listbox" hidden></div>
     </form>
   </header>
@@ -7130,41 +7137,71 @@ def build_article_from_session(session: dict, articles: list[dict] | None = None
 
 
 def factcheck_status_label(status: str) -> tuple[str, str]:
-    """查核 claim 狀態 → (中文標籤, badge class)。"""
+    """查核 claim 狀態 → (中文標籤, badge class)。ok=紫、需做事=黑、負面=紅。"""
     mapping = {
-        "supported": ("有來源支持", "suggest-keep"),
-        "unclear": ("尚不明確", "neutral"),
-        "needs-source": ("需要出處", "suggest-skip"),
+        "supported": ("有來源支持", "fc-ok"),
+        "unclear": ("尚不明確", "fc-mid"),
+        "needs-source": ("需要出處", "fc-bad"),
     }
-    return mapping.get(clean_text(status), (clean_text(status) or "未標記", "neutral"))
+    return mapping.get(clean_text(status), (clean_text(status) or "未標記", "fc-mid"))
 
 
 # ------------------------------------------------------------------ #
 # 全站搜尋：標籤 / 材料 / 觀點 / 編輯歷程 / RSS / 專文
 # ------------------------------------------------------------------ #
+# icon 用全站既有的 SVG action 名（icon_span），不要用 emoji，風格才一致
 SEARCH_TYPE_META = {
-    "article": {"icon": "📰", "label": "專文"},
-    "item": {"icon": "📄", "label": "材料 / 消息"},
-    "viewpoint": {"icon": "💬", "label": "觀點"},
-    "tag": {"icon": "🏷️", "label": "標籤"},
-    "session": {"icon": "✏️", "label": "編輯歷程"},
-    "source": {"icon": "📡", "label": "RSS 來源"},
+    "article": {"icon": "text-lines", "label": "專文"},
+    "item": {"icon": "file", "label": "材料 / 消息"},
+    "viewpoint": {"icon": "note", "label": "觀點"},
+    "tag": {"icon": "tag", "label": "標籤"},
+    "session": {"icon": "edit", "label": "編輯歷程"},
+    "source": {"icon": "rss", "label": "RSS 來源"},
 }
 SEARCH_TYPE_ORDER = ["article", "item", "viewpoint", "tag", "session", "source"]
+SEARCH_TIME_FILTERS = [
+    ("all", "全部時間"),
+    ("three-days", "這三天"),
+    ("week", "這一週"),
+    ("month", "這一個月"),
+    ("quarter", "這一季"),
+    ("year", "這一年"),
+    ("custom", "自定範圍"),
+]
 
 
-def collect_search_results(query: str, per_type: int | None = None) -> dict[str, list[dict]]:
-    """全站搜尋。回傳 {type: [ {title, subtitle, href, icon, badges} ]}。預設排除已退件 items。"""
+def _search_dt_within(value: object, start: datetime | None, end: datetime | None) -> bool:
+    """有日期的搜尋結果是否落在時間範圍內；沒設範圍一律通過、有範圍但無法解析則排除。"""
+    if not start and not end:
+        return True
+    raw = clean_text(value)
+    if not raw:
+        return False
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except ValueError:
+        return False
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return (not start or parsed >= start) and (not end or parsed < end)
+
+
+def collect_search_results(
+    query: str, per_type: int | None = None, start: datetime | None = None, end: datetime | None = None
+) -> dict[str, list[dict]]:
+    """全站搜尋。回傳 {type: [ {title, subtitle, href, icon(SVG), badges:[(label,cls)]} ]}。
+    預設排除已退件 items；有時間範圍時，有日期的類型（專文/材料/觀點/編輯歷程）才套用篩選，
+    標籤與 RSS 來源不受時間影響。"""
     qn = clean_text(query).lower()
     out: dict[str, list[dict]] = {t: [] for t in SEARCH_TYPE_ORDER}
     if not qn:
         return out
 
-    def add(type_key: str, title: str, href: str, subtitle: str = "", badges: list[str] | None = None) -> None:
+    def add(type_key: str, title: str, href: str, subtitle: str = "", badges: list[tuple[str, str]] | None = None) -> None:
         out[type_key].append(
             {
                 "type": type_key,
-                "icon": SEARCH_TYPE_META[type_key]["icon"],
+                "icon": icon_span(SEARCH_TYPE_META[type_key]["icon"]),
                 "title": title or "(未命名)",
                 "subtitle": subtitle,
                 "href": href,
@@ -7176,10 +7213,15 @@ def collect_search_results(query: str, per_type: int | None = None) -> dict[str,
         art_id = clean_text(art.get("id"))
         title = clean_text(art.get("title"))
         hay = " ".join([title, art.get("body_markdown") or "", " ".join(art.get("tags") or [])]).lower()
-        if art_id and qn in hay:
-            badges = [ARTICLE_STATUS_LABELS.get(clean_text(art.get("status")), "")]
-            badges.append(track_meta(art.get("track", "unclassified"))["short"])
-            add("article", title, f"/articles/view?id={quote(art_id)}", "", [b for b in badges if b])
+        if art_id and qn in hay and _search_dt_within(art.get("updated_at"), start, end):
+            track = clean_text(art.get("track")) or "unclassified"
+            add(
+                "article",
+                title,
+                f"/articles/view?id={quote(art_id)}",
+                "",
+                [(ARTICLE_STATUS_LABELS.get(clean_text(art.get("status")), ""), "neutral"), (track_meta(track)["short"], track_class(track))],
+            )
 
     items = load_jsonl(ITEMS)
     for it in items:
@@ -7188,14 +7230,15 @@ def collect_search_results(query: str, per_type: int | None = None) -> dict[str,
         hay = " ".join(
             [title, item_zh_summary(it, 200), clean_text(it.get("source_name")), clean_text(it.get("author")), " ".join(it.get("tags") or [])]
         ).lower()
-        if item_id and qn in hay:
-            add("item", title, f"/items/view?id={quote(item_id)}", clean_text(it.get("source_name"), 60), [track_meta(it.get("track", "unclassified"))["short"]])
+        if item_id and qn in hay and item_matches_time_filter(it, start, end):
+            track = clean_text(it.get("track")) or "unclassified"
+            add("item", title, f"/items/view?id={quote(item_id)}", clean_text(it.get("source_name"), 60), [(track_meta(track)["short"], track_class(track))])
 
     for vp in load_jsonl(VIEWPOINTS):
         vp_id = clean_text(vp.get("id"))
         title = clean_text(vp.get("title")) or "（未命名觀點）"
         hay = " ".join([title, clean_text(vp.get("body")), " ".join(vp.get("tags") or [])]).lower()
-        if vp_id and qn in hay:
+        if vp_id and qn in hay and _search_dt_within(vp.get("updated_at") or vp.get("created_at"), start, end):
             add("viewpoint", title, f"/editor/viewpoints?focus={quote(vp_id)}", clean_text(vp.get("body"), 80))
 
     tag_counts: dict[str, int] = {}
@@ -7213,15 +7256,16 @@ def collect_search_results(query: str, per_type: int | None = None) -> dict[str,
         title = clean_text(s.get("task_label")) or clean_text(s.get("task_type"))
         titles = "、".join(clean_text(t) for t in (s.get("item_titles") or [])[:3])
         hay = " ".join([title, clean_text(s.get("task_type")), titles]).lower()
-        if sid and qn in hay:
-            add("session", title, f"/editor/session?id={quote(sid)}", clean_text(titles, 80), [clean_text(s.get("engine"))])
+        if sid and qn in hay and _search_dt_within(s.get("created_at"), start, end):
+            add("session", title, f"/editor/session?id={quote(sid)}", clean_text(titles, 80), [(clean_text(s.get("engine")), "neutral")])
 
     for src in load_jsonl(SOURCES):
         src_id = clean_text(src.get("id"))
         name = clean_text(src.get("name"))
         hay = " ".join([name, clean_text(src.get("site_url")), clean_text(src.get("feed_url")), clean_text(src.get("source_group"))]).lower()
         if src_id and qn in hay:
-            add("source", name, f"/sources/view?id={quote(src_id)}", clean_text(src.get("source_group"), 60), [track_meta(src.get("track", "unclassified"))["short"]])
+            track = clean_text(src.get("track")) or "unclassified"
+            add("source", name, f"/sources/view?id={quote(src_id)}", clean_text(src.get("source_group"), 60), [(track_meta(track)["short"], track_class(track))])
 
     # 標題命中優先排序
     for type_key, rows in out.items():
@@ -7232,11 +7276,11 @@ def collect_search_results(query: str, per_type: int | None = None) -> dict[str,
 
 
 def search_result_card(res: dict) -> str:
-    badges = "".join(f'<span class="tag-pill">{h(b)}</span>' for b in (res.get("badges") or []) if clean_text(b))
+    badges = "".join(badge(label, cls) for label, cls in (res.get("badges") or []) if clean_text(label))
     subtitle = f'<span class="search-card-sub">{h(res["subtitle"])}</span>' if res.get("subtitle") else ""
     return (
         f'<a class="search-card" href="{h(res["href"])}">'
-        f'<span class="search-card-icon" aria-hidden="true">{res["icon"]}</span>'
+        f'<span class="search-card-icon">{res["icon"]}</span>'
         f'<span class="search-card-main"><span class="search-card-title">{h(res["title"])}</span>{subtitle}'
         f'<span class="search-card-badges">{badges}</span></span></a>'
     )
@@ -7244,15 +7288,17 @@ def search_result_card(res: dict) -> str:
 
 OMNIBAR_CSS = """
 <style>
-  .omnibar { position:relative; margin-left:auto; flex:0 1 340px; }
-  .omnibar input { width:100%; box-sizing:border-box; padding:7px 14px; border-radius:999px; border:1px solid rgba(255,255,255,0.45); background:rgba(255,255,255,0.16); color:#fff; font:inherit; }
-  .omnibar input::placeholder { color:rgba(255,255,255,0.75); }
-  .omnibar input:focus { background:#fff; color:var(--ocf-dark); outline:none; }
+  .omnibar { position:relative; margin-left:auto; flex:0 1 340px; min-width:200px; }
+  .omnibar input { width:100%; box-sizing:border-box; padding:8px 14px; border-radius:999px; border:1px solid var(--border,#cbd5e1); background:#fff; color:var(--ocf-dark); font:inherit; }
+  .omnibar input::placeholder { color:var(--muted,#94a3b8); }
+  .omnibar input:focus { border-color:var(--ocf-primary,#6450dc); outline:none; box-shadow:0 0 0 3px rgba(100,80,220,0.15); }
   .omnibar-suggest { position:absolute; top:calc(100% + 6px); right:0; left:0; background:#fff; color:var(--ocf-dark); border:1px solid var(--line,#e2e8f0); border-radius:12px; box-shadow:0 12px 30px rgba(15,25,35,0.18); max-height:70vh; overflow:auto; z-index:60; padding:6px; }
-  .omnibar-group-label { font-size:12px; color:var(--muted,#64748b); padding:6px 10px 2px; }
+  .omnibar-group-label { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted,#64748b); padding:6px 10px 2px; }
+  .omnibar-group-label .icon { width:16px; height:16px; background:transparent; }
   .omnibar-option { display:flex; gap:8px; align-items:center; padding:7px 10px; border-radius:8px; text-decoration:none; color:inherit; cursor:pointer; }
   .omnibar-option:hover, .omnibar-option.is-active { background:var(--soft,#eef1fb); }
-  .omnibar-option-icon { font-size:15px; }
+  .omnibar-option-icon { display:inline-flex; flex:0 0 auto; }
+  .omnibar-option-icon .icon { width:20px; height:20px; background:transparent; }
   .omnibar-option-main { display:flex; flex-direction:column; min-width:0; }
   .omnibar-option-title { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .omnibar-option-sub { font-size:12px; color:var(--muted,#64748b); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -7263,56 +7309,59 @@ OMNIBAR_CSS = """
 OMNIBAR_JS = """
 <script>
 (function(){
-  var input = document.getElementById("omnibar-input");
-  var box = document.getElementById("omnibar-suggest");
-  if (!input || !box) return;
-  var timer = null, items = [], active = -1;
   function esc(t){ return String(t==null?"":t).replace(/[&<>\\"']/g, function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"})[c]; }); }
-  function hide(){ box.hidden = true; box.innerHTML = ""; items = []; active = -1; input.setAttribute("aria-expanded","false"); }
-  function render(groups){
-    items = [];
-    if (!groups || !groups.length){ hide(); return; }
-    var html = "";
-    groups.forEach(function(g){
-      html += '<div class="omnibar-group-label">' + g.icon + ' ' + esc(g.label) + '</div>';
-      g.results.forEach(function(r){
-        var idx = items.length; items.push(r);
-        html += '<a class="omnibar-option" data-idx="' + idx + '" href="' + esc(r.href) + '"><span class="omnibar-option-icon">' + r.icon + '</span><span class="omnibar-option-main"><span class="omnibar-option-title">' + esc(r.title) + '</span>' + (r.subtitle ? '<span class="omnibar-option-sub">' + esc(r.subtitle) + '</span>' : '') + '</span></a>';
+  function attach(input, box){
+    var timer = null, items = [], active = -1;
+    function hide(){ box.hidden = true; box.innerHTML = ""; items = []; active = -1; input.setAttribute("aria-expanded","false"); }
+    function render(groups){
+      items = [];
+      if (!groups || !groups.length){ hide(); return; }
+      var html = "";
+      groups.forEach(function(g){
+        html += '<div class="omnibar-group-label">' + g.icon + ' ' + esc(g.label) + '</div>';
+        g.results.forEach(function(r){
+          var idx = items.length; items.push(r);
+          html += '<a class="omnibar-option" data-idx="' + idx + '" href="' + esc(r.href) + '"><span class="omnibar-option-icon">' + r.icon + '</span><span class="omnibar-option-main"><span class="omnibar-option-title">' + esc(r.title) + '</span>' + (r.subtitle ? '<span class="omnibar-option-sub">' + esc(r.subtitle) + '</span>' : '') + '</span></a>';
+        });
       });
+      box.innerHTML = html; box.hidden = false; active = -1; input.setAttribute("aria-expanded","true");
+    }
+    function fetchSuggest(q){
+      fetch("/api/search/suggest?q=" + encodeURIComponent(q), { headers:{ "X-Requested-With":"local-web-fetch" } })
+        .then(function(r){ return r.json(); })
+        .then(function(p){ if ((input.value||"").trim() === q) render(p.groups || []); })
+        .catch(function(){ hide(); });
+    }
+    input.addEventListener("input", function(){
+      var q = (input.value||"").trim();
+      if (timer) clearTimeout(timer);
+      if (q.length < 1){ hide(); return; }
+      timer = setTimeout(function(){ fetchSuggest(q); }, 180);
     });
-    box.innerHTML = html; box.hidden = false; active = -1; input.setAttribute("aria-expanded","true");
+    function setActive(n){
+      var opts = box.querySelectorAll(".omnibar-option");
+      if (!opts.length) return;
+      active = (n + opts.length) % opts.length;
+      opts.forEach(function(o,i){ o.classList.toggle("is-active", i === active); });
+      opts[active].scrollIntoView({ block:"nearest" });
+    }
+    input.addEventListener("keydown", function(e){
+      if (box.hidden) return;
+      if (e.key === "ArrowDown"){ e.preventDefault(); setActive(active + 1); }
+      else if (e.key === "ArrowUp"){ e.preventDefault(); setActive(active - 1); }
+      else if (e.key === "Enter"){ if (active >= 0 && items[active]){ e.preventDefault(); window.location = items[active].href; } }
+      else if (e.key === "Escape"){ hide(); }
+    });
+    box.addEventListener("mousedown", function(e){
+      var opt = e.target.closest(".omnibar-option");
+      if (opt){ e.preventDefault(); window.location = opt.getAttribute("href"); }
+    });
+    document.addEventListener("click", function(e){ if (input.parentElement && !input.parentElement.contains(e.target)) hide(); });
   }
-  function fetchSuggest(q){
-    fetch("/api/search/suggest?q=" + encodeURIComponent(q), { headers:{ "X-Requested-With":"local-web-fetch" } })
-      .then(function(r){ return r.json(); })
-      .then(function(p){ if ((input.value||"").trim() === q) render(p.groups || []); })
-      .catch(function(){ hide(); });
-  }
-  input.addEventListener("input", function(){
-    var q = (input.value||"").trim();
-    if (timer) clearTimeout(timer);
-    if (q.length < 1){ hide(); return; }
-    timer = setTimeout(function(){ fetchSuggest(q); }, 180);
+  document.querySelectorAll("input[data-omnibar-input]").forEach(function(input){
+    var box = document.getElementById(input.getAttribute("data-omnibar-box"));
+    if (box) attach(input, box);
   });
-  function setActive(n){
-    var opts = box.querySelectorAll(".omnibar-option");
-    if (!opts.length) return;
-    active = (n + opts.length) % opts.length;
-    opts.forEach(function(o,i){ o.classList.toggle("is-active", i === active); });
-    opts[active].scrollIntoView({ block:"nearest" });
-  }
-  input.addEventListener("keydown", function(e){
-    if (box.hidden) return;
-    if (e.key === "ArrowDown"){ e.preventDefault(); setActive(active + 1); }
-    else if (e.key === "ArrowUp"){ e.preventDefault(); setActive(active - 1); }
-    else if (e.key === "Enter"){ if (active >= 0 && items[active]){ e.preventDefault(); window.location = items[active].href; } }
-    else if (e.key === "Escape"){ hide(); }
-  });
-  box.addEventListener("mousedown", function(e){
-    var opt = e.target.closest(".omnibar-option");
-    if (opt){ e.preventDefault(); window.location = opt.getAttribute("href"); }
-  });
-  document.addEventListener("click", function(e){ if (!e.target.closest(".omnibar")) hide(); });
 })();
 </script>
 """
@@ -7335,6 +7384,10 @@ ARTICLE_EDITOR_CSS = """
   .article-search-row input { width:100%; box-sizing:border-box; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; }
   .article-claim { border:1px solid var(--line,#e2e8f0); border-radius:8px; padding:8px 10px; margin-bottom:8px; }
   .article-claim p { margin:6px 0 0; font-size:13px; color:var(--muted,#475569); }
+  .article-claim .badge { border:0; color:#fff; }
+  .article-claim .badge--fc-ok { background:var(--ocf-primary,#6450dc); color:#fff; }
+  .article-claim .badge--fc-mid { background:#1f2937; color:#fff; }
+  .article-claim .badge--fc-bad { background:#dc2626; color:#fff; }
   .article-field { display:block; font-size:14px; font-weight:600; margin:0 0 4px; }
   .article-field select { width:100%; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; }
   @media (max-width:900px) { .article-editor { grid-template-columns:1fr; } .article-search-results { max-height:none; } }
@@ -7344,22 +7397,23 @@ ARTICLE_EDITOR_CSS = """
 # EasyMDE 離線無 FontAwesome：用文字標籤取代工具列圖示。scope 在 .easymde-host，可被編修台與全文編輯共用。
 EASYMDE_TOOLBAR_CSS = """
 <style>
-  .easymde-host .editor-toolbar i.fa { display:none; }
-  .easymde-host .editor-toolbar i.separator { display:inline-block; }
-  .easymde-host .editor-toolbar button { min-width:auto; padding:4px 7px; font-size:13px; }
-  .easymde-host .editor-toolbar button.bold::after { content:"粗"; }
-  .easymde-host .editor-toolbar button.italic::after { content:"斜"; }
-  .easymde-host .editor-toolbar button.heading::after { content:"標題"; }
-  .easymde-host .editor-toolbar button.quote::after { content:"引用"; }
-  .easymde-host .editor-toolbar button.unordered-list::after { content:"•清單"; }
-  .easymde-host .editor-toolbar button.ordered-list::after { content:"1.清單"; }
-  .easymde-host .editor-toolbar button.link::after { content:"連結"; }
-  .easymde-host .editor-toolbar button.table::after { content:"表格"; }
-  .easymde-host .editor-toolbar button.code::after { content:"程式碼"; }
-  .easymde-host .editor-toolbar button.preview::after { content:"預覽"; }
-  .easymde-host .editor-toolbar button.side-by-side::after { content:"並排"; }
-  .easymde-host .editor-toolbar button.fullscreen::after { content:"全螢幕"; }
-  .easymde-host .editor-toolbar button.guide::after { content:"說明"; }
+  /* 離線無 FontAwesome：藏掉按鈕內的圖示，改用文字標籤；分隔線保留 */
+  .easymde-host .editor-toolbar button i { display:none !important; }
+  .easymde-host .editor-toolbar button { width:auto !important; min-width:0; height:auto; padding:5px 9px; font-size:13px; line-height:1.4; color:var(--ocf-dark); }
+  .easymde-host .editor-toolbar button::after { font-weight:700; }
+  .easymde-host .editor-toolbar .bold::after { content:"粗"; }
+  .easymde-host .editor-toolbar .italic::after { content:"斜"; }
+  .easymde-host .editor-toolbar .heading::after { content:"標題"; }
+  .easymde-host .editor-toolbar .quote::after { content:"引用"; }
+  .easymde-host .editor-toolbar .unordered-list::after { content:"•清單"; }
+  .easymde-host .editor-toolbar .ordered-list::after { content:"1.清單"; }
+  .easymde-host .editor-toolbar .link::after { content:"連結"; }
+  .easymde-host .editor-toolbar .table::after { content:"表格"; }
+  .easymde-host .editor-toolbar .code::after { content:"程式碼"; }
+  .easymde-host .editor-toolbar .preview::after { content:"預覽"; }
+  .easymde-host .editor-toolbar .side-by-side::after { content:"並排"; }
+  .easymde-host .editor-toolbar .fullscreen::after { content:"全螢幕"; }
+  .easymde-host .editor-toolbar .guide::after { content:"說明"; }
 </style>
 """
 
@@ -9570,7 +9624,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         <a class="button" href="/articles/edit?id={quote(article_id)}">{button_content("進編修台編輯", "edit")}</a>
       </div>
     </div>
-    <article class="card editor-output">{body_html}</article>
+    <article class="card editor-output article-markdown">{body_html}</article>
   </div>
   <aside class="article-view-side">
     <div class="card">
@@ -9606,7 +9660,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             groups.append(
                 {
                     "type": type_key,
-                    "icon": SEARCH_TYPE_META[type_key]["icon"],
+                    "icon": icon_span(SEARCH_TYPE_META[type_key]["icon"]),
                     "label": SEARCH_TYPE_META[type_key]["label"],
                     "results": [{"title": r["title"], "subtitle": r["subtitle"], "href": r["href"], "icon": r["icon"]} for r in rows],
                 }
@@ -9615,7 +9669,13 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 
     def show_search(self, query: dict[str, list[str]]) -> None:
         q = clean_text((query.get("q") or [""])[0])
-        results = collect_search_results(q, per_type=60)
+        time_filter = clean_text((query.get("time") or ["all"])[0]) or "all"
+        if time_filter not in {key for key, _ in SEARCH_TIME_FILTERS}:
+            time_filter = "all"
+        start_value = clean_text((query.get("start") or [""])[0])
+        end_value = clean_text((query.get("end") or [""])[0])
+        start_dt, end_dt = reader_time_bounds(time_filter, start_value, end_value)
+        results = collect_search_results(q, per_type=60, start=start_dt, end=end_dt)
         total = sum(len(v) for v in results.values())
         chips = ""
         sections = ""
@@ -9624,13 +9684,14 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             if not rows:
                 continue
             meta = SEARCH_TYPE_META[type_key]
-            chips += f'<a class="search-chip" href="#search-sec-{type_key}">{meta["icon"]} {h(meta["label"])} {len(rows)}</a>'
+            icon = icon_span(meta["icon"])
+            chips += f'<a class="search-chip" href="#search-sec-{type_key}">{icon}{h(meta["label"])} {len(rows)}</a>'
             default_layout = "card" if len(rows) <= 12 else "list"
             cards = "".join(search_result_card(r) for r in rows)
             sections += f"""
 <section class="search-section" id="search-sec-{type_key}">
   <div class="search-section-head">
-    <h2>{meta["icon"]} {h(meta["label"])} <span class="muted">{len(rows)}</span></h2>
+    <h2>{icon}{h(meta["label"])} <span class="muted">{len(rows)}</span></h2>
     {layout_toggle(f"search-{type_key}", default_layout)}
   </div>
   <div id="search-{type_key}" data-layout="{default_layout}" class="search-results">{cards}</div>
@@ -9640,36 +9701,80 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         elif total == 0:
             sections = f'<p class="muted">找不到符合「{h(q)}」的結果。</p>'
 
+        time_options = "".join(
+            f'<option value="{h(key)}"{" selected" if key == time_filter else ""}>{h(label)}</option>'
+            for key, label in SEARCH_TIME_FILTERS
+        )
+        custom_hidden = "" if time_filter == "custom" else " hidden"
         body = f"""
 {back_nav_html(self.same_origin_referer_path("/"))}
 <section class="card">
   <h1>{icon_span("filter")}搜尋結果</h1>
-  <form method="get" action="/search" class="search-page-form" role="search">
-    <input type="search" name="q" value="{h(q)}" placeholder="搜尋標籤、材料、觀點、編輯歷程、RSS、專文" aria-label="全站搜尋" autofocus>
-    <button type="submit" class="button">{button_content("搜尋", "filter")}</button>
+  <form method="get" action="/search" class="search-page-form" id="search-form" role="search" autocomplete="off">
+    <div class="search-input-line">
+      <div class="search-input-wrap">
+        <input type="search" name="q" id="search-page-input" value="{h(q)}" placeholder="搜尋標籤、材料、觀點、編輯歷程、RSS、專文" aria-label="全站搜尋" data-omnibar-input data-omnibar-box="search-page-suggest" autofocus>
+        <div class="omnibar-suggest" id="search-page-suggest" role="listbox" hidden></div>
+      </div>
+      <button type="submit" class="button">{button_content("搜尋", "filter")}</button>
+    </div>
+    <div class="search-time-row">
+      <label class="search-time-label">時間範圍
+        <select name="time" id="search-time-select">{time_options}</select>
+      </label>
+      <span class="search-custom-range"{custom_hidden}>
+        <input type="date" name="start" value="{h(start_value)}" aria-label="起始日期">
+        <span>—</span>
+        <input type="date" name="end" value="{h(end_value)}" aria-label="結束日期">
+      </span>
+    </div>
   </form>
-  {f'<p class="muted">「{h(q)}」共 {total} 筆結果</p><div class="search-chips">{chips}</div>' if q and total else ''}
+  {f'<p class="muted">「{h(q)}」共 {total} 筆結果{("・" + h(reader_time_summary(time_filter, start_value, end_value))) if time_filter != "all" else ""}</p><div class="search-chips">{chips}</div>' if q and total else ''}
 </section>
 {sections}
 <style>
-  .search-page-form {{ display:flex; gap:8px; margin-top:10px; }}
-  .search-page-form input {{ flex:1; padding:9px 12px; border-radius:10px; border:1px solid var(--border,#cbd5e1); font:inherit; }}
+  .search-page-form {{ margin-top:10px; }}
+  .search-input-line {{ display:flex; gap:8px; align-items:flex-start; }}
+  .search-input-wrap {{ position:relative; flex:1; }}
+  .search-input-wrap input {{ width:100%; box-sizing:border-box; padding:9px 12px; border-radius:10px; border:1px solid var(--border,#cbd5e1); font:inherit; }}
+  .search-input-wrap input:focus {{ border-color:var(--ocf-primary,#6450dc); outline:none; box-shadow:0 0 0 3px rgba(100,80,220,0.15); }}
+  .search-time-row {{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px; }}
+  .search-time-label {{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted,#64748b); }}
+  .search-time-row select, .search-custom-range input {{ padding:6px 9px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; }}
+  .search-custom-range {{ display:inline-flex; align-items:center; gap:6px; }}
   .search-chips {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }}
-  .search-chip {{ text-decoration:none; padding:4px 10px; border-radius:999px; border:1px solid var(--line,#e2e8f0); background:#fff; color:inherit; font-size:13px; }}
+  .search-chip {{ display:inline-flex; align-items:center; gap:5px; text-decoration:none; padding:4px 10px; border-radius:999px; border:1px solid var(--line,#e2e8f0); background:#fff; color:inherit; font-size:13px; }}
   .search-chip:hover {{ background:var(--soft,#f1f5f9); }}
+  .search-chip .icon, .search-section-head .icon {{ width:18px; height:18px; background:transparent; }}
   .search-section {{ margin-top:22px; }}
   .search-section-head {{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }}
+  .search-section-head h2 {{ display:flex; align-items:center; gap:7px; }}
   .search-results[data-layout="card"] {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; margin-top:12px; }}
   .search-results[data-layout="list"], .search-results[data-layout="compact"] {{ display:flex; flex-direction:column; gap:8px; margin-top:12px; }}
   .search-card {{ display:flex; gap:10px; align-items:flex-start; border:1px solid var(--line,#e2e8f0); border-radius:10px; padding:10px 12px; background:#fff; text-decoration:none; color:inherit; }}
   .search-card:hover {{ background:var(--soft,#f1f5f9); }}
-  .search-card-icon {{ font-size:18px; line-height:1.4; }}
-  .search-card-main {{ display:flex; flex-direction:column; gap:3px; min-width:0; }}
+  .search-card-icon {{ display:inline-flex; flex:0 0 auto; }}
+  .search-card-icon .icon {{ width:20px; height:20px; background:transparent; }}
+  .search-card-main {{ display:flex; flex-direction:column; gap:4px; min-width:0; }}
   .search-card-title {{ font-weight:600; }}
   .search-card-sub {{ font-size:13px; color:var(--muted,#64748b); }}
   .search-card-badges {{ display:flex; flex-wrap:wrap; gap:5px; }}
   .search-results[data-layout="compact"] .search-card-sub, .search-results[data-layout="compact"] .search-card-badges {{ display:none; }}
 </style>
+<script>
+(function() {{
+  var form = document.getElementById('search-form');
+  var sel = document.getElementById('search-time-select');
+  var range = form ? form.querySelector('.search-custom-range') : null;
+  if (sel) sel.addEventListener('change', function() {{
+    if (sel.value === 'custom') {{ if (range) range.hidden = false; return; }}
+    if (form) form.submit();
+  }});
+  if (form) form.querySelectorAll('.search-custom-range input[type="date"]').forEach(function(inp) {{
+    inp.addEventListener('change', function() {{ form.submit(); }});
+  }});
+}})();
+</script>
 """
         self.send_html("搜尋", body)
 
