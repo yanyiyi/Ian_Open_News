@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>授權與合規實驗室：提供知識並捍衛權利 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-24T06:24:52+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
+<div class="article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-06-23 08:00</span></div>
+      <h1><a class="article-title-link" href="http://www.fsf.org/blogs/community/the-licensing-and-compliance-lab-informing-and-defending" target="_blank" rel="noreferrer" title="開啟原始連結">授權與合規實驗室：提供知識並捍衛權利</a></h1>
+      <p class="lede">標題顯示內容將介紹授權與合規實驗室在資訊提供及權利維護方面的工作，但目前沒有具體計畫、案例或成果可供評估。</p>
+      <div class="tag-chip-list"><span class="tag-chip">compliance</span><span class="tag-chip">FSF</span><span class="tag-chip">授權合規</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><h1>授權與合規實驗室：傳遞知識、捍衛自由</h1>
+<h2>授權與合規實驗室：傳遞知識、捍衛自由</h2>
+<p>大家好，感謝你投入自由軟體。現在，我們比以往任何時候都更需要理解自由軟體理念的人。 我是 Krzysztof Siewicz（Kris），擔任自由軟體基金會（Free Software Foundation，FSF）的授權與合規經理。我與 FSF 著作權及授權專員 Craig Topham，以及一群投入的志工，共同營運 FSF 的<a href="https://www.fsf.org/licensing/" target="_blank" rel="noreferrer">授權與合規實驗室</a>。我想談談我們近期取得的成果與未來規畫；要實現這些計畫，我們仰賴像你一樣支持自由軟體的人協助。 除了持續捍衛 <a href="https://www.gnu.org/licenses/licenses.html" target="_blank" rel="noreferrer">GNU 通用公眾授權條款</a>（GPL）與電腦使用者自由等日常工作外，我們近期也將許多心力投入機器學習。我們密切關注人們如何尋求以保障自由的方式使用機器學習模型，包括自行起草授權條款，以及如何將機器學習整合至自由軟體開發。我們收到許多關於軟體自由未來的問題。在機器學習領域，我們參與了 FSF 的「自由機器學習組合包定義」（Free/Libre Machine Learning Bundle Definition）工作小組。該小組正在敲定正式發布的細節，並為 GNU 專案起草接受大型語言模型（LLM）生成程式碼的政策。 以下是實驗室過去幾個月為軟體自由所做的部分重點工作：</p>
+<ul>
+<li><strong>GPL 合規</strong>：我們處理 <a href="https://www.fsf.org/licensing/enforcement-principles" target="_blank" rel="noreferrer">GPL 違規者時所遵循的原則</a>之一是保密，因此我只能透露，我們正與數家散布者聯繫，而持續交涉已促使對方公布一些可能符合要求的原始碼。不過，我們仍須確認這些原始碼是否完整，並附有完整的安裝資訊。除了處理侵犯 FSF 著作權軟體的已知違規者，我們也持續審查每天收到的 GPL 違規通報，教導通報者如何蒐集證據、聯絡著作權人，並請他們與律師合作取得原始碼——這是使用者應有的權利。過去六個月，我們平均每月處理 13 件授權違規通報。</li>
+<li><strong>GPL 管理與維護</strong>：我們持續蒐集容易造成混淆的 GPL 使用案例，並與那些在 GPL 中加入易混淆附加條款的人合作，確保使用者清楚知道自己可以仰賴授權條款所保障的自由。這類容易造成混淆的修改中，有一大類是要求標示作者姓名的條款。作者署名是自由軟體開發的支柱之一，但署名要求不應被用來限制使用者自由。因此，我們整理了現有的授權要求與立法意旨資訊，發布關於 <a href="https://www.fsf.org/blogs/community/gpl-compliant-legal-notices-author-attributions" target="_blank" rel="noreferrer">GPL 相容之合理法律聲明與作者署名</a>的指引。我們也持續直接協助希望為 GPL 加入附加條款的專案，確保其修改方式符合 GPL。</li>
+<li><strong>協助 GNU 專案</strong>：FSF 的宗旨是服務整個自由軟體社群及所有軟體使用者。我們尤其高興能為 GNU 軟體套件的開發者與維護者提供實際協助。我們已回覆多項與不同 GNU 套件有關的問題，包括協助一個新套件獲 GNU 接納。我的同事 Craig Topham 一如往常忙於處理著作權讓渡事務。我們也很自豪地宣布，近期已更新著作權讓渡範本，明確確保其在德國及法律制度相近的司法管轄區也能正常適用。感謝 Till Jaeger 無償提供協助！</li>
+<li><strong>邀請志工協助審查授權條款</strong>：為了讓志工更容易協助處理積壓的授權條款審查工作，同時讓這項流程成為社群的學習機會，我們已在 <a href="https://libreplanet.org/wiki/Group:Free_Software_Foundation/Licensing_Volunteers/license_review" target="_blank" rel="noreferrer">LibrePlanet 授權志工入口網站</a>建立 Wiki，供大家進行初步的授權條款研究。</li>
+<li><strong>回答授權問題</strong>：在傑出授權志工的協助下，我們持續解釋 GNU 授權條款預期應如何適用，平均每月回答約 22 個問題，其中許多相當複雜。這項工作高度仰賴外界支持，因為我們免費向所有自由軟體開發者提供這項服務。</li>
+<li><strong>重新授權與相容性</strong>：例如，licensing@fsf.org 經常收到的一類問題，是如何組合採用不同授權條款的程式。我們很高興能與長期志工、傑出的自由軟體授權專家 Yoni Rabkin 合作，發布其文章〈<a href="https://www.fsf.org/blogs/licensing/relicensing-versus-compatibility" target="_blank" rel="noreferrer">重新授權與相容性的差異</a>〉的修訂更新版。</li>
+<li><strong>審查授權條款</strong>：許多人在想使用的程式中看到某項授權條款，卻無法判斷它是否屬於自由軟體授權，或能否與其他預計組合使用之程式的授權條款相容，因此向我們提出許多問題。我們的資源有限，審查授權條款時經常捉襟見肘；但近期仍檢視了一些我們認為格外重要，或容易令自由軟體社群混淆的授權條款，例如 <a href="https://www.gnu.org/licenses/license-list.html#SFL" target="_blank" rel="noreferrer">Source First License v1.1</a> 與 <a href="https://www.fsf.org/blogs/licensing/rail-are-nonfree-and-unethical" target="_blank" rel="noreferrer">RAIL 授權條款</a>。</li>
+<li><strong>防止授權條款氾濫</strong>：我們也會收到自行起草新授權條款者的問題。由於授權條款氾濫會造成問題，我們強烈建議他們重新考慮。我們也向他們說明，起草授權條款是一項困難的工作，必須有律師參與，並充分理解該授權條款預計處理的問題。我們會說明如何運用現有的自由軟體授權條款處理相關問題。若有人仍堅持以某一版本的 GPL 為基礎制定自己的授權條款，我們會確保他們遵守<a href="https://www.gnu.org/licenses/gpl-faq.html.en#ModifyGPL" target="_blank" rel="noreferrer">我們的規定</a>。</li>
+<li><strong>培訓新授權志工</strong>：我們隨時歡迎大家投入協助，也努力讓<a href="https://www.fsf.org/licensing/team" target="_blank" rel="noreferrer">授權志工服務</a>成為學習機會。成為授權志工須通過 <a href="https://www.gnu.org/cgi-bin/license-quiz.cgi" target="_blank" rel="noreferrer">GPL 測驗</a>、接受所用工具的操作訓練、熟悉 <a href="https://www.gnu.org/licenses/gpl-faq.html" target="_blank" rel="noreferrer">GPL 常見問答</a>及其理由，並簽署保密協議。我們隨時歡迎新成員加入；FSF 員工及資深志工都會提供指導，因此參與者也能有所收穫。不過，能及時回答更多問題，當然才是整個自由軟體社群獲得的最大利益。來自奧地利、經驗豐富的法律顧問與調解人 Melanie Carmen Punz 最近加入了團隊。她的協助已經發揮關鍵作用，不只幫忙回答授權問題，也投入 GPL 的管理與合規工作。感謝 Melanie，也感謝你提供支持，讓我們能與更多志工合作。</li>
+</ul>
+<p>我們知道，不是每個人都有能力捐助；但如果情況允許，請加入 FSF 成為<a href="https://my.fsf.org/join?mtm_campaign=summer26&amp;mtm_source=licensing" target="_blank" rel="noreferrer">贊助會員</a>，支持我們的工作。實驗室能夠持續運作，很大程度仰賴像你一樣的支持者捐款。贊助會員資格能展現我們可以倚靠的堅定支持。捍衛你的自由時，FSF 絕不妥協。若沒有大家持續投入，我們已取得的進展將面臨危機，軟體自由也可能從今日的現實退化為遙不可及的願望。請協助我們繼續保護軟體自由，並在全球爭取更多支持。今年夏天加入的每一位會員，都能讓我們朝新增 175 名會員的目標更進一步。贊助會員也能享有所有<a href="https://www.fsf.org/associate/benefits?mtm_campaign=summer26&amp;mtm_source=licensing" target="_blank" rel="noreferrer">會員福利</a>，包括商品折扣、16GB 可開機會員卡，以及使用贊助會員視訊會議伺服器。 當你承諾維護使用者自由時，所承諾的不只是自由軟體，也是為所有人打造一個自由的社會。只要攜手合作，我們就有力量保護軟體自由。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-500ce164725caff4.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">文化資產部門為公共 AI 提出主張</span>
+</a>
+
+<a class="article-sequence-link" href="item-fbef874278c2b172.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">公部門握有資料寶庫：如何利用而不暴露公民</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-d0216e7a4df01baf.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-24T06:12:53+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-24T06:12:53+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Licensing and Compliance Lab: Informing and defending — Free Software Foundation — Working together for free software</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：授權與合規實驗室：傳遞知識、捍衛自由（Codex）</li><li><strong>原始作者</strong>：by
+Krzysztof Siewicz（頁面 byline）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-d0216e7a4df01baf";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

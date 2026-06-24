@@ -17,6 +17,8 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
+from email import policy
+from email.parser import BytesParser
 from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -36,6 +38,11 @@ from page_metadata import (
     text_to_markdown,
     unwrap_google_alert_url,
 )
+from pdf_materials import (
+    extract_pdf_markdown,
+    relationship_candidates as pdf_relationship_candidates,
+    slugify as pdf_slugify,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +61,8 @@ VIEWPOINTS = DATABASE / "viewpoints.jsonl"
 MATERIAL_LINKS = DATABASE / "material-links.jsonl"
 EDITOR_SESSIONS = ROOT / ".cache" / "editor-sessions.jsonl"
 EDITOR_STATUS = ROOT / ".cache" / "editor-status.json"
+PDF_SPLIT_STATUS = ROOT / ".cache" / "pdf-split-status.json"
+PDF_UPLOADS = ROOT / ".cache" / "uploads"
 EDITOR_TASK_LABELS = {
     "theme-check": "選法檢查",
     "compose-thematic": "主題式撰稿",
@@ -3139,7 +3148,122 @@ def item_is_pdf_like(item: dict) -> bool:
     metadata = item_reading_metadata(item)
     content_type = clean_text(metadata.get("content_type")).casefold()
     url = clean_text(item.get("url")).casefold()
-    return "pdf" in content_type or url.endswith(".pdf") or ".pdf?" in url
+    reference = item.get("reference") if isinstance(item.get("reference"), dict) else {}
+    file_path = clean_text(reference.get("file")).casefold()
+    return (
+        item.get("origin") == "manual-pdf"
+        or item.get("source_type") == "pdf-upload"
+        or "pdf" in content_type
+        or url.endswith(".pdf")
+        or ".pdf?" in url
+        or file_path.endswith(".pdf")
+    )
+
+
+FULLTEXT_SIGNAL_RE = re.compile(
+    r"(?:全文|閱讀全文|完整報告|完整論文|read\s+the\s+full|full\s+text|full\s+paper|full\s+report)",
+    re.I,
+)
+
+
+def item_has_fulltext_signal(item: dict) -> bool:
+    metadata = item_reading_metadata(item)
+    haystack = "\n".join(
+        [
+            clean_text(item.get("title"), 800),
+            clean_text(item.get("summary"), 2400),
+            clean_text(metadata.get("description"), 1600),
+            clean_text(metadata.get("excerpt"), 2400),
+            clean_text(metadata.get("article_text"), 6000),
+        ]
+    )
+    return bool(FULLTEXT_SIGNAL_RE.search(haystack))
+
+
+def ensure_pdf_upload_source(sources: list[dict], track: str) -> tuple[str, bool]:
+    source_id = stable_id("src", "local-pdf-uploads", track)
+    if any(clean_text(source.get("id")) == source_id for source in sources):
+        return source_id, False
+    sources.append(
+        {
+            "id": source_id,
+            "track": track,
+            "name": "本機 PDF 上傳",
+            "source_group": "Manual PDF upload",
+            "source_type": "manual",
+            "fetch_frequency": "on-update",
+            "feed_url": "",
+            "site_url": "",
+            "status": "active",
+            "required_keywords": [],
+            "excluded_keywords": [],
+            "notes": "由本機網頁上傳；PDF 本體只存於 gitignored 的 .cache/uploads/。",
+        }
+    )
+    return source_id, True
+
+
+def material_link_exists(item_id: str, ref: str, relation: str) -> bool:
+    return any(
+        clean_text(link.get("item_id")) == item_id
+        and clean_text(link.get("ref")) == ref
+        and clean_text(link.get("relation")) == relation
+        for link in load_jsonl(MATERIAL_LINKS)
+    )
+
+
+def append_material_link(item_id: str, ref: str, title: str, relation: str, *, direction: str = "") -> None:
+    if not item_id or not ref or material_link_exists(item_id, ref, relation):
+        return
+    append_jsonl(
+        MATERIAL_LINKS,
+        {
+            "id": stable_id("link", item_id, ref, relation),
+            "item_id": item_id,
+            "ref": ref,
+            "ref_kind": "item",
+            "title": title or ref,
+            "relation": relation,
+            "direction": direction,
+            "created_at": now_iso(),
+        },
+    )
+
+
+def link_materials(left: dict, right: dict, relation: str) -> None:
+    left_id = clean_text(left.get("id"))
+    right_id = clean_text(right.get("id"))
+    append_material_link(left_id, right_id, item_display_title(right), relation, direction="outbound")
+    append_material_link(right_id, left_id, item_display_title(left), relation, direction="inbound")
+
+
+def pdf_relation_label(relation: str) -> str:
+    return {
+        "full-source": "全文來源",
+        "subset": "節錄 / 子集",
+        "related": "主題相關",
+        "same-source": "同一來源",
+        "split-from": "由 PDF 拆出",
+    }.get(relation, relation or "相關")
+
+
+def pdf_split_source_markdown(item: dict) -> str:
+    translated = item_translated_markdown(item)
+    if translated:
+        return translated
+    metadata = item_reading_metadata(item)
+    return str(metadata.get("article_markdown") or metadata.get("article_text") or item.get("summary") or "").strip()
+
+
+def slice_markdown_by_markers(markdown: str, start_marker: str, end_marker: str, start_at: int = 0) -> tuple[str, int, str]:
+    start = markdown.find(start_marker, start_at)
+    if start < 0:
+        return "", start_at, f"找不到起始標記：{clean_text(start_marker, 120)}"
+    end_start = markdown.find(end_marker, start + len(start_marker))
+    if end_start < 0:
+        return "", start_at, f"找不到結束標記：{clean_text(end_marker, 120)}"
+    end = end_start + len(end_marker)
+    return markdown[start:end].strip(), end, ""
 
 
 def item_cached_image_url(item: dict) -> str:
@@ -3878,7 +4002,7 @@ def page(title: str, body: str) -> bytes:
       background: rgba(255,255,255,.94);
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 40;
     }}
     main {{ max-width: 1180px; margin: 0 auto; padding: 28px; }}
     nav {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }}
@@ -3908,7 +4032,11 @@ def page(title: str, body: str) -> bytes:
       border: 1px solid var(--line);
       border-radius: 8px;
       box-shadow: 0 12px 30px rgba(15,25,35,.16);
-      z-index: 20;
+      max-width: calc(100vw - 24px);
+      max-height: calc(100vh - 76px);
+      overflow: auto;
+      overscroll-behavior: contain;
+      z-index: 50;
     }}
     .nav-menu-links a {{ display: flex; align-items: center; gap: 8px; }}
     h1 {{ font-size: 28px; margin: 0 0 12px; }}
@@ -3930,6 +4058,7 @@ def page(title: str, body: str) -> bytes:
       min-width: 0;
       margin: 0;
       color: var(--ocf-dark);
+      overflow-wrap: anywhere;
     }}
     .article-title-tools {{
       flex: 0 0 auto;
@@ -3980,6 +4109,10 @@ def page(title: str, body: str) -> bytes:
       top: calc(100% + 8px);
       z-index: 80;
       width: min(720px, calc(100vw - 56px));
+      max-width: calc(100vw - 24px);
+      max-height: calc(100vh - 24px);
+      overflow: auto;
+      overscroll-behavior: contain;
       padding: 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -4000,6 +4133,25 @@ def page(title: str, body: str) -> bytes:
     .share-panel {{
       width: min(360px, calc(100vw - 56px));
     }}
+    .original-fulltext-collapsible > summary {{
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }}
+    .original-fulltext-collapsible > summary::-webkit-details-marker {{ display: none; }}
+    .original-fulltext-collapsible > summary h2 {{ margin: 0; }}
+    .original-fulltext-collapsible > summary::after {{
+      content: "展開原文";
+      flex: 0 0 auto;
+      color: var(--ocf-primary);
+      font-size: 13px;
+      font-weight: 800;
+    }}
+    .original-fulltext-collapsible[open] > summary {{ margin-bottom: 12px; }}
+    .original-fulltext-collapsible[open] > summary::after {{ content: "收起原文"; }}
     .share-url-field {{
       width: 100%;
       border: 1px solid var(--line);
@@ -5237,20 +5389,44 @@ def page(title: str, body: str) -> bytes:
     }}
     .command-window-body {{ padding: 14px; overflow: auto; }}
     .command-window pre {{ max-height: 44vh; }}
+    .pdf-relation-dialog {{
+      width: min(1040px, calc(100vw - 28px));
+      max-height: calc(100vh - 40px);
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 24px 80px rgba(21, 24, 31, .28);
+    }}
+    .pdf-relation-dialog::backdrop {{ background: rgba(28, 31, 38, .52); }}
+    .dialog-close-row {{ display: flex; justify-content: flex-end; }}
+    .pdf-relation-grid, .pdf-split-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }}
+    .pdf-relation-card {{ border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--panel); }}
+    .pdf-relation-actions form, .pdf-cli-confirm-form {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }}
+    .pdf-split-results {{ margin-top: 24px; }}
+    .pdf-split-proposal {{ align-self: start; }}
+    .pdf-split-section {{ border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 12px 0; }}
+    .pdf-split-section legend {{ font-weight: 800; padding: 0 6px; }}
+    .pdf-split-section textarea {{ min-height: 72px; }}
     @media (max-width: 760px) {{
       header {{ align-items: flex-start; padding: 14px 18px; }}
       main {{ padding: 20px 16px; }}
-      .nav-menu-links {{ left: 0; right: auto; }}
       .two-column {{ grid-template-columns: 1fr; }}
       .article-detail-layout {{ grid-template-columns: 1fr; }}
       .article-action-dock {{ position: static; max-height: none; order: -1; }}
+      .pdf-relation-grid, .pdf-split-grid {{ grid-template-columns: 1fr; }}
       .article-sequence-nav {{ left: 10px; right: 10px; bottom: 10px; }}
       .article-sequence-link span {{ display: none; }}
       .item-hero {{ grid-template-columns: 1fr; }}
       .article-title-grid {{ grid-template-columns: 1fr; }}
       .article-title-heading {{ display: grid; gap: 8px; }}
       .article-title-tools {{ padding-top: 0; }}
-      .title-popover {{ left: 0; right: auto; }}
+      .title-popover {{
+        left: 0;
+        right: auto;
+        width: min(720px, calc(100vw - 32px));
+        max-width: calc(100vw - 32px);
+      }}
       .item-image--compact {{ height: 180px; }}
       .metric-row {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .layout-toggle {{ width: 100%; justify-content: space-between; }}
@@ -5294,6 +5470,7 @@ def page(title: str, body: str) -> bytes:
         <summary>{icon_span("plus", "N")}新增</summary>
         <div class="nav-menu-links">
           <a href="/items/new">{icon_span("plus", "N")}手動入庫</a>
+          <a href="/items/upload-pdf">{icon_span("text-lines", "P")}上傳 PDF</a>
           <a href="/sources/new">{icon_span("rss", "R")}加 RSS</a>
         </div>
       </details>
@@ -5352,12 +5529,28 @@ def page(title: str, body: str) -> bytes:
   window.addEventListener("blur", () => setShortcutMode(false));
 
   document.querySelectorAll(".nav-menu").forEach((menu) => {{
+    const positionMenu = () => {{
+      if (!menu.open) return;
+      const panel = menu.querySelector(".nav-menu-links");
+      if (!panel) return;
+      panel.style.transform = "";
+      const margin = 12;
+      const rect = panel.getBoundingClientRect();
+      let shift = 0;
+      if (rect.left < margin) shift += margin - rect.left;
+      if (rect.right + shift > window.innerWidth - margin) {{
+        shift -= rect.right + shift - (window.innerWidth - margin);
+      }}
+      panel.style.transform = `translateX(${{Math.round(shift)}}px)`;
+    }};
     menu.addEventListener("toggle", () => {{
       if (!menu.open) return;
       document.querySelectorAll(".nav-menu").forEach((other) => {{
         if (other !== menu) other.open = false;
       }});
+      window.requestAnimationFrame(positionMenu);
     }});
+    window.addEventListener("resize", positionMenu);
   }});
 
   document.querySelectorAll(".layout-toggle-button").forEach((button) => {{
@@ -5374,12 +5567,32 @@ def page(title: str, body: str) -> bytes:
   }});
 
   document.querySelectorAll(".article-title-menu").forEach((menu) => {{
+    const positionPopover = () => {{
+      if (!menu.open) return;
+      const panel = menu.querySelector(".title-popover");
+      if (!panel) return;
+      panel.style.transform = "";
+      panel.style.maxHeight = "";
+      const margin = 12;
+      const rect = panel.getBoundingClientRect();
+      let shift = 0;
+      if (rect.left < margin) shift += margin - rect.left;
+      if (rect.right + shift > window.innerWidth - margin) {{
+        shift -= rect.right + shift - (window.innerWidth - margin);
+      }}
+      panel.style.transform = `translateX(${{Math.round(shift)}}px)`;
+      const shiftedRect = panel.getBoundingClientRect();
+      const availableHeight = Math.max(180, window.innerHeight - Math.max(margin, shiftedRect.top) - margin);
+      panel.style.maxHeight = `${{Math.floor(availableHeight)}}px`;
+    }};
     menu.addEventListener("toggle", () => {{
       if (!menu.open) return;
       document.querySelectorAll(".article-title-menu").forEach((other) => {{
         if (other !== menu) other.open = false;
       }});
+      window.requestAnimationFrame(positionPopover);
     }});
+    window.addEventListener("resize", positionPopover);
   }});
 
   document.querySelectorAll("[data-copy-share-url]").forEach((button) => {{
@@ -5486,6 +5699,21 @@ def page(title: str, body: str) -> bytes:
     return window.setInterval(poll, 1200);
   }};
 
+  const startJsonStatusPolling = (url) => {{
+    const poll = async () => {{
+      try {{
+        const response = await fetch(url, {{headers: {{"X-Requested-With": "local-web-fetch"}}}});
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (payload?.message) commandStatus.textContent = payload.message;
+      }} catch (_error) {{
+        // Keep the elapsed/final result path available when polling is interrupted.
+      }}
+    }};
+    poll();
+    return window.setInterval(poll, 1200);
+  }};
+
   const commandTimerFor = (commandName) => {{
     if (commandName === "fetch_rss") return startRssStatusPolling();
     if (commandName === "enrich_reader_metadata") return startCommandStatusPolling(commandName);
@@ -5507,7 +5735,7 @@ def page(title: str, body: str) -> bytes:
   const ALL_ENGINES = ["codex", "claude", "gemini"];
 
   // 共用 AI 工作執行器：隨機→失敗自動換另外兩個（每次跳視窗）；指定引擎→只提醒、不自動換。
-  window.runEngineJob = async ({{ label, url, baseBody, engine, onSuccess }}) => {{
+  window.runEngineJob = async ({{ label, url, baseBody, engine, onSuccess, statusUrl }}) => {{
     let order;
     if (engine === "random") {{
       order = ALL_ENGINES.slice();
@@ -5527,7 +5755,7 @@ def page(title: str, body: str) -> bytes:
         openCommandWindow(label, `使用 ${{ENGINE_LABELS[eng] || eng}} 執行中...`);
         commandLoading.hidden = false;
         if (timer) window.clearInterval(timer);
-        timer = startElapsedStatus();
+        timer = statusUrl ? startJsonStatusPolling(statusUrl) : startElapsedStatus();
         let payload;
         try {{
           const data = new URLSearchParams(baseBody);
@@ -5577,6 +5805,90 @@ def page(title: str, body: str) -> bytes:
     }}
     return false;
   }};
+
+  window.runTwoEngineJob = async ({{ label, url, baseBody, engines, onSuccess, statusUrl }}) => {{
+    let order = Array.isArray(engines) && engines.length
+      ? engines.slice()
+      : ALL_ENGINES.slice().sort(() => Math.random() - 0.5);
+    order = Array.from(new Set(order.filter((engine) => ALL_ENGINES.includes(engine))));
+    const completed = [];
+    for (const engine of order) {{
+      const ok = await window.runEngineJob({{
+        label: `${{label}}（${{completed.length + 1}}/2）`,
+        url,
+        baseBody,
+        engine,
+        statusUrl,
+        onSuccess: (payload, usedEngine) => {{
+          completed.push(usedEngine);
+          if (onSuccess) onSuccess(payload, usedEngine, completed.slice());
+        }}
+      }});
+      if (completed.length >= 2) return completed;
+      if (!ok && Array.isArray(engines) && engines.length) return completed;
+    }}
+    if (completed.length < 2) {{
+      window.alert(`${{label}}\n目前沒有湊到兩個成功的不同 CLI 提案。`);
+    }}
+    return completed;
+  }};
+
+  document.querySelectorAll("[data-pdf-split-random]").forEach((button) => {{
+    button.addEventListener("click", async () => {{
+      const itemId = button.getAttribute("data-item-id") || "";
+      const completed = await window.runTwoEngineJob({{
+        label: "產生 PDF 拆分草案",
+        url: "/items/pdf-split-suggest",
+        baseBody: {{id: itemId}},
+        statusUrl: "/api/pdf-split-status",
+      }});
+      if (completed.length >= 2) location.reload();
+    }});
+  }});
+
+  document.querySelectorAll("[data-pdf-split-specified]").forEach((form) => {{
+    form.addEventListener("submit", async (event) => {{
+      event.preventDefault();
+      const data = new FormData(form);
+      const engines = [String(data.get("engine_a") || ""), String(data.get("engine_b") || "")];
+      if (!engines[0] || !engines[1] || engines[0] === engines[1]) {{
+        window.alert("請選兩個不同的 CLI。");
+        return;
+      }}
+      const completed = await window.runTwoEngineJob({{
+        label: "產生 PDF 拆分草案",
+        url: "/items/pdf-split-suggest",
+        baseBody: {{id: String(data.get("id") || "")}},
+        engines,
+        statusUrl: "/api/pdf-split-status",
+      }});
+      if (completed.length >= 2) location.reload();
+    }});
+  }});
+
+  document.querySelectorAll("[data-pdf-relation-confirm]").forEach((form) => {{
+    form.addEventListener("submit", async (event) => {{
+      event.preventDefault();
+      const data = new FormData(form);
+      const engine = String(data.get("engine") || "random");
+      await window.runEngineJob({{
+        label: "用 CLI 確認 PDF 關係",
+        url: "/items/pdf-relation-confirm",
+        baseBody: {{
+          id: String(data.get("id") || ""),
+          candidate_id: String(data.get("candidate_id") || ""),
+        }},
+        engine,
+        onSuccess: () => location.reload(),
+      }});
+    }});
+  }});
+
+  document.querySelectorAll("[data-pdf-relation-dialog]").forEach((dialog) => {{
+    if (dialog.getAttribute("data-auto-open") === "1" && typeof dialog.showModal === "function") {{
+      dialog.showModal();
+    }}
+  }});
 
   document.querySelectorAll("form[data-command-form]").forEach((form) => {{
     form.addEventListener("submit", async (event) => {{
@@ -6274,6 +6586,7 @@ def page(title: str, body: str) -> bytes:
         const panel = document.querySelector(targetSelector);
         if (panel) {{
           panel.hidden = false;
+          if (panel instanceof HTMLDetailsElement) panel.open = true;
           const body = panel.querySelector("[data-fulltext-body]");
           const meta = panel.querySelector("[data-fulltext-meta]");
           if (body) {{
@@ -6471,9 +6784,177 @@ def material_article_links_by_item() -> dict[str, list[dict]]:
 def article_link_html(link: dict) -> str:
     ref = clean_text(link.get("ref"))
     title = clean_text(link.get("title")) or ref
+    if clean_text(link.get("ref_kind")) == "item" or ref.startswith("item-"):
+        return f'<a href="/items/view?id={quote(ref)}">{h(title)}</a>'
     if ref.startswith(("http://", "https://")):
         return f'<a href="{h(ref)}" target="_blank" rel="noopener">{h(title)} ↗</a>'
     return h(title)
+
+
+def pdf_relation_candidates(item: dict) -> list[dict]:
+    reference = item.get("reference") if isinstance(item.get("reference"), dict) else {}
+    candidates = reference.get("pdf_relation_candidates")
+    if not isinstance(candidates, list):
+        return []
+    ignored = set(reference.get("pdf_relation_ignored_ids") or [])
+    resolved = set(reference.get("pdf_relation_resolved_ids") or [])
+    return [
+        candidate
+        for candidate in candidates
+        if isinstance(candidate, dict)
+        and clean_text(candidate.get("item_id"))
+        and clean_text(candidate.get("item_id")) not in ignored
+        and clean_text(candidate.get("item_id")) not in resolved
+    ]
+
+
+def pdf_relation_modal_html(item: dict, auto_open: bool = False) -> str:
+    candidates = pdf_relation_candidates(item)
+    if not candidates:
+        return ""
+    item_id = clean_text(item.get("id"))
+    reference = item.get("reference") if isinstance(item.get("reference"), dict) else {}
+    confirmations = reference.get("pdf_relation_confirmations") if isinstance(reference.get("pdf_relation_confirmations"), dict) else {}
+    rows = []
+    for candidate in candidates:
+        candidate_id = clean_text(candidate.get("item_id"))
+        title = clean_text(candidate.get("title")) or candidate_id
+        kind = clean_text(candidate.get("candidate_kind"))
+        relation = clean_text(candidate.get("relation")) or "related"
+        score_bits = []
+        if candidate.get("title_similarity") is not None:
+            score_bits.append(f"標題相似 {float(candidate.get('title_similarity') or 0) * 100:.0f}%")
+        if candidate.get("existing_covered_by_pdf") is not None:
+            score_bits.append(f"既有材料被 PDF 涵蓋 {float(candidate.get('existing_covered_by_pdf') or 0) * 100:.0f}%")
+        if candidate.get("pdf_covered_by_existing") is not None:
+            score_bits.append(f"PDF 被既有材料涵蓋 {float(candidate.get('pdf_covered_by_existing') or 0) * 100:.0f}%")
+        if candidate.get("jaccard") is not None:
+            score_bits.append(f"Jaccard {float(candidate.get('jaccard') or 0) * 100:.0f}%")
+        source_url = clean_text(candidate.get("url"))
+        source_line = f'<a href="{h(source_url)}" target="_blank" rel="noopener">開候選原文 ↗</a>' if source_url else "候選也沒有原始網址"
+        confirmation_rows = []
+        candidate_confirmations = confirmations.get(candidate_id) if isinstance(confirmations.get(candidate_id), dict) else {}
+        for provider in AI_PROVIDER_ORDER:
+            result = candidate_confirmations.get(provider)
+            if not isinstance(result, dict):
+                continue
+            confirmation_rows.append(
+                f"<li><strong>{h(ai_provider_label(provider))}</strong>：{h(pdf_relation_label(clean_text(result.get('relation'))))}，"
+                f"{h(result.get('confidence'))}；{h(clean_text(result.get('explanation'), 360))}</li>"
+            )
+        confirmation_html = f"<ul class='help'>{''.join(confirmation_rows)}</ul>" if confirmation_rows else ""
+        if kind == "title-source":
+            actions = f"""
+<form method="post" action="/items/pdf-relation-action">
+  <input type="hidden" name="id" value="{h(item_id)}">
+  <input type="hidden" name="candidate_id" value="{h(candidate_id)}">
+  <button name="action" value="source-match" type="submit">{button_content("就是這個來源", "accept")}</button>
+  <button name="action" value="related" type="submit" class="secondary">{button_content("相關但不是同一篇", "source")}</button>
+  <button name="action" value="ignore" type="submit" class="quiet">忽略這筆</button>
+</form>
+"""
+            kind_label = "源頭比對"
+        else:
+            actions = f"""
+<form method="post" action="/items/pdf-relation-action">
+  <input type="hidden" name="id" value="{h(item_id)}">
+  <input type="hidden" name="candidate_id" value="{h(candidate_id)}">
+  <input type="hidden" name="relation" value="{h(relation)}">
+  <button name="action" value="establish" type="submit">{button_content("建立關聯", "plus")}</button>
+  <button name="action" value="fulltext" type="submit" class="secondary">{button_content("設為這篇材料的全文", "text-lines")}</button>
+  <button name="action" value="ignore" type="submit" class="quiet">忽略</button>
+</form>
+<form class="pdf-cli-confirm-form" data-pdf-relation-confirm>
+  <input type="hidden" name="id" value="{h(item_id)}">
+  <input type="hidden" name="candidate_id" value="{h(candidate_id)}">
+  <select name="engine" aria-label="確認關係引擎">
+    <option value="random">隨機 CLI</option>
+    <option value="codex">Codex</option>
+    <option value="claude">Claude Code</option>
+    <option value="gemini">Gemini</option>
+  </select>
+  <button type="submit" class="button button-small quiet">{button_content("用 CLI 再確認關係", "sparkle")}</button>
+</form>
+"""
+            kind_label = f"內容關係：{pdf_relation_label(relation)}（{h(candidate.get('confidence') or '低')}信心）"
+        rows.append(
+            f"""
+<article class="pdf-relation-card">
+  <div class="reader-list-meta">{badge(kind_label, "neutral")}</div>
+  <h3><a href="/items/view?id={quote(candidate_id)}">{h(title)}</a></h3>
+  <p class="muted">{h("；".join(score_bits) or "本機規則找到相似材料。")}</p>
+  <p class="help">{source_line}</p>
+  {confirmation_html}
+  <div class="pdf-relation-actions">{actions}</div>
+</article>
+"""
+        )
+    return f"""
+<dialog class="pdf-relation-dialog" data-pdf-relation-dialog data-auto-open="{'1' if auto_open else '0'}">
+  <form method="dialog" class="dialog-close-row"><button class="button quiet" value="close">先關閉</button></form>
+  <h2>確認 PDF 和既有材料的關係</h2>
+  <p class="lede">這些只是本機標題與文字涵蓋率提示。請人工決定，不會自動覆蓋來源或合併材料。</p>
+  <div class="pdf-relation-grid">{''.join(rows)}</div>
+  <form method="post" action="/items/pdf-relation-action">
+    <input type="hidden" name="id" value="{h(item_id)}">
+    <button name="action" value="new-source" type="submit" class="secondary">都不是，當全新來源</button>
+  </form>
+</dialog>
+"""
+
+
+def pdf_split_proposals_html(item: dict) -> str:
+    metadata = item_reading_metadata(item)
+    proposals = metadata.get("pdf_split_proposals")
+    if not isinstance(proposals, dict) or not proposals:
+        return ""
+    item_id = clean_text(item.get("id"))
+    cards = []
+    for provider in AI_PROVIDER_ORDER:
+        proposal = proposals.get(provider)
+        if not isinstance(proposal, dict):
+            continue
+        sections = proposal.get("sections") if isinstance(proposal.get("sections"), list) else []
+        fields = []
+        for index, section in enumerate(sections, start=1):
+            if not isinstance(section, dict):
+                continue
+            marker_state = "起訖都已定位" if section.get("start_found") and section.get("end_found") else "有標記尚未在全文定位，請先修改"
+            fields.append(
+                f"""
+<fieldset class="pdf-split-section">
+  <legend>第 {index} 篇</legend>
+  <label>標題<input name="section_title" value="{h(section.get('title'))}" required></label>
+  <label>起始標記<textarea name="start_marker" required>{h(section.get('start_marker'))}</textarea></label>
+  <label>結束標記<textarea name="end_marker" required>{h(section.get('end_marker'))}</textarea></label>
+  <label>備註<textarea name="section_notes">{h(section.get('notes'))}</textarea></label>
+  <p class="help">{h(marker_state)}</p>
+</fieldset>
+"""
+            )
+        cards.append(
+            f"""
+<article class="card pdf-split-proposal">
+  <h3>{h(ai_provider_label(provider))} 提案</h3>
+  <p>{h(proposal.get('summary'))}</p>
+  <form method="post" action="/items/pdf-split-apply">
+    <input type="hidden" name="id" value="{h(item_id)}">
+    <input type="hidden" name="provider" value="{h(provider)}">
+    {''.join(fields)}
+    <button type="submit">{button_content("採用這份提案並拆成材料", "accept")}</button>
+    <p class="help">送出前可直接修改標題與起訖標記；拆出的每篇都只會進入入庫建檔區。</p>
+  </form>
+</article>
+"""
+        )
+    if not cards:
+        return ""
+    return f"""
+<section class="pdf-split-results">
+  <h2>兩個拆分草案</h2>
+  <div class="pdf-split-grid">{''.join(cards)}</div>
+</section>
+"""
 
 
 def editor_relative_time(value: str) -> str:
@@ -6665,6 +7146,38 @@ class Handler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length).decode("utf-8")
         return parse_qs(raw)
 
+    def read_multipart_form(self, max_bytes: int = 80 * 1024 * 1024) -> tuple[dict[str, list[str]], dict[str, list[dict]]]:
+        length = int(self.headers.get("Content-Length", "0"))
+        if length <= 0 or length > max_bytes:
+            raise ValueError("上傳內容為空，或超過 80 MB 上限。")
+        content_type = self.headers.get("Content-Type", "")
+        if "multipart/form-data" not in content_type:
+            raise ValueError("這個表單需要 multipart/form-data。")
+        raw = self.rfile.read(length)
+        message = BytesParser(policy=policy.default).parsebytes(
+            f"Content-Type: {content_type}\r\nMIME-Version: 1.0\r\n\r\n".encode("utf-8") + raw
+        )
+        fields: dict[str, list[str]] = defaultdict(list)
+        files: dict[str, list[dict]] = defaultdict(list)
+        for part in message.iter_parts():
+            name = clean_text(part.get_param("name", header="content-disposition"))
+            if not name:
+                continue
+            payload = part.get_payload(decode=True) or b""
+            filename = clean_text(part.get_filename())
+            if filename:
+                files[name].append(
+                    {
+                        "filename": Path(filename).name,
+                        "content_type": clean_text(part.get_content_type()),
+                        "content": payload,
+                    }
+                )
+                continue
+            charset = part.get_content_charset() or "utf-8"
+            fields[name].append(payload.decode(charset, errors="replace"))
+        return dict(fields), dict(files)
+
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         query = parse_qs(parsed.query)
@@ -6693,6 +7206,8 @@ class Handler(BaseHTTPRequestHandler):
             self.show_item_reject_form(query)
         elif parsed.path == "/items/new":
             self.show_item_form(query)
+        elif parsed.path == "/items/upload-pdf":
+            self.show_pdf_upload_form(query)
         elif parsed.path == "/sources":
             self.show_sources(query)
         elif parsed.path == "/manual-items":
@@ -6734,6 +7249,8 @@ class Handler(BaseHTTPRequestHandler):
             if requested and clean_text(status.get("session_id")) != requested:
                 status = {"state": "idle", "session_id": requested}
             self.send_json(status)
+        elif parsed.path == "/api/pdf-split-status":
+            self.send_json(load_json(PDF_SPLIT_STATUS))
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
 
@@ -6741,6 +7258,13 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/items":
             self.save_item(self.read_form())
+        elif parsed.path == "/items/upload-pdf":
+            try:
+                fields, files = self.read_multipart_form()
+            except ValueError as exc:
+                self.send_html("PDF 上傳失敗", f"<h1>PDF 上傳失敗</h1><p>{h(exc)}</p><p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>", HTTPStatus.BAD_REQUEST)
+                return
+            self.save_pdf_upload(fields, files)
         elif parsed.path == "/items/accept":
             self.accept_item(self.read_form())
         elif parsed.path == "/items/direct-pr":
@@ -6767,6 +7291,18 @@ class Handler(BaseHTTPRequestHandler):
             self.extract_newsletter_links_item(self.read_form())
         elif parsed.path == "/items/pdf-markdown":
             self.normalize_pdf_markdown(self.read_form())
+        elif parsed.path == "/items/fulltext-link":
+            self.save_fulltext_link(self.read_form())
+        elif parsed.path == "/items/fulltext-text":
+            self.save_fulltext_text(self.read_form())
+        elif parsed.path == "/items/pdf-relation-action":
+            self.pdf_relation_action(self.read_form())
+        elif parsed.path == "/items/pdf-relation-confirm":
+            self.pdf_relation_confirm(self.read_form())
+        elif parsed.path == "/items/pdf-split-suggest":
+            self.pdf_split_suggest(self.read_form())
+        elif parsed.path == "/items/pdf-split-apply":
+            self.pdf_split_apply(self.read_form())
         elif parsed.path == "/items/codex-review":
             self.codex_review_item(self.read_form())
         elif parsed.path == "/items/update-url":
@@ -9285,6 +9821,17 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             notice = f'<div class="notice">已拆出彙整式電子報 link：新增 {created} 筆到入庫建檔區，重複 {duplicates} 筆，略過 {skipped} 筆功能性或非文章連結。</div>'
         elif saved == "pdf_markdown":
             notice = '<div class="notice">已將 PDF / MarkItDown 文字補成 Markdown 全文；接下來模型建議、翻譯與編輯台會優先使用這份全文。</div>'
+        elif saved == "pdf_upload":
+            notice = '<div class="notice">PDF 已進入入庫建檔區，全文由 markitdown 抽取完成。請確認跳出的來源與材料關係候選。</div>'
+        elif saved == "pdf_duplicate":
+            notice = '<div class="notice">這份 PDF 內容已經入庫，已帶你回到原本的材料。</div>'
+        elif saved == "pdf_relation":
+            notice = '<div class="notice">已更新 PDF 和既有材料的人工確認結果。</div>'
+        elif saved == "fulltext":
+            notice = '<div class="notice">已補入全文來源，並標明是貼上連結、手動貼文或上傳 PDF。</div>'
+        elif saved == "pdf_split":
+            created = h((query.get("created") or ["0"])[0])
+            notice = f'<div class="notice">已依人工確認的起訖標記拆出 {created} 篇材料，全部先進入入庫建檔區。</div>'
         elif (query.get("error") or [""])[0] == "read_more":
             notice = '<div class="notice">這次沒有抓到更多資料。可能是網站擋住讀取、網址需要登入，或頁面沒有可抽取的主文。</div>'
         elif (query.get("error") or [""])[0] == "codex_review":
@@ -9313,6 +9860,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         original_title = item_original_title(item)
         original_language = item_original_language(item)
         translate_actions = translation_actions_html(item, item_id, item_detail_href(item))
+        has_translation = bool(item_translation_entries(item))
         translation_panel = translation_panels_html(item)
         fulltext_hidden = "" if article_markdown or article_text else " hidden"
         fulltext_message = (
@@ -9320,6 +9868,30 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             if article_markdown or article_text
             else "按「展開全文」後會從原始連結往下抓全文，載入完成後以 Markdown 閱讀版顯示在這裡。"
         )
+        if has_translation:
+            original_fulltext_panel = f"""
+<details class="card fulltext-panel source-card source-card--source original-fulltext-collapsible" id="fulltext-panel"{fulltext_hidden}>
+  <summary>
+    <div>
+      <div class="section-kicker">原始主文</div>
+      <h2>原始主文</h2>
+    </div>
+  </summary>
+  <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
+  <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
+  <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
+</details>
+"""
+        else:
+            original_fulltext_panel = f"""
+<section class="card fulltext-panel source-card source-card--source" id="fulltext-panel"{fulltext_hidden}>
+  <div class="section-kicker">原始主文</div>
+  <h2>原始主文</h2>
+  <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
+  <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
+  <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
+</section>
+"""
         note = personal_note_text(item)
         item_url = clean_text(item.get("url"), 1200)
         online_article_url = public_reader_article_url(item)
@@ -9501,6 +10073,41 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     </form>
 """
             )
+            derived_actions.append(
+                f"""
+    <button type="button" class="secondary" data-pdf-split-random data-item-id="{h(item_id)}">{button_content("建議拆分方式（隨機兩個 CLI）", "sparkle")}</button>
+    <details>
+      <summary class="button quiet">指定兩個 CLI</summary>
+      <form data-pdf-split-specified>
+        <input type="hidden" name="id" value="{h(item_id)}">
+        <select name="engine_a">{option_list([("codex", "Codex"), ("claude", "Claude Code"), ("gemini", "Gemini")], "codex")}</select>
+        <select name="engine_b">{option_list([("codex", "Codex"), ("claude", "Claude Code"), ("gemini", "Gemini")], "claude")}</select>
+        <button type="submit" class="button button-small">產生兩份草案</button>
+      </form>
+    </details>
+"""
+            )
+        fulltext_panel = ""
+        if item_has_fulltext_signal(item) and not is_rss_candidate:
+            fulltext_panel = f"""
+  <details class="card">
+    <summary><h2>補全文 <span class="help-dot" title="這篇材料出現「全文 / full text」線索時，從這裡補上你已找到的完整來源。">?</span></h2></summary>
+    <form method="post" action="/items/fulltext-link">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <label>貼全文連結</label>
+      <input name="url" type="url" placeholder="https://..." required>
+      <button type="submit" class="button button-small">抓取這個全文連結</button>
+    </form>
+    <form method="post" action="/items/fulltext-text">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <label>貼上我找到的全文文字</label>
+      <textarea name="fulltext" required></textarea>
+      <button type="submit" class="button button-small secondary">存成手動貼文全文</button>
+    </form>
+    <a class="button quiet" href="/items/upload-pdf?parent_item_id={quote(item_id)}&relation=full-source&track={quote(clean_text(item.get('track')))}">{button_content("上傳全文 PDF", "text-lines")}</a>
+    <p class="help">全文會清楚標記來源；上傳 PDF 會建立新的材料並以 full-source 關聯連回這篇。</p>
+  </details>
+"""
         derived_toolbox = ""
         if derived_actions:
             skipped_hint = f"；目前規則會略過 {len(newsletter_skipped)} 個功能性或非文章連結" if newsletter_candidates else ""
@@ -9577,15 +10184,15 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         for link in existing_links:
             ref = clean_text(link.get("ref"))
             title = clean_text(link.get("title")) or ref
-            label = article_link_html({"ref": ref, "title": title})
+            label = article_link_html(link)
             link_rows += (
-                f'<li>{label} <span class="muted">{h(link.get("relation"))}</span>'
+                f'<li>{label} <span class="muted">{h(pdf_relation_label(clean_text(link.get("relation"))))}</span>'
                 f'<form method="post" action="/editor/unlink-article" style="display:inline">'
                 f'<input type="hidden" name="id" value="{h(link.get("id"))}">'
                 f'<input type="hidden" name="item_id" value="{h(item_id)}">'
                 f'<button type="submit" class="button button-small">移除</button></form></li>'
             )
-        links_list = f'<ul class="editor-links">{link_rows}</ul>' if link_rows else '<p class="muted">尚未連結任何 article。</p>'
+        links_list = f'<ul class="editor-links">{link_rows}</ul>' if link_rows else '<p class="muted">尚未連結其他材料或 article。</p>'
         editor_panel = "" if is_rss_candidate else f"""
   <div class="card" id="editor-panel">
     <h2>編輯台 <span class="help-dot" title="把這篇材料丟進編輯台草稿庫，跑選法檢查、撰稿或查核。只有編輯台產出的稿件才稱為 article。">?</span></h2>
@@ -9610,6 +10217,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
       {reading_priority_actions}
     </div>
   </div>
+  {fulltext_panel}
   {derived_toolbox}
   {tag_panel}
   {metadata_form}
@@ -9617,6 +10225,11 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   {editor_panel}
 </aside>
 """
+        split_proposals = pdf_split_proposals_html(item) if item_is_pdf_like(item) else ""
+        relation_modal = pdf_relation_modal_html(
+            item,
+            auto_open=form_value(query, "pdf_relations") == "1",
+        ) if item_is_pdf_like(item) else ""
         body = f"""
 {top_navigation}
 {notice}
@@ -9675,13 +10288,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <p>{h(clean_text(item.get('summary'), 1800))}</p>
   </section>
 
-<section class="card fulltext-panel source-card source-card--source" id="fulltext-panel"{fulltext_hidden}>
-  <div class="section-kicker">原始主文</div>
-  <h2>原始主文</h2>
-  <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
-  <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
-  <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
-</section>
+{original_fulltext_panel}
 {translation_panel}
 
 <section class="article-detail-stack">
@@ -9692,6 +10299,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 </div>
 {action_dock}
 </div>
+{split_proposals}
+{relation_modal}
 {bottom_navigation}
 """
         self.send_html("單篇整理", body)
@@ -10417,6 +11026,318 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             self.redirect(f"{redirect_to}{separator}error=pdf_markdown")
             return
         self.redirect(f"{redirect_to}{separator}saved=pdf_markdown")
+
+    def save_fulltext_link(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        url = fetchable_http_url(form_value(data, "url"))
+        if not url:
+            self.redirect(f"/items/view?id={quote(item_id)}&error=read_more")
+            return
+        records = load_jsonl(ITEMS)
+        updated_records = []
+        found = False
+        changed = False
+        error = ""
+        for item in records:
+            if clean_text(item.get("id")) != item_id:
+                updated_records.append(item)
+                continue
+            found = True
+            probe = {**item, "url": url, "reading_metadata": {}}
+            enriched, did_change, error = enrich_item_metadata(probe)
+            metadata = dict(item_reading_metadata(item))
+            fetched = item_reading_metadata(enriched)
+            for key, value in fetched.items():
+                if value not in (None, "", [], {}):
+                    metadata[key] = value
+            metadata.update(
+                {
+                    "fulltext_source": "pasted-link",
+                    "fulltext_source_url": url,
+                    "fulltext_source_updated_at": now_iso(),
+                }
+            )
+            updated = {**item, "reading_metadata": metadata}
+            updated, markdown_changed = ensure_article_markdown(updated)
+            updated_records.append(updated)
+            changed = did_change or markdown_changed or updated != item
+        if not found:
+            self.send_html("找不到項目", "<h1>找不到可補全文的項目</h1>", HTTPStatus.NOT_FOUND)
+            return
+        if changed:
+            write_jsonl(ITEMS, updated_records)
+        if error and not changed:
+            self.redirect(f"/items/view?id={quote(item_id)}&error=read_more")
+            return
+        self.redirect(f"/items/view?id={quote(item_id)}&saved=fulltext")
+
+    def save_fulltext_text(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        fulltext = str((data.get("fulltext") or [""])[0]).replace("\r\n", "\n").replace("\r", "\n").strip()
+        if len(fulltext) < 240:
+            self.redirect(f"/items/view?id={quote(item_id)}&error=pdf_markdown")
+            return
+        records = load_jsonl(ITEMS)
+        updated_records = []
+        found = False
+        for item in records:
+            if clean_text(item.get("id")) != item_id:
+                updated_records.append(item)
+                continue
+            found = True
+            metadata = dict(item_reading_metadata(item))
+            metadata.update(
+                {
+                    "article_text": fulltext,
+                    "article_text_method": "manual-paste",
+                    "article_text_label": "手動貼上的全文",
+                    "fulltext_source": "manual-paste",
+                    "fulltext_source_updated_at": now_iso(),
+                }
+            )
+            updated, _changed, _error = normalize_pdf_markdown_item({**item, "reading_metadata": metadata})
+            updated_metadata = dict(item_reading_metadata(updated))
+            updated_metadata.update(
+                {
+                    "article_text_method": "manual-paste",
+                    "article_text_label": "手動貼上的全文",
+                    "article_markdown_method": "manual-paste-normalized",
+                    "article_markdown_label": "手動貼文 Markdown 全文",
+                    "fulltext_source": "manual-paste",
+                }
+            )
+            updated["reading_metadata"] = updated_metadata
+            updated_records.append(updated)
+        if not found:
+            self.send_html("找不到項目", "<h1>找不到可補全文的項目</h1>", HTTPStatus.NOT_FOUND)
+            return
+        write_jsonl(ITEMS, updated_records)
+        self.redirect(f"/items/view?id={quote(item_id)}&saved=fulltext")
+
+    def pdf_relation_action(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        candidate_id = form_value(data, "candidate_id")
+        action = form_value(data, "action")
+        relation = form_value(data, "relation", "related")
+        records = load_jsonl(ITEMS)
+        pdf_item = next((item for item in records if clean_text(item.get("id")) == item_id), None)
+        candidate = next((item for item in records if clean_text(item.get("id")) == candidate_id), None)
+        if not pdf_item:
+            self.send_html("找不到項目", "<h1>找不到 PDF 材料</h1>", HTTPStatus.NOT_FOUND)
+            return
+        reference = dict(pdf_item.get("reference") or {})
+        ignored = set(reference.get("pdf_relation_ignored_ids") or [])
+        resolved = set(reference.get("pdf_relation_resolved_ids") or [])
+        updated_pdf = dict(pdf_item)
+
+        if action == "new-source":
+            ignored.update(clean_text(row.get("item_id")) for row in pdf_relation_candidates(pdf_item))
+            reference["source_status"] = "需要出處"
+        elif not candidate:
+            self.send_html("找不到候選", "<h1>找不到關係候選材料</h1>", HTTPStatus.NOT_FOUND)
+            return
+        elif action == "source-match":
+            candidate_url = clean_text(candidate.get("url"))
+            if candidate_url:
+                updated_pdf["url"] = candidate_url
+                updated_pdf["source_name"] = clean_text(candidate.get("source_name")) or updated_pdf.get("source_name")
+                updated_pdf["author"] = clean_text(candidate.get("author")) or updated_pdf.get("author")
+                reference["source_status"] = "人工確認既有來源"
+                reference["source_item_id"] = candidate_id
+                reference["source_url"] = candidate_url
+            link_materials(updated_pdf, candidate, "same-source")
+            resolved.add(candidate_id)
+        elif action == "related":
+            link_materials(updated_pdf, candidate, "related")
+            resolved.add(candidate_id)
+        elif action == "establish":
+            link_materials(updated_pdf, candidate, relation)
+            resolved.add(candidate_id)
+        elif action == "fulltext":
+            link_materials(candidate, updated_pdf, "full-source")
+            candidate_metadata = dict(item_reading_metadata(candidate))
+            candidate_metadata.update(
+                {
+                    "fulltext_pdf_item_id": item_id,
+                    "fulltext_source": "uploaded-pdf",
+                    "fulltext_source_updated_at": now_iso(),
+                }
+            )
+            records = [
+                {**record, "reading_metadata": candidate_metadata}
+                if clean_text(record.get("id")) == candidate_id
+                else record
+                for record in records
+            ]
+            resolved.add(candidate_id)
+        elif action == "ignore":
+            ignored.add(candidate_id)
+        else:
+            self.send_html("無效動作", "<h1>不支援的 PDF 關係動作</h1>", HTTPStatus.BAD_REQUEST)
+            return
+
+        reference["pdf_relation_ignored_ids"] = sorted(item for item in ignored if item)
+        reference["pdf_relation_resolved_ids"] = sorted(item for item in resolved if item)
+        reference["pdf_relation_reviewed_at"] = now_iso()
+        updated_pdf["reference"] = reference
+        records = [updated_pdf if clean_text(record.get("id")) == item_id else record for record in records]
+        write_jsonl(ITEMS, records)
+        remaining = pdf_relation_candidates(updated_pdf)
+        suffix = "&pdf_relations=1" if remaining else ""
+        self.redirect(f"/items/view?id={quote(item_id)}&saved=pdf_relation{suffix}")
+
+    def pdf_relation_confirm(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        candidate_id = form_value(data, "candidate_id")
+        provider = normalize_ai_provider(form_value(data, "provider", "codex"))
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
+        command = [
+            sys.executable,
+            str(ROOT / "scripts" / "pdf_relation_confirm.py"),
+            "--item-id",
+            item_id,
+            "--candidate-id",
+            candidate_id,
+            "--provider",
+            provider,
+        ]
+        try:
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1260)
+            output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
+        except subprocess.TimeoutExpired as exc:
+            result = subprocess.CompletedProcess(command, 124, stdout=clean_text(exc.stdout or ""), stderr=clean_text(exc.stderr or "CLI 確認逾時。"))
+            output = result.stdout + "\nSTDERR:\n" + result.stderr
+        ok = result.returncode == 0
+        payload = {"ok": ok, "returncode": result.returncode, "output": output, "error": "" if ok else clean_text(output, 1200)}
+        if wants_json:
+            self.send_json(payload, HTTPStatus.OK if ok else HTTPStatus.BAD_GATEWAY)
+            return
+        self.redirect(f"/items/view?id={quote(item_id)}&pdf_relations=1")
+
+    def pdf_split_suggest(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        provider = normalize_ai_provider(form_value(data, "provider", "codex"))
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
+        command = [
+            sys.executable,
+            str(ROOT / "scripts" / "pdf_split_suggest.py"),
+            "--item-id",
+            item_id,
+            "--provider",
+            provider,
+            "--status-file",
+            str(PDF_SPLIT_STATUS),
+        ]
+        try:
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1860)
+            output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
+        except subprocess.TimeoutExpired as exc:
+            result = subprocess.CompletedProcess(command, 124, stdout=clean_text(exc.stdout or ""), stderr=clean_text(exc.stderr or "PDF 拆分建議逾時。"))
+            output = result.stdout + "\nSTDERR:\n" + result.stderr
+        ok = result.returncode == 0
+        payload = {"ok": ok, "returncode": result.returncode, "provider": provider, "output": output, "error": "" if ok else clean_text(output, 1400)}
+        if wants_json:
+            self.send_json(payload, HTTPStatus.OK if ok else HTTPStatus.BAD_GATEWAY)
+            return
+        self.redirect(f"/items/view?id={quote(item_id)}")
+
+    def pdf_split_apply(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        provider = normalize_ai_provider(form_value(data, "provider", "codex"))
+        titles = [clean_text(value, 320) for value in data.get("section_title") or []]
+        start_markers = [str(value).strip() for value in data.get("start_marker") or []]
+        end_markers = [str(value).strip() for value in data.get("end_marker") or []]
+        notes = [clean_text(value, 800) for value in data.get("section_notes") or []]
+        if not titles or len(titles) != len(start_markers) or len(titles) != len(end_markers):
+            self.send_html("拆分失敗", "<h1>拆分欄位不完整</h1>", HTTPStatus.BAD_REQUEST)
+            return
+        records = load_jsonl(ITEMS)
+        parent = next((item for item in records if clean_text(item.get("id")) == item_id), None)
+        if not parent:
+            self.send_html("找不到項目", "<h1>找不到 PDF 材料</h1>", HTTPStatus.NOT_FOUND)
+            return
+        markdown = pdf_split_source_markdown(parent)
+        cursor = 0
+        sections: list[tuple[str, str, str, str, str]] = []
+        for index, title in enumerate(titles):
+            body, cursor, error = slice_markdown_by_markers(markdown, start_markers[index], end_markers[index], cursor)
+            if error:
+                self.send_html(
+                    "拆分標記找不到",
+                    f"<h1>第 {index + 1} 篇無法定位</h1><p>{h(error)}</p><p><a class='button' href='/items/view?id={quote(item_id)}'>回去修改提案</a></p>",
+                    HTTPStatus.BAD_REQUEST,
+                )
+                return
+            sections.append((title or f"{item_display_title(parent)}（{index + 1}）", start_markers[index], end_markers[index], notes[index] if index < len(notes) else "", body))
+
+        keyword_config = load_json(TRIAGE_KEYWORDS)
+        editorial_context = build_editorial_context([*records, *load_jsonl(REJECTED_ITEMS)], keyword_config)
+        existing_ids = {clean_text(item.get("id")) for item in records}
+        created: list[dict] = []
+        captured_at = now_iso()
+        for title, start_marker, end_marker, note, body in sections:
+            child_id = stable_id("item", "pdf-split", item_id, title, start_marker, end_marker)
+            if child_id in existing_ids:
+                continue
+            child = {
+                "id": child_id,
+                "track": clean_text(parent.get("track")) or "unclassified",
+                "status": "inbox",
+                "priority": "normal",
+                "title": title,
+                "url": clean_text(parent.get("url")),
+                "source_id": clean_text(parent.get("source_id")),
+                "source_name": clean_text(parent.get("source_name")) or "本機 PDF",
+                "author": clean_text(parent.get("author")),
+                "published_at": clean_text(parent.get("published_at")),
+                "captured_at": captured_at,
+                "summary": clean_text(body, 1200),
+                "tags": item_visible_tags(parent, 12),
+                "origin": "pdf-split",
+                "source_type": "pdf-split",
+                "reference": {
+                    "created_by": "local_web",
+                    "created_from": "pdf-split-proposal",
+                    "parent_item_id": item_id,
+                    "parent_title": item_display_title(parent),
+                    "proposal_provider": provider,
+                    "start_marker": start_marker,
+                    "end_marker": end_marker,
+                    "proposal_note": note,
+                },
+                "reading_metadata": {
+                    "article_markdown": body,
+                    "article_markdown_method": "pdf-split-markers",
+                    "article_markdown_label": "由 PDF 起訖標記拆出的全文",
+                    "article_text": body,
+                    "article_text_method": "pdf-split-markers",
+                    "fulltext_source": "split-from-pdf",
+                    "parent_pdf_item_id": item_id,
+                },
+                "review": default_review("由 PDF 拆分草案人工確認後建立；仍需在入庫建檔區逐篇分流。"),
+            }
+            child, _changed, _error = normalize_pdf_markdown_item(child)
+            child_metadata = dict(item_reading_metadata(child))
+            child_metadata.update(
+                {
+                    "article_markdown_method": "pdf-split-markers",
+                    "article_markdown_label": "由 PDF 起訖標記拆出的全文",
+                    "article_text_method": "pdf-split-markers",
+                    "article_text_label": "由 PDF 起訖標記拆出的文字",
+                }
+            )
+            child["reading_metadata"] = child_metadata
+            child["triage"] = evaluate_triage(child, keyword_config)
+            child["editorial_triage"] = evaluate_editorial_triage(child, keyword_config, editorial_context)
+            created.append(child)
+            existing_ids.add(child_id)
+
+        if created:
+            write_jsonl(ITEMS, [*records, *created])
+            for child in created:
+                link_materials(child, parent, "split-from")
+                append_jsonl(REVIEW_EVENTS, review_event(child, "pdf-split-created", f"由 PDF {item_id} 的 {ai_provider_label(provider)} 拆分草案建立。"))
+        self.redirect(f"/items/view?id={quote(item_id)}&saved=pdf_split&created={len(created)}")
 
     def read_more_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
@@ -11331,6 +12252,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         body = f"""
 <h1>手動入庫</h1>
 <p class="lede">用在你看到一篇文章、一個頁面或一個案例，想先丟進入庫建檔區時。這裡新增的是單筆知識項目，不是長期 RSS 來源。</p>
+<div class="button-row"><a class="button secondary" href="/items/upload-pdf">{button_content("上傳 PDF", "text-lines")}</a></div>
 <form class="form-panel tag-picker" method="post" action="/items" data-url-preview-form data-preview-kind="item" data-tag-picker>
   <label>主線</label>
   <select name="track" data-preview-track>{option_list(TRACKS, current_track)}</select>
@@ -11366,6 +12288,179 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 </form>
 """
         self.send_html("加入收藏", body)
+
+    def show_pdf_upload_form(self, query: dict[str, list[str]]) -> None:
+        current_track = form_value(query, "track", "digital-humanities-local-knowledge")
+        if current_track not in TRACK_META:
+            current_track = "digital-humanities-local-knowledge"
+        parent_item_id = form_value(query, "parent_item_id")
+        relation = form_value(query, "relation", "full-source" if parent_item_id else "")
+        parent = next((item for item in load_jsonl(ITEMS) if clean_text(item.get("id")) == parent_item_id), None)
+        parent_hint = (
+            f'<div class="notice">這份 PDF 會作為「{h(item_display_title(parent))}」的全文材料，並建立 {h(pdf_relation_label(relation))} 關聯。</div>'
+            if parent
+            else ""
+        )
+        body = f"""
+<h1>上傳 PDF 成為材料</h1>
+<p class="lede">PDF 會進入既有的入庫建檔區；本體只存在 <code>.cache/uploads/</code>，不進 Git。全文只用本機 <code>markitdown</code> CLI 抽取。</p>
+{parent_hint}
+<form class="form-panel" method="post" action="/items/upload-pdf" enctype="multipart/form-data">
+  <input type="hidden" name="parent_item_id" value="{h(parent_item_id)}">
+  <input type="hidden" name="relation" value="{h(relation)}">
+  <label>主線</label>
+  <select name="track">{option_list(TRACKS, current_track)}</select>
+  <label>PDF 檔案</label>
+  <input type="file" name="pdf_file" accept="application/pdf,.pdf" required>
+  <p class="help">上限 80 MB。檔名會改成日期、標題與內容雜湊，避免覆蓋與暴露原始路徑。</p>
+  <label>標題（可留空）</label>
+  <input name="title" placeholder="留空會使用 PDF 第一個大標">
+  <label>來源 / 作者（可留空）</label>
+  <input name="source_name" placeholder="抓不到時會標成「本機 PDF」">
+  <label>摘要或備註（可留空）</label>
+  <textarea name="notes" placeholder="留空會使用 markitdown 抽到的第一段"></textarea>
+  <button type="submit">{button_content("上傳並抽取 PDF 全文", "text-lines")}</button>
+  <p class="help">完成後會比對既有材料，跳出候選關係讓你人工確認；不會自動合併或直接產生 article。</p>
+</form>
+"""
+        self.send_html("上傳 PDF", body)
+
+    def save_pdf_upload(self, data: dict[str, list[str]], files: dict[str, list[dict]]) -> None:
+        upload = next(iter(files.get("pdf_file") or []), None)
+        if not upload:
+            self.send_html("PDF 上傳失敗", "<h1>沒有收到 PDF 檔案</h1><p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>", HTTPStatus.BAD_REQUEST)
+            return
+        raw = upload.get("content") or b""
+        filename = clean_text(upload.get("filename")) or "upload.pdf"
+        content_type = clean_text(upload.get("content_type")).casefold()
+        if not filename.casefold().endswith(".pdf") and content_type != "application/pdf":
+            self.send_html("PDF 上傳失敗", "<h1>檔案不是 PDF</h1><p>請選擇副檔名為 .pdf 的檔案。</p><p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>", HTTPStatus.BAD_REQUEST)
+            return
+        if b"%PDF-" not in raw[:1024]:
+            self.send_html("PDF 上傳失敗", "<h1>檔案內容不像 PDF</h1><p>沒有找到 PDF 檔頭，未寫入資料庫。</p><p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>", HTTPStatus.BAD_REQUEST)
+            return
+
+        digest = hashlib.sha256(raw).hexdigest()
+        existing_items = load_jsonl(ITEMS)
+        duplicate = next(
+            (
+                item
+                for item in existing_items
+                if isinstance(item.get("reference"), dict)
+                and isinstance(item["reference"].get("pdf_meta"), dict)
+                and clean_text(item["reference"]["pdf_meta"].get("sha256")) == digest
+            ),
+            None,
+        )
+        if duplicate:
+            self.redirect(f"/items/view?id={quote(clean_text(duplicate.get('id')))}&saved=pdf_duplicate")
+            return
+
+        track = form_value(data, "track", "unclassified")
+        if track not in TRACK_META:
+            track = "unclassified"
+        provisional_title = form_value(data, "title") or Path(filename).stem
+        PDF_UPLOADS.mkdir(parents=True, exist_ok=True)
+        stored_name = f"{datetime.now(LOCAL_TIMEZONE):%Y-%m-%d}-{pdf_slugify(provisional_title)}-{digest[:10]}.pdf"
+        stored_path = PDF_UPLOADS / stored_name
+        stored_path.write_bytes(raw)
+        try:
+            markdown, pdf_meta = extract_pdf_markdown(stored_path, filename)
+        except Exception as exc:  # noqa: BLE001 - local CLI error needs to be shown in the form.
+            stored_path.unlink(missing_ok=True)
+            self.send_html(
+                "PDF 抽取失敗",
+                f"<h1>PDF 已收到，但 markitdown 抽取失敗</h1><pre>{h(exc)}</pre><p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>",
+                HTTPStatus.BAD_GATEWAY,
+            )
+            return
+
+        title = form_value(data, "title") or clean_text(pdf_meta.get("title"), 320) or Path(filename).stem
+        final_stored_name = f"{datetime.now(LOCAL_TIMEZONE):%Y-%m-%d}-{pdf_slugify(title)}-{digest[:10]}.pdf"
+        final_stored_path = PDF_UPLOADS / final_stored_name
+        if final_stored_path != stored_path:
+            stored_path.replace(final_stored_path)
+            stored_path = final_stored_path
+        source_url = clean_text(next(iter(pdf_meta.get("urls") or []), ""))
+        source_name = form_value(data, "source_name") or clean_text(pdf_meta.get("author"), 240) or "本機 PDF"
+        summary = form_value(data, "notes") or clean_text(pdf_meta.get("summary_candidate"), 1600)
+        sources = load_jsonl(SOURCES)
+        source_id, source_changed = ensure_pdf_upload_source(sources, track)
+        if source_changed:
+            write_jsonl(SOURCES, sources)
+        captured_at = now_iso()
+        item_id = stable_id("item", "manual-pdf", digest)
+        relative_path = str(stored_path.relative_to(ROOT))
+        record = {
+            "id": item_id,
+            "track": track,
+            "status": "inbox",
+            "priority": "normal",
+            "title": title,
+            "url": source_url,
+            "source_id": source_id,
+            "source_name": source_name,
+            "author": clean_text(pdf_meta.get("author")) or source_name,
+            "published_at": "",
+            "captured_at": captured_at,
+            "summary": summary,
+            "tags": [],
+            "origin": "manual-pdf",
+            "source_type": "pdf-upload",
+            "reference": {
+                "created_by": "local_web",
+                "created_from": "pdf-upload",
+                "file": relative_path,
+                "pdf_meta": pdf_meta,
+                "source_url_extracted": bool(source_url),
+                "source_status": "extracted" if source_url else "需要出處",
+            },
+            "reading_metadata": {
+                "content_type": "application/pdf",
+                "article_markdown": markdown,
+                "article_markdown_method": "markitdown-cli",
+                "article_markdown_label": "上傳 PDF 全文",
+                "article_text_method": "markitdown-cli",
+                "fulltext_source": "uploaded-pdf",
+                "fulltext_source_file": relative_path,
+            },
+            "review": default_review("由本機 PDF 上傳建立；來源資訊只採用 markitdown 抽取結果，抓不到則需人工補出處。"),
+        }
+        record, _changed, normalize_error = normalize_pdf_markdown_item(record)
+        if normalize_error:
+            stored_path.unlink(missing_ok=True)
+            self.send_html("PDF 抽取失敗", f"<h1>PDF 文字不足</h1><p>{h(normalize_error)}</p><p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>", HTTPStatus.BAD_REQUEST)
+            return
+        candidates = pdf_relationship_candidates(record, existing_items, bool(source_url))
+        reference = dict(record.get("reference") or {})
+        reference["pdf_relation_candidates"] = candidates
+        reference["pdf_relation_scored_at"] = captured_at
+        record["reference"] = reference
+        keyword_config = load_json(TRIAGE_KEYWORDS)
+        editorial_context = build_editorial_context([*existing_items, *load_jsonl(REJECTED_ITEMS)], keyword_config)
+        record["triage"] = evaluate_triage(record, keyword_config)
+        record["editorial_triage"] = evaluate_editorial_triage(record, keyword_config, editorial_context)
+        append_jsonl(ITEMS, record)
+
+        parent_id = form_value(data, "parent_item_id")
+        relation = form_value(data, "relation", "full-source")
+        parent = next((item for item in existing_items if clean_text(item.get("id")) == parent_id), None)
+        if parent:
+            link_materials(parent, record, relation)
+
+        validation = subprocess.run([sys.executable, str(ROOT / "scripts" / "validate_database.py")], cwd=ROOT, text=True, capture_output=True)
+        if validation.returncode != 0:
+            remove_jsonl_ids(ITEMS, {item_id})
+            stored_path.unlink(missing_ok=True)
+            self.send_html(
+                "PDF 入庫失敗",
+                f"<h1>資料庫驗證沒有通過</h1><pre>{h(validation.stderr or validation.stdout)}</pre><p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>",
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+            return
+        append_jsonl(REVIEW_EVENTS, review_event(record, "pdf-uploaded", "已上傳本機 PDF、用 markitdown 抽取全文並完成本機材料關係比對。"))
+        auto_open = "1" if candidates else "0"
+        self.redirect(f"/items/view?id={quote(item_id)}&saved=pdf_upload&pdf_relations={auto_open}")
 
     def save_item(self, data: dict[str, list[str]]) -> None:
         items = load_jsonl(ITEMS)

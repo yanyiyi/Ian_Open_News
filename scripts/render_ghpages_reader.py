@@ -990,13 +990,16 @@ def metadata_html(item: dict, display_title: str = "") -> str:
 
 
 def article_page(item: dict, repo_url: str, branch: str, previous_item: dict | None = None, next_item: dict | None = None) -> str:
-    body_markdown = item_body_markdown(item)
+    translated_markdown = item_translated_markdown(item)
+    body_markdown = translated_markdown or item_article_markdown(item)
+    is_translation = bool(translated_markdown)
     note_key = h(clean_text(item.get("id")))
     source_url = clean_text(item.get("url"))
     title = item_display_title(item)
     article_markdown = strip_duplicate_leading_heading(body_markdown, title)
     has_article_markdown = bool(article_markdown)
-    fulltext_heading = "原始主文" if has_article_markdown else "尚未載入全文"
+    fulltext_heading = ("中文全文" if is_translation else "原始主文") if has_article_markdown else "尚未載入全文"
+    fulltext_kicker = "中文翻譯" if is_translation else "全文"
     article_html = (
         markdown_to_html(article_markdown)
         if has_article_markdown
@@ -1042,7 +1045,7 @@ document.getElementById("note-save").addEventListener("click", () => {{
       {public_tag_chips(item, 8)}
     </article>
     <section class="article-fulltext-card">
-      <div class="section-kicker">全文</div>
+      <div class="section-kicker">{h(fulltext_kicker)}</div>
       <h2>{h(fulltext_heading)}</h2>
       <div class="article-text article-markdown">{article_html}</div>
     </section>

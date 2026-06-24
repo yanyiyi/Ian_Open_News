@@ -39,6 +39,19 @@ http://127.0.0.1:8765
 
 從主線入口按「幫這條主線加收藏」時，表單會自動預選該主線。
 
+## 上傳 PDF 成為材料
+
+打開 `http://127.0.0.1:8765/items/upload-pdf`，可把本機 PDF 直接放進「入庫建檔區」。PDF 本體會存到 gitignored 的 `.cache/uploads/`，不會進版控；系統只用本機 `markitdown` CLI 抽取 Markdown 全文，不安裝額外 PDF Python 套件。
+
+上傳後會：
+
+- 以第一個大標、第一段，以及文字中的 DOI、arXiv ID、`https://` 連結建立可追溯 metadata。
+- 建立 `origin: manual-pdf`、`source_type: pdf-upload`、`status: inbox` 的材料。
+- 用標題相似度與文字 shingle 涵蓋率比對既有材料，跳出人工確認視窗；系統不會自行合併或覆蓋來源。
+- 在 PDF 單篇頁提供兩個不同 CLI 的拆分草案；每一篇都以標題、起始標記、結束標記呈現，人工修改並採用後才拆成新的 inbox 材料。
+
+一般材料若正文出現「全文 / full text / 完整報告」等線索，右側「衍生材料工具箱」會出現補全文入口，可貼全文連結、貼全文文字，或上傳一份以 `full-source` 關聯連回原材料的 PDF。
+
 ## RSS 待整理
 
 日常 RSS 抓取會先寫到：
