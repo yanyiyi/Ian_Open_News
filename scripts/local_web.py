@@ -4493,10 +4493,15 @@ def page(title: str, body: str) -> bytes:
     .flow-line {{ margin: 4px 0; color: var(--muted, #64748b); }}
     .flow-line--change {{ margin-top: 10px; }}
     .flow-current {{ display: inline-block; padding: 2px 12px; border-radius: 999px; background: var(--soft, #eef6ff); color: var(--ocf-dark, #14304a); font-weight: 700; }}
-    .flow-options .button, .flow-options button {{ color: #64748b; background: #f3f4f6; border: 1px solid #e5e7eb; box-shadow: none; transition: color .14s ease, background .14s ease, border-color .14s ease; }}
-    .flow-options .button:hover, .flow-options button:hover {{ color: #00699f; background: #e6f6fd; border-color: #78cde5; }}
-    .flow-options .reading-button:hover {{ color: #7a5a00; background: #fff4d6; border-color: #f0d27a; }}
-    .flow-options .danger:hover {{ color: #b42318; background: #fde8e8; border-color: #f1a9a0; }}
+    /* 入庫建檔區：維持語彙色（收=紫 預設、新聞=藍 .secondary、閱讀=黑、不收=洋紅），scoped 不影響他處 */
+    .button-row.flow-options .reading-button {{ background: var(--ocf-dark); }}
+    .reason-presets.flow-options button {{ background: var(--ocf-magenda); color: #fff; }}
+    /* 可用材料區（重新檢視已判斷）：按鈕白底，hover 才上語彙色 */
+    .flow-options--review button, .flow-options--review .button {{ background: #fff; color: var(--ocf-dark); border: 1px solid var(--line); box-shadow: none; transition: color .14s ease, background .14s ease, border-color .14s ease; }}
+    .button-row.flow-options--review button:hover {{ background: var(--ocf-primary); color: #fff; border-color: transparent; }}
+    .button-row.flow-options--review .secondary:hover {{ background: var(--ocf-cyan); color: #fff; border-color: transparent; }}
+    .button-row.flow-options--review .reading-button:hover {{ background: var(--ocf-dark); color: #fff; border-color: transparent; }}
+    .reason-presets.flow-options--review button:hover {{ background: var(--ocf-magenda); color: #fff; border-color: transparent; }}
     .batch-panel {{ border-left: 4px solid var(--ocf-cyan); }}
     .auto-batch-panel {{
       border-left: 4px solid var(--ocf-primary);
@@ -9394,13 +9399,15 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 flow_current = "可用材料（可進編輯台）"
             else:
                 flow_current = status_label(_flow_status) or "待整理"
+            # 入庫建檔區（inbox）維持語彙色；可用材料區（已判斷）才用白底→hover 上色
+            flow_cls = "flow-options" if _flow_status == "inbox" else "flow-options--review"
             reason_options = rejection_reason_options(load_jsonl(ITEMS))
             inbox_actions = f"""
 <div class="card">
   <h2>{h(action_title)} <span class="help-dot" title="{h(action_help)}">?</span></h2>
   <p class="flow-line">目前為：<span class="flow-current">{h(flow_current)}</span></p>
   <p class="flow-line flow-line--change">修改為：</p>
-  <div class="button-row flow-options">
+  <div class="button-row {flow_cls}">
     <form method="post" action="/items/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
       <input type="hidden" name="redirect" value="{h(decision_redirect)}">
@@ -9419,7 +9426,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     </form>
   </div>
   <p class="help">或改成不收（選原因）</p>
-  <div class="reason-presets flow-options">{inline_reject_buttons(item_id, prioritized_rejection_reasons(item, reason_options), action="/items/reject", redirect_to=decision_redirect)}</div>
+  <div class="reason-presets {flow_cls}">{inline_reject_buttons(item_id, prioritized_rejection_reasons(item, reason_options), action="/items/reject", redirect_to=decision_redirect)}</div>
   <details class="inline-reason">
     <summary>其他原因</summary>
     <form method="post" action="/items/reject">
