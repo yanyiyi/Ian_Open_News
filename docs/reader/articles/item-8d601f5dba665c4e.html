@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Agent 導入速度超越治理，開發團隊面臨隱形技術債 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
+    .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-24T16:36:09+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-06-24 15:00</span></div>
+      <h1><a class="article-title-link" href="https://thenewstack.io/hidden-agentic-technical-debt" target="_blank" rel="noreferrer" title="開啟原始連結">AI Agent 導入速度超越治理，開發團隊面臨隱形技術債</a></h1>
+      <p class="lede">本文指出企業在快速普及 AI Agent 時，其治理機制已落後於採用速度，導致嚴重的隱形技術債。主要痛點在於：第一，運行時上下文（Runtime Context）如服務所有權或部署狀態變動頻繁，以靜態 markdown 檔案（如 .cursorrules）維護極易過期；第二，缺乏決策軌跡（Decision Traces）導致 Agent 每次運行都重新開始，無法學習過往人或 Agent 的修復經驗，甚至重複犯錯；第三，多團隊各自建立功能重疊且權限不一的 Agent，缺乏集中的可視性與技能規範。企業需建立動態 Context 遞送與統一的 Agent 規範分發機制。</p>
+
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><h1>AI Agent 工程的隱形技術債</h1>
+<ul>
+<li>五個團隊各自維護自己的 GitLab 連線，擁有不同的權限與範圍，卻不知道其他團隊的存在。</li>
+<li>當某個整合更新其 API 時，每個團隊都得各自為其連線進行除錯。</li>
+</ul>
+<h2>2. 上下文湖 (Context Lake)</h2>
+<p>Agent 的能力取決於它們能參考與使用的上下文（Context）。它們需要兩種上下文。 <strong>執行期上下文：如何在 Agent 執行期間提供精確的上下文？</strong> 執行期上下文是 Agent 在特定執行過程中需要的即時數據，例如服務的相關資訊、負責人以及最近部署的內容。這與人類在撰寫程式碼或解決事件時所使用的數據相同，但對 Agent 來說更容易存取。 想像一個負責寫程式的 Agent 接到一張工作票，要為某個服務加入重試（retry）機制。它需要知道：該服務使用什麼語言與框架、該組織中其他服務如何處理重試、它所呼叫的下游服務由誰負責，以及最近是否有針對逾時設定進行設定變更。 有些團隊在 Markdown 檔案中管理他們的執行期上下文：agents.md、.cursorrules、skills 檔案。 Markdown 檔案適用於靜態指令，例如如何格式化提交或使用哪種 linter。但執行期上下文是隨時在變的。服務的負責團隊會轉移、依賴關係會增加、設定值會更新、每小時都在進行部署。如果一個 Agent 運作時參考的 .md 檔案寫著「checkout-service 由支付團隊負責」，它就不會知道負責權在上週二已移交給電商團隊。該檔案在撰寫時是準確的，但當 Agent 讀取它時，可能已經過期了。 <strong>決策軌跡：如何幫助 Agent 從自身過去的工作或其他 Agent 的工作中學習？</strong> 決策軌跡是過去所做之事的歷史紀錄（無論是人類還是 Agent 所做）、做出該決策的原因以及後續發生的結果。如果沒有這些歷史紀錄可供參考，Agent 的每次執行都得從零開始。想像一個 Agent 建立了一個 PR 來修復不穩定的測試。它不知道上週有另一個 Agent 嘗試過相同的修復方式，但該 PR 因為破壞了下游契約而被拒絕，且團隊決定完全廢棄該測試。因此，它又重新建立了同一個 PR。若沒有決策軌跡，Agent 就會重複人類（或 Agent）已經解決過的錯誤。 一個解決過 50 起事件的 Agent 已經見過新 Agent 沒見過的模式，例如哪些修復有效、哪些導致了迴歸，以及哪些服務在部署後較為脆弱。如果沒有決策軌跡，這些知識在每次執行後就會消失。當多個 Agent 在相同系統上運作時，它們無法看到彼此的歷史紀錄。 LLM 提供商正開始透過可在團隊間共享的 <code>memory.md</code> 檔案來解決這個問題。但當你有數十個 Agent 在運作時，債務依然會顯現。你需要找到一種方法，可靠地將該記憶（或僅其中合適的部分）提供給特定的 Agent。 上下文湖中的隱形技術債看起來像：</p>
+<ul>
+<li>過期、破碎且無人負責的上下文</li>
+<li>當公司標準存在 Wiki 中時，Agent 卻依然根據 <a href="http://agents.md" target="_blank" rel="noreferrer">agents.md</a> 運作</li>
+<li>Agent 無法學習其他 Agent 是如何以及為何解決問題，也無法得知它們犯過的錯誤</li>
+</ul>
+<h2>3. Agent 註冊表 (Agent Registry)</h2>
+<p><strong>掌握有哪些 Agent 存在</strong> 組織圖正在發生變化。現在除了員工之外，你還擁有 5 到 10 倍數量的 Agent。所有人類員工每天都在建立它們。它們在沒有防護欄（guardrails）的情況下執行、擁有關鍵基礎設施的存取權限，並且正在做決定。它們還分布在 Claude Code、Cursor、n8n、Zapier、Notion、AWS、GCP 等各種工具中。 典型的模式是這樣的：一位工程師建立了一個分類 Agent，他們的團隊開始用它來協助處理事件。另一個團隊因為不知道第一個 Agent 的存在，又建立了自己版本。第三個團隊也建立了類似的東西，但連接到不同的工具，且擁有不同的權限。 在一間擁有 20 或 30 個工程團隊的公司中，你很快就會遇到職責重疊、行為衝突且存有隱形依賴關係的 Agent。在團隊之間共享 Agent 之前，你必須先知道它們的存在。 <strong>向 Agent 傳遞指令</strong> 一旦掌握了 Agent 的動態，它們就需要一份相當於員工手冊的東西：標準、技能，以及期望它們如何運作的指令。 如今，工程師們各自獨立為其 Agent 建立技能檔案（skill files）。問題在於，當 these 檔案散落在各個儲存庫中且缺乏集中檢視時，團隊最終會建立重複或不準確的技能。這些技能往往與平台分發的上下文相衝突。平台團隊對於技能檔案中應該寫些什麼，比個別團隊擁有更深入的洞察。 那麼，你該如何將一致但個人化的程式碼編寫規則、指令、技能和掛鉤（hooks）傳遞給正確的 Agent 呢？ 這些資訊甚至可能需要多個層級：</p>
+<ul>
+<li>適用於所有地方的公司級標準（安全編碼、提交規範）</li>
+<li>儲存庫專屬指令（「在此儲存庫中，事件是透過這種方式建立的」）</li>
+<li>或者針對部分工程師的團隊級規則</li>
+</ul>
+<p>你需要找到一種方法，可靠地將這些資訊傳遞給數千個 Agent，確保正確的指令到達正確的 Agent。 假設你已經掌握了大多數現有 Agent 的動態，並向它們傳遞了指令。下一個問題是：你該如何在不降低團隊速度的情況下，管控新 Agent 的建立流程？ 這項責任現在落到了平台團隊身上。 就像軟體目錄中的服務一樣，Agent 應該擁有標準化的屬性，並且與公司中的其他實體建立關聯，例如其他 Agent、團隊、服務、部署等。 如果沒有模板，你就會遇到剛剛才解決的野蠻生長（sprawl）問題。工程師啟動了一個沒有負責人、沒有生命週期狀態，且與其操作的服務毫無關聯的 Agent。這對他們有用，但沒有其他人知道它的存在。六個月後，有人發現它在正式環境（production）中執行，使用的是已過期的憑證（token），且無法聯絡到當初建立它的人。</p>
+<blockquote>「工程師啟動了一個沒有負責人、沒有生命週期狀態，且與其操作的服務毫無關聯的 Agent。這對他們有用，但沒有其他人知道它的存在。」</blockquote>
+<p>建立 Agent 應該遵循標準化模板。這並不意味著人類員工在建立 Agent 時的速度會被減慢。相反地，透過標準化的 Agent 建立流程，你將幫助他們比單獨建立時更快地達到高品質的工作成果。 應該允許工程師直接從他們的工作站建立 Agent。如果他們在 Cursor 中工作並需要啟動一個 Agent，他們應該能夠直接在那裡進行，而不是在別的地方。這意味著，作為平台工程師，你的工作是確保在任何地方建立的 Agent 都遵循你的建立流程。 模板並不會限制 Agent 的功能。它能確保每個 Agent 在建立之初就具備基本要素：負責人、描述、使用的工具、接觸的服務以及生命週期狀態。這就是讓它從第一天起就可被治理的原因，而不是等到日後才去費力追查。 Agent 註冊表中的隱形技術債看起來像：</p>
+<ul>
+<li>隱形的 Agent</li>
+<li>各團隊重複建立相同的 Agent</li>
+<li>過期的上下文</li>
+<li>當資安長（CISO）要求對 Agent 進行審計，卻連一份可供開始的清單都沒有</li>
+<li>沒有明確將 Agent 推向正式環境的流程</li>
+<li>沒有版本控制、回滾（rollback）機制或測試環境（staging environment）</li>
+</ul>
+<h2>4. 衡量指標 (Measurement)</h2>
+<p>你如何知道你的 Agent 是否發揮了作用？這取決於發問的人是誰。 站台可靠性工程師（SRE）想知道 Agent 做了什麼。 機器學習（ML）工程師或產品經理想知道它的表現是變好還是變差。 工程副總裁想知道這筆錢花得值不值得。 終端用戶想知道 Agent 是否有根據他們的意見回饋進行學習。 因此，雖然每個人都想衡量 Agent 的某些方面，但他們需要的衡量類型各不相同。 <strong>1. 你如何知道你的 Agent 正在做什麼？</strong> 事件、追蹤和日誌展示了 Agent 採取了哪些行動、可以存取哪些數據，以及是否仍在正常執行。工程團隊理解傳統系統的觀測性（observability），但在 Agent 方面，其範疇要廣泛得多。 假設你有一個能自動解決 Jira 工作票的 Agent。當它收到一張 Jira 工作票時，它會讀取服務目錄以找到相關的儲存庫、從 GitHub 整合中拉取最近的提交、透過寫程式的 Agent 產生修復方案、在 GitHub 中建立 PR，並向它在軟體目錄中找到的服務負責人請求審查。如果這個修復方案改壞了東西，是哪個步驟出錯了？是拉取了錯誤的儲存庫？誤判了負責權？還是產生了糟糕的程式碼？ 如果你無法追蹤整個鏈條中的各個環節，祝你在除錯時好運。 <strong>2. 當提示詞、技能、工具 and 模型改變時，你如何知道你的 Agent 是變好還是變差？</strong> 在標準的軟體工程中，你可以寫一個預期精確字串的單元測試。但在 Agent 工程中，由於每次的回覆都不盡相同，你需要不同的方法。 評估（Evals）回答了一個簡單的問題：在更改了某些內容（如提示詞或模型）之後，Agent 依然好用嗎？ 如果沒有追蹤的方法，變更就會在未經測試的情況下發布，導致輸出品質默默下降。就像把 Sonnet 換成 Opus 後，你的 PR 審查 Agent 開始批准它以前會標記警告的內容。 <strong>3. 你如何知道你的 Agent 是否真的對業務有幫助？</strong> 今年每一次的財報電話會議都會包含這個問題：「AI 為你們的業務帶來了什麼成效？」。 大多數工程主管目前還無法回答這個問題，但歸根究底，他們才是負責衡量 Agent 成本和投資報酬率（ROI）的人。 在這個公式中，追蹤支出是比較簡單的部分。你可以追蹤每個 Agent、每個團隊的 token 使用量、API 呼叫次數和運算成本。 投資報酬率則更難衡量。Agent 解決了多少張工作票？它們節省了多少工程時間？它真的降低了平均修復時間（MTTR），還是只是把工作轉移到別處？這些數據更難收集，也更難信任。如果你只能呈現成本端，卻無法展現明確的投資報酬率，那將會是一場尷尬的對話。 <strong>4. 你如何針對 Agent 的工作給予回饋？</strong> 這就是<strong>回饋迴圈（feedback loops）</strong> 當 Agent 產生 PR、解決工作票或撰寫根本原因分析（RCA）時，審查的人類是接受了輸出還是進行了修正？這通常透過按讚或按爛來管理，但有時人類的回覆本身就是一種回饋（例如：「不對，再試一次，但把 X 改掉」）。 這對於改進 Agent 至關重要，甚至比評估更重要。處於展示（demo）階段的 Agent 通常不會收集這些訊號，或者收集了也不會做出回應。 衡量指標中的隱形技術債看起來像：</p>
+<ul>
+<li>不知道 Agent 的效能隨時間推移是提升還是下降，以及與什麼基準做比較</li>
+<li>當提示詞或模型改變時，無法衡量其影響</li>
+<li>管理階層詢問投資報酬率，你卻沒有明確的答案</li>
+<li>未能收集使用 Agent 的人類所給予的回饋</li>
+</ul>
+<h2>5. 人機協同 (Human-in-the-loop)</h2>
+<p>在完全手動與完全自主的工程之間存在著一個光譜。一端是人類包辦所有事情，另一端是 Agent 無須詢問便自行採取行動。大多數實用的 Agent 都介於兩者之間，而它們確切的位置取決於行動、環境和風險。 人機協同是讓你安全地將 Agent 推向更自主的機制之一。它讓你定義檢查點：此行動需要批准、彼行動不需要，而另一個行動則取決於環境。Agent 負責運作，但在執行高風險決策之前需由人類進行確認。 例如，一個部署 Agent 在測試環境中可以自由執行，但在正式環境中則需要批准。它在上班時間可以是完全自主的，但在凌晨 3 點，我們需要人類協同介入。這些規則是有條件的，並因 Agent、行動、環境和團隊而異。 當你在展示中只有一個 Agent 時，你可以將批准檢查點寫死為一個 if 語句，在部署前發送 Slack 訊息。但當 20 個團隊擁有 100 個 Agent 時，寫死的批准邏輯就無法擴展了。每個團隊都實現了自己版本。某個團隊的 Agent 在未經詢問的情況下回滾了正式環境；另一個團隊的 Agent 執行相同操作卻需要三個批准。沒有人在中央進行定義，因此沒有人知道哪些 Agent 可以自主行動，哪些不行。 接著是批准本身的編排（orchestration）問題。誰會收到通知？透過什麼管道？如果沒人回應，逾時時間是多久？如果批准人休假會怎樣？如果一個 Agent 的批准是透過 Slack，另一個透過電子郵件，第三個透過自訂 UI，那麼你現在就必須維護三個批准系統。圍繞批准的邏輯變成了主要的技術債，與 Agent 本身脫鉤。 放大來看，人機協同也是為了掌握為我們工作的所有 Agent 內部正在發生什麼事。隨著工程師轉變為更偏向管理 Agent 的角色，他們將需要一個控制台（control plane）來查看正在進行的任務、啟動 Agent 工作、識別哪些 Agent 需要關注，並在必要時採取行動。 這非常重要，因為人機協同是你在規模化時應用變革的方式（而如今的公司若不改變就只能面臨淘汰）。為了在新工作中取得成功，工程師需要看到 Agent 正在工作，正如他們以前看到自己的程式碼在運作一樣。如果一個團隊能夠觀看 Agent 處理其前十次部署（看到每個步驟、審查每個決定，並在需要時進行干預），他們就會信任該 Agent。而無法做到這一點的團隊，就絕對不會信任它。 人機協同中的隱形技術債看起來像：</p>
+<ul>
+<li>無法從單一地方修改的寫死批准程式碼</li>
+<li>某些 Agent 在沒有批准的情況下執行，另一些卻有太多批准步驟</li>
+<li>透過電子郵件、Slack 和自訂 UI 等多個無法互相協調的批准系統</li>
+<li>沒有共享的工作空間讓團隊查看其 Agent 的運作狀況並在必要時進行干預</li>
+</ul>
+<h2>6. 治理 (Governance)</h2>
+<p>當人類工程師需要存取正式環境資料庫時，會有一套流程。他們提交申請，有人批准，且存取權限會被限定範圍並記錄下來。這可能需要一個小時或一天的時間，但會留有誰能存取什麼的記錄，以及誰做了什麼的稽核日誌。 當工程師在本地端建立 Agent 時，它通常會使用其建立者所配備的任何憑證來執行：他們的 API token、他們的服務帳戶、他們的雲端權限。極有可能沒有人審查過其存取範圍。 Agent 的治理規則必須具體：</p>
+<ul>
+<li>「只有在有高嚴重性事件未結案時，才能回滾服務。」</li>
+<li>「部署到正式環境一律需要手動批准，無論是由哪一個 Agent 觸發。」</li>
+<li>「從外部系統拉取數據的 RCA 報告，應該只對該服務的負責人可見。」</li>
+</ul>
+<p>平台團隊需要在一處集中的地方定義這類規則，並套用到所有 Agent 上。 治理的另一面是執行。假設你發現了某個內部 API 的漏洞，需要立即阻止所有 Agent 呼叫它。你辦得到嗎？安全工程師應該要能在一處停用某個工具，並讓所有 Agent 自動停用該工具。在大多數公司中，這種能力目前還不存在。 你無法總是從一開始就做到滴水不漏的存取權限。事情可能會出錯，如果真的出錯了，你需要知道發生了什麼事：是哪一個 Agent 採取了行動、存取了哪些數據、使用了哪些憑證，以及是誰觸發了它。大多數 Agent 設定不會產生這種稽核軌跡（如果是在本地端建立的，就更不可能有了）。在本地端執行的 Agent 會繼承其建立者的憑證，因此每一次的行動看起來都像是工程師個人的工作。如果三個 Agent 共用一個服務帳戶，你將無法分辨是哪一個 Agent 進行了呼叫。如果一個 Agent 在修改正式環境設定之前串聯了另外兩個 Agent，稽核日誌可能只會顯示最終的寫入，而不會顯示其推導過程、上下文或導致該決策的決策鏈。 治理的另一個層面是成本治理。儘管累積了高昂成本，Agent 仍傾向於繼續工作。當工程師在本地端建立 Agent 時，他們可能不會想到要設定成本上限。 一個陷入重試迴圈或循環思考的 Agent 會持續燃燒 token 數個小時，直到有人手動結束它，或者直到月度帳單顯示出其損害。大多數團隊能告訴你他們的 LLM 總支出，但幾乎沒有人能按 Agent、團隊或使用情境來細分。團隊也應該能夠輕鬆地看到他們的成本現況。因為當管理階層詢問運作 Agent 的成本時，工程部門需要給出答案。 治理中的隱形技術債看起來像：</p>
+<ul>
+<li>不該在正式環境中執行的 Agent 存取了正式環境數據</li>
+<li>RCA Agent 將敏感的服務數據發布到共享頻道中</li>
+<li>Agent 在公開論壇上發布個人識別資訊（PII）</li>
+<li>無法從單一地方在所有 Agent 中停用某個工具</li>
+<li>沒有 Agent 做了什麼或為什麼這麼做的稽核軌跡</li>
+</ul>
+<h2>7. 編排 (Orchestration)</h2>
+<p>大多數 Agent 工作流並不完全由 Agent 組成。它們是 Agent、工具和人類的混合體。技術債並不在於個別的步驟，而是在於步驟之間發生的事情：路由、失敗處理和負責權。</p>
+<h3>節點之間會壞掉的地方</h3>
+<p>拿上述的事件回應工作流為例。警報響起，分類 Agent 接收它、展開調查，並判定根本原因是一個部署問題。接著它移交給部署 Agent 來回滾該變更。最後，驗證 Agent 檢查修復是否有效。 現在想像一下，分類 Agent 判斷錯誤。真正的起因是資料庫逾時，而不是糟糕的部署。部署在不必要的情況下被回滾，資料庫問題依然存在，警報持續響起。最終，人類介入並從頭開始除錯，但此時他們還得清理不該發生的回滾。這個失敗並非悄無聲息，工作流自信地採取了錯誤的行動，卻沒有人能說出是在哪裡做出了這個糟糕的決策。 這就是實務中編排債的樣子。不一定是停止運作的工作流，而是做了錯誤的事且難以追蹤的工作流。 而且，你稍後加入的每一個新問題類型（例如安全事件、設定漂移或依賴關係失敗）都會使路由變得更難測試和解釋。這些變更本身都不難，但當沒有人對它們如何連結的決策負責時，每次連結的方式都會大不相同。</p>
+<h3>與傳統工作流編排有何不同</h3>
+<p>工作流編排並非新鮮事。多年來，團隊一直在 CI/CD 流水線、Airflow 和 Step Functions 中將各個步驟串聯在一起。那麼，為什麼 Agent 編排會是一個不同的問題？ 傳統工作流是確定性的。步驟 A 產生已知的輸出，步驟 B 消耗它。你可以測試每一條路徑，因為你清楚每一條路徑。Agent 工作流將非確定性引入了先前不曾存在的鏈條中。當你用一個會對問題進行推理的 Agent 取代操作手冊時，每一個下游步驟都變得不可預測。你無法測試每一條路徑，因為你無法預知每一條路徑。 Agent 之間也沒有契約。服務擁有包含 schema 和版本化端點的 API。兩個互相移交任務的 Agent 之間只有提示詞和自然語言。這個「介面」是模糊的。某個 Agent 的模型更新或提示詞變更，其產生的輸出偏差可能剛好足以破壞鏈條中的下一個 Agent。 例如，部署流水線應該是完全確定性的。觸發器啟動、系統知道嚴重性、部署到測試環境、人類批准、上線到正式環境，然後驗證 Agent 檢查健康狀況。步驟是預先定義好的、順序是固定的，而且風險高到讓你希望它保持這種方式。 而事件回應工作流在本質上是非確定性的。根本原因可能是糟糕的部署、資料庫問題、設定錯誤，或者是前所未見的狀況。Agent 必須展開調查並決定接下來該怎麼做。 大多數工程團隊需要這兩種工作流。而債務在於，沒有共享的規則來規定何時使用哪一種。一個團隊將每個分類結果直接發送給寫程式的 Agent，另一個團隊則在進行任何自動化修復之前需要人工審查。兩者各自獨立運作，直到某次事件跨越團隊邊界，這兩種方法發生衝突。</p>
+<h3>誰擁有工作流？</h3>
+<p>即使每個獨立的 Agent 都有負責人，這也還不夠。編排本身也需要負責人。 當 Agent 修改服務且出錯時，誰該負責？是 Agent 的負責人還是服務的負責人？當一個工作流跨越三個團隊時，哪一個團隊擁有最終結果？當某個步驟在鏈條中途失敗時，是失敗的 Agent 負責重試，還是工作流負責重新路由？ 這些不是理論問題。這些是凌晨 2 點發生的真實問題，當一個由 Agent 驅動的工作流出了差錯，三個團隊在戰情室（war room）裡爭論不休，試圖查明是誰的 Agent 做了什麼。單一步驟的失敗很容易除錯。但要查出是三次移交前的哪一個決策讓工作流走上歧途——這需要大多數組織尚未建立的追蹤機制。</p>
+<blockquote>「……當一個由 Agent 驅動的工作流出了差錯，三個團隊在戰情室裡爭論不休，試圖查明是誰的 Agent 做了什麼。」</blockquote>
+<p>編排中的隱形技術債看起來像：</p>
+<ul>
+<li>Agent 在工作流中途失敗，直到下游影響浮現才有人發現</li>
+<li>無法跨 Agent 追蹤決策並回溯到原始觸發點</li>
+<li>工作流跨越三個團隊，卻沒有任何一個團隊對結果負責</li>
+<li>某個 Agent 的模型或提示詞變更，默默地破壞了鏈條中的下一個 Agent</li>
+</ul>
+<h2>債務何時引爆</h2>
+<p>這種隱形技術債在特定的時間點會開始讓人感到痛苦。 在探索階段，沒有技術債。一位工程師、一個 Agent，運作良好。然而，當團隊開始將 Agent 用於實際工作時，整合和上下文是第一批崩潰的東西。由於沒有人界定憑證範圍，Agent 存取了它不該看到的客戶數據。或者，因為沒有相關的上下文，Agent 只能去猜測服務負責人是誰。 當多個團隊獨立運作 Agent 時，技術債累積得更快。Agent 註冊表、衡量指標和人機協同等問題會同時浮現。在此階段，大約 50% 的團隊人力將耗費在建立周邊的基礎設施上。 在正式環境規模下，治理和編排成為首要任務。有些公司預見了這一點。一位架構師告訴我：「我們從經驗中知道混亂將會存在，我們將試圖從第一天起就避免它。」其他人則經歷了慘痛的教訓：一位平台工程副總裁看到各個團隊獨立建立相同的 Agent，因而在野蠻生長已經形成後，不得不回頭修補治理機制。兩者最終都會建立相同的基礎設施，但其中一個付出了兩次代價。</p>
+<h2>微服務的歷史重演</h2>
+<p>這一刻的感覺與微服務的演進非常相似。每個團隊選擇自己的技術、建構自己的基礎設施，最終必須有人站出來制定標準。現在，同樣的平台工程時刻正發生在 Agent 上。 平台工程過去是一項以提升速度為導向的計畫：提供自助服務、減少工作票量，並快速搭起新服務的骨架。對於 Agent 而言，它依然關乎速度，但平台團隊正在苦苦追趕。工程師們不會等待，他們可以在需要時隨時在 Cursor 或 Claude Code 中啟動新的 Agent。平台團隊的首要任務是找出已經存在哪些 Agent 並將它們納入管控。只有這樣，他們才能做他們一直在做的事：讓每個人建立與使用它們時變得更快、更安全、更容易。 一個開發者體驗（DevEx）團隊向我描述了他們的新角色：「我們不會是設計與建立 Agent 的人。我們負責的是確保開發人員知道如何使用它們、能進行適當的互動，並協助更多團隊建立自己的 Agent。」</p>
+<h2>該如何應對</h2>
+<p>從提升可見度開始。稽核你的 GitHub 組織，尋找與 AI 相關的工作流與動作。檢查你的團隊在 Claude、OpenAI 或 Bedrock 上擁有多少個作用中的 API token。檢視你的工作流工具，尋找任何帶有 AI 節點的內容。目標不是一份完美的清單，而是跨出清點的第一步。 更難的問題是就「什麼才算是一個 Agent」達成共識。<a href="https://thenewstack.io/boost-your-ci-cd-pipeline-automate-docker-with-github-actions/" target="_blank" rel="noreferrer">GitHub Actions 自動化</a>算不算 Agent？Claude Code 的排程任務算嗎？帶有 AI 節點的 n8n 工作流算嗎？在將它們編成目錄之前，你需要一個實用的定義。它不一定要完美，但你的組織需要達成一致。 此外，還有集中化還是民主化的問題？應該由平台團隊建構一切、再由開發人員使用嗎？還是平台團隊提供防護欄，而由各團隊建構自己的工具？這兩種模式都存在，這可能取決於你的組織文化能接受多大程度的管控。 你可以現在就建構這套基礎設施，或者，你也可以等到某個 Agent 外洩客戶數據、一夜之間燒掉價值 300 美元的 token，或者默默回滾了根本沒人要它碰的正式環境服務之後再來做。不論如何，你最終都會建構它，唯一的區別在於你是在痛苦發生之前還是之後才動手。 社群為開發人員建立的學習地圖、文章、資源與歷程，旨在幫助你選擇職涯道路並在職業生涯中成長。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-837b9f5221f824e0.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">公共 AI 的實踐之路：從運算、數據到模型的政策與技術白皮書</span>
+</a>
+
+<a class="article-sequence-link" href="item-a786cef1b373a81b.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">全球科技轉向與創新如何影響人道援助及發展：邁向永續發展路徑的系統性回顧</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-8d601f5dba665c4e.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The hidden technical debt of agentic engineering</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：AI Agent 工程的隱形技術債（Gemini）</li><li><strong>原始作者</strong>：Zohar Einy（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-24T10:13:12+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-24T10:13:12+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-8d601f5dba665c4e";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 訓練資料漏洞可能洩露醫療紀錄 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
+    .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-24T16:36:10+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-24 08:00</span></div>
+      <h1><a class="article-title-link" href="https://www.nature.com/articles/d41586-026-02032-3" target="_blank" rel="noreferrer" title="開啟原始連結">AI 訓練資料漏洞可能洩露醫療紀錄</a></h1>
+      <p class="lede">Nature 新聞報導指出 AI 訓練資料存在識別漏洞，可能導致個人醫療紀錄外洩。摘要進一步說明，這種識別風險對訓練資料中的弱勢群體更為嚴峻。這涉及 AI 系統的資料治理、醫療資料隱私保護，以及訓練資料多樣性對風險分佈的影響等層面。由於僅有 RSS 摘要，全文細節（如具體攻擊手法、涉及模型類型、政策建議）尚待確認。</p>
+
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>尚未載入全文</h2>
+      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-03e2233f0adc452f.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">Exabeam 開源 AI 代理行為驗證工具 Praxen</span>
+</a>
+
+<a class="article-sequence-link" href="item-d7c18fb928b7a1d5.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">政府開源軟體發布活動國際比較研究：參考資料</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-1bde61e448d8463c.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Medical records could be revealed by AI training-data vulnerability</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Benjamin Thompson</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-24T15:32:52+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-24T15:32:52+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-1bde61e448d8463c";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

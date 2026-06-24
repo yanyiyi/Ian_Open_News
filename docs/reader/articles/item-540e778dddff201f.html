@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 與知識、文化及權力的重組 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
+    .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-24T16:36:09+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-24 18:26</span></div>
+      <h1><a class="article-title-link" href="https://data.europa.eu/doi/10.2766/8868773" target="_blank" rel="noreferrer" title="開啟原始連結">AI 與知識、文化及權力的重組</a></h1>
+      <p class="lede">本文探討人工智慧如何超越傳統機器學習範疇，重塑知識、文化與歷史的生產及詮釋。隨著生成式 AI 普及，AI 已成為傳遞意義與媒介資訊的社會文化技術，但也加劇了平台把關與能見度不平等的風險。文中舉出 2025 年 Wikipedia 人類流量下滑 8% 且 Bot 活動激增 50% 的數據，警告 AI 正逐漸取代傳統知識庫作為獲取知識的界面，使訓練數據來源及利益歸屬問題變得更加迫切。對此，文化資產機構（如圖書館和檔案館）不應保持被動，而應主動塑造符合公共價值的技術基礎設施。歐洲文化資產界因此發起了「Alignment Assembly on Culture for AI」，集合數百位專業人士共同商討對策，促使文化遺產部門在 AI 時代主動捍衛文化主權並建立更公正的資訊生態系。</p>
+
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><p>AI 對文化資產社群而言並不陌生。二十多年來，圖書館、博物館與檔案館已開發並應用特定領域的機器學習技術，包括擴充後設資料、語音轉文字、影像辨識、手寫文字辨識與光學字元辨識。 正在改變的是 AI 的規模、速度、應用範圍及其社會影響力；大型語言模型（LLM）與生成式 AI 的發展，使這些變化成為可能。 AI 已成為無所不在的社會文化技術，正在重塑知識、文化與歷史的生產、取用及詮釋方式。AI 模型日益介入意義的建構，汲取社會共享的知識與文化產出。AI 也正在改變文化內容於網路上呈現的方式。 僅僅讓內容可供取用已不再足夠：作品日益透過平台介面、策展系統及演算法路徑被人發現，而這些機制可能強化甚至加劇平台把關、能見度不均與關注失衡等問題。 因此，AI 系統的設計必須能夠呈現、推薦並提升文化與語言多樣性的能見度。1 當每六人中就有一人2使用生成式 AI 回答問題、翻譯或協助決策時，AI 所帶來的影響便不再只是技術問題，而是社會、文化與政治問題。AI 工具也日益成為具有重大影響力的資料儲存庫。 1 European Commission: Directorate-General for Education, Youth, Sport and Culture, Panteia, KEA European Affairs, Vrije Universiteit Brussel, DELab – University of Warsaw, Erasmus University Rotterdam, IDEA Consult, Clarke, M., Vroonhof, P., Byrne, C., Petrov, L., Le Gall, A., Antonucci, F., Albertelli, A., Rolando, E., Ranaivoson, H., Salganik, R., Wiratama, V., Afilipoaie, A., Hardy, W., Paliński, M., Rożynek, S., Berkers, P., Calkins, T., Wijngaarden, Y., Vuijlsteke, C., Valintelyte, E. Janssens, J.,《數位環境中多元歐洲文化內容的可發現性研究——最終報告》（Study on the discoverability of diverse European cultural content in the digital environment – Final report），歐盟出版局，2026，https: //data.europa.eu/doi/10.2766/8868773 2 Microsoft AI Economy Institute：《2025 年全球 AI 採用情況——持續擴大的數位落差》（Global AI Adoption in 2025—A Widening Digital Divide）。 一份近期發布的報告說明了這個現象：2025 年，維基百科的人類流量下降了 8%，機器人活動卻激增 50%。3 AI 不只是在取用或閱讀維基百科的內容，更可能正在取代維基百科，成為人們取得知識的介面。這引發了迫切的問題：AI 系統使用哪些知識進行訓練、在什麼條件下進行，又是為誰的利益服務？肩負文化記憶保存責任的機構，不能繼續只是中立的旁觀者。 這些機構必須做出選擇：是適應由他人設計的基礎設施，還是積極參與塑造這些基礎設施的運作方式。參與 AI 發展不只是採用技術的問題，更關乎機構定位、民主責任，以及長期文化主權的維護。1950 年代的菸草工人——1950 年，希臘薩索斯市——CC BY。3 Wikimedia、IMD、Open Future：《集體智慧與人工智慧》（Collective Intelligence vs Artificial Intelligence）。 文化遺產領域啟動了「文化與 AI 對齊大會」（Alignment Assembly on Culture for AI）1.1，5 這是一項集體智慧行動，自 2025 年 5 月起已有超過 400 位專業人士參與。首批洞見於 2025 年 10 月發布，盤點了整個領域中的共識、摩擦與不確定之處，同時也找出後續集體工作的優先事項。建立本領域對 AI 的信心：「文化與 AI 對齊大會」。 文化遺產社群從來不是數位變革的被動旁觀者；它一直積極建構以公共價值為基礎的基礎設施、標準與工具，其影響往往超越自身領域，成為其他領域的典範。4 大會顯示，本領域希望運用自身的專業知識與價值觀，積極塑造更公平、更健全的資訊生態系，同時管理相關風險。 本文支持這項願景，並提出明確主張：在 AI 時代，文化遺產領域應成為積極的行動力量，既維護公共價值，也塑造未來的發展機會。如今，本領域同樣面臨挑戰，必須以明確且一致的立場參與 AI，並共同塑造其發展方向。第一步是建立共同歐洲文化遺產資料空間。4 相關貢獻包括制定 IIIF 等技術標準，以及推廣創用 CC（Creative Commons）授權條款。 5 「對齊大會」（Alignment Assembly）透過專門規劃的交流管道，蒐集文化資產專業社群的見解與回饋。 這些管道包括透過 polis.eu 進行的線上立場調查，以及後續數場線上與實體聚會：2025 年 10 月於哥本哈根舉行的歐洲數位文化協會（Europeana Network Association，ENA）「文化與 AI」（Culture for AI）跨社群工作坊、2025 年 12 月的 AI4LAM Fantastic Futures 大會、2025 年 11 月及 2026 年 3 月與 ENA 會員委員會及 Europeana 聚合機構論壇進行的諮詢，以及針對白皮書本身撰寫工作的諮詢。 文化資產領域對可用、互惠且可靠 AI 的觀點 可靠 文化資產資料能提供可追溯性、可信度、脈絡資訊，以及具歷史根據的知識。這是 AI 系統提供溯源資訊的關鍵，讓輸出結果可追溯至其來源與脈絡。 互惠 資料治理必須確保資料的使用能創造集體利益，並尊重社群與機構決定資料如何使用的權力，同時以責任與倫理關懷為基礎。 可用 文化資產內容與詮釋資料必須易於取得、具互通性，並有充分的文件紀錄，以支援有意義的再利用，包括依循 FAIR 原則用於 AI 開發。 互惠性目前尤其承受壓力，因為文化資產資料正遭到大規模再利用，卻缺乏充分的回饋。為此，本領域必須為文化資產資料如何用於 AI 設定明確的界線與條件。 這些規範應防止資料被納入不透明、具掠奪性、不符合本領域價值，或未對負責維護資料的公共機構提供任何回饋的 AI 系統。 AI 機器人要求存取文化資產資料的情況日益增加，顯示這類資料在 AI 生態系中的關聯性與戰略重要性持續提升。 Europeana 與資料空間協助文化資產機構開放典藏，促成新的再利用方式，包括用於 AI 開發。 本領域也必須主動與 AI 接軌，以開創新的近用、參與方式與社會價值。這類互動應以本領域的公共利益使命與價值為指引。 可用性（Usability）是指，在尊重創作者的權利與意願，以及遵循相關法規框架的同時，確保內容與詮釋資料易於存取、具互通性，並有充分完善的文件，讓資料得以有意義地再利用，符合 FAIR 原則（可發現、可存取、可互通、可再利用）。Europeana 與資料空間建立在三項價值之上：可用、互惠與可靠。在 AI 時代，這些價值不僅是促進創新的必要條件，也有助於建立更多元、更具代表性、更能理解情境的 AI 系統，從而維護公共利益並創造更多公共價值。這與 CARE 原則（集體利益、控制權、責任與倫理）完全一致。CARE 原則提醒我們，資料治理不能只著眼於存取與再利用，還必須確保資料的使用能創造集體利益，尊重社群與機構決定資料使用方式的權力，並以責任和倫理關懷為基礎。 再利用環境的轉變也帶來了新的壓力。 正如 Alignment Assembly 所呈現的，即使開放符合公共利益，文化遺產機構仍可能將其感受為控制權的喪失。對許多機構而言，挑戰已不再是是否應允許再利用，而是如何在不斷變化的條件下，維持資料的開放性與可用性。這也涉及維護基礎設施、改善資料品質、擴大數位化，以及確保更多館藏能被有意義地再利用等實際成本。 文化遺產資料被廣泛再利用，本身並不是問題：這些機構保存並分享所照管的館藏，是基於其公共使命，而不是因為期待獲得補償。當這種關係從互惠轉為單方面攫取，並耗損無法同時負荷一般使用者與 AI 機器人程式的基礎設施時，問題才會出現。 互惠 文化遺產機構大多由公共資金支持，透過分享知識與基礎設施來服務公眾。現今的資訊生態系日益由少數私人業者主導；這些業者受益於資訊的開放存取，卻沒有…… 以能維繫共享資源服務的方式回饋，但這也揭示了一項新現實：人工智慧（AI）系統正取用這些資源。缺乏互惠的開放模式，可能強化既有的權力集中；AI 已成為公共知識基礎設施的重要受眾，而支援這類受眾需要特定的資金與協助。這也會破壞長久以來塑造開放知識生態系的協作與共享利益原則。 部分生成式 AI 公司仰賴大規模資料抓取，使用文化資產機構數十年來透過公共投資建立的資源，卻未回饋其所創造的價值。值此假訊息增加、信任下降之際，文化資產資料能提供可追溯性、可信度、脈絡化資訊，以及具歷史根據的知識。 相反地，公帑資助的機構必須承擔伺服器負荷、基礎設施壓力、防禦性技術措施、法律不確定性，以及其所維護館藏遭再利用而衍生的聲譽風險。這可能使未提供來源及其脈絡等出處資訊的 AI 系統失去正當性。最終形成結構性失衡：公共機構承擔責任與成本，私人實體卻獲取不成比例的利益。同時，為 AI 提供可靠的文化資產資料，也有其自身的挑戰。 文化資產機構不一定能完全確定其數位館藏或後設資料的正確性與來源。這不僅會危及機構提供健全公共服務的能力，其資料也並非中立：數位化、典藏與編目實務，反映了歷史與當代的權力結構、偏見與缺漏。6 以現有資料訓練的 AI，可能在輸出中強化這些不平等，將歷史上的缺聲與帶有偏見的描述轉化為機器可讀的「事實」。 這些限制顯示，文化資產機構並非絕對不會出錯；然而，憑藉其專業能力與公共使命，它們有充分條件辨識缺漏並處理偏見，為建立更可信賴的數位知識基礎設施作出貢獻。「文化資產領域應發展自己對 AI 的論述，並使其具有包容性。 而是植基於我們的價值，而非僅著眼於效率與商業利益。」綜合來看，這些發展顯示，協作大會（Alignment Assembly）的價值聲明所體現的「可用」、「互惠」與「可靠」，不僅攸關文化資產領域如何採用 AI，也影響該領域如何參與形塑更廣泛的 AI 生態系。6 Taes, S., Truyen, F., Da Milano, C., Herlt, K., Rose, K., &amp; Welter, J.（2024）。 在後設資料中呈現多樣性：給文化資產機構與專業人員的建議及實施策略。 互惠關係：AI 服務文化，文化形塑 AI AI 可以服務文化資產機構及其業務（AI for Culture），而文化資產領域也能反過來形塑 AI 及其使用方式（Culture for AI）。 AI 服務文化 AI 在文化資產領域的效益與多元應用，已有廣泛的盤點與論述。7 AI 工具能大規模支援館藏的註記、分類、策展、內容增補與探索。 這些工具能協助專業人員更有效地處理規模日益龐大、內容愈加複雜的數位語料庫。Pavol Socháň，《Dievčatá v Brezovej》。它們也能提升實體與線上館藏的可近用性。斯洛伐克國家美術館（Slovak National Gallery），斯洛伐克—公有領域。7 例如參見 Münster, S.; Maiwald, F.; di Lenardo, I.; Henriksson, J.; Isaac, A.; Graf, M. M.; Beck, C.; Oomen, J. Artificial Intelligence for Digital Heritage Innovation: Setting up a R&amp;D Agenda for Europe. Heritage 2024, 7, 794–816。 https://doi.org/10.3390/heritage7020038 它們能改善館藏管理流程，從重複資料排除與品質控管、權利聲明管理，到偵測既有後設資料中敏感或有害的語言。最終，它們能增進文化資產機構內部的能力。 文化形塑 AI 「文化形塑 AI」（Culture for AI）的概念，反映文化資產機構在為公共利益打造更公平的 AI 生態系方面所能扮演的角色。本文歸納出四項主要貢獻。 第一項貢獻在於資料層。文化資產機構守護著一項策略性資源：規模龐大、經過策展整理，且涵蓋多種語言的典藏。這些典藏內容多元、紀錄完善，並具有豐富的脈絡知識。若以這類高品質資料訓練 AI 系統，本領域便能直接影響系統的真實性、代表性，以及以資料來源為基礎的應用。儘管文化資產資料已被用於訓練 AI，在許多訓練資料集中仍明顯缺乏代表性。 若將這些工具審慎整合至工作流程中，它們並不會取代專業判斷，而是加以強化，讓實務工作者能專注於脈絡化、詮釋及公眾參與。 本領域長期投入負責任的 AI 整合與實驗，包括 EuropeanaTech、AI4LAM8、AI4Culture9、Transkribus10 等倡議，以及各國圖書館、博物館與檔案館主導的計畫。 8 https: //ai4lam.org/.9 https: //ai4culture.eu/. 10 https: //www.transkribus.org/about/members. 本領域能為 AI 提供的遠不只資料。第二項貢獻，是長久以來以公平、互惠的方式管理資料存取與再利用的實務經驗：提供以公共利益與民主問責為核心所設計的規範與治理原則，完全符合本領域致力維護的 FAIR 與 CARE 原則。 第三，文化資產專業工作者應參與塑造專為文化資產領域打造的小型專用 AI 模型11，而不應被貶抑為單純的訓練資料來源。 最後，第四項貢獻是協助公民理解 AI，並以批判性觀點與 AI 互動，藉此支持知情參與、批判性思考與民主韌性。 文化資產機構可透過展覽、教育計畫、公共活動及數位參與，在機構與社會層面推動公共 AI 素養。 「圖書館 AI 策略的這項關鍵面向，目前大多仍未受到注意——然而，這恰恰是圖書館應發揮領導作用之處。在讓後設資料能由機器讀取、讓典藏可在線上取用之後， 這些模型可以透過 API 提升資料互通性。下一步很明確：在開放、共享的語料庫中，讓資料與詮釋資料達到 AI-ready（適用於 AI）的狀態！如此一來，AI 模型便能更加多元、以公共利益為導向，並更符合教育、研究與文化近用的目標，12 同時提升該領域的能力與自主性。——資料顧問暨數位史學家 Sebastian Majstorovic，出自「Alignment Assembly 11：小型 AI 倡議——集體盤點」。 12 美國數位圖書館員、網際網路檔案館（Internet Archive）創辦人 Brewster Kahle，引自 Caroline de Cock 所著〈AI Tools, Not Gods. Why Artificial Intelligence Hype Threatens Global Governance—and How to Fix It〉。 Morón Artisan Lime，計畫負責人：Manuel Gil Ortiz 歐洲文化遺產獎檔案，奧地利——公共</p>
+<h2>1.2 歐洲的策略背景</h2>
+<p>當今全球地緣經濟格局由少數幾家強大的民營企業主導，它們掌控了多數其他組織所依賴的基礎設施。公開資料經常遭這些公司以榨取價值或有害的方式使用，有時甚至涉及非法行為。目前缺乏足夠的保障措施，以確保民間業者負責任地使用開放資料與公共資料。 相反地，當前主流趨勢偏向從資料中榨取價值，卻未將所得重新投入知識生產，也未保障其長期永續性——這種模式缺乏互惠性。13 為降低對非歐洲科技巨頭的依賴，歐盟執委會於 2025 年推出《AI 大陸行動計畫》（AI Continent Action Plan），14 並由約 2,000 億歐元的公私部門投資提供支持。歐盟希望藉此成為全球 AI 領導者，同時維護其獨特的歐洲 AI 路線：可信賴、以人為本，並成為一股「向善的力量」。15 該計畫另有《AI 應用策略》（Apply AI Strategy）作為補充，承諾歐盟將開發前沿 AI 模型（Frontier AI models）16，為建立以公共原則為基礎、以人為本，並服務多元社群的模型創造契機。 雖然《AI 大陸行動計畫》向前邁出了重要一步，但對於公共領域中的 AI，仍缺乏清晰的願景。 13 Alek Tarkowski、Zuzanna Warso（2024）。〈Commons-based data set governance for AI〉。Open Future Foundation。https: //openfuture.eu/wp-content/uploads/2024/03/240325_Commons_Based_Data_Set_Governance_for_AI.pdf。 14 《AI Continent Action Plan》（2025）。 歐盟執委會致歐洲議會、歐盟理事會、歐洲經濟暨社會委員會及歐洲區域委員會的政策文件。15 關於巴黎 AI 行動高峰會，請參閱 https: //ec.europa.eu/commission/presscorner/detail/lt/speech_25_471。16 前沿 AI 模型（Frontier AI models）指目前正在開發或使用中最先進、位居技術尖端的人工智慧系統。 公共利益，17 而我們的領域正適合為此倡議。 此外，新興的 AI 生態系——包括資料空間、資料工廠、資料實驗室，以及由歐盟資助的大型語言模型（LLM）衍生企業——仍處於分散且缺乏協調的狀態。18 最後，該生態系優先發展大規模與通用模型，卻忽略了針對文化遺產等優先領域，進行更聚焦、特定領域投資的潛力。 在歐洲的 AI 生態系中，資料空間是重要的一環。除了更廣泛的 AI 基礎設施，包括 AI 工廠、19 資料實驗室與 AI 超級工廠（AI giga-factories）20，能為 AI 提供高品質資料存取管道的資料空間，也是《AI 大陸行動計畫》（AI Continent Action Plan）的關鍵組成部分。 以歐洲文化遺產共同資料空間為例，原因顯而易見。該資料空間已提供高品質、文件紀錄完整、多語且可信賴的資料，其專業社群也持續維護並擴充資料相關的脈絡知識。 17 公共 AI 研究與歐洲數位政策辯論也提出相同疑慮：若缺乏明確以公共價值為導向的治理機制，對運算、資料與部署的大規模投資，最終可能只會複製、而非改變目前 AI 生態系中權力集中的現況。請參閱 Alek Tarkowski 為 Open Future Foundation 撰寫的評論文章〈From AI Factories to Public Value: What’s Missing in the AI Continent Action Plan?〉（2025），以及 Amba Kak、Sarah Myers West、Leevi Saari 與 Frederike Kaltheuner 合著的《Redirecting Europe’s AI Industrial Policy: From Competitiveness to Public Interest》（紐約：AI Now Institute，2024）。18 Open Future：〈Who Controls Europe’s AI Future? How the Gigafactories Bet Shapes the EU’s AI Trajectory〉。19 AI 工廠運用歐洲高效能運算聯合事業（EuroHPC Joint Undertaking）的超級電腦資源，開發可信賴且位居技術尖端的生成式 AI 模型。 目前，16 個會員國共設有 19 座 AI 工廠，獲得 26 億歐元投資支持。AI 工廠將整合針對 AI 最佳化的超級運算能力、高品質資料資源、研究機構與產業，推動策略性領域的創新。 20 座公私協力設施，旨在以前所未有的規模訓練下一代 AI 模型；每座設施規劃投資 30 億至 50 億歐元，以強化歐洲的自主運算能力，以及在關鍵技術上的策略自主性。 《資料聯盟策略》（Data Union Strategy）明確認可文化遺產資料對 AI 應用的高度價值，並訂下具企圖心的目標：在 2026 年底前，提供 3,000 萬件數位化文化物件供 AI 使用。要達成這項目標，需要策略夥伴關係、歐盟支持，以及會員國進一步投資高品質的數位化工作。 資料空間已提供一套健全的框架，可管理各種著作權狀態，並明確區分與 AI 應用相關的三類素材：1）已進入公眾領域的素材；2）採用開放授權的素材；以及 3）受著作權保護的素材。前兩類素材適合用於 AI，但對於第三類素材，文化遺產機構應審慎留意權利人可能提出的權利保留。至於屬於照片類的素材。 工人操作金屬壓床。愛沙尼亞帕爾努博物館（Pärnu Museum）— CC0。 對於前兩類素材，文化遺產領域必須扮演可信賴的中介角色，也就是「資料實驗室」（data lab）。這類機制仍有待建立，並應善用資料空間，擔任資料管理者，確保資料實驗室能在資料持有者與 AI 基礎設施之間搭起橋梁，使相關作品由公共價值所治理，而不是任由追求私人利益的預設邏輯主導。 透過資料實驗室，資料空間可向 AI 工廠提供預先整理好的資料與中繼資料，例如經過策展、法律權利確認、附有參照資訊並完成編目的資料集，供大型語言模型（LLM）訓練及特定 AI 應用情境使用；作為交換，則可取得運算能力、模型開發與專業知識。資料空間也能運用其在整體 AI 生態系中的位置，與使用文化遺產資料的參與者合作，並確保這類協作。 如此一來，資料便能遵循透明、互惠與公共利益原則。資料空間透過彙整並預先封裝文化資料，供 AI 工廠再利用，可在現有資料供應者中扮演先行者角色，同時尊重創作者、權利人及既有監管框架。 此外，部分 AI 工廠已明確將文化與語言納入其職責範圍，而資料空間也正與這些機構建立連結，包括芬蘭、希臘、義大利、盧森堡、波蘭與西班牙的 AI 工廠。[^21] 資料空間將界定資料再利用的標準與實務，涵蓋資料策展、資料主權、存取控制，以及契約上的法律先例。 透過這些連結，文化遺產資料空間將支持一套可追溯且具主權的歐洲 AI 發展模式。實務上，資料空間可透過專用管道，與 AI 工廠共享文化遺產資料。 [^21]: 芬蘭的 LUMI、希臘的 PHAROS、義大利的 IT4LIA、盧森堡的 LAIF、波蘭的 PIAST-AI，以及西班牙的 BSC。 這些合作關係將是推動《資料聯盟策略》（Data Union Strategy）AI 願景的關鍵，並展現透過資料空間提供的文化遺產資料，如何成為歐洲主權 AI 資料供應鏈的重要一環。 目前，歐洲的語言在網路內容中占比不到 0.6%。[^22] 如果 AI 系統持續主要依賴英語，其呈現的世界觀將是不完整的，並使歐洲的語言與文化多樣性遭到邊緣化。資料空間的資料可優先提供多語言且多元的素材，協助縮小這些代表性落差，同時向使用者與開發者清楚揭示資料的限制。 這項工作不應被視為單向的資料供應管道，而應是互惠生態系的一環；在這個生態系中，資料空間有助於形塑 AI 基礎設施開發與使用時所遵循的價值與條件。資料空間也可倡議投入數位化經費，以確保資料基礎更具多元性與代表性。 這也包括以透明的方式……</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-66bb6655818b5ba0.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">導論：以文化遺產推動公共 AI</span>
+</a>
+
+<a class="article-sequence-link" href="item-87ba0a95018b7de3.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">發展公共 AI 的倡議：以文化遺產推動實踐</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-540e778dddff201f.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：AI and the reordering of knowledge, culture and power（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（PDF 文字推斷）</li><li><strong>自動翻譯中文標題</strong>：AI and the reordering of knowledge, culture and power（Codex）</li><li><strong>原始作者</strong>：Lorena Aldana, Johan Oomen, Harry This paper builds on the foundational work of Open（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-24T11:18:43+00:00</li><li>審稿備註：由 PDF 拆分草案人工確認後建立；仍需在入庫建檔區逐篇分流。
+2026-06-24T10:26:06+00:00 已將 PDF / MarkItDown 文字補成 reading_metadata.article_markdown，後續模型建議與編輯台會以全文為優先。
+2026-06-24T10:42:43+00:00 線上手動編輯全文（修正轉檔）。
+2026-06-24T11:11:13+00:00 線上手動編輯全文（修正轉檔）。
+2026-06-24T11:17:44+00:00 線上手動編輯全文（修正轉檔）。
+2026-06-24T11:18:43+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。
+2026-06-24T11:36:04+00:00 取消近期正在閱讀 / 想分享標記。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-540e778dddff201f";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
