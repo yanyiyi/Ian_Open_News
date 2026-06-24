@@ -827,16 +827,6 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       padding-bottom: 7px;
       border-bottom: 1px solid rgba(100,80,220,.24);
     }}
-    .article-text h2::after {{
-      content: "";
-      display: block;
-      width: 72px;
-      height: 3px;
-      margin-top: 8px;
-      border-radius: 999px;
-      background: var(--accent);
-      opacity: .72;
-    }}
     .article-text h3 {{
       color: var(--accent);
       font-size: 19px;
