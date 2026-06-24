@@ -39,6 +39,7 @@ from page_metadata import (
     unwrap_google_alert_url,
 )
 from pdf_materials import (
+    download_pdf as download_remote_pdf,
     extract_pdf_markdown,
     relationship_candidates as pdf_relationship_candidates,
     slugify as pdf_slugify,
@@ -9992,7 +9993,12 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         elif (query.get("error") or [""])[0] == "translation":
             notice = '<div class="notice">這次沒有順利翻譯。請先確認已展開全文，或稍後再試。</div>'
         elif (query.get("error") or [""])[0] == "pdf_markdown":
-            notice = '<div class="notice">這次沒有足夠文字可轉成 PDF Markdown 全文。請先補全文或摘要。</div>'
+            upload_href = f"/items/upload-pdf?parent_item_id={quote(clean_text(item.get('id')))}&relation=full-source&track={quote(clean_text(item.get('track')))}"
+            notice = (
+                '<div class="notice">沒能抓到完整 PDF 全文。如果來源是 PDF 網址，常見原因是該網站擋掉自動下載'
+                '（例如 403／需登入／WAF 防爬）。請在瀏覽器把 PDF 存下來，再用 '
+                f'<a href="{h(upload_href)}">上傳全文 PDF</a> 把檔案貼進來，系統會用 markitdown 抽完整全文。</div>'
+            )
 
         css_class = track_class(item.get("track", "unclassified"))
         triage = item.get("triage") or {}
@@ -11143,6 +11149,44 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             f"&skipped={stats.get('skipped_count', 0)}"
         )
 
+    def fetch_remote_pdf_markdown(self, item: dict) -> tuple[dict, bool, str]:
+        """遠端 PDF 網址：下載原檔並用 markitdown 抽全文，取代零碎的預抓文字。"""
+        url = fetchable_http_url(item.get("url"))
+        if not url or not item_is_pdf_like(item):
+            return item, False, ""
+        metadata = item_reading_metadata(item)
+        current = clean_text(metadata.get("article_markdown"))
+        method = clean_text(metadata.get("article_markdown_method"))
+        # 已經有真正的 markitdown 全文就不重抓。
+        if len(current) >= 1200 and method.startswith("markitdown-cli"):
+            return item, False, ""
+        try:
+            pdf_path = download_remote_pdf(url, PDF_UPLOADS)
+            markdown, pdf_meta = extract_pdf_markdown(pdf_path, host_label(url))
+        except Exception as exc:  # noqa: BLE001 - 下載/抽取失敗要回報給使用者
+            return item, False, clean_text(exc, 400)
+        if len(markdown) <= len(current):
+            return item, False, ""
+        updated = dict(item)
+        merged = dict(item_reading_metadata(updated))
+        merged.update(
+            {
+                "content_type": "application/pdf",
+                "article_markdown": markdown,
+                "article_markdown_method": "markitdown-cli-remote",
+                "article_markdown_label": "遠端 PDF 全文（markitdown）",
+                "article_text_method": "markitdown-cli-remote",
+                "fulltext_source": "remote-pdf",
+                "fulltext_source_url": url,
+            }
+        )
+        updated["reading_metadata"] = merged
+        reference = dict(updated.get("reference") or {})
+        reference["pdf_remote_file"] = str(pdf_path.relative_to(ROOT))
+        reference["pdf_meta"] = {**(reference.get("pdf_meta") or {}), **pdf_meta}
+        updated["reference"] = reference
+        return updated, True, ""
+
     def normalize_pdf_markdown_record(self, path: Path, item_id: str) -> tuple[bool, bool, str]:
         records = load_jsonl(path)
         updated_records = []
@@ -11155,7 +11199,11 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 updated_records.append(item)
                 continue
             found = True
+            item, remote_changed, remote_error = self.fetch_remote_pdf_markdown(item)
             updated, changed, error = normalize_pdf_markdown_item(item)
+            changed = changed or remote_changed
+            if remote_error and not changed:
+                error = remote_error
             updated_records.append(updated)
             event_item = updated
         if found and changed:
@@ -12519,10 +12567,12 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         try:
             markdown, pdf_meta = extract_pdf_markdown(stored_path, filename)
         except Exception as exc:  # noqa: BLE001 - local CLI error needs to be shown in the form.
-            stored_path.unlink(missing_ok=True)
+            kept_path = str(stored_path.relative_to(ROOT))
             self.send_html(
                 "PDF 抽取失敗",
-                f"<h1>PDF 已收到，但 markitdown 抽取失敗</h1><pre>{h(exc)}</pre><p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>",
+                f"<h1>PDF 已收到，但 markitdown 抽取失敗</h1><pre>{h(exc)}</pre>"
+                f"<p>檔案已保留在本機 <code>{h(kept_path)}</code>，可重試或改用其他檔。</p>"
+                f"<p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>",
                 HTTPStatus.BAD_GATEWAY,
             )
             return
@@ -12580,8 +12630,14 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         }
         record, _changed, normalize_error = normalize_pdf_markdown_item(record)
         if normalize_error:
-            stored_path.unlink(missing_ok=True)
-            self.send_html("PDF 抽取失敗", f"<h1>PDF 文字不足</h1><p>{h(normalize_error)}</p><p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>", HTTPStatus.BAD_REQUEST)
+            kept_path = str(stored_path.relative_to(ROOT))
+            self.send_html(
+                "PDF 抽取失敗",
+                f"<h1>PDF 文字不足</h1><p>{h(normalize_error)}</p>"
+                f"<p>檔案已保留在本機 <code>{h(kept_path)}</code>。</p>"
+                f"<p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>",
+                HTTPStatus.BAD_REQUEST,
+            )
             return
         candidates = pdf_relationship_candidates(record, existing_items, bool(source_url))
         reference = dict(record.get("reference") or {})
@@ -12602,14 +12658,26 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 
         validation = subprocess.run([sys.executable, str(ROOT / "scripts" / "validate_database.py")], cwd=ROOT, text=True, capture_output=True)
         if validation.returncode != 0:
+            # 先判斷是不是這次上傳的 item 造成的：移除後再驗一次。
             remove_jsonl_ids(ITEMS, {item_id})
-            stored_path.unlink(missing_ok=True)
-            self.send_html(
-                "PDF 入庫失敗",
-                f"<h1>資料庫驗證沒有通過</h1><pre>{h(validation.stderr or validation.stdout)}</pre><p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>",
-                HTTPStatus.INTERNAL_SERVER_ERROR,
+            recheck = subprocess.run([sys.executable, str(ROOT / "scripts" / "validate_database.py")], cwd=ROOT, text=True, capture_output=True)
+            kept_path = str(stored_path.relative_to(ROOT))
+            if recheck.returncode == 0:
+                # 移除後就過了 → 是這次上傳的資料本身有問題，回滾 item（但保留 PDF 檔）。
+                self.send_html(
+                    "PDF 入庫失敗",
+                    f"<h1>這份 PDF 的資料沒有通過驗證</h1><pre>{h(validation.stderr or validation.stdout)}</pre>"
+                    f"<p>已取消入庫；PDF 檔仍保留在本機 <code>{h(kept_path)}</code>。</p>"
+                    f"<p><a class='button' href='/items/upload-pdf'>回上傳表單</a></p>",
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                )
+                return
+            # 移除後仍失敗 → 是既有資料的舊問題，不該牽連這次上傳。把 item 加回去照常入庫。
+            append_jsonl(ITEMS, record)
+            sys.stderr.write(
+                "warning: 資料庫有既有驗證問題，但仍接受這次 PDF 上傳。請另外修正既有資料：\n"
+                + (recheck.stderr or recheck.stdout or "") + "\n"
             )
-            return
         append_jsonl(REVIEW_EVENTS, review_event(record, "pdf-uploaded", "已上傳本機 PDF、用 markitdown 抽取全文並完成本機材料關係比對。"))
         auto_open = "1" if candidates else "0"
         self.redirect(f"/items/view?id={quote(item_id)}&saved=pdf_upload&pdf_relations={auto_open}")

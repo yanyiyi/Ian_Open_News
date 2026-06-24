@@ -5,6 +5,7 @@ import hashlib
 import re
 import shutil
 import subprocess
+import urllib.request
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -85,6 +86,34 @@ def markdown_first_paragraph(markdown: str, title: str = "") -> str:
             continue
         return text
     return ""
+
+
+def download_pdf(url: str, dest_dir: Path, timeout: int = 45, max_bytes: int = 80_000_000) -> Path:
+    """下載遠端 PDF 到 dest_dir，回傳本機路徑。驗 %PDF- 檔頭，依內容雜湊命名去重。"""
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/pdf,application/octet-stream,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9,zh-TW;q=0.8",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        raw = response.read(max_bytes + 1)
+    if not raw:
+        raise RuntimeError("遠端 PDF 下載為空。")
+    if len(raw) > max_bytes:
+        raise RuntimeError("遠端 PDF 超過下載大小上限。")
+    if b"%PDF-" not in raw[:1024]:
+        raise RuntimeError("下載的內容不是 PDF（找不到 %PDF- 檔頭）。可能網址不是直接指向 PDF。")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    digest = hashlib.sha256(raw).hexdigest()
+    dest = dest_dir / f"remote-{digest[:16]}.pdf"
+    dest.write_bytes(raw)
+    return dest
 
 
 def extract_pdf_markdown(pdf_path: Path, original_filename: str = "") -> tuple[str, dict[str, Any]]:
