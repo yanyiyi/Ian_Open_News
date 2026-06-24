@@ -64,6 +64,7 @@ MATERIAL_LINKS = DATABASE / "material-links.jsonl"
 EDITOR_SESSIONS = ROOT / ".cache" / "editor-sessions.jsonl"
 EDITOR_STATUS = ROOT / ".cache" / "editor-status.json"
 PDF_SPLIT_STATUS = ROOT / ".cache" / "pdf-split-status.json"
+TRANSLATE_STATUS = ROOT / ".cache" / "translate-status.json"
 PDF_UPLOADS = ROOT / ".cache" / "uploads"
 EDITOR_TASK_LABELS = {
     "theme-check": "選法檢查",
@@ -5685,27 +5686,6 @@ def page(title: str, body: str) -> bytes:
       <pre id="command-output" hidden></pre>
     </div>
   </section>
-  <div class="loading-overlay" id="read-more-loading" aria-live="polite" aria-hidden="true">
-    <div class="loading-card">
-      <strong>正在展開全文</strong>
-      <p class="muted">會從原始連結往下抓全文，完成後寫成 Markdown 閱讀版存進資料庫，並在畫面展開排版後主文。</p>
-      <div class="loading-dots" aria-label="載入中"><span></span><span></span><span></span></div>
-    </div>
-  </div>
-  <div class="loading-overlay" id="codex-review-loading" aria-live="polite" aria-hidden="true">
-    <div class="loading-card">
-      <strong>正在生成 AI 閱讀建議</strong>
-      <p class="muted">會先嘗試補抓全文，再把單篇資料送給你選的模型產生中文標題、閱讀理由與摘要。完成後會回到這篇文章。</p>
-      <div class="loading-dots" aria-label="載入中"><span></span><span></span><span></span></div>
-    </div>
-  </div>
-  <div class="loading-overlay" id="translation-loading" aria-live="polite" aria-hidden="true">
-    <div class="loading-card">
-      <strong>全文翻譯 loading 中</strong>
-      <p class="muted">會先確認已展開全文，再用台灣習慣用語翻成繁體中文並存回本機資料庫。</p>
-      <div class="loading-dots" aria-label="載入中"><span></span><span></span><span></span></div>
-    </div>
-  </div>
   <script>
   const setShortcutMode = (active) => {{
     document.body.classList.toggle("show-shortcuts", Boolean(active));
@@ -6025,6 +6005,46 @@ def page(title: str, body: str) -> bytes:
       markJobEnd();
     }}
     return false;
+  }};
+
+  window.runFetchJob = async ({{ label, url, baseBody, statusUrl, onSuccess, onError }}) => {{
+    markJobStart();
+    let timer = null;
+    try {{
+      openCommandWindow(label, "執行中…");
+      commandLoading.hidden = false;
+      timer = statusUrl ? startJsonStatusPolling(statusUrl) : startElapsedStatus();
+      let payload;
+      try {{
+        const data = new URLSearchParams(baseBody);
+        data.set("format", "json");
+        const response = await fetch(url, {{
+          method: "POST",
+          headers: {{ "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With": "local-web-fetch" }},
+          body: data
+        }});
+        payload = await response.json();
+      }} catch (error) {{
+        payload = {{ ok: false, error: String(error) }};
+      }}
+      if (timer) {{ window.clearInterval(timer); timer = null; }}
+      const ok = payload && payload.ok !== false;
+      if (ok) {{
+        commandLoading.hidden = true;
+        commandStatus.textContent = payload.message || "✓ 完成。";
+        if (payload.output) {{ commandOutput.hidden = false; commandOutput.textContent = payload.output; }}
+        if (onSuccess) onSuccess(payload);
+        return true;
+      }}
+      commandLoading.hidden = true;
+      const errMsg = (payload && (payload.error || payload.message)) || "執行失敗";
+      commandStatus.textContent = "✗ " + errMsg;
+      if (onError) onError(payload);
+      return false;
+    }} finally {{
+      if (timer) window.clearInterval(timer);
+      markJobEnd();
+    }}
   }};
 
   window.runTwoEngineJob = async ({{ label, url, baseBody, engines, onSuccess, statusUrl }}) => {{
@@ -6460,13 +6480,19 @@ def page(title: str, body: str) -> bytes:
   document.addEventListener("submit", (event) => {{
     const form = event.target.closest("form[data-translate-form]");
     if (!form) return;
-    const overlay = document.getElementById("translation-loading");
-    const button = event.submitter || form.querySelector("button");
-    if (overlay) {{
-      overlay.classList.add("is-visible");
-      overlay.setAttribute("aria-hidden", "false");
-    }}
-    if (button) button.disabled = true;
+    event.preventDefault();
+    const id = (form.querySelector("input[name='id']") || {{}}).value || "";
+    const redirect = (form.querySelector("input[name='redirect']") || {{}}).value || (window.location.pathname + window.location.search);
+    const provider = (form.querySelector("input[name='provider']") || {{}}).value || "codex";
+    if (!window.runEngineJob) {{ form.submit(); return; }}
+    window.runEngineJob({{
+      label: "全文翻譯",
+      url: form.getAttribute("action") || "/items/translate-zh",
+      baseBody: {{ id: id, redirect: redirect }},
+      engine: provider,
+      statusUrl: "/api/translate-status?id=" + encodeURIComponent(id),
+      onSuccess: (payload) => {{ window.location.href = (payload && payload.redirect) || redirect; }}
+    }});
   }});
 
   document.querySelectorAll("[data-source-group-field]").forEach((field) => {{
@@ -6781,106 +6807,66 @@ def page(title: str, body: str) -> bytes:
   }});
 
   document.querySelectorAll("form[data-read-more-form]").forEach((form) => {{
-    form.addEventListener("submit", async (event) => {{
-      if (!window.fetch) return;
+    form.addEventListener("submit", (event) => {{
+      if (!window.fetch || !window.runFetchJob) return;
       event.preventDefault();
-      const overlay = document.getElementById("read-more-loading");
-      if (overlay) {{
-        overlay.classList.add("is-visible");
-        overlay.setAttribute("aria-hidden", "false");
-      }}
       const data = new URLSearchParams(new FormData(form));
-      data.set("format", "json");
-      try {{
-        const targetUrl = form.getAttribute("action") || form.action;
-        const response = await fetch(targetUrl, {{
-          method: "POST",
-          headers: {{
-            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-            "X-Requested-With": "local-web-fetch"
-          }},
-          body: data
-        }});
-        const payload = await response.json();
-        if (!payload.ok) throw new Error(payload.error || "read more failed");
-        const targetSelector = form.getAttribute("data-target") || "#fulltext-panel";
-        const panel = document.querySelector(targetSelector);
-        if (panel) {{
-          panel.hidden = false;
-          if (panel instanceof HTMLDetailsElement) panel.open = true;
-          const body = panel.querySelector("[data-fulltext-body]");
-          const meta = panel.querySelector("[data-fulltext-meta]");
-          if (body) {{
-            if (payload.article_html) {{
-              body.innerHTML = payload.article_html;
-            }} else {{
-              body.textContent = payload.article_text || "這次沒有抓到可顯示的主文。";
+      const targetSelector = form.getAttribute("data-target") || "#fulltext-panel";
+      const redirect = (form.querySelector("input[name='redirect']") || {{}}).value || (window.location.pathname + window.location.search);
+      window.runFetchJob({{
+        label: "展開全文",
+        url: form.getAttribute("action") || form.action,
+        baseBody: data,
+        onSuccess: (payload) => {{
+          const panel = document.querySelector(targetSelector);
+          if (panel) {{
+            panel.hidden = false;
+            if (panel instanceof HTMLDetailsElement) panel.open = true;
+            const body = panel.querySelector("[data-fulltext-body]");
+            const meta = panel.querySelector("[data-fulltext-meta]");
+            if (body) {{
+              if (payload.article_html) {{ body.innerHTML = payload.article_html; }}
+              else {{ body.textContent = payload.article_text || "這次沒有抓到可顯示的主文。"; }}
             }}
-          }}
-          if (meta) meta.textContent = payload.message || "";
-          const translationActions = panel.querySelector("[data-translation-actions]");
-          if (translationActions) {{
-            if (payload.translation_actions_html) {{
-              translationActions.innerHTML = payload.translation_actions_html;
-              translationActions.hidden = false;
-            }} else {{
-              translationActions.innerHTML = "";
-              translationActions.hidden = true;
+            if (meta) meta.textContent = payload.message || "";
+            const translationActions = panel.querySelector("[data-translation-actions]");
+            if (translationActions) {{
+              if (payload.translation_actions_html) {{
+                translationActions.innerHTML = payload.translation_actions_html;
+                translationActions.hidden = false;
+              }} else {{
+                translationActions.innerHTML = "";
+                translationActions.hidden = true;
+              }}
             }}
+            panel.scrollIntoView({{ behavior: "smooth", block: "start" }});
+          }} else if (payload.redirect) {{
+            window.location.href = payload.redirect;
           }}
-          panel.scrollIntoView({{ behavior: "smooth", block: "start" }});
-        }} else if (payload.redirect) {{
-          window.location.href = payload.redirect;
+        }},
+        onError: () => {{
+          const separator = redirect.includes("?") ? "&" : "?";
+          window.location.href = redirect + separator + "error=read_more";
         }}
-      }} catch (error) {{
-        const redirect = form.querySelector("input[name='redirect']")?.value || window.location.pathname + window.location.search;
-        const separator = redirect.includes("?") ? "&" : "?";
-        window.location.href = redirect + separator + "error=read_more";
-      }} finally {{
-        if (overlay) {{
-          overlay.classList.remove("is-visible");
-          overlay.setAttribute("aria-hidden", "true");
-        }}
-      }}
+      }});
     }});
   }});
 
   document.querySelectorAll("form[data-codex-review-form]").forEach((form) => {{
-    form.addEventListener("submit", async (event) => {{
-      if (!window.fetch) return;
+    form.addEventListener("submit", (event) => {{
+      if (!window.fetch || !window.runEngineJob) return;
       event.preventDefault();
-      const overlay = document.getElementById("codex-review-loading");
-      const button = event.submitter || form.querySelector("button");
-      if (overlay) {{
-        overlay.classList.add("is-visible");
-        overlay.setAttribute("aria-hidden", "false");
-      }}
-      if (button) button.disabled = true;
-      const data = new URLSearchParams(new FormData(form));
-      data.set("format", "json");
-      try {{
-        const response = await fetch(form.getAttribute("action") || form.action, {{
-          method: "POST",
-          headers: {{
-            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-            "X-Requested-With": "local-web-fetch"
-          }},
-          body: data
-        }});
-        const payload = await response.json();
-        if (!payload.ok) throw new Error(payload.error || "codex review failed");
-        window.location.href = payload.redirect || window.location.href;
-      }} catch (error) {{
-        const redirect = form.querySelector("input[name='redirect']")?.value || window.location.pathname + window.location.search;
-        const separator = redirect.includes("?") ? "&" : "?";
-        window.location.href = redirect + separator + "error=codex_review";
-      }} finally {{
-        if (overlay) {{
-          overlay.classList.remove("is-visible");
-          overlay.setAttribute("aria-hidden", "true");
-        }}
-        if (button) button.disabled = false;
-      }}
+      const id = (form.querySelector("input[name='id']") || {{}}).value || "";
+      const redirect = (form.querySelector("input[name='redirect']") || {{}}).value || (window.location.pathname + window.location.search);
+      const provider = (form.querySelector("input[name='provider']") || {{}}).value || "codex";
+      const withFulltext = (form.querySelector("input[name='with_fulltext']") || {{}}).value || "1";
+      window.runEngineJob({{
+        label: "生成閱讀建議",
+        url: form.getAttribute("action") || "/items/codex-review",
+        baseBody: {{ id: id, redirect: redirect, with_fulltext: withFulltext }},
+        engine: provider,
+        onSuccess: (payload) => {{ window.location.href = (payload && payload.redirect) || redirect; }}
+      }});
     }});
   }});
   </script>
@@ -7476,6 +7462,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(status)
         elif parsed.path == "/api/pdf-split-status":
             self.send_json(load_json(PDF_SPLIT_STATUS))
+        elif parsed.path == "/api/translate-status":
+            status = load_json(TRANSLATE_STATUS)
+            requested = clean_text((query.get("id") or [""])[0])
+            if requested and clean_text(status.get("item_id")) and clean_text(status.get("item_id")) != requested:
+                status = {"state": "running", "message": "翻譯啟動中…"}
+            self.send_json(status)
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
 
@@ -12103,42 +12095,64 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         item_id = form_value(data, "id")
         provider = normalize_ai_provider(form_value(data, "provider", "codex"))
         redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
         target_path = ITEMS
         if any(item.get("id") == item_id for item in load_jsonl(ITEMS)):
             target_path = ITEMS
         elif any(item.get("id") == item_id for item in load_jsonl(CANDIDATES)):
             target_path = CANDIDATES
         else:
+            if wants_json:
+                self.send_json({"ok": False, "error": "找不到可翻譯項目"}, HTTPStatus.NOT_FOUND)
+                return
             self.send_html("找不到項目", "<h1>找不到可翻譯項目</h1><p><a class='button' href='/items'>回入庫建檔區</a></p>", HTTPStatus.NOT_FOUND)
             return
         found, changed, response_item, error = self.update_read_more_record(target_path, item_id)
         article_markdown = item_article_markdown(response_item or {})
         if not found or (error and not article_markdown) or not article_markdown:
+            if wants_json:
+                self.send_json({"ok": False, "error": "還沒有可翻譯的全文，請先展開全文。"}, HTTPStatus.BAD_GATEWAY)
+                return
             separator = "&" if "?" in redirect_to else "?"
             self.redirect(f"{redirect_to}{separator}error=translation")
             return
+        write_json(TRANSLATE_STATUS, {"state": "running", "item_id": item_id, "message": f"準備翻譯…（{ai_provider_label(provider)}）"})
         command = [
             sys.executable,
             str(ROOT / "scripts" / "codex_translate_article.py"),
-            "--provider",
-            provider,
-            "--items",
-            str(target_path),
-            "--id",
-            item_id,
+            "--provider", provider,
+            "--items", str(target_path),
+            "--id", item_id,
+            "--status-file", str(TRANSLATE_STATUS),
         ]
         try:
-            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800)
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=3600)
             output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
             ok = result.returncode == 0
         except subprocess.TimeoutExpired as exc:
-            output = (exc.stdout or "") + ("\nSTDERR:\n" + exc.stderr if exc.stderr else "")
+            output = (exc.stdout or "") + ("\nSTDERR:\n" + (exc.stderr or "") if exc.stderr else "")
             output = (output + f"\n{ai_provider_label(provider)} 翻譯逾時。").strip()
             ok = False
         if not ok:
             print(output, file=sys.stderr)
         separator = "&" if "?" in redirect_to else "?"
-        self.redirect(f"{redirect_to}{separator}{'saved=translation' if ok else 'error=translation'}")
+        final_redirect = f"{redirect_to}{separator}{'saved=translation' if ok else 'error=translation'}"
+        if wants_json:
+            status = load_json(TRANSLATE_STATUS)
+            self.send_json(
+                {
+                    "ok": ok,
+                    "returncode": 0 if ok else 1,
+                    "redirect": final_redirect,
+                    "output": clean_text(output, 1200),
+                    "done": status.get("done"),
+                    "total": status.get("total"),
+                    "error": "" if ok else clean_text(status.get("message") or output, 400),
+                },
+                HTTPStatus.OK if ok else HTTPStatus.BAD_GATEWAY,
+            )
+            return
+        self.redirect(final_redirect)
 
     def preview_url(self, data: dict[str, list[str]]) -> None:
         url = form_value(data, "url")

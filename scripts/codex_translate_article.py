@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -340,6 +341,207 @@ def run_provider(record: dict[str, Any], markdown: str, language: str, provider:
     return run_codex(record, markdown, language, timeout)
 
 
+def _sentence_split(text: str, max_chars: int) -> list[str]:
+    parts = re.split(r"(?<=[。！？!?；;])\s*|(?<=\.)\s+", text)
+    out: list[str] = []
+    current = ""
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        if current and len(current) + len(part) + 1 > max_chars:
+            out.append(current)
+            current = part
+        else:
+            current = f"{current} {part}" if current else part
+    if current:
+        out.append(current)
+    return out or [text]
+
+
+def split_markdown_chunks(markdown: str, max_chars: int = 2400) -> list[str]:
+    """把全文切成接近 max_chars 的段。先用空行分段；沒有空行就退用單行、再退用句子，
+    確保長文一定會被切開（clean_text 會移除空行，故不能只靠 \\n\\n）。"""
+    units: list[str] = []
+    for block in re.split(r"\n\s*\n", markdown):
+        block = block.strip()
+        if not block:
+            continue
+        if len(block) <= max_chars:
+            units.append(block)
+            continue
+        for line in block.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            if len(line) <= max_chars:
+                units.append(line)
+            else:
+                units.extend(_sentence_split(line, max_chars))
+    chunks: list[str] = []
+    current = ""
+    for unit in units:
+        if current and len(current) + len(unit) + 2 > max_chars:
+            chunks.append(current)
+            current = unit
+        else:
+            current = f"{current}\n\n{unit}" if current else unit
+    if current:
+        chunks.append(current)
+    return chunks or [markdown.strip()]
+
+
+def strip_wrapping(text: str) -> str:
+    text = (text or "").strip()
+    fence = re.match(r"^```(?:markdown|md)?\s*\n(.*)\n```$", text, flags=re.S)
+    if fence:
+        text = fence.group(1).strip()
+    return text
+
+
+def build_chunk_prompt(chunk_md: str, language: str, index: int, total: int) -> str:
+    return (
+        f"你是 Ian Open News 的翻譯編輯。把下面這段{('（' + language + '）') if language else ''}文章片段"
+        f"翻成台灣讀者自然可讀的繁體中文。這是全文的第 {index + 1} / {total} 段。\n\n"
+        "規則：\n"
+        "- 只翻譯這段，保留 Markdown 結構、連結、列表與小標，不要改寫成摘要。\n"
+        "- 使用台灣習慣用語與標點；專有名詞第一次出現可保留英文或加括號。\n"
+        "- 不要上網、不要補不存在的事實、不要加任何說明或 JSON。\n"
+        "- 直接輸出翻譯後的 Markdown 片段。\n\n"
+        f"片段：\n{chunk_md}"
+    )
+
+
+def _text_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:" + str(Path.home() / ".local" / "bin") + ":" + env.get("PATH", "")
+    return env
+
+
+def run_codex_text(prompt: str, timeout: int) -> str:
+    cache = ROOT / ".cache"
+    cache.mkdir(exist_ok=True)
+    output_path = cache / "codex-translate-chunk.txt"
+    command = [
+        codex_path(), "-a", "never", "exec", "--ephemeral", "--cd", str(ROOT),
+        "--sandbox", "read-only", "--color", "never", "--output-last-message", str(output_path), "-",
+    ]
+    result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=_text_env())
+    if result.returncode != 0:
+        raise RuntimeError(f"codex exec failed\n{result.stderr[-1500:]}")
+    return output_path.read_text(encoding="utf-8")
+
+
+def run_claude_text(prompt: str, timeout: int) -> str:
+    command = [
+        claude_path(), "--print", "--input-format", "text", "--output-format", "text",
+        "--no-session-persistence", "--permission-mode", "dontAsk", "--tools", "",
+    ]
+    result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=_text_env())
+    if result.returncode != 0:
+        raise RuntimeError(f"claude print failed\n{result.stderr[-1500:]}")
+    return result.stdout
+
+
+def run_gemini_text(prompt: str, timeout: int) -> str:
+    command = [agy_path(), "--print", prompt]
+    result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=timeout, env=_text_env())
+    if result.returncode != 0:
+        raise RuntimeError(f"agy print failed\n{result.stderr[-1500:]}")
+    return result.stdout
+
+
+def run_chunk(provider: str, prompt: str, timeout: int) -> str:
+    if provider == "claude":
+        return strip_wrapping(run_claude_text(prompt, timeout))
+    if provider == "gemini":
+        return strip_wrapping(run_gemini_text(prompt, timeout))
+    return strip_wrapping(run_codex_text(prompt, timeout))
+
+
+def write_status(status_file: Path | None, payload: dict[str, Any]) -> None:
+    if not status_file:
+        return
+    try:
+        status_file.parent.mkdir(parents=True, exist_ok=True)
+        status_file.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def zh_title_from_markdown(markdown: str, fallback: str) -> str:
+    for line in markdown.splitlines():
+        match = re.match(r"^\s{0,3}#\s+(.+?)\s*$", line)
+        if match:
+            return clean_text(match.group(1), 320)
+    return clean_text(fallback, 320)
+
+
+def translate_record_chunked(
+    records: list[dict[str, Any]],
+    record: dict[str, Any],
+    markdown: str,
+    language: str,
+    provider: str,
+    items_path: Path,
+    status_file: Path | None,
+    max_chunk_chars: int,
+    timeout: int,
+    dry_run: bool,
+) -> dict[str, Any]:
+    item_id = clean_text(record.get("id"))
+    chunks = split_markdown_chunks(markdown, max_chunk_chars)
+    total = len(chunks)
+    source_hash = hashlib.sha1(markdown.encode("utf-8")).hexdigest()[:16]
+
+    metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
+    metadata = dict(metadata)
+    progress = metadata.get("translation_progress") if isinstance(metadata.get("translation_progress"), dict) else {}
+    if progress.get("source_hash") != source_hash or not isinstance(progress.get("chunks"), dict):
+        progress = {"source_hash": source_hash, "total": total, "chunks": {}}
+    done_chunks: dict[str, str] = dict(progress.get("chunks") or {})
+
+    for index in range(total):
+        key = str(index)
+        if clean_text(done_chunks.get(key)):
+            continue
+        write_status(status_file, {
+            "state": "running", "done": len(done_chunks), "total": total,
+            "message": f"翻譯第 {index + 1}/{total} 段中…（{provider_label(provider)}）",
+        })
+        zh = run_chunk(provider, build_chunk_prompt(chunks[index], language, index, total), timeout)
+        if not clean_text(zh):
+            raise RuntimeError(f"第 {index + 1}/{total} 段翻譯回傳空白。")
+        done_chunks[key] = zh
+        # 每段即時寫回，失敗時已完成的段不會白費。
+        metadata["translation_progress"] = {"source_hash": source_hash, "total": total, "chunks": done_chunks, "updated_at": now_iso(), "last_provider": provider}
+        record["reading_metadata"] = metadata
+        if not dry_run:
+            write_jsonl(items_path, records)
+
+    zh_markdown = "\n\n".join(done_chunks[str(i)] for i in range(total)).strip()
+    payload = {
+        "id": item_id,
+        "source_language": language,
+        "zh_title": zh_title_from_markdown(zh_markdown, item_title(record)),
+        "zh_markdown": zh_markdown,
+        "note": f"分 {total} 段翻譯（{provider_label(provider)}）。",
+    }
+    apply_translation(record, payload, language, provider)
+    # 完成後清掉逐段暫存，只留完成記號。
+    metadata = dict(record.get("reading_metadata") or {})
+    metadata["translation_progress"] = {"source_hash": source_hash, "total": total, "done": total, "completed_at": now_iso()}
+    record["reading_metadata"] = metadata
+    if not dry_run:
+        write_jsonl(items_path, records)
+    write_status(status_file, {"state": "done", "done": total, "total": total, "message": f"翻譯完成，共 {total} 段。"})
+    return payload
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
 def apply_translation(record: dict[str, Any], payload: dict[str, Any], language: str, provider: str) -> bool:
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
     metadata = dict(metadata)
@@ -382,25 +584,38 @@ def main() -> None:
     parser.add_argument("--provider", choices=sorted(AI_PROVIDERS), default="codex")
     parser.add_argument("--items", type=Path, default=ITEMS)
     parser.add_argument("--id", required=True)
-    parser.add_argument("--timeout", type=int, default=1500)
+    parser.add_argument("--timeout", type=int, default=480, help="每段翻譯的逾時秒數")
+    parser.add_argument("--status-file", type=Path, default=None, help="進度寫到這個 JSON，給前端輪詢")
+    parser.add_argument("--max-chunk-chars", type=int, default=2400)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     records = load_jsonl(args.items)
     record = next((item for item in records if clean_text(item.get("id")) == args.id), None)
     if not record:
+        write_status(args.status_file, {"state": "failed", "message": f"找不到項目：{args.id}"})
         raise SystemExit(f"找不到項目：{args.id}")
     markdown = source_markdown(record)
     if not markdown:
+        write_status(args.status_file, {"state": "failed", "message": "還沒有可翻譯的全文，請先展開全文。"})
         raise SystemExit("這篇還沒有可翻譯的 Markdown 全文，請先展開全文。")
     language = source_language(record, markdown)
     if language.startswith("zh"):
+        write_status(args.status_file, {"state": "failed", "message": "這篇看起來已是中文，不需要翻譯。"})
         raise SystemExit("這篇看起來已是中文，不需要自動翻譯。")
-    payload = run_provider(record, markdown, language, args.provider, args.timeout)
-    apply_translation(record, payload, language, args.provider)
-    if not args.dry_run:
-        write_jsonl(args.items, records)
-    print(f"translated id={args.id} provider={provider_label(args.provider)} language={language or 'unknown'} dry_run={args.dry_run}")
+    try:
+        payload = translate_record_chunked(
+            records, record, markdown, language, args.provider, args.items,
+            args.status_file, args.max_chunk_chars, args.timeout, args.dry_run,
+        )
+    except Exception as exc:  # noqa: BLE001 - 失敗時保留已完成的段，並回報進度
+        progress = (record.get("reading_metadata") or {}).get("translation_progress") or {}
+        done = len(progress.get("chunks") or {}) if isinstance(progress.get("chunks"), dict) else 0
+        total = progress.get("total") or 0
+        write_status(args.status_file, {"state": "failed", "done": done, "total": total, "message": f"翻譯中斷（已完成 {done}/{total} 段，可再按一次從這裡繼續）：{clean_text(exc, 200)}"})
+        raise SystemExit(f"translate failed at {done}/{total}: {exc}")
+    total = (record.get("reading_metadata") or {}).get("translation_progress", {}).get("total", 0)
+    print(f"translated id={args.id} provider={provider_label(args.provider)} chunks={total} language={language or 'unknown'} dry_run={args.dry_run}")
 
 
 if __name__ == "__main__":
