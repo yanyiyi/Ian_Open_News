@@ -474,7 +474,7 @@ COMMANDS = {
     },
     "render_ghpages_reader": {
         "label": "產生 GitHub Pages 閱讀版",
-        "description": "輸出 docs/reader/index.html，只顯示開放科技主線的精選文章、小消息與觀點文章；完成後會直接送一個線上版 commit。",
+        "description": "輸出 docs/reader/index.html（開放科技主線的精選文章、小消息與觀點文章），以及狀態為「已發布」的專文（features.html）；完成後會直接送一個線上版 commit。",
         "button": "更新線上閱讀版",
         "command": [sys.executable, str(ROOT / "scripts" / "render_ghpages_reader.py")],
     },
@@ -2475,6 +2475,12 @@ def public_reader_article_filename(item: dict) -> str:
 
 def public_reader_article_url(item: dict) -> str:
     return f"{ONLINE_READER_BASE_URL}/articles/{public_reader_article_filename(item)}"
+
+
+def public_reader_feature_url(article: dict) -> str:
+    """專文的公開線上版 URL（狀態為 published、跑過更新線上閱讀版後才存在）。"""
+    article_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(article.get("id")) or "article").strip("-")
+    return f"{ONLINE_READER_BASE_URL}/features/{article_id}.html"
 
 
 def resolve_final_url(url: str, timeout: int = 12) -> tuple[str, str]:
@@ -9486,6 +9492,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <select id="article-track">{track_options}</select>
       <label class="article-field" for="article-status" style="margin-top:10px;">狀態</label>
       <select id="article-status">{status_options}</select>
+      <p class="help" style="margin-top:6px;">狀態設為「已發布」並按首頁的「更新線上閱讀版」後，會產出公開線上版：<br><a href="{h(public_reader_feature_url(article))}" target="_blank" rel="noopener">{h(public_reader_feature_url(article))}</a></p>
       <h3 style="margin-top:12px;">標籤</h3>
       <form data-tag-picker data-article-tags class="tag-picker" onsubmit="return false">{tag_controls}</form>
     </div>
@@ -9622,7 +9629,9 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <div class="article-view-tags">{tag_html}</div>
       <div class="button-row" style="margin-top:10px;">
         <a class="button" href="/articles/edit?id={quote(article_id)}">{button_content("進編修台編輯", "edit")}</a>
+        {f'<a class="button secondary" href="{h(public_reader_feature_url(article))}" target="_blank" rel="noopener">{button_content("看線上版", "globe")}</a>' if clean_text(article.get("status")) == "published" else ""}
       </div>
+      {'' if clean_text(article.get("status")) == "published" else '<p class="muted">狀態設為「已發布」並更新線上閱讀版後，會有公開線上版。</p>'}
     </div>
     <article class="card editor-output article-markdown">{body_html}</article>
   </div>

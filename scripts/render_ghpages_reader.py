@@ -10,9 +10,12 @@ from pathlib import Path
 
 from local_web import (
     ITEMS,
+    VIEWPOINTS,
     action_icon,
     action_label,
     clean_text,
+    editor_item_lookup,
+    load_articles,
     content_kind_label,
     h,
     item_article_markdown,
@@ -408,6 +411,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
 <nav class="reader-nav" aria-label="閱讀版導覽">
   <a class="{h('is-active' if current == 'index' else '')}" href="{root_prefix}index.html">精選與觀點</a>
   <a class="{h('is-active' if current == 'news' else '')}" href="{root_prefix}news.html">小消息</a>
+  <a class="{h('is-active' if current == 'features' else '')}" href="{root_prefix}features.html">專文</a>
 </nav>
 """
     page_heading = "" if current == "article" else f'<section class="page-heading"><h1>{h(title)}</h1></section>'
@@ -1164,6 +1168,120 @@ def news_page(items: list[dict]) -> str:
     return page_shell("開放科技小消息", body, current="news", include_time_filter=True)
 
 
+# ------------------------------------------------------------------ #
+# 專文（article）線上版：狀態為 published 的專文輸出到公開站
+# ------------------------------------------------------------------ #
+def article_doc_filename(article: dict) -> str:
+    article_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(article.get("id")) or "article").strip("-")
+    return f"{article_id}.html"
+
+
+def article_feature_href(article: dict, from_feature: bool = False) -> str:
+    prefix = "" if from_feature else "features/"
+    return prefix + article_doc_filename(article)
+
+
+def article_tag_chips(tags: list, limit: int = 8) -> str:
+    clean = [clean_text(t) for t in (tags or []) if clean_text(t)][:limit]
+    if not clean:
+        return ""
+    return '<div class="tag-chip-list">' + "".join(f'<span class="tag-chip">{h(t)}</span>' for t in clean) + "</div>"
+
+
+def article_plain_excerpt(article: dict, limit: int = 320) -> str:
+    text = re.sub(r"[#>*`_\-]+", " ", clean_text(article.get("body_markdown")))
+    return clean_text(text, limit)
+
+
+def article_feature_card(article: dict) -> str:
+    track = clean_text(article.get("track")) or "unclassified"
+    return f"""
+<article class="story-card">
+  <div class="story-body">
+    <div>{reader_badge(track_meta(track)["short"], "opentech")}{reader_badge("專文", "suggest-keep")}{reader_badge(clean_text(article.get("updated_at"))[:10], "date")}</div>
+    <h2><a href="{h(article_feature_href(article))}">{h(clean_text(article.get("title")) or "（未命名專文）")}</a></h2>
+    <p class="summary">{h(article_plain_excerpt(article, 360))}</p>
+    {article_tag_chips(article.get("tags"))}
+  </div>
+</article>
+"""
+
+
+def features_page(articles: list[dict]) -> str:
+    cards = "\n".join(article_feature_card(article) for article in articles)
+    body = f"""
+<section>
+  <h2>專文 {public_help_dot("經過編輯台撰稿、編修台順稿與事實查核後產出的成果文章。")}</h2>
+  {f'<div class="card-grid">{cards}</div>' if cards else '<p class="empty">目前還沒有已發布的專文。</p>'}
+</section>
+"""
+    return page_shell("開放科技專文", body, current="features", include_time_filter=False)
+
+
+def article_public_page(article: dict, item_lookup: dict, vp_lookup: dict) -> str:
+    title = clean_text(article.get("title")) or "（未命名專文）"
+    track = clean_text(article.get("track")) or "unclassified"
+    body_markdown = strip_duplicate_leading_heading(article.get("body_markdown") or "", title)
+    body_html = markdown_to_html(body_markdown) if body_markdown.strip() else "<p class='empty'>這篇還沒有內容。</p>"
+
+    source_rows = ""
+    for item_id in article.get("item_ids") or []:
+        rec = item_lookup.get(clean_text(item_id))
+        if not rec:
+            continue
+        rec_title = item_display_title(rec)
+        url = clean_text(rec.get("url"))
+        if item_is_public_reader(rec):
+            href = "../articles/" + public_reader_article_filename(rec)
+            source_rows += f'<li><a href="{h(href)}">{h(rec_title)}</a></li>'
+        elif url:
+            source_rows += f'<li><a href="{h(url)}" target="_blank" rel="noreferrer">{h(rec_title)} ↗</a></li>'
+        else:
+            source_rows += f"<li>{h(rec_title)}</li>"
+    sources_block = (
+        f'<section class="article-fulltext-card"><div class="section-kicker">引用</div><h2>引用材料</h2><ul class="article-sources">{source_rows}</ul></section>'
+        if source_rows
+        else ""
+    )
+
+    vp_rows = ""
+    for vp_id in article.get("viewpoint_ids") or []:
+        vp = vp_lookup.get(clean_text(vp_id))
+        if not vp:
+            continue
+        vp_title = clean_text(vp.get("title")) or "（未命名觀點）"
+        vp_body = clean_text(vp.get("body"), 200)
+        vp_body_html = f'<br><span class="summary">{h(vp_body)}</span>' if vp_body else ""
+        vp_rows += f"<li><strong>{h(vp_title)}</strong>{vp_body_html}</li>"
+    viewpoints_block = (
+        f'<section class="article-fulltext-card"><div class="section-kicker">觀點</div><h2>延伸觀點</h2><ul class="article-sources">{vp_rows}</ul></section>'
+        if vp_rows
+        else ""
+    )
+
+    body = f"""
+<style>.article-markdown h1 + hr, .article-markdown h2 + hr, .article-markdown h3 + hr, .article-markdown h4 + hr {{ display:none; }} .article-sources {{ margin:0; padding-left:18px; }} .article-sources li {{ margin:6px 0; }}</style>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../features.html" onclick="if (history.length > 1) {{ history.back(); return false; }}">返回專文</a>
+</nav>
+<div class="article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta">{reader_badge(track_meta(track)["short"], "opentech")}{reader_badge("專文", "suggest-keep")}{reader_badge(clean_text(article.get("updated_at"))[:10], "date")}</div>
+      <h1>{h(title)}</h1>
+      {article_tag_chips(article.get("tags"))}
+    </article>
+    <section class="article-fulltext-card">
+      <div class="article-text article-markdown">{body_html}</div>
+    </section>
+    {sources_block}
+    {viewpoints_block}
+  </div>
+</div>
+"""
+    return page_shell(title, body, current="features", depth=1)
+
+
 def write_clean(path: Path, html: str) -> None:
     html = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", html)
     html = "\n".join(line.rstrip() for line in html.splitlines()) + "\n"
@@ -1212,8 +1330,26 @@ def main() -> None:
         next_item = ordered_articles[index + 1] if index < len(ordered_articles) - 1 else None
         write_clean(articles_dir / article_filename(item), article_page(item, repo_url, branch, previous_item, next_item))
     removed_conflicts += cleanup_conflict_copies(articles_dir)
+
+    # 專文線上版：狀態為 published 的專文 → features.html + features/{id}.html
+    features = [a for a in load_articles() if clean_text(a.get("status")) == "published"]
+    features.sort(key=lambda a: clean_text(a.get("updated_at")), reverse=True)
+    features_dir = output_dir / "features"
+    write_clean(output_dir / "features.html", features_page(features))
+    item_lookup = editor_item_lookup()
+    vp_lookup = {clean_text(v.get("id")): v for v in load_jsonl(VIEWPOINTS)}
+    if features:
+        features_dir.mkdir(parents=True, exist_ok=True)
+    expected_features = {article_doc_filename(a) for a in features}
+    if features_dir.exists():
+        for stale in features_dir.glob("*.html"):
+            if stale.name not in expected_features:
+                stale.unlink()
+    for article in features:
+        write_clean(features_dir / article_doc_filename(article), article_public_page(article, item_lookup, vp_lookup))
+
     conflict_note = f", removed {removed_conflicts} duplicate copies" if removed_conflicts else ""
-    print(f"wrote {output_dir} ({len(items)} items, {len(items)} article pages{conflict_note})")
+    print(f"wrote {output_dir} ({len(items)} items, {len(items)} article pages, {len(features)} 專文{conflict_note})")
 
 
 if __name__ == "__main__":
