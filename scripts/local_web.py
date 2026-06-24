@@ -1911,6 +1911,7 @@ def tag_picker_controls_html(
     *,
     placeholder: str = "搜尋或新增 tag",
     aria_label: str = "搜尋或新增 tag",
+    collapse_suggestions: bool = False,
 ) -> str:
     option_payload: list[str] = []
     option_seen: set[str] = set()
@@ -1942,13 +1943,20 @@ def tag_picker_controls_html(
         )
     suggested_html = "".join(suggested_groups_html)
     options_json = json.dumps(option_payload, ensure_ascii=False).replace("<", "\\u003c")
+    suggestions_block = f'<div class="tag-suggestion-groups" data-tag-suggestions>{suggested_html}</div>'
+    if collapse_suggestions and suggested_html.strip():
+        suggestions_block = (
+            '<details class="tag-suggestion-collapse">'
+            '<summary>瀏覽建議標籤（依分面）</summary>'
+            f'{suggestions_block}</details>'
+        )
     return f"""
     <div class="tag-picker-current" data-tag-current>{current_html}</div>
     <div class="tag-search-wrap">
       <input name="new_tags" data-tag-input autocomplete="off" placeholder="{h(placeholder)}" aria-label="{h(aria_label)}">
       <div class="tag-menu" data-tag-menu hidden></div>
     </div>
-    <div class="tag-suggestion-groups" data-tag-suggestions>{suggested_html}</div>
+    {suggestions_block}
     <div data-tag-hidden>{hidden_inputs}</div>
     <script type="application/json" data-tag-options>{options_json}</script>
 """
@@ -4280,6 +4288,11 @@ def page(title: str, body: str) -> bytes:
       min-height: 32px;
     }}
     .tag-suggestion-strip:empty {{ display: none; }}
+    .tag-suggestion-collapse {{ margin-top: 6px; }}
+    .tag-suggestion-collapse > summary {{ cursor: pointer; color: var(--ocf-primary, #6450dc); font-size: 13px; list-style: none; padding: 4px 0; }}
+    .tag-suggestion-collapse > summary::-webkit-details-marker {{ display: none; }}
+    .tag-suggestion-collapse > summary::before {{ content: "▸ "; }}
+    .tag-suggestion-collapse[open] > summary::before {{ content: "▾ "; }}
     .tag-suggestion-groups {{
       display: grid;
       gap: 8px;
@@ -11308,6 +11321,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         tag_controls = tag_picker_controls_html(
             [], taxonomy_primary_tags(), all_tag_options(tag_records),
             placeholder="搜尋或新增標籤（OS、open data 也找得到）",
+            collapse_suggestions=True,
         )
         body = f"""
 <h1>手動入庫</h1>
