@@ -19,6 +19,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from email import policy
 from email.parser import BytesParser
+import functools
 from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -275,6 +276,19 @@ COMMAND_SHORTCUTS = {
 }
 DATA_AUTOCOMMIT_FILES = [ITEMS, REVIEW_EVENTS, SOURCES]
 DATA_AUTOCOMMIT_LOCK = threading.Lock()
+# 序列化資料庫的「讀取→修改→整檔覆寫」交易。ThreadingHTTPServer 會並發處理請求，
+# 沒有這把鎖時，批次或快速連點的收件/分流會 lost-update：item 被另一執行緒的舊
+# 快照覆寫掉，但 review-event 是 append 故倖存，留下對不到 item 的孤兒事件。
+DB_WRITE_LOCK = threading.RLock()
+
+
+def with_db_write_lock(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with DB_WRITE_LOCK:
+            return func(*args, **kwargs)
+
+    return wrapper
 REJECTION_REASON_CATEGORIES = [
     "活動公告/宣傳",
     "純紀錄型資料",
@@ -811,20 +825,22 @@ def write_status_json(path: Path, record: dict) -> None:
 def write_jsonl(path: Path, records: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
-    path.write_text(text, encoding="utf-8")
+    with DB_WRITE_LOCK:  # 避免並發寫入交錯把檔案寫壞
+        path.write_text(text, encoding="utf-8")
 
 
 def append_jsonl(path: Path, record: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    needs_newline = path.exists() and path.stat().st_size > 0
-    if needs_newline:
-        with path.open("rb") as handle:
-            handle.seek(-1, 2)
-            needs_newline = handle.read(1) != b"\n"
-    with path.open("a", encoding="utf-8") as handle:
+    with DB_WRITE_LOCK:  # 避免並發 append 與整檔覆寫交錯
+        needs_newline = path.exists() and path.stat().st_size > 0
         if needs_newline:
-            handle.write("\n")
-        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+            with path.open("rb") as handle:
+                handle.seek(-1, 2)
+                needs_newline = handle.read(1) != b"\n"
+        with path.open("a", encoding="utf-8") as handle:
+            if needs_newline:
+                handle.write("\n")
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
 
 
 def upsert_jsonl(path: Path, record: dict) -> None:
@@ -10590,6 +10606,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 """
         self.send_html("單篇整理", body)
 
+    @with_db_write_lock
     def pop_candidate(self, candidate_id: str) -> dict | None:
         candidates = load_jsonl(CANDIDATES)
         candidate = None
@@ -10604,6 +10621,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         write_jsonl(CANDIDATES, remaining)
         return candidate
 
+    @with_db_write_lock
     def import_candidate_item(self, candidate_id: str) -> tuple[dict | None, bool]:
         candidate = self.pop_candidate(candidate_id)
         if candidate is None:
@@ -10632,6 +10650,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             remove_jsonl_ids(DISMISSED, {item_id})
         return item, False
 
+    @with_db_write_lock
     def dismiss_candidate_record(self, candidate_id: str, reason: str = "") -> bool:
         candidate = self.pop_candidate(candidate_id)
         if candidate is None:
@@ -10690,6 +10709,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         append_jsonl(DISMISSED, dismissed)
         return True
 
+    @with_db_write_lock
     def update_pending_decisions(self, item_ids: list[str], action: str, reason: str = "") -> int:
         selected_ids = [item_id for item_id in item_ids if item_id]
         if not selected_ids:
@@ -10713,6 +10733,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             changed += self.update_item_decisions(item_ids_to_update, action, reason)
         return changed
 
+    @with_db_write_lock
     def update_item_decisions(self, item_ids: list[str], action: str, reason: str = "") -> int:
         selected_ids = {item_id for item_id in item_ids if item_id}
         if not selected_ids:
