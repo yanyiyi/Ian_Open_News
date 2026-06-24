@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>用 CUGA 打造真正的代理型應用：輕量框架上的二十多個實作案例 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-24T06:00:56+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
+<div class="article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-23 08:00</span></div>
+      <h1><a class="article-title-link" href="https://huggingface.co/blog/ibm-research/cuga-apps" target="_blank" rel="noreferrer" title="開啟原始連結">用 CUGA 打造真正的代理型應用：輕量框架上的二十多個實作案例</a></h1>
+      <p class="lede">文章宣稱以 CUGA 的輕量框架展示二十多個可運作的代理型應用，但現有資訊不足以判斷實作深度、開放授權與實際價值。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Build real agentic apps using CUGA: two dozen working examples on a lightweight harness</h1>
+<h2>a]:hidden&quot;&gt;</h2>
+<p>Build real agentic apps using CUGA: two dozen working examples on a lightweight harness</p>
+<blockquote><a href="https://huggingface.co/blog/ibm-research/cuga-apps#why-a-harness-not-a-framework" target="_blank" rel="noreferrer">Why a harness, not a framework</a> <a href="https://huggingface.co/blog/ibm-research/cuga-apps#one-app-start-to-finish" target="_blank" rel="noreferrer">One app, start to finish</a> <a href="https://huggingface.co/blog/ibm-research/cuga-apps#the-convention-that-does-the-heavy-lifting" target="_blank" rel="noreferrer">The convention that does the heavy lifting</a> <a href="https://huggingface.co/blog/ibm-research/cuga-apps#a-library-not-a-demo" target="_blank" rel="noreferrer">A library, not a demo</a> <a href="https://huggingface.co/blog/ibm-research/cuga-apps#keeping-your-agent-within-the-boundaries" target="_blank" rel="noreferrer">Keeping your agent within the boundaries</a> <a href="https://huggingface.co/blog/ibm-research/cuga-apps#growing-past-one-agent" target="_blank" rel="noreferrer">Growing past one agent</a> <a href="https://huggingface.co/blog/ibm-research/cuga-apps#governed-by-construction" target="_blank" rel="noreferrer">Governed by construction</a> <a href="https://huggingface.co/blog/ibm-research/cuga-apps#where-the-same-agent-ends-up" target="_blank" rel="noreferrer">Where the same agent ends up</a> <a href="https://huggingface.co/blog/ibm-research/cuga-apps#next-steps" target="_blank" rel="noreferrer">Next steps</a> <a href="https://huggingface.co/blog/ibm-research/cuga-apps#resources" target="_blank" rel="noreferrer">Resources</a> <strong>TL;DR</strong> — Building an agent is mostly plumbing: tools, state, guardrails, scaling from one agent to many. CUGA (pip install cuga), short for Configurable Generalist Agent, the Agent Harness for the Enterprise from IBM handles that, so you write just a tool list and a prompt. We built two-dozen single-file apps to prove it. Read one end to end here, then see how the same agent runs sovereign and governed in production without a rewrite.</blockquote>
+<p>Most agentic apps start with a week of plumbing before the agent does anything useful. You pick a framework, wire up a model client, write tool adapters, build some way to stream state to a UI, and somewhere in there you also decide what the agent is actually for. The interesting part arrives last. <a href="https://github.com/cuga-project/cuga-agent" target="_blank" rel="noreferrer">CUGA</a> inverts that. It&#x27;s the open-source agent harness from IBM that handles the planning, the execution loop, the tool calls, and the state plumbing for you. What&#x27;s left is the part that&#x27;s actually yours: which tools the agent can reach, and what you tell it to do. To show what that feels like in practice, we built <a href="https://github.com/cuga-project/cuga-apps" target="_blank" rel="noreferrer">cuga-apps</a>: two dozen small, working apps, each a single FastAPI file wrapping one <code>CugaAgent</code>, from a movie recommender to an IBM Cloud architecture advisor. They exist to be read and copied. You can <a href="https://huggingface.co/spaces/ibm-research/cuga-apps" target="_blank" rel="noreferrer">click through the live gallery</a>. This article walks through one of them, names what the harness takes off your plate, and shows where the same code goes when you need it governed for production. No new framework to learn first. If you&#x27;ve written a FastAPI route, you can read every line.</p>
+<h2>Why a harness, not a framework</h2>
+<p>The fair question to ask of anything in this space is what it saves you from writing. CUGA&#x27;s answer: the orchestration around a <code>model</code> that you&#x27;d otherwise rebuild every time. It plans before it acts, then executes with a mix of tool calls and generated code (CodeAct). On a long task that runs twenty steps, the thing that breaks most agents is losing track of intermediate results and re-deriving them (often wrong) on the next turn; CUGA holds that state and runs a reflection step that can catch a bad call and re-plan instead of barreling ahead. That machinery is why it has topped agent benchmarks like AppWorld and WebArena rather than something you tune by hand. You also set the cost/latency tradeoff from config rather than code: Fast, Balanced, and Accurate reasoning modes, with code execution in whatever sandbox you trust (local, Docker/Podman, or E2B cloud). Same agent definition, different dial. That dial matters more than it sounds. Most harnesses assume a frontier model sits underneath and lean on it to recover when a plan goes sideways; CUGA does that work itself. The planning, the reflection step, the variable-tracking that keeps a long run on course — that&#x27;s the harness carrying load the model would otherwise have to, which is what lets a smaller open-weight model hold up where it normally wouldn&#x27;t. It&#x27;s why the hosted apps run on gpt-oss-120b rather than a frontier API. Running the biggest model you can call is the usual bet; CUGA&#x27;s is that a smaller open one is enough. None of the individual pieces is unique to CUGA. What&#x27;s different is that they come pre-assembled, so you configure them instead of wiring them together. The API you touch is small — build a <code>CugaAgent</code> with a tool list and a prompt, then <code>await agent.invoke(...)</code>. Everything below that line is the harness. Concretely, that&#x27;s interchangeable tools (OpenAPI, MCP, and LangChain functions all bind the same way), long-horizon planning with variable management and self-correction (the machinery behind **#1 on <a href="https://appworld.dev/" target="_blank" rel="noreferrer">AppWorld</a><strong> from 07/25 - 02/26 and </strong><a href="https://webarena.dev/" target="_blank" rel="noreferrer">WebArena</a><strong> from 02/25 - 09/25), declarative guardrails, multi-agent delegation over </strong>A2A**, Docling-powered RAG, and one-env-var provider switching (<code>pip install cuga</code>, then OpenAI, watsonx, Ollama, and more) — each something you&#x27;d otherwise build yourself. The first word of the name does the work: <em>Configurable</em>; the hard parts are handled, so your job is just the task.</p>
+<h2>One app, start to finish</h2>
+<p>Here&#x27;s the IBM Cloud advisor — an agent that recommends real IBM Cloud services for an architecture. The whole thing fits in one file: a <code>main.py</code> with the agent factory, the tools, and the prompt, plus a small UI. Four arguments. The model comes from a small factory (<code>create_llm</code>) that speaks to OpenAI, Anthropic, watsonx, LiteLLM, or Ollama depending on an environment variable. Nothing in the app code knows which model sits behind it. The <code>cuga_folder</code> is where this app keeps its state and any policies. The two arguments that carry the app are <code>tools</code> and <code>special_instructions</code>. The tools mix a local function with a hosted one: There&#x27;s a pattern here that holds across every app: a split between MCP tools and inline tools. Generic, stateless capabilities come from shared MCP servers; <code>load_tools([&quot;web&quot;])</code> pulls in web search without you hosting anything. Anything specific to this app gets defined inline as a normal Python function, like <code>search_ibm_catalog</code>, whose docstring is what the agent reads to decide when to call it. You write the one tool that&#x27;s yours and borrow the rest. The cloud advisor&#x27;s prompt tells the agent to search the catalog before naming any service, recommend three to seven services with each one&#x27;s role in the design, and never invent service names. That last rule earns its keep: an agent recommending IBM Cloud services that don&#x27;t exist is worse than no agent, so the prompt forces every recommendation through a catalog lookup first. Prompts written as ordered steps with explicit &quot;don&#x27;t make things up&quot; rules behave; prompts written as personas wander. That&#x27;s the app. A tool, a procedure, four lines of constructor. The FastAPI routes around it are ordinary web code: the browser posts a question to <code>/ask</code>, and the live panel polls a <code>/session/{thread_id}</code> endpoint for state. There&#x27;s no database; state is a per-<code>thread_id</code> Python dict that only the agent writes to, through its tools. The moment the agent calls a tool mid-run, the panel redraws. The UI isn&#x27;t a second copy of the logic; it&#x27;s a view onto state the agent mutated.</p>
+<h2>The convention that does the heavy lifting</h2>
+<p>One detail is easy to skip and turns out to be load-bearing: every inline tool returns the same small envelope. Success looks like <code>{&quot;ok&quot;: true, &quot;data&quot;: {...}}</code>; failure looks like <code>{&quot;ok&quot;: false, &quot;code&quot;: &quot;...&quot;, &quot;error&quot;: &quot;...&quot;}</code>. It looks like boilerplate. It isn&#x27;t. CUGA&#x27;s planner handles a <em>declared</em> failure gracefully (&quot;geocoding didn&#x27;t return anything, skip that section and keep going&quot;) and chokes on an <em>undeclared</em> one, where a raw stack trace bubbles up mid-plan and the run derails. Across the apps, the ones that worked reliably were the ones whose tools never threw a bare exception at the agent. A boring convention, but it&#x27;s the difference between an agent that recovers and one that face-plants. The split above only pays off because the generic half is already running somewhere. The capabilities the apps reach for over and over — web search, Wikipedia/arXiv, geocoding and weather, finance quotes, and a few more — live in <strong>7 public MCP servers (36 tools)</strong> hosted on IBM Code Engine, no auth required. A small bridge resolves their URLs automatically, and the <a href="https://huggingface.co/spaces/ibm-research/cuga-apps" target="_blank" rel="noreferrer">live gallery</a> ships an <strong>MCP Tool Explorer</strong> to call any of them from a form before you wire it into an agent.</p>
+<h2>A library, not a demo</h2>
+<p>The reason there are two dozen polished apps matters more than any single one: once you&#x27;ve read the cloud advisor, you&#x27;ve read all of them. They share a skeleton — the movie recommender swaps the IBM catalog tool for the <code>knowledge</code> MCP server, the web researcher leans almost entirely on <code>web</code> — so cuga-apps is really a catalog of starting points. You clone the repo, find the app closest to your idea, and edit its tool list and prompt (<a href="https://github.com/cuga-project/cuga-apps/blob/main/cuga-apps/docs/HOW_TO_BUILD_AN_APP_FAST.md" target="_blank" rel="noreferrer">HOW_TO_BUILD_AN_APP_FAST.md</a> and <a href="https://github.com/cuga-project/cuga-apps/blob/main/cuga-apps/docs/ADDING_AN_APP.md" target="_blank" rel="noreferrer">ADDING_AN_APP.md</a> walk through exactly that). A few apps were even generated by handing a coding assistant one spec file and a one-line brief — regular enough for a model to reproduce means regular enough for you to learn. You can <a href="https://huggingface.co/spaces/ibm-research/cuga-apps" target="_blank" rel="noreferrer">click through every one in the live gallery</a> before cloning anything. They also fan out across families, so whatever you&#x27;re building, one app already exercises the piece you need. There&#x27;s a research cluster (Paper Scout ranks arXiv papers by citation count; Wiki Dive and Web Researcher do cited synthesis), an everyday-productivity set (city briefings, travel, recipes, trails), a document-and-media group that does RAG over PDFs, audio, and video, an ops corner watching live metrics, and an enterprise example over real IBM product docs. Ouroboros is a seven-agent lead-gen system; open it for the multi-agent shape. And Meetup Finder drives headless Chromium through Playwright to pull structured events off Meetup, Luma, and Eventbrite (all of which killed their public search APIs); open it for browser automation, which is where CUGA started and the muscle behind its strong WebArena results. Two caveats before you clone. The real catalog lives in the inner <code>cuga-apps/cuga-apps/apps/</code> directory, not the outer one. And not every app is equally polished, so the UI tags them &quot;showcase&quot; or &quot;additional apps&quot; and defaults to &quot;showcase&quot;; start from the cloud advisor or movie recommender for a working baseline.</p>
+<h2>Keeping your agent within the boundaries</h2>
+<p>A demo agent that searches a catalog is low-stakes. Point the same pattern at something that writes files, runs shell commands, or touches production, and the question changes: how do you stop it doing something you&#x27;ll regret? CUGA answers this in the runtime, not in a wrapper you add afterward. The open-source agent ships a policy system, and you attach policies to the same agent object: That&#x27;s an Intent Guard, one of six policy types, each answering a question a team asks before letting an agent loose:</p>
+<ul>
+<li><strong>Intent Guard</strong> — can it refuse a request outright?</li>
+<li><strong>Tool Approval</strong> — can it pause for a human before a risky tool runs?</li>
+<li><strong>Tool Guide</strong> — can I steer how a specific tool gets used without rewriting it?</li>
+<li><strong>Playbook</strong> — can I pin a known-good procedure for a recurring task?</li>
+<li><strong>Output Formatter</strong> — can I force the final response into a required shape?</li>
+</ul>
+<p>A sixth type, <code>CustomPolicy</code>, is the escape hatch when none of those fit. Timing is worth getting right, because it isn&#x27;t all one stage: an Intent Guard checks the request before the agent picks a tool, Tool Approval runs <em>after</em> the agent has generated its code and inspects which tools that code uses, and Output Formatter fires only once the final message exists. Triggers go past keyword matching too: they&#x27;re held in a <code>sqlite-vec</code> store and matched semantically, so a policy fires on what the user <em>means</em>, not just on an exact keyword. Match on semantic similarity, on agent state, or on a specific tool firing. The policies themselves live in that <code>.cuga</code> folder from the constructor, versioned next to the code rather than drifting in a separate config. For a working example, open <a href="https://github.com/cuga-project/cuga-apps/tree/main/cuga-apps/apps/ouroboros" target="_blank" rel="noreferrer">Ouroboros</a> — a seven-agent lead-gen app that attaches three policies (an intent guard, a tool guide, and an output formatter) to its supervisor, so it&#x27;s the one app that demos governance and the multi-agent shape in the same file.</p>
+<h2>Growing past one agent</h2>
+<p>Two extensions matter once an app outgrows a single chat loop. When one agent would drown in its own context (too many tools, too much evidence to keep straight), you split the work. A <code>CugaSupervisor</code> delegates to specialist <code>CugaAgent</code>s, each with its own tools, prompt, and isolated context, and the supervisor only ever reasons about which specialist to hand a subtask to. Its planning surface stays small no matter how many tools sit underneath, and a flaky tool fails one delegation instead of the whole run. A specialist doesn&#x27;t even have to be local; it can be an external agent reached over A2A, delegated to the same way. Adding a capability means adding a specialist, not rewriting a coordinator. The other extension packages know-how rather than tools: Agent Skills, a folder with a <code>SKILL.md</code> playbook the agent pulls into context only when a task calls for it, so one prompt isn&#x27;t carrying everything the agent might ever need to know. Both keep the same building blocks (tools, prompts, state, policies), just composed a level up. Ouroboros, the lead-gen app from earlier makes this pattern concrete. It has a supervisor over seven specialists (scout, site auditor, voice-of-customer, person finder, stack scanner, revenue estimator, and a pitch-email writer that synthesizes). Each specialist is one skill loaded into a <code>CugaAgent</code>, and the supervisor calls it through an auto-generated <code>delegate_to_</code> tool. Adding an eighth is a one-line factory, not a coordinator rewrite. Read its <code>main.py</code> and <code>ARCHITECTURE.md</code> if you want the multi-agent shape end to end. There&#x27;s a third extension, and it points back at the skills themselves. With <a href="https://agenttoolkit.github.io/altk-evolve/" target="_blank" rel="noreferrer">ALTK-Evolve</a>, CUGA&#x27;s on-the-job learning framework, an agent refines a skill from its own runs so a task done today makes tomorrow&#x27;s faster and more accurate. The <code>SKILL.md</code> a specialist loads ends up holding what the agent learned on top of what you wrote. Same building blocks, except now using one teaches the next. The thing you stop doing is re-prompting through a problem you already solved last week.</p>
+<h2>Governed by construction</h2>
+<p>Where governance lives in the stack shapes how the production story goes. A minimal agent library hands you good primitives and leaves the governance (policy, approvals, audit, identity) for you to assemble. CUGA takes the other path: policy, human-in-the-loop approval, the <code>.cuga</code> state folder, and self-hosting are part of the harness from the first line, not a layer you add later. That changes the direction of the work when you take an agent to production. You&#x27;re not retrofitting controls onto something built for open access; the control plane is already there. The governed path is the default, and the ungoverned shortcuts are the ones you opt into. So the remaining job is narrow: tighten the sandbox around the few tools that actually touch the outside world, rather than invent the governance around them</p>
+<h2>Where the same agent ends up</h2>
+<p>Here&#x27;s the payoff, and the reason any of this is built the way it is. Because the harness is small, open source, model-agnostic, and already governs itself, the agent you wrote on your laptop is the same agent that runs in a locked-down deployment. You don&#x27;t port it. You redeploy it. That&#x27;s the foundation <a href="https://www.ibm.com/products/sovereign-core" target="_blank" rel="noreferrer">IBM Sovereign Core</a> builds on, and it&#x27;s where we took CUGA next. <a href="https://community.ibm.com/community/user/blogs/shikha-srivastava1/2026/04/30/open-by-design-generalist-and-prebuilt-agents-in-t" target="_blank" rel="noreferrer">We wrote about the details separately</a>, but the short version: Sovereign Core runs CUGA agents under what we call Boundary Isolation: data, control plane, and execution engine inside the same logical boundary, with agents running in transient, isolated containers in the tenant&#x27;s own workspace. The model runs there too. Deployments default to <code>gpt-oss-120b</code> running fully air-gapped within your infrastructure, and tools reach only private VNETs with per-tool approval. Every reasoning step emits OpenTelemetry traces into a Grafana Tempo backend that stays in-tenant, with no telemetry phoning home. Nothing leaves the boundary. The agent definition doesn&#x27;t change to get there; the deployment around it does. And the reason that&#x27;s possible is everything above — capability, policy, and model choice all live in a runtime you can read. That&#x27;s the bet we made building it: when an agent&#x27;s runtime is a black box, sovereignty is a promise, but when it&#x27;s open code, sovereignty is something you can check. The apps you cloned and the agent you wrote are the same open runtime that claim rests on. The developer takeaway stands on its own, though. An agentic app can be one file you hold in your head. The tools and the prompt are the only parts you really write. The apps are a library to learn from, not a sealed demo. And when the stakes rise, the governance is already in the runtime — you don&#x27;t rebuild the agent to make it safe.</p>
+<h2>Next steps</h2>
+<p>Clone the repo and run an app. The hosted MCP servers mean you don&#x27;t need third-party keys, just an LLM provider. The apps in this article run on the open-weights <strong>gpt-oss-120b</strong> — the same model the hosted gallery and our Sovereign Core deployments use — but because the model is a one-line swap (<code>create_llm</code> reads a single env var), you can point any app at OpenAI, Anthropic, watsonx, or a local Ollama model with no code change, and at a local model there&#x27;s no API cost at all: Start by reviewing our Quick Start Guide <a href="https://github.com/cuga-project/cuga-apps#1--an-inline-tools-only-app-fastest-path" target="_blank" rel="noreferrer">here</a>. If you&#x27;d like to set up all the applications, ensure Docker is running and then follow the steps below. Then open <code>apps/ibm_cloud_advisor/main.py</code> and read it end to end — it&#x27;s the clearest example of the inline-tool-plus-MCP pattern. Change the system prompt, add a tool, and watch the behavior shift. The MCP Tool Explorer lists every hosted tool with a form to call it directly, which is a quick way to check the plumbing before wiring a tool into an agent. So try it. <code>pip install cuga</code>, clone <a href="https://github.com/cuga-project/cuga-apps" target="_blank" rel="noreferrer">cuga-apps</a>, and run an app — or just <a href="https://huggingface.co/spaces/ibm-research/cuga-apps" target="_blank" rel="noreferrer">click through the live gallery</a> first. The harness lives at <a href="https://github.com/cuga-project/cuga-agent" target="_blank" rel="noreferrer">cuga-agent</a> and the project home is <a href="https://cuga.dev" target="_blank" rel="noreferrer">cuga.dev</a>. If something breaks, an app misbehaves, or you have an idea, we want to hear it: open an issue, file a PR, drop in your own app, or just reach out — the repo is built to be added to, and we read everything that comes in.</p>
+<h2>Resources</h2>
+<ul>
+<li><a href="https://github.com/cuga-project/cuga-apps" target="_blank" rel="noreferrer">cuga-apps</a> — the apps, MCP servers, and UI in this article</li>
+<li><a href="https://github.com/cuga-project/cuga-apps/tree/main/cuga-apps/apps" target="_blank" rel="noreferrer">cuga-apps/apps</a> — the two dozen polished single-file agent apps (the inner catalog; clone from here)</li>
+<li><a href="https://github.com/cuga-project/cuga-apps/tree/main/cuga-apps/mcp_servers" target="_blank" rel="noreferrer">cuga-apps/mcp_servers</a> — the shared MCP servers (web, knowledge, geo, finance, code, text, …) the apps borrow</li>
+<li><a href="https://huggingface.co/spaces/ibm-research/cuga-apps" target="_blank" rel="noreferrer">Live app gallery + MCP Tool Explorer</a> — every app behind a launch button, plus a form to call each hosted MCP tool directly</li>
+<li><a href="https://github.com/cuga-project/cuga-agent" target="_blank" rel="noreferrer">cuga-agent</a> — the CUGA runtime and policy system</li>
+<li><a href="https://cuga.dev" target="_blank" rel="noreferrer">cuga.dev</a> — CUGA project home (<code>pip install cuga</code>)</li>
+<li><a href="https://community.ibm.com/community/user/blogs/shikha-srivastava1/2026/04/30/open-by-design-generalist-and-prebuilt-agents-in-t" target="_blank" rel="noreferrer">Open by Design: Generalist and Pre-Built Agents in the Sovereign Core</a> — IBM Community post on how CUGA runs inside Sovereign Core (Srivastava, Marreed, Thomas, April 2026)</li>
+<li><a href="https://www.ibm.com/products/sovereign-core" target="_blank" rel="noreferrer">IBM Sovereign Core</a> — product page</li>
+</ul>
+<h2>Spaces mentioned in this article 1</h2>
+<h4>CUGA Apps</h4>
+<p>Access and manage your CUGA applications from a single dashboard</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-a3ffbf7959862801.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">英國 DSIT 就透過資料中介機構賦權個人展開諮詢</span>
+</a>
+
+<a class="article-sequence-link" href="item-807b455930c0e4f4.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">未設置驕傲主題展示的圖書館稱「不應因此受批判」</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-c88649238e2e2d96.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：direct-pr-small-news / 2026-06-24T05:41:21+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-24T05:41:21+00:00 本機標記直接送 PR（小消息）；純事實項目，不進編輯台撰稿。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Build real agentic apps using CUGA: two dozen working examples on a lightweight harness</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Anupama Murthi（json-ld）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-c88649238e2e2d96";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>公部門握有資料寶庫：如何利用而不暴露公民 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-24T06:00:56+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
+<div class="article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-06-23 08:00</span></div>
+      <h1><a class="article-title-link" href="https://www.agendadigitale.eu/cittadinanza-digitale/la-pa-ha-un-tesoro-di-dati-come-usarli-senza-esporre-i-cittadini/" target="_blank" rel="noreferrer" title="開啟原始連結">公部門握有資料寶庫：如何利用而不暴露公民</a></h1>
+      <p class="lede">文章討論公部門如何運用其掌握的大量資料，同時避免公民資訊遭到暴露，並將這項轉型置於歐盟《資料治理法》、《資料法》與《人工智慧法》構成的新策略框架中。</p>
+      <div class="tag-chip-list"><span class="tag-chip">data governance</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>公部門握有資料寶庫：如何善用而不暴露公民個資</h1>
+<h2>公部門握有資料寶庫：如何善用而不暴露公民個資</h2>
+<p>公共行政機關的數位轉型，有賴全新的公共資料治理方式。匿名化、假名化、隱私強化技術（Privacy Enhancing Technologies, PET）、k-匿名與合成資料，已成為兼顧創新、人工智慧、互通性、安全及公民權利保障的核心工具。 在<strong>公共行政機關</strong>的數位轉型過程中，資料已成為創造公共價值、改善服務，以及<a href="https://www.agendadigitale.eu/cittadinanza-digitale/pa-data-driven-sfide-organizzative-e-gestione-del-cambiamento-nel-nuovo-ccnl/" target="_blank" rel="noreferrer">支援更多資料驅動決策</a>的關鍵資產之一。與此同時，確保資訊運用完全符合安全、透明與公民權利保障原則，也變得愈來愈重要。</p>
+<blockquote><a href="https://www.agendadigitale.eu/cittadinanza-digitale/pa-data-driven-5-passaggi-chiave-per-servizi-a-misura-di-cittadino/" target="_blank" rel="noreferrer">資料驅動的公共行政：打造以公民為本服務的五個關鍵步驟</a></blockquote>
+<p>以**歐盟《一般資料保護規則》（Regulation (EU) 2016/679，<a href="https://www.agendadigitale.eu/sicurezza/gdpr-tutto-cio-che-ce-da-sapere-per-essere-preparati/" target="_blank" rel="noreferrer">GDPR</a>）**為起點的歐洲法規架構，已深刻重塑兩者之間的平衡。資料保護與創新不再被視為彼此對立，而是成熟數位治理中相輔相成的要素。<a href="https://www.agendadigitale.eu/sicurezza/privacy/privacy-by-design-e-by-default-cosa-sono-vantaggi-e-sfide/" target="_blank" rel="noreferrer">「隱私設計」（privacy by design）與「隱私預設」（privacy by default）</a>等概念，要求在設計流程與數位平台之初，就將資訊保護納入其中。</p>
+<ul>
+<li><a href="https://www.agendadigitale.eu/cittadinanza-digitale/la-pa-ha-un-tesoro-di-dati-come-usarli-senza-esporre-i-cittadini/#Data_Governance_PA_il_nuovo_equilibrio_tra_innovazione_e_privacy" target="_blank" rel="noreferrer">公部門資料治理：創新與隱私之間的新平衡</a></li>
+<li><a href="https://www.agendadigitale.eu/cittadinanza-digitale/la-pa-ha-un-tesoro-di-dati-come-usarli-senza-esporre-i-cittadini/#Privacy_Enhancing_Technologies_e_AI_un_binomio_inevitabile" target="_blank" rel="noreferrer">隱私強化技術與人工智慧：無可避免的結合</a></li>
+<li><a href="https://www.agendadigitale.eu/cittadinanza-digitale/la-pa-ha-un-tesoro-di-dati-come-usarli-senza-esporre-i-cittadini/#Dal_dato_%E2%80%9Cprotetto%E2%80%9D_al_dato_%E2%80%9Cutilizzabile%E2%80%9D" target="_blank" rel="noreferrer">從「受保護」的資料走向「可運用」的資料</a></li>
+<li><a href="https://www.agendadigitale.eu/cittadinanza-digitale/la-pa-ha-un-tesoro-di-dati-come-usarli-senza-esporre-i-cittadini/#K-Anonymity_anonimizzazione_misurabile_e_verificabile" target="_blank" rel="noreferrer">k-匿名：可衡量、可驗證的匿名化</a></li>
+<li><a href="https://www.agendadigitale.eu/cittadinanza-digitale/la-pa-ha-un-tesoro-di-dati-come-usarli-senza-esporre-i-cittadini/#Dati_sintetici_quando_linnovazione_non_espone_dati_reali" target="_blank" rel="noreferrer">合成資料：不暴露真實資料的創新方式</a></li>
+<li><a href="https://www.agendadigitale.eu/cittadinanza-digitale/la-pa-ha-un-tesoro-di-dati-come-usarli-senza-esporre-i-cittadini/#Verso_una_Data_Governance_%E2%80%9Cprivacy_by_design%E2%80%9D" target="_blank" rel="noreferrer">邁向「隱私設計」的資料治理</a></li>
+</ul>
+<h2>公部門資料治理：創新與隱私之間的新平衡</h2>
+<p>在這樣的背景下，<strong>資料假名化</strong>與<strong>匿名化</strong>格外重要。兩者經常被當成同義詞使用，實際上卻有截然不同的意涵。在假名化的情況下，透過另外保存並妥善保護的補充資訊，理論上仍可重新建立資料與當事人身分之間的關聯；匿名化則是以不可逆的方式消除資料與個人之間的連結，即使與其他資料庫進行關聯或交叉比對，也無法重新識別當事人。 這項區別不只涉及技術，也具有深遠的法律與策略意義。<strong>經過假名化的資料</strong>仍屬於 GDPR 的適用範圍；真正匿名化的資料則能促進公共資訊資產的新型態運用，在加強隱私保障的環境中，支援進階分析、系統互通、開放資料，以及<a href="https://www.agendadigitale.eu/tag/intelligenza-artificiale/" target="_blank" rel="noreferrer">人工智慧</a>模型。 新的<strong>公部門資料治理</strong>正是沿著這個方向發展：建立一套能夠兼顧創新、智慧運用資料與數位信任的治理模式。</p>
+<h2>隱私強化技術與人工智慧：無可避免的結合</h2>
+<p><strong>公共行政機關</strong>的資料平台正逐步轉向先進的<a href="https://www.agendadigitale.eu/industry-4-0/analisi-predittiva-per-aumentare-le-vendite-ecco-tutte-le-strategie/" target="_blank" rel="noreferrer">預測分析</a>模式，將公共資訊資產轉化為策略工具，用來預測現象、支援複雜決策，並提升各機關的規劃能力。如今的重點已不只是蒐集與查詢資料，而是建立能夠產生知識、串聯異質資訊，並提供高附加價值洞見的智慧生態系。 在這樣的環境中，**<a href="https://www.agendadigitale.eu/cultura-digitale/comprendere-lia-generativa-dalla-storia-alle-applicazioni/" target="_blank" rel="noreferrer">生成式人工智慧</a><strong>為公共資訊資產的搜尋、取用與價值發揮帶來前所未有的加速效果。使用自然語言查詢大量資料、找出隱藏關聯、協助發掘資訊來源，以及支援進階決策流程，都為更加資料驅動、主動且以公民為本的公共行政開啟了新可能。 隨著這項發展，</strong>隱私強化技術（Privacy Enhancing Technologies, PET）<strong>也扮演愈來愈重要的策略角色。如今，PET 被視為在安全、可靠並符合法規的前提下，推動進階資料運用的關鍵要素之一。進階匿名化、合成資料、資料遮罩與資訊流保護等技術，能在發揮資料資產價值的同時，大幅降低個人資訊外洩及當事人遭重新識別的風險。 </strong>PET<strong>正成為新型公部門資料經濟的重要推動工具。它能讓機關在不損害公民基本權利保障的情況下，共享資料、開發預測模型、提供人工智慧演算法所需資料，並促進機關之間的互通。在彼此連結日益緊密的公共生態系中，這些技術也有助於強化可問責性、透明度與數位信任，而這些要素已是任何公部門創新策略不可或缺的基礎。 然而，真正的挑戰不只在於能否取得新技術。</strong>公部門人工智慧<strong>的價值，主要取決於為其提供資料的生態系品質。準確性、可靠性、可追溯性、互通性、法規遵循與資訊保護，都是建立真正可靠、透明且能長期維持之模型的必要條件。 這正是</strong>資料治理**扮演核心角色之處：它不只是監督與控管機制，更是一項能夠推動創新、建立信任，並以負責任方式發揮公共資訊資產價值的策略工具。</p>
+<h2>從「受保護」的資料走向「可運用」的資料</h2>
+<p>多年來，<strong>資料保護</strong>一直被視為限制。如今，治理較成熟的行政機關正採用不同思維：保護資料，是為了更妥善地運用資料。 真正的進展不只是<strong>「隱藏」敏感資訊</strong>，而是建立能夠安全共享資料、支援進階分析、提供人工智慧模型所需資料、降低重新識別風險，並將可問責性與法規遵循納入設計的生態系。 在這樣的環境中，<strong>進階匿名化</strong>與<strong>合成資料</strong>生成技術具有重要的策略地位。</p>
+<h2>k-匿名：可衡量、可驗證的匿名化</h2>
+<p><strong>k-匿名（K-Anonymity）</strong>是較成熟的資料保護技術之一，能夠大幅降低間接識別當事人的風險。 其原則簡單卻有力：針對一組間接識別屬性，資料集中的每一筆紀錄，都必須與至少另外 <strong>k-1 筆紀錄</strong>無法區分。 實務上，這代表必須避免有人利用看似無害的屬性組合，例如<strong>年齡、郵遞區號、職業、性別與地理區域</strong>，推斷出某人的身分。 這項模型的概念公式如下： <strong>k</strong> 值愈大，資料集的匿名化程度就愈高。 在本文分析的區域性專案中，其作法並不只是在技術上套用匿名化，也導入了<strong>「衡量指標與報告機制，以驗證資料集的匿名化程度」</strong>。 這一點特別重要，因為它象徵資料保護從<strong>「宣稱已完成」</strong>，轉向可衡量、可驗證及可治理的保護方式。</p>
+<h2>合成資料：不暴露真實資料的創新方式</h2>
+<p>除了 <strong>k-匿名</strong>，另一項在資料驅動公共行政中日益重要的技術，就是<strong>合成資料</strong>。 合成資料不同於傳統匿名化資料集，並不是單純對原始資料進行遮罩。它是人工產生的資料，能重現真實資料的統計特徵、關聯性與模式，但不包含可直接連結至當事人的資訊。 專案文件指出，這類資料集的設計目標是<strong>「保留輸入資料的統計特徵」</strong>。 這項技術的影響十分深遠。運用<strong>合成資料</strong>，公共行政機關可以：</p>
+<ul>
+<li><strong>開發及測試人工智慧演算法</strong>；</li>
+<li><strong>模擬決策情境</strong>；</li>
+<li><strong>與外部合作夥伴共享資料集</strong>；</li>
+<li><strong>支援研究與創新環境</strong>；</li>
+<li><strong>建立開發沙盒</strong>；</li>
+<li><strong>在不暴露真實個人資料的情況下進行資料分析</strong>。</li>
+</ul>
+<p>換句話說，<strong>合成資料</strong>能夠加速安全創新。</p>
+<h2>邁向「隱私設計」的資料治理</h2>
+<p><strong>公共行政機關</strong>的新型資料架構正朝向更加整合的模式發展。資訊從資料擷取（ingestion）、儲存（storage）、處理（processing），到供應（provisioning）及視覺化（visualization）的完整生命週期，都透過跨領域的知識管理與法規遵循流程進行一致治理。這項作法不只能提升公共資訊資產的品質與可用性，也能使其真正具備互通性、可擴充性，並可供進階數位服務、進階分析與人工智慧模型使用。 這項轉型完全符合歐洲的新策略架構，包括<strong>《資料治理法》（Data Governance Act）</strong>、**<a href="https://www.agendadigitale.eu/mercati-digitali/data-act-guida-alle-nuove-regole-per-laccesso-e-luso-dei-dati-in-europa/" target="_blank" rel="noreferrer">《資料法》（Data Act）</a><strong>、</strong><a href="https://www.agendadigitale.eu/cultura-digitale/ai-act-ci-siamo-ecco-come-plasmera-il-futuro-dellintelligenza-artificiale-in-europa/" target="_blank" rel="noreferrer">《人工智慧法》（AI Act）</a><strong>，以及</strong>歐洲共同資料空間（Common European Data Spaces）<strong>策略。這些規範與策略正逐步重新定義公共領域的資料管理。在這樣的環境中，隱私不再只是事後檢查或行政法遵要求，而是數位生態系中的結構性要素，從平台、流程及分析模型的設計階段就整合其中。 因此，今天真正的挑戰不只涉及技術，也涉及文化、組織與策略：建立一套能以智慧、可靠且永續的方式發揮資訊資產價值，同時不犧牲權利保障、公民信任與機關互信的</strong>公共行政體系<strong>。 </strong>k-匿名<strong>與</strong>合成資料<strong>等技術，如今已不只是技術工具，更是建立新型資料治理文化的關鍵要素。在這套治理模式中，創新、互通性與基本權利保障不再是彼此衝突的目標，而是同一項發展策略的不同組成部分。 這正是</strong>公共行政機關<strong>未來幾年最重要的課題之一：將資料保護從法定義務，轉化為推動永續創新的力量。 因此，愈來愈多公共機關必須開始思考一個問題：我們是否已準備好將</strong>資料治理**從法定義務，轉化為公共創新的真正引擎？</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-500ce164725caff4.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">文化資產部門為公共 AI 提出主張</span>
+</a>
+
+<a class="article-sequence-link" href="item-931f7aa1870b7509.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">OpenAI 推出修補開源安全漏洞專案</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-fbef874278c2b172.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-24T05:53:46+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-24T05:53:46+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：La PA ha un tesoro di dati: come usarli senza esporre i cittadini - Agenda Digitale</li><li><strong>原始語言</strong>：it（html lang）</li><li><strong>自動翻譯中文標題</strong>：公部門握有資料寶庫：如何善用而不暴露公民個資（Codex）</li><li><strong>原始作者</strong>：Leucio Maturo（json-ld）</li><li><strong>原始網站授權</strong>：https://www.agendadigitale.eu/#organization（json-ld）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-fbef874278c2b172";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

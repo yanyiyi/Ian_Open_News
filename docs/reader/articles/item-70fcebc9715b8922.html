@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>圓桌討論（一）：從七國資料看政府開源軟體的發展模式 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav { margin: 0 0 14px; }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h2::after {
+      content: "";
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .72;
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-24T06:00:56+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+</nav>
+<div class="article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-06-24 01:23</span></div>
+      <h1><a class="article-title-link" href="https://www.ipa.go.jp/en/digital/software-engineering/oss/govoss_report_2025/roundtable-discussion-1.html" target="_blank" rel="noreferrer" title="開啟原始連結">圓桌討論（一）：從七國資料看政府開源軟體的發展模式</a></h1>
+      <p class="lede">研究團隊以七個國家的30,298個 GitHub 儲存庫為基礎，討論政府開源軟體活動的規模與發展模式。資料顯示，日本雖與英美的大型生態系存在差距，但活動程度並非原先想像的停滯，而是與德國、新加坡、愛沙尼亞等數位政府案例處於相近群組。討論也指出，政府相關帳號分散於不同部會與專案，建立完整目錄本身就是艱難且具有後續研究價值的工作。這項比較的重點不是追求單一大型模式，而是辨識各國所處階段，進一步尋找適合日本的推動策略。</p>
+      <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h2>圓桌討論（一）：研究團隊解析各國 OSS 現況與發展模式差異</h2>
+<p>政府推動開源軟體發布活動國際比較研究報告 「日本在推動開源軟體（OSS）方面，是否正落後於世界？」面對這種模糊的疑慮，本計畫蒐集並分析 GitHub 的量化資料。在彙整七個國家共 30,298 個儲存庫（repository）後，研究團隊從數字背後發現了哪些特徵與趨勢？團隊以這些客觀資料為基礎，從不同角度討論日本相較於其他國家的位置，以及各國推動 OSS 模式的差異。 本文發言均為講者個人觀點，不代表其所屬組織的官方立場。</p>
+<h2>與談人</h2>
+<h3>今村和貴（Kazuki Imamura）</h3>
+<p>擁有 13 年網頁工程師經驗，2018 年開始投入公民科技活動，並於 2024 年 3 月就任現職。 擔任本次調查的專案負責人。</p>
+<h3>福地宏之（Hiroyuki Fukuchi）</h3>
+<p>曾參與國際標準化活動及嵌入式軟體開發，自 2016 年起投入開源推廣工作，2025 年借調至 IPA。在社群活動方面，曾參與籌組 OpenChain Project 日本工作小組（Japan WG）。 本研究中負責提出研究方法、執行調查、分析資料及撰寫報告。</p>
+<h3>岡本真（Shin Okamoto）</h3>
+<p>畢業於京都工藝纖維大學研究所，曾針對公共議題的發掘與解決，進行服務設計及參與式設計的研究與實作。本研究中負責撰寫第 1、2、5 章。</p>
+<h3>小橋真也（Shinya Kohashi）</h3>
+<p>身為服務設計師，負責帶領新事業開發、使用者體驗（UX）設計及組織設計管理支援等專案。自 2014 年起，也透過「PUBLIC DESIGN LAB.」展開研究活動，探索服務設計應用於公共部門的可能性。 本研究中協助文章編輯與撰寫，並擔任本次圓桌討論的主持人。</p>
+<h2>資料打破「日本落後」的成見</h2>
+<p>本研究計畫首次導入 GitHub 的量化資料，以「事實」驗證長期以來「日本在數位化及採用 OSS 方面落後歐美」的直覺式悲觀印象。實際蒐集並分析如此龐大的資料後，各位最直接的感想是什麼？ 主持這項研究時，最讓我印象深刻的是，透過分析活動程度，我們得以看見各國的位置，也就是其「現況」。過去日本經常被形容為「什麼都沒做」或「已經落後」，但實際將資料繪製成圖表後，呈現出的景象完全不同。當然，與英國、美國等規模極大的國家相比仍有差距，但我們發現，日本其實與德國、新加坡及愛沙尼亞等被視為數位先進國家的國家同屬一個群組，而且已有一定程度的活動。</p>
+<ul>
+<li>儲存庫數與 Pull Request 數量（七國比較）</li>
+<li>儲存庫數與 Pull Request 數量（四國比較）</li>
+</ul>
+<p>或許過去我們太過拘泥於缺乏實際根據的「直覺式悲觀」。 沒錯。與其只是感嘆自己「落後」，我們現在已經確認，有些專案其實正在推進，而且日本與其他處於相近位置的國家一樣，都在持續嘗試並調整做法。這項研究最大的收穫，就是讓我們能正確掌握自己目前的位置。 蒐集資料的過程本身也非常困難。GitHub 上並不存在單一的「政府」帳號，各部會及專案的帳號散落各處。即使確定了國家，也不代表能立刻取得資料；逐一找出每個組織，是一項非常繁瑣且費力的工作。 沒錯。我們花了很多力氣整理這份清單，目前也很少看到其他如此完整的彙整。因此，我認為除了分析結果之外，這份「資料目錄本身」也會成為未來研究的重要資產。 仔細檢視資料後，我們也看見各國面臨的具體情況，以及所處發展階段的差異。我認為，這是探索「日本自己的致勝策略」所跨出的第一步，而不是籠統地以歐盟那樣的大規模模式為目標。</p>
+<h2>各國資料呈現的「發展模式」差異</h2>
+<p>活動規模的差異，是否只是「數量」上的不同？還是也存在性質上的差異？從圖表的形狀與分布中，可以看出哪些不同？ 以英國的資料為例，相關活動約自 2010 年開始，並在 2012 年成立政府數位服務團隊（Government Digital Service，GDS）後，出現儲存庫數量大幅成長的情形。看起來是先由一個明確且強而有力的核心組織建立成功模式，再將模式橫向擴展，進而帶動成長。相較之下，美國並不是由特定核心組織主導 OSS 推廣，而是由聯邦政府內盡可能多的機關以自主、分散的方式推動，同時讓外部利害關係人參與，使相關行動持續增加。其基礎相當廣泛，從 NASA 這樣規模龐大的單一組織，到小型研究機構都包含在內。 若以農業比喻，可以將英國稱為由中央管理的「種植園模式」，美國則是個別活動如地下莖般向外蔓延的「地下莖模式」。那麼，日本又是什麼情況？ 日本一直沒有明確的國家 OSS 策略。從資料來看，由國土交通省（MLIT）及國土地理院（GSI）主導的「地圖與地理資訊系統（GIS）」領域，其活動發展得格外成熟。不過，這可能是因為這些領域恰好有人才，為了回應第一線需求，自然而然地將重心放在這些工作上。 也就是說，特定領域是因應第一線需求而自然成長，並不是經由策略性規畫所栽種出來的。 可以說，它不是「外來種」，而是扎根於當地土壤的「原生種」，具有自身的生命力。 順帶一提，其他與日本同組的國家有什麼特徵？ 例如，愛沙尼亞的活動集中於名為「X-Road」的資料交換平台。他們並未讓個別應用程式大量增加，而是集中開發作為資料流通管道的基礎設施。新加坡也有類似情形；我們觀察到，他們的重點並非行政服務所使用的 OSS 本身，而是提供能提升效率的開發平台。 原來如此。就像日本聚焦於地圖及 GIS 領域，規模居中的國家都有一項共同特徵：將資源集中於特定平台或基礎設施。 日本公共 OSS 社群已在 GIS 領域形成一套獨特的生態系。這並不是因為有人下令要求，而是政府實務工作者為了自身業務及服務的需要，主動分享並使用這些工具。讓這些「原生種」受到關注，並制定策略增加類似案例，或許就是日本獨有的成功途徑。 比較主要指標的雷達圖也呈現出一些有趣的差異（註 1）。英國的貢獻者，也就是參與開發的人數較多；美國則是在顯示外部參與程度的指標上較高，例如反映儲存庫受關注程度的星號數，以及代表儲存庫被複製使用的分支（fork）數。從資料來看，日本的規模雖然不及這些國家，但與新加坡及愛沙尼亞同屬一個群組，其主要指標的分布型態也被歸類為典型的中型國家。</p>
+<ul>
+<li>註 1</li>
+</ul>
+<p>調查報告以七項主要指標評估專案，分別是「儲存庫數量」、「星號數」、「分支數」、「開發分支（branch）數」、「議題（issue）數」、「Pull Request 數」及「貢獻者數」。</p>
+<ul>
+<li>主要指標雷達圖（七國比較）</li>
+<li>主要指標雷達圖（四國比較）</li>
+</ul>
+<p>原來如此。就像種植植物一樣，生態系形成的過程並沒有統一模式。即使我們說「應該以英國模式為目標」，突然想建立一座種植園，也未必適合日本的土壤。我們反而需要思考一套日本特有的「耕作方式」：如何保護已經自然生長的「原生種」，以及如何在其周圍栽種新的物種。</p>
+<h2>公開「食譜」，提升再利用性</h2>
+<p>本次調查的另一項發現，與政府機關發布的 OSS 內容有關。我們推估其技術領域後發現，約有三分之一並不是應用程式本身，也就是完成品，而是「開發工具（測試程式碼、文件、CI/CD、SDK 等）」。</p>
+<ul>
+<li>七國 OSS 儲存庫的技術領域分類（矩形式樹狀圖）</li>
+</ul>
+<p>這很有意思。用烹飪來比喻，就像不只端出完成的「料理」，還將「食譜及廚具」成套公開嗎？ 正是如此。例如，公開測試方法及 SDK（軟體開發套件），顯示其意圖是降低他人參與的門檻，讓再利用更加容易。相較於只發布軟體本身，提供「使用這項工具就能製作相同成果」或「可以透過這種方式測試它是否正常運作」的工具，對生態系更有幫助。日本也有類似案例。例如，我聽說國土交通省的 3D 都市模型計畫「PLATEAU」在支援遊戲引擎 Unity 後，下載量突然大幅增加。 沒錯。據相關人員表示，除了 Unity 之外，他們也提供適用於 Minecraft 等通用工具的轉換器，因而擴大了使用者群。這凸顯出一種做法的重要性：與其強迫使用者採用專有規格，不如配合原本已擁有使用者的工具。 這是否就像一位專業中餐廚師，提供一道在家只用一只平底鍋也能完成的正宗麻婆豆腐食譜？與其將政府的專有系統強加給使用者，配合民間通用環境，才是讓使用者群呈倍數成長的關鍵。 這是非常重要的一點。OSS 並不會在「發布」後就宣告結束；發布之後「誰會使用、如何使用」等活動至關重要。如此多開發工具被公開，或許正代表各方非常重視再利用。 身為研究人員，我也認為中繼資料（屬性資訊）的整理是一項挑戰。目前仍有許多項目無法分類。如果能提供「這是用來製作地圖應用程式的測試工具」等資訊，工程師會更容易取得相關資源，也能提高分析的準確度。 如果不只依照地圖、醫療等領域檢視 OSS，也能從「完成品或工具」的角度加以區分，應該會很有幫助。 至於中繼資料管理等基礎工作，未來預計在政府內部成立的開源專案辦公室（Open Source Program Office，OSPO），很可能會負責其中的關鍵任務。為了讓 OSPO 更妥善地管理 OSS，持續進行這類國際趨勢調查，並與國內趨勢比較以掌握現況，至關重要。在此基礎上，改善中繼資料，讓國內外儲存庫更容易相互比較，並依據這些中繼資料建立 OSS 目錄，都是必須達成的重要目標。</p>
+<h2>數字呈現的「動能」與組織化挑戰</h2>
+<p>日本政府 OSS 的另一個關注重點，是代表受關注程度的星號數相當高。例如，數位廳在調查當時只有七個儲存庫，數量相對較少，卻獲得高達 1,043 個星號，格外突出。這可能反映出外部工程師潛在的熱情：他們希望「參與國家級專案」、「幫上忙」，或是「持續關注這些計畫」。</p>
+<ul>
+<li>數位廳（digital-go-jp）、國土地理院（gsi-cyberjapan）及國土交通省（Project-PLATEAU）GitHub 帳號主要指標比較</li>
+</ul>
+<p>所以，雖然數量不多，外界的期待卻很高。 沒錯。另一方面，日本雖然對個別具特色的 OSS 專案愈來愈感興趣，但這些關注尚未轉化為組織行動或跨領域採用，我認為這樣的說法並不為過。例如，地圖與 GIS 等特定領域的 OSS 專案已在局部形成動能，卻未被其他領域或政府機關採用，背後是否存在「依賴特定個人」的問題？ 沒錯。觀察日本目前的成功案例，「人才恰好出現在那裡」等高度依賴個人的因素，確實扮演了重要角色。這些行動目前仍能依靠特定職員的能力及個人投入維持運作，但下一階段的挑戰，是如何將其轉化為組織資產，建立即使人員異動也能持續運作的制度。此外，我們不只要思考如何從零開始打造日本特有的模式，也必須考慮如何順應全球趨勢，融入更大的生態系。 也就是說，我們需要同時具備兩種觀點：「培育原生種」，以及「成功與強健的外來種雜交」。這場圓桌討論顯示，日本絕非一片貧瘠的土地；相反地，這是一片第一線工作者的熱情與原生種共存的肥沃土壤。非常感謝各位。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-2795c566509a10e6.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">理解 AI 開放性：AI 模型發布的理論、政策與資料</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-70fcebc9715b8922.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>編輯紀錄</h2>
+  <ul><li>本機決定：accepted-for-editing / 2026-06-24T04:09:57+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-24T04:09:57+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Roundtable Discussion Part 1: Research Team Members Analyze the Reality of OSS in Various Countries and Differences in Development Models | Enabling digital transformations in industries and a society | IPA Innovation Platform Agency, Japan</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>原始作者</strong>：ipa.go.jp（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-70fcebc9715b8922";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
