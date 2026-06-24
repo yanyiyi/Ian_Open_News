@@ -426,28 +426,22 @@ def run_claude(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[di
     cache.mkdir(exist_ok=True)
     schema = output_schema()
     prompt = build_prompt(batch, "claude")
+    # Claude CLI（2.x）沒有 --json-schema/--tools 這些旗標；用有效旗標並把 schema 寫進 prompt，
+    # 再從回傳 JSON 的 result 欄位解析（與 editor_task.py / run_gemini 一致）。
+    prompt += f"\n\n請務必只輸出 JSON 物件，且完全符合以下 JSON Schema，不要任何額外說明或 markdown 包裝：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
     (cache / "claude-review-prompt.json").write_text(prompt, encoding="utf-8")
     command = [
         claude_path(),
-        "--print",
-        "--input-format",
-        "text",
+        "-p",
+        prompt,
         "--output-format",
         "json",
-        "--no-session-persistence",
-        "--permission-mode",
-        "dontAsk",
-        "--tools",
-        "",
-        "--json-schema",
-        json.dumps(schema, ensure_ascii=False),
     ]
     env = os.environ.copy()
     env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
     result = subprocess.run(
         command,
         cwd=ROOT,
-        input=prompt,
         text=True,
         capture_output=True,
         timeout=args.timeout,
