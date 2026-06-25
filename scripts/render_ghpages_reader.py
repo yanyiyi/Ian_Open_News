@@ -26,7 +26,9 @@ from local_web import (
     item_is_current_reading,
     is_reader_item,
     item_display_kind,
+    item_edited_markdown,
     item_image_url,
+    item_primary_markdown,
     item_sort_time,
     item_translated_markdown,
     item_visible_tags,
@@ -225,10 +227,8 @@ def reader_image_url(item: dict, depth: int = 0) -> str:
 
 
 def item_body_markdown(item: dict) -> str:
-    translated = item_translated_markdown(item)
-    if translated:
-        return translated
-    return item_article_markdown(item)
+    # 線上閱讀版的全文：手動編輯版 > 中文翻譯 > 原文（與單篇頁一致）
+    return item_primary_markdown(item)
 
 
 def item_is_public_reader(item: dict) -> bool:
@@ -1032,16 +1032,26 @@ def metadata_html(item: dict, display_title: str = "") -> str:
 
 
 def article_page(item: dict, repo_url: str, branch: str, previous_item: dict | None = None, next_item: dict | None = None) -> str:
+    edited_markdown = item_edited_markdown(item)
     translated_markdown = item_translated_markdown(item)
-    body_markdown = translated_markdown or item_article_markdown(item)
-    is_translation = bool(translated_markdown)
+    # 手動編輯版 > 中文翻譯 > 原文（與單篇頁一致，編輯過的內容要真的取代顯示）
+    body_markdown = edited_markdown or translated_markdown or item_article_markdown(item)
+    is_edited = bool(edited_markdown)
+    is_translation = bool(translated_markdown) and not is_edited
     note_key = h(clean_text(item.get("id")))
     source_url = clean_text(item.get("url"))
     title = item_display_title(item)
     article_markdown = strip_duplicate_leading_heading(body_markdown, title)
     has_article_markdown = bool(article_markdown)
-    fulltext_heading = ("中文全文" if is_translation else "原始主文") if has_article_markdown else "尚未載入全文"
-    fulltext_kicker = "中文翻譯" if is_translation else "全文"
+    if not has_article_markdown:
+        fulltext_heading = "尚未載入全文"
+    elif is_edited:
+        fulltext_heading = "全文"
+    elif is_translation:
+        fulltext_heading = "中文全文"
+    else:
+        fulltext_heading = "原始主文"
+    fulltext_kicker = "已編輯全文" if is_edited else ("中文翻譯" if is_translation else "全文")
     article_html = (
         markdown_to_html(article_markdown)
         if has_article_markdown

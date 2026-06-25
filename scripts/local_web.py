@@ -2683,6 +2683,17 @@ def item_translated_markdown(item: dict) -> str:
     return entries[0][1] if entries else ""
 
 
+def item_edited_markdown(item: dict) -> str:
+    """使用者線上手動修正後的「全文」覆寫層（修排版、補截斷）。優先於自動翻譯與原文。"""
+    return clean_text(item_reading_metadata(item).get("edited_markdown"))
+
+
+def item_primary_markdown(item: dict) -> str:
+    """目前要當主全文顯示／取用的版本：手動編輯版 > 中文翻譯 > 原始全文。
+    單篇頁、線上線下閱讀版共用，確保編輯過的內容會真的取代顯示。"""
+    return item_edited_markdown(item) or item_translated_markdown(item) or item_article_markdown(item)
+
+
 def translation_meta_value(metadata: dict, provider: str, key: str) -> str:
     provider = normalize_ai_provider(provider)
     meta_key = AI_PROVIDER_META[provider][key]
@@ -2730,7 +2741,7 @@ def translation_actions_html(item: dict, item_id: str, redirect_to: str) -> str:
     )
 
 
-def translation_panels_html(item: dict) -> str:
+def translation_panels_html(item: dict, collapsed: bool = False) -> str:
     metadata = item_reading_metadata(item)
     panels = []
     for provider, markdown in item_translation_entries(item):
@@ -2739,8 +2750,21 @@ def translation_panels_html(item: dict) -> str:
         source = translation_meta_value(metadata, provider, "translation_source_key") or label
         note = translation_meta_value(metadata, provider, "translation_note_key")
         note_html = f"<p class='help'>備註：{h(note)}</p>" if note else ""
-        panels.append(
-            f"""
+        if collapsed:
+            # 已有手動編輯版時，自動翻譯收合起來供比對（point 2）
+            panels.append(
+                f"""
+<details class="card fulltext-panel source-card source-card--source original-fulltext-collapsible" id="translation-panel-{h(provider)}">
+  <summary><div class="section-kicker">{h(label)} 自動翻譯（原始版本）</div></summary>
+  <p class="help">翻譯來源：{h(source)} · {h(generated_at)}</p>
+  {note_html}
+  <div class="article-text article-markdown">{markdown_to_html(markdown)}</div>
+</details>
+"""
+            )
+        else:
+            panels.append(
+                f"""
 <section class="card fulltext-panel source-card source-card--source" id="translation-panel-{h(provider)}">
   <div class="section-kicker">{h(label)} 中文翻譯</div>
   <p class="help">翻譯來源：{h(source)} · {h(generated_at)}</p>
@@ -2748,7 +2772,7 @@ def translation_panels_html(item: dict) -> str:
   <div class="article-text article-markdown">{markdown_to_html(markdown)}</div>
 </section>
 """
-        )
+            )
     return "".join(panels)
 
 
@@ -11406,39 +11430,70 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         article_markdown = item_article_markdown(item)
         article_meta = item_reading_metadata(item)
         display_title = item_display_title(item)
-        display_markdown = strip_duplicate_leading_heading(article_markdown, display_title)
-        article_html = markdown_to_html(display_markdown) if article_markdown else ""
+        edited_markdown = item_edited_markdown(item)
+        translation_entries = item_translation_entries(item)
+        has_translation = bool(translation_entries)
+        is_edited = bool(edited_markdown)
+        article_html = markdown_to_html(strip_duplicate_leading_heading(article_markdown, display_title)) if article_markdown else ""
         original_title = item_original_title(item)
         original_language = item_original_language(item)
         translate_actions = translation_actions_html(item, item_id, item_detail_href(item))
-        has_translation = bool(item_translation_entries(item))
-        translation_panel = translation_panels_html(item)
         fulltext_hidden = "" if article_markdown or article_text else " hidden"
         fulltext_message = (
             f"Markdown 閱讀版，約 {article_meta.get('article_markdown_chars', len(article_markdown)) or article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_markdown_method') or article_meta.get('article_text_method', 'metadata')}。"
             if article_markdown or article_text
             else "按「展開全文」後會從原始連結往下抓全文，載入完成後以 Markdown 閱讀版顯示在這裡。"
         )
-        if has_translation:
-            original_fulltext_panel = f"""
-<details class="card fulltext-panel source-card source-card--source original-fulltext-collapsible" id="fulltext-panel"{fulltext_hidden}>
-  <summary>
-    <div class="section-kicker">原始主文</div>
-  </summary>
-  <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
-  <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
-  <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
-</details>
-"""
-        else:
+        # 「編輯全文」入口：任何有全文（原文／翻譯／已編輯）的材料都能改排版或補截斷
+        edit_fulltext_button = (
+            f'<a class="button button-small" href="/items/edit-fulltext?id={quote(item_id)}">{button_content("編輯全文", "edit")}</a>'
+            if (article_markdown or article_text or has_translation or is_edited) and not is_rss_candidate
+            else ""
+        )
+        # 原文面板：read-more 目標，永遠帶 #fulltext-panel / data-fulltext-body / 翻譯動作。
+        # 原文本身就是主全文時 prominent；有翻譯或已編輯時收合成比對用。
+        original_is_primary = not (is_edited or has_translation)
+        if original_is_primary:
+            original_edit_row = f'<div class="button-row">{edit_fulltext_button}</div>' if edit_fulltext_button else ""
             original_fulltext_panel = f"""
 <section class="card fulltext-panel source-card source-card--source" id="fulltext-panel"{fulltext_hidden}>
   <div class="section-kicker">原始主文</div>
   <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
   <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
+  {original_edit_row}
   <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
 </section>
 """
+        else:
+            original_fulltext_panel = f"""
+<details class="card fulltext-panel source-card source-card--source original-fulltext-collapsible" id="fulltext-panel"{fulltext_hidden}>
+  <summary><div class="section-kicker">原始主文（原文）</div></summary>
+  <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
+  <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
+  <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
+</details>
+"""
+        # 主全文（編輯版）面板：手動修正後成為要讀的版本
+        primary_fulltext_panel = ""
+        if is_edited:
+            edited_html = markdown_to_html(strip_duplicate_leading_heading(edited_markdown, display_title))
+            primary_fulltext_panel = f"""
+<section class="card fulltext-panel source-card source-card--source" id="primary-fulltext-panel">
+  <div class="section-kicker">全文（已手動修正）</div>
+  <div class="article-text article-markdown">{edited_html}</div>
+  <div class="button-row">{edit_fulltext_button}</div>
+</section>
+"""
+        # 自動翻譯：沒編輯時當主全文（prominent + 編輯鈕）；編輯後收合供比對（point 2）
+        if has_translation and is_edited:
+            translation_panel = translation_panels_html(item, collapsed=True)
+        elif has_translation:
+            translation_edit_row = f'<div class="button-row">{edit_fulltext_button}</div>' if edit_fulltext_button else ""
+            translation_panel = translation_panels_html(item) + translation_edit_row
+        else:
+            translation_panel = ""
+        # 閱讀區順序：主全文（編輯版）→ 翻譯 → 原文
+        reading_panels = primary_fulltext_panel + translation_panel + original_fulltext_panel
         note = personal_note_text(item)
         item_url = clean_text(item.get("url"), 1200)
         online_article_url = public_reader_article_url(item)
@@ -11868,8 +11923,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     <p>{h(clean_text(item.get('summary'), 1800))}</p>
   </section>
 
-{original_fulltext_panel}
-{translation_panel}
+{reading_panels}
 
 <section class="article-detail-stack">
   <h2>閱讀建議與判斷來源</h2>
@@ -13016,6 +13070,8 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 md["article_text_chars"] = len(markdown)
                 md["article_text_method"] = method
                 md["fulltext_edited_at"] = now_iso()
+                # 重新抽取／重新分段會重建原文，清掉舊的手動覆寫層，讓新版本顯示。
+                md["edited_markdown"] = ""
                 updated["reading_metadata"] = md
                 if new_title:
                     updated["title"] = new_title
@@ -13033,13 +13089,17 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         if not item:
             self.send_html("找不到項目", "<h1>找不到可編輯的材料</h1><p><a class='button' href='/items'>回入庫建檔區</a></p>", HTTPStatus.NOT_FOUND)
             return
-        metadata = item_reading_metadata(item)
-        markdown = str(metadata.get("article_markdown") or metadata.get("article_text") or item.get("summary") or "")
+        has_translation = bool(item_translation_entries(item))
+        is_edited = bool(item_edited_markdown(item))
+        # 抓「目前的全文」：已編輯版 > 中文翻譯 > 原文。有中文就編中文、僅原文就編原文。
+        markdown = item_edited_markdown(item) or item_translated_markdown(item) or item_article_markdown(item) or str(item.get("summary") or "")
+        base_label = "中文全文" if has_translation else "原始全文"
+        edited_hint = "（目前載入的是你先前編輯過的版本）" if is_edited else ""
         detail = item_detail_href(item)
         body = f"""
 <h1>線上編輯全文</h1>
-<p class="lede">直接修正 markitdown 轉檔的小毛病（缺空格、跑版、亂碼、段落黏在一起）。
-存檔後閱讀區與編輯台都會以這份為準。這裡只改文字，不會改動原始 PDF 檔。</p>
+<p class="lede">修正排版、補上被截斷的內容，或順一下轉檔的小毛病（缺空格、跑版、亂碼、段落黏在一起）。
+目前載入的是<strong>{h(base_label)}</strong>{h(edited_hint)}。存檔後單篇頁、線上與線下閱讀版都會以這份編輯後的全文為準；原始翻譯與原文仍會保留在下方可展開比對。</p>
 <form method="post" action="/items/save-fulltext" class="easymde-host" id="fulltext-form">
   <input type="hidden" name="id" value="{h(item_id)}">
   <label>標題</label>
@@ -13083,14 +13143,43 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         if len(markdown) < 1:
             self.redirect(f"/items/edit-fulltext?id={quote(item_id)}")
             return
-        ok = self._apply_fulltext_edit(
-            item_id, markdown, new_title, "manual-edit", "線上編輯全文",
-            f"{now_iso()} 線上手動編輯全文（修正轉檔）。",
+        item, _path = self._find_item_any(item_id)
+        base = "zh" if (item and item_translation_entries(item)) else "original"
+        ok = self._apply_edited_markdown(
+            item_id, markdown, new_title, base,
+            f"{now_iso()} 線上手動編輯全文（修正排版／補截斷，base={base}）。",
         )
         if not ok:
             self.send_html("找不到項目", "<h1>找不到可編輯的材料</h1>", HTTPStatus.NOT_FOUND)
             return
         self.redirect(f"{redirect_to}&saved=fulltext_edit")
+
+    def _apply_edited_markdown(self, item_id: str, markdown: str, new_title: str, base: str, note: str) -> bool:
+        """把使用者手動修正後的全文存成 edited_markdown 覆寫層，不動原文與自動翻譯。"""
+        for path in (ITEMS, CANDIDATES):
+            records = load_jsonl(path)
+            changed = False
+            out = []
+            for it in records:
+                if clean_text(it.get("id")) != item_id:
+                    out.append(it)
+                    continue
+                updated = dict(it)
+                md = dict(item_reading_metadata(updated))
+                md["edited_markdown"] = markdown
+                md["edited_markdown_chars"] = len(markdown)
+                md["edited_markdown_base"] = base
+                md["edited_markdown_at"] = now_iso()
+                updated["reading_metadata"] = md
+                if new_title:
+                    updated["title"] = new_title
+                updated["review"] = append_review_note(updated.get("review") or {}, note)
+                out.append(updated)
+                changed = True
+            if changed:
+                write_jsonl(path, out)
+                return True
+        return False
 
     def repaginate_fulltext(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
