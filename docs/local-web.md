@@ -207,7 +207,7 @@ python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --di
 - 重新跑本機規則/關鍵字初篩：`python3 scripts/apply_triage_keywords.py`
 - 驗證資料庫：`python3 scripts/validate_database.py`
 - 匯出 SQLite：`python3 scripts/export_sqlite.py --output .cache/knowledge.sqlite`
-- 補閱讀卡圖片、描述與主文：`python3 scripts/enrich_reading_metadata.py --reader-only --only-missing-image --limit 40`
+- 補閱讀卡圖片、描述與主文：`python3 scripts/enrich_reading_metadata.py --reader-only --only-missing-reader-data --retry-after-days 7 --limit 40`。圖片、頁面描述或主文任一缺少就會排入；優先處理從未抓過與最久未抓的項目，抓取失敗或網站本來沒有圖片時，7 天內不會反覆占住前 40 筆。批次只補空缺，不覆蓋既有內容。
 - 查看檔案變更：`git status --short`
 - 查看變更摘要：`git diff --stat`
 

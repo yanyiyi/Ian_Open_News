@@ -480,13 +480,15 @@ COMMANDS = {
     },
     "enrich_reader_metadata": {
         "label": "補閱讀卡圖片、描述與主文",
-        "description": "連到閱讀區文章的原始網址，抓封面圖、標題、描述與可抽取的原始主文，讓卡片比較像線上報，也讓單篇頁能閱讀全文。",
+        "description": "連到閱讀區文章的原始網址，補齊缺少的封面圖、描述與可抽取主文；優先處理從未抓過與最久未抓的項目，失敗或仍缺資料時 7 天後才重試。",
         "button": "補閱讀區資料",
         "command": [
             sys.executable,
             str(ROOT / "scripts" / "enrich_reading_metadata.py"),
             "--reader-only",
-            "--only-missing-image",
+            "--only-missing-reader-data",
+            "--retry-after-days",
+            "7",
             "--limit",
             "40",
             "--status-file",

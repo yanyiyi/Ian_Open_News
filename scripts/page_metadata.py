@@ -641,7 +641,11 @@ def complete_item_metadata(item: dict) -> tuple[dict, bool]:
     return updated, True
 
 
-def enrich_item_metadata(item: dict, timeout: int = 8) -> tuple[dict, bool, str]:
+def enrich_item_metadata(
+    item: dict,
+    timeout: int = 8,
+    preserve_existing: bool = False,
+) -> tuple[dict, bool, str]:
     original_url = str(item.get("url") or "").strip()
     url = unwrap_google_alert_url(original_url)
     if not url.startswith(("http://", "https://")):
@@ -659,10 +663,22 @@ def enrich_item_metadata(item: dict, timeout: int = 8) -> tuple[dict, bool, str]
         updated["url"] = url
         updated["reference"] = {**reference, "original_google_url": original_url}
     current = updated.get("reading_metadata") if isinstance(updated.get("reading_metadata"), dict) else {}
-    updated["reading_metadata"] = {**current, **metadata}
-    if metadata.get("image_url"):
+    if preserve_existing:
+        merged = dict(current)
+        always_refresh = {"fetched_at", "source_url", "final_url", "content_type", "status"}
+        for key, value in metadata.items():
+            if key in always_refresh or not merged.get(key):
+                merged[key] = value
+        updated["reading_metadata"] = merged
+    else:
+        updated["reading_metadata"] = {**current, **metadata}
+    if metadata.get("image_url") and (not preserve_existing or not updated.get("image_url")):
         updated["image_url"] = metadata["image_url"]
-    if metadata.get("description") and len(str(updated.get("summary") or "")) < 120:
+    summary = str(updated.get("summary") or "").strip()
+    if metadata.get("description") and (
+        (preserve_existing and not summary)
+        or (not preserve_existing and len(summary) < 120)
+    ):
         updated["summary"] = metadata["description"]
     updated, completion_changed = complete_item_metadata(updated)
     return updated, updated != item or completion_changed, ""

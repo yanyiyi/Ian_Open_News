@@ -35,7 +35,7 @@
 - `editorial_triage`：本機規則初篩欄位，綜合關鍵字、過去不收紀錄、過去收錄類型，產生「為什麼建議看」與下一步建議；若有 `codex_review`，代表由 Codex 另行閱讀主文後生成的閱讀建議。
 - `personal_notes`：閱讀區的「我的關鍵紀錄」，用來讓重送 skill 時依個人觀點重新檢視文章。
 - `reader_flags`：閱讀區的人工旗標，例如 `current_reading`、`share_intent`、`started_at`；標記 2 天以上的文章在未指定項目時會優先進入 skill 候選排序。
-- `reading_metadata`：按「閱讀更多」或批次補資料時，從原始網址抓回的 `og:image`、title、description、canonical URL、摘錄、`article_text` 原始主文與 `article_markdown` Markdown 閱讀版。
+- `reading_metadata`：按「閱讀更多」或批次補資料時，從原始網址抓回的 `og:image`、title、description、canonical URL、摘錄、`article_text` 原始主文與 `article_markdown` Markdown 閱讀版。批次補資料會在 `reader_enrichment` 記錄最後嘗試時間、完成狀態、仍缺欄位與錯誤，避免無圖或抓取失敗的網址反覆占住同一批次。
 
 PDF 材料與拆出的子篇仍是 item，不是 article。材料間的 `full-source`、`subset`、`related`、`split-from` 關係寫在 `database/material-links.jsonl`；只有編輯台產出的稿件才稱為 article。
 
