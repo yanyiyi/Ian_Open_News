@@ -342,9 +342,9 @@
       stroke-linecap: round;
       stroke-linejoin: round;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
-    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
-    .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
     .article-main { display: grid; gap: 18px; min-width: 0; }
     .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
@@ -388,6 +388,9 @@
       font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-text blockquote {
       margin: 1.1em 0;
@@ -436,6 +439,8 @@
     .side-panel {
       position: sticky;
       top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
     }
     .side-panel h2 { font-size: 18px; margin-top: 18px; }
     .side-panel h2:first-child { margin-top: 0; }
@@ -498,9 +503,10 @@
     .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
-      .article-layout { grid-template-columns: 1fr; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
       .article-sequence-nav { grid-template-columns: 1fr; }
       .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
     }
   </style>
 </head>
@@ -513,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T02:30:17+00:00</p>
+            <p class="generated">產生時間：2026-06-25T02:40:09+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -547,6 +553,7 @@
       <p class="lede">文章主張，當 AI 日益成為知識與文化的中介，而關鍵能力又集中於少數非歐洲私人企業時，文化資產及其他公共知識機構應共同推動「公共 AI」。這套構想以公共控制、公共屬性與公共功能為核心，要求 AI 基礎設施具備民主問責與長期可持續性，並重視可近用性、開放性、互通性，以及知識共享、文化參與和公民參與等社會目的。它關注的不只是模型是否開源，而是從算力、資料、模型到應用的完整技術堆疊及其治理方式；也不同於強調國家競爭力的主權 AI，或主要在既有商業架構中降低傷害的倫理 AI。文章進一步借鑑公共媒體的制度角色，主張公共 AI 可成為公共知識機構合作的框架，並將環境成本、節能模型、永續基礎設施與採購責任列為不可忽略的治理要件。</p>
 
     </article>
+
     <section class="article-fulltext-card">
       <div class="section-kicker">中文翻譯</div>
       <h2>中文全文</h2>
@@ -587,7 +594,7 @@
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-0313bf676d89a8d8.html">
   <span class="article-sequence-label">上一則</span>
-  <span class="article-sequence-title">開源組織就年齡認證政策聯署表態</span>
+  <span class="article-sequence-title">開源組織就年齡認證政策聯署表態 (PDF 全文)</span>
 </a>
 
 <a class="article-sequence-link" href="item-837b9f5221f824e0.html">

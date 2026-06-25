@@ -342,9 +342,9 @@
       stroke-linecap: round;
       stroke-linejoin: round;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
-    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
-    .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
     .article-main { display: grid; gap: 18px; min-width: 0; }
     .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
@@ -388,6 +388,9 @@
       font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-text blockquote {
       margin: 1.1em 0;
@@ -436,6 +439,8 @@
     .side-panel {
       position: sticky;
       top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
     }
     .side-panel h2 { font-size: 18px; margin-top: 18px; }
     .side-panel h2:first-child { margin-top: 0; }
@@ -498,9 +503,10 @@
     .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
-      .article-layout { grid-template-columns: 1fr; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
       .article-sequence-nav { grid-template-columns: 1fr; }
       .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
     }
   </style>
 </head>
@@ -513,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T02:30:17+00:00</p>
+            <p class="generated">產生時間：2026-06-25T02:40:09+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -547,6 +553,7 @@
       <p class="lede">這篇文章回顧 Linux Foundation 相關單位在 2025 與 2026 年對 EU Cyber Resilience Act 準備度的調查結果。核心訊息是：距離關鍵期限更近，開源生態的認知與實務準備卻沒有明顯進步。2026 年調查中，不熟悉 CRA 的比例從 62% 上升到 66%，北美受訪者的不熟悉比例更高；即使是知道 CRA 的組織，仍有相當多人不確定法規是否適用、何時需要完全合規，以及自己屬於製造商還是開源 steward。文章也指出，SBOM 普及與上游安全責任分攤沒有顯著推進，許多組織仍依賴上游修補或維持私有 fork，長期會帶來高昂維護成本。作者的編輯重點很清楚：CRA 會迫使企業把軟體來源、漏洞處理與安全責任變成可證明的流程，上游貢獻不再只是公益姿態，而是降低合規與維護成本的理性選擇。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">CRA</span><span class="tag-chip">cybersecurity</span></div>
     </article>
+    <figure class="article-hero"><img src="https://www.linuxfoundation.org/hubfs/Research%20Reports/Web%20Assets_2026_CRA_Awareness%26Readiness_Report_Featured%20Image-gradient-light.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">中文翻譯</div>
       <h2>中文全文</h2>

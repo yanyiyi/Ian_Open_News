@@ -342,9 +342,9 @@
       stroke-linecap: round;
       stroke-linejoin: round;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
-    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
-    .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
     .article-main { display: grid; gap: 18px; min-width: 0; }
     .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
@@ -388,6 +388,9 @@
       font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-text blockquote {
       margin: 1.1em 0;
@@ -436,6 +439,8 @@
     .side-panel {
       position: sticky;
       top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
     }
     .side-panel h2 { font-size: 18px; margin-top: 18px; }
     .side-panel h2:first-child { margin-top: 0; }
@@ -498,9 +503,10 @@
     .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
-      .article-layout { grid-template-columns: 1fr; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
       .article-sequence-nav { grid-template-columns: 1fr; }
       .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
     }
   </style>
 </head>
@@ -513,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T02:30:17+00:00</p>
+            <p class="generated">產生時間：2026-06-25T02:40:09+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -547,6 +553,7 @@
       <p class="lede">這篇文章說明線上帳號被他人監控或嘗試入侵時，常見跡象可能不明顯，但後果可能包含信箱被用來繞過 2FA、購物或金融服務遭濫用，甚至社群帳號被冒用。文中已提供的段落聚焦在幾個警訊：出現不明登入紀錄或裝置工作階段、突然收到未主動要求的 2FA 或 MFA 驗證碼、密碼變更或帳號復原通知，以及釣魚信或垃圾電話暴增。對應處置包括立即更換密碼、確認復原聯絡方式沒有被改掉、撤銷其他裝置登入、留意 VPN 造成的地點誤判、不要透露驗證碼，並在疑似 SIM swap 或釣魚攻擊時聯絡電信商或服務提供者。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     </article>
+    <figure class="article-hero"><img src="https://www.zdnet.com/a/img/resize/c0b523bcfb5f7c6a812a97e6f05ac634d860f241/2026/06/18/74482f2e-bc3d-412c-9d4a-2f3e3703cf90/gettyimages-1436416704.jpg?auto=webp&amp;fit=crop&amp;height=675&amp;width=1200" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
       <h2>原始主文</h2>

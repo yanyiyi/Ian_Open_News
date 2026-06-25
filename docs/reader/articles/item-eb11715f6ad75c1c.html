@@ -342,9 +342,9 @@
       stroke-linecap: round;
       stroke-linejoin: round;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
-    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
-    .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
     .article-main { display: grid; gap: 18px; min-width: 0; }
     .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
@@ -388,6 +388,9 @@
       font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-text blockquote {
       margin: 1.1em 0;
@@ -436,6 +439,8 @@
     .side-panel {
       position: sticky;
       top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
     }
     .side-panel h2 { font-size: 18px; margin-top: 18px; }
     .side-panel h2:first-child { margin-top: 0; }
@@ -498,9 +503,10 @@
     .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
-      .article-layout { grid-template-columns: 1fr; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
       .article-sequence-nav { grid-template-columns: 1fr; }
       .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
     }
   </style>
 </head>
@@ -513,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T02:30:17+00:00</p>
+            <p class="generated">產生時間：2026-06-25T02:40:09+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -547,6 +553,7 @@
       <p class="lede">Stephen O&#x27;Grady 分析 G7 最新 AI openness 文件，指出 G7 一方面肯定開源與 AI 開放性帶來的社會與經濟價值，另一方面也承認「Open Source AI」與「Open-Weight」的意義仍有爭議。文章的核心判斷是，AI 模型的開放程度無法像傳統程式碼一樣用開源／閉源二分法界定，因為模型權重、部署程式碼、訓練程式碼、訓練資料與使用限制都會影響實際可重製性與可用性。G7 因此提出四層分類，從完整開放資料與程式碼的 Open Source AI with Open Data，到只開放權重與部分程式碼但含使用限制的 Weights Available AI。作者認為這等於承認單一定義難以同時滿足原則派與務實派，並可能讓「開放權重」成為比「開源 AI」更可操作的產業語言。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">free software</span><span class="tag-chip">開源 AI</span><span class="tag-chip">開放權重</span><span class="tag-chip">AI openness</span></div>
     </article>
+    <figure class="article-hero"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Evian-les-Bains_%28Haute-Savoie%29_%2810004827914%29.jpg/330px-Evian-les-Bains_%28Haute-Savoie%29_%2810004827914%29.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">中文翻譯</div>
       <h2>中文全文</h2>

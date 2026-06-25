@@ -3444,6 +3444,19 @@ def item_image_url(item: dict) -> str:
     return ""
 
 
+def feature_hero_image(article: dict, lookup: dict) -> tuple[str, str]:
+    """專文題圖：依引用順序取第一個有圖的引用材料，回傳 (image_url, 來源材料標題)。
+    沒有任何引用材料帶圖時回傳 ("", "")。online/offline 共用。"""
+    for item_id in article.get("item_ids") or []:
+        rec = lookup.get(clean_text(item_id))
+        if not rec:
+            continue
+        url = item_image_url(rec)
+        if url:
+            return url, item_display_title(rec)
+    return "", ""
+
+
 LAYOUT_MODES = ["card", "list", "compact"]
 READER_TIME_FILTERS = [
     ("three-days", "這三天（-3 天）"),
@@ -4818,12 +4831,14 @@ def page(title: str, body: str) -> bytes:
     }}
     .workspace-layout {{
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
       gap: 18px;
       align-items: start;
+      transition: grid-template-columns .28s ease, gap .28s ease;
     }}
     .workspace-layout.is-sidebar-hidden {{
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 0px);
+      gap: 0;
     }}
     .workspace-main {{
       min-width: 0;
@@ -4837,13 +4852,18 @@ def page(title: str, body: str) -> bytes:
       top: 78px;
       display: grid;
       gap: 12px;
+      min-width: 0;
       max-height: calc(100vh - 96px);
       overflow: auto;
       overscroll-behavior: contain;
       align-self: start;
+      transition: transform .28s ease, opacity .28s ease;
     }}
     .workspace-layout.is-sidebar-hidden .workspace-sidebar {{
-      display: none;
+      overflow: hidden;
+      transform: translateX(24px);
+      opacity: 0;
+      pointer-events: none;
     }}
     .workspace-sidebar-section {{
       display: grid;
@@ -5303,9 +5323,10 @@ def page(title: str, body: str) -> bytes:
     }}
     .article-detail-layout {{
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 350px);
       gap: 18px;
       align-items: start;
+      transition: grid-template-columns .28s ease, gap .28s ease;
     }}
     .article-detail-main {{
       display: grid;
@@ -5320,16 +5341,22 @@ def page(title: str, body: str) -> bytes:
       top: 78px;
       display: grid;
       gap: 12px;
+      min-width: 0;
       max-height: calc(100vh - 96px);
       overflow: auto;
       align-self: start;
       z-index: 12;
+      transition: transform .28s ease, opacity .28s ease;
     }}
     .article-detail-layout.is-sidebar-hidden {{
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 0px);
+      gap: 0;
     }}
     .article-detail-layout.is-sidebar-hidden .article-action-dock {{
-      display: none;
+      overflow: hidden;
+      transform: translateX(24px);
+      opacity: 0;
+      pointer-events: none;
     }}
     .article-action-dock .card {{
       padding: 12px;
@@ -5606,9 +5633,10 @@ def page(title: str, body: str) -> bytes:
       header {{ align-items: flex-start; padding: 14px 18px; }}
       main {{ padding: 20px 16px; }}
       .two-column {{ grid-template-columns: 1fr; }}
-      .article-detail-layout {{ grid-template-columns: 1fr; }}
+      .article-detail-layout, .article-detail-layout.is-sidebar-hidden {{ grid-template-columns: 1fr; gap: 18px; }}
       .article-action-dock {{ position: static; max-height: none; order: -1; }}
-      .workspace-layout {{ grid-template-columns: 1fr; }}
+      .article-detail-layout.is-sidebar-hidden .article-action-dock {{ display: none; }}
+      .workspace-layout, .workspace-layout.is-sidebar-hidden {{ grid-template-columns: 1fr; gap: 18px; }}
       .workspace-sidebar {{ position: static; max-height: none; order: -1; }}
       .workspace-layout.is-sidebar-hidden .workspace-sidebar {{ display: none; }}
       .pdf-relation-grid, .pdf-split-grid {{ grid-template-columns: 1fr; }}
@@ -7143,13 +7171,14 @@ def build_article_from_session(session: dict, articles: list[dict] | None = None
 
 
 def factcheck_status_label(status: str) -> tuple[str, str]:
-    """查核 claim 狀態 → (中文標籤, badge class)。ok=紫、需做事=黑、負面=紅。"""
+    """查核 claim 狀態 → (中文標籤, badge class)。ok=紫、需做事=黑、負面=紅。
+    回傳的 class 走 badge--xxx 慣例，對應 .article-claim .badge--fc-* 的語意顏色。"""
     mapping = {
-        "supported": ("有來源支持", "fc-ok"),
-        "unclear": ("尚不明確", "fc-mid"),
-        "needs-source": ("需要出處", "fc-bad"),
+        "supported": ("有來源支持", "badge--fc-ok"),
+        "unclear": ("尚不明確", "badge--fc-mid"),
+        "needs-source": ("需要出處", "badge--fc-bad"),
     }
-    return mapping.get(clean_text(status), (clean_text(status) or "未標記", "fc-mid"))
+    return mapping.get(clean_text(status), (clean_text(status) or "未標記", "badge--fc-mid"))
 
 
 # ------------------------------------------------------------------ #
@@ -7400,19 +7429,31 @@ ARTICLE_EDITOR_CSS = """
 </style>
 """
 
-# EasyMDE 離線無 FontAwesome：用文字標籤取代工具列圖示。scope 在 .easymde-host，可被編修台與全文編輯共用。
+# EasyMDE 離線無 FontAwesome：用全站一致的 SVG 圖示 + 中文文字標籤取代工具列圖示。
+# scope 在 .easymde-host，可被編修台與全文編輯共用。圖示由 EASYMDE_TOOLBAR_ICON_JS 注入。
 EASYMDE_TOOLBAR_CSS = """
 <style>
-  /* 離線無 FontAwesome：藏掉按鈕內的圖示，改用文字標籤；分隔線保留 */
+  /* 離線無 FontAwesome：藏掉按鈕內的空圖示，改用注入的 SVG + 中文文字標籤；分隔線保留 */
   .easymde-host .editor-toolbar button i { display:none !important; }
-  .easymde-host .editor-toolbar button { width:auto !important; min-width:0; height:auto; padding:5px 9px; font-size:13px; line-height:1.4; color:var(--ocf-dark); }
+  .easymde-host .editor-toolbar button {
+    width:auto !important; min-width:0; height:auto; padding:5px 9px;
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:13px; line-height:1.4; color:var(--ocf-dark);
+  }
+  .easymde-host .editor-toolbar button .md-ico {
+    display:inline-grid; place-items:center; width:16px; height:16px; flex:0 0 auto;
+  }
+  .easymde-host .editor-toolbar button .md-ico svg {
+    width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2;
+    stroke-linecap:round; stroke-linejoin:round;
+  }
   .easymde-host .editor-toolbar button::after { font-weight:700; }
   .easymde-host .editor-toolbar .bold::after { content:"粗"; }
   .easymde-host .editor-toolbar .italic::after { content:"斜"; }
   .easymde-host .editor-toolbar .heading::after { content:"標題"; }
   .easymde-host .editor-toolbar .quote::after { content:"引用"; }
-  .easymde-host .editor-toolbar .unordered-list::after { content:"•清單"; }
-  .easymde-host .editor-toolbar .ordered-list::after { content:"1.清單"; }
+  .easymde-host .editor-toolbar .unordered-list::after { content:"清單"; }
+  .easymde-host .editor-toolbar .ordered-list::after { content:"編號"; }
   .easymde-host .editor-toolbar .link::after { content:"連結"; }
   .easymde-host .editor-toolbar .table::after { content:"表格"; }
   .easymde-host .editor-toolbar .code::after { content:"程式碼"; }
@@ -7421,6 +7462,62 @@ EASYMDE_TOOLBAR_CSS = """
   .easymde-host .editor-toolbar .fullscreen::after { content:"全螢幕"; }
   .easymde-host .editor-toolbar .guide::after { content:"說明"; }
 </style>
+"""
+
+# 把排版用 SVG 圖示注入 EasyMDE 工具列按鈕（icon + 文字一起顯示）。風格比照全站 action_icon
+# 的 stroke SVG。用 MutationObserver 接住非同步建立的工具列，兩個 easymde-host 都能共用。
+EASYMDE_TOOLBAR_ICON_JS = """
+<script>
+(function() {
+  var ICONS = {
+    "bold": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h6a3.3 3.3 0 0 1 0 6.6H7z"></path><path d="M7 11.6h7a3.4 3.4 0 0 1 0 6.8H7z"></path></svg>',
+    "italic": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5"></path><path d="M5 19h5"></path><path d="M14.5 5L9.5 19"></path></svg>',
+    "heading": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14"></path><path d="M16 5v14"></path><path d="M6 12h10"></path></svg>',
+    "quote": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h4v4a4 4 0 0 1-4 4"></path><path d="M14 7h4v4a4 4 0 0 1-4 4"></path></svg>',
+    "unordered-list": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="7" r="1"></circle><circle cx="5" cy="12" r="1"></circle><circle cx="5" cy="17" r="1"></circle><path d="M10 7h9"></path><path d="M10 12h9"></path><path d="M10 17h9"></path></svg>',
+    "ordered-list": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7h9"></path><path d="M10 12h9"></path><path d="M10 17h9"></path><path d="M4 5.5l1.3-.5V9"></path><path d="M3.8 14.2h2.2l-2.2 3h2.4"></path></svg>',
+    "link": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15l6-6"></path><path d="M11.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-1 1"></path><path d="M12.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l1-1"></path></svg>',
+    "table": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1"></rect><path d="M3 10h18"></path><path d="M3 14.5h18"></path><path d="M9 5v14"></path><path d="M15 5v14"></path></svg>',
+    "code": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 8l-4 4 4 4"></path><path d="M15 8l4 4-4 4"></path></svg>',
+    "preview": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+    "side-by-side": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1"></rect><path d="M12 5v14"></path></svg>',
+    "fullscreen": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5"></path><path d="M20 9V4h-5"></path><path d="M4 15v5h5"></path><path d="M20 15v5h-5"></path></svg>',
+    "guide": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.7a2.5 2.5 0 0 1 4 1.8c0 1.7-2.5 2-2.5 3.5"></path><circle cx="12" cy="17.5" r="0.6"></circle></svg>'
+  };
+  function decorate(root) {
+    var buttons = (root || document).querySelectorAll(".easymde-host .editor-toolbar button");
+    for (var i = 0; i < buttons.length; i++) {
+      var btn = buttons[i];
+      if (btn.dataset.mdIcon) continue;
+      var svg = null;
+      for (var key in ICONS) {
+        if (Object.prototype.hasOwnProperty.call(ICONS, key) && btn.classList.contains(key)) { svg = ICONS[key]; break; }
+      }
+      if (!svg) continue;
+      btn.dataset.mdIcon = "1";
+      var span = document.createElement("span");
+      span.className = "md-ico";
+      span.setAttribute("aria-hidden", "true");
+      span.innerHTML = svg;
+      btn.insertBefore(span, btn.firstChild);
+    }
+  }
+  function boot() {
+    decorate(document);
+    var obs = new MutationObserver(function(muts) {
+      for (var i = 0; i < muts.length; i++) {
+        if (muts[i].addedNodes && muts[i].addedNodes.length) { decorate(document); break; }
+      }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();
+</script>
 """
 
 ARTICLE_EDITOR_JS = """
@@ -9502,6 +9599,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 <script src="/reader/assets/vendor/easymde.min.js"></script>
 {ARTICLE_EDITOR_CSS}
 {EASYMDE_TOOLBAR_CSS}
+{EASYMDE_TOOLBAR_ICON_JS}
 <script type="application/json" id="article-state">{state_json}</script>
 <script type="application/json" id="article-available-materials">{js_json(available_payload)}</script>
 <script type="application/json" id="article-selected-materials">{js_json(selected_payload)}</script>
@@ -9618,6 +9716,13 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         source_session = clean_text(article.get("source_session_id"))
         source_link = f'<a href="/editor/session?id={quote(source_session)}">原始編輯歷程 →</a>' if source_session else ""
         body_html = markdown_to_html(article.get("body_markdown") or "（尚無內容）")
+        hero_url, hero_credit = feature_hero_image(article, lookup)
+        hero_html = (
+            f'<figure class="article-hero"><img src="{h(hero_url)}" alt="" loading="lazy">'
+            f'<figcaption>圖片援引自：{h(hero_credit)}</figcaption></figure>'
+            if hero_url
+            else ""
+        )
 
         body = f"""
 {back_nav_html(self.same_origin_referer_path("/articles"), "回專文列表")}
@@ -9633,6 +9738,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       </div>
       {'' if clean_text(article.get("status")) == "published" else '<p class="muted">狀態設為「已發布」並更新線上閱讀版後，會有公開線上版。</p>'}
     </div>
+    {hero_html}
     <article class="card editor-output article-markdown">{body_html}</article>
   </div>
   <aside class="article-view-side">
@@ -9650,6 +9756,9 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 <style>
   .article-view {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,320px); gap:16px; align-items:start; }}
   .article-view-main, .article-view-side {{ display:grid; gap:14px; }}
+  .article-hero {{ margin:0; }}
+  .article-hero img {{ width:100%; max-height:360px; object-fit:cover; border-radius:10px; display:block; border:1px solid var(--line,#e2e8f0); }}
+  .article-hero figcaption {{ margin-top:6px; font-size:12px; color:var(--muted,#64748b); }}
   .article-view-tags {{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }}
   .article-view-side ul {{ margin:0; padding-left:18px; }}
   .article-view-side li {{ margin:4px 0; }}
@@ -12941,6 +13050,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 <link rel="stylesheet" href="/reader/assets/vendor/easymde.min.css">
 <script src="/reader/assets/vendor/easymde.min.js"></script>
 {EASYMDE_TOOLBAR_CSS}
+{EASYMDE_TOOLBAR_ICON_JS}
 <script>
 (function() {{
   var area = document.getElementById("fulltext-markdown");

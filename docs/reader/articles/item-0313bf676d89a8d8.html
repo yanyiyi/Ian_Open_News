@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>開源組織就年齡認證政策聯署表態 - Ian Open News</title>
+  <title>開源組織就年齡認證政策聯署表態 (PDF 全文) - Ian Open News</title>
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
@@ -342,9 +342,9 @@
       stroke-linecap: round;
       stroke-linejoin: round;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
-    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
-    .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
     .article-main { display: grid; gap: 18px; min-width: 0; }
     .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
@@ -388,6 +388,9 @@
       font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-text blockquote {
       margin: 1.1em 0;
@@ -436,6 +439,8 @@
     .side-panel {
       position: sticky;
       top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
     }
     .side-panel h2 { font-size: 18px; margin-top: 18px; }
     .side-panel h2:first-child { margin-top: 0; }
@@ -498,9 +503,10 @@
     .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
-      .article-layout { grid-template-columns: 1fr; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
       .article-sequence-nav { grid-template-columns: 1fr; }
       .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
     }
   </style>
 </head>
@@ -513,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T02:30:17+00:00</p>
+            <p class="generated">產生時間：2026-06-25T02:40:09+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -543,14 +549,16 @@
   <div class="article-main">
     <article class="article-summary-card">
       <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-06-24 23:40</span></div>
-      <h1>開源組織就年齡認證政策聯署表態</h1>
+      <h1><a class="article-title-link" href="https://opensource.org/wp-content/uploads/2026/05/Statement_on_Age_Attestation_.pdf" target="_blank" rel="noreferrer" title="開啟原始連結">開源組織就年齡認證政策聯署表態 (PDF 全文)</a></h1>
       <p class="lede">美國多個開源組織（含 OSI、EFF、FreeBSD Foundation、Apereo Foundation、OSTIF）於 2026 年 6 月聯署聲明，針對美國正在審議的未成年人線上安全法案表態。這些法案提議要求在作業系統層級強制收集使用者年齡資訊，並向應用程式或瀏覽器傳送「年齡信號」，且不區分商業或開源性質。聲明指出，Ubuntu、Debian、FreeBSD 等由社群或小型團隊維護的開源作業系統，根本無力承擔隨之而來的法律與技術合規成本，實際效果是把市場拱手讓給微軟、蘋果、Google 等大型廠商。聲明進一步強調，開源程式碼存在於 98% 的程式碼庫中，對開源作業系統設置障礙將對整個科技生態系產生難以預估的連鎖效應。文件呼籲立法者與開源社群合作，確保法規設計能夠兼顧公益開源資源的特殊運作方式。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">年齡認證</span><span class="tag-chip">數位人權</span></div>
     </article>
+
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
       <h2>原始主文</h2>
-      <div class="article-text article-markdown"><p>Open Source Organizations Weigh in on Age Attestation Operating systems are fundamental to the technology we use everyday — from personal computers to smart phones and tablets.Most people know the major operating system providers: Microsoft (Windows), Apple (iOS/macOS), and Google (Android/Chrome).But there are many other operating systems that make up a robust ecosystem of Open Source technology. They are community projects, broadly adopted, and often maintained by volunteers or a small team of developers, that make the code for the operating system available under an Open Source Initiative (OSI)-approved license so that anyone can use, study, modify, and share it.Open Source operating system projects include distributions of the Linux kernel (Ubuntu, Fedora, Debian, Mint, etc.) and many others including FreeBSD, FreeDOS, and GNU Hurd. Open Source operating system projects have been crucial to ensuring consumer choice, innovation, and competitiveness in the marketplace. These operating systems lower barriers to entry and enable users to customize the software for their needs without being locked into a specific vendor. They offer enormous flexibility and benefit to everyday technology users. Recent policy proposals meant to improve online safety for minors seek to require the collection of age information at the operating system level, regardless of if the code is Open Source or proprietary.In practice, this would mandate that any operating system provider must include a feature for the user to enter their age information and then provide a “signal” to application providers or browsers. These policy proposals risk shutting down smaller Open Source projects that exist for the benefit of all by creating a legal and technical environment that is so complex that only the large, proprietary vendors with significant resources can participate.And because Open Source code is present in 98% of codebases, policies that make it harder for these projects to operate will have ripple effects throughout technology that are not well understood. We recognize that some of the age verification and attestation bills being considered in the United States may not take into account the many Open Source operating systems that make their code available for public benefit. We appreciate the engagement thus far from some lawmakers and encourage others to work with the Open Source community to better understand how these projects operate and the impact of proposed age laws on these public resources. Contact: Katie Steen-James, Open Source Initiative (katie@opensource.org) Signed, Apereo Foundation Electronic Frontier Foundation (EFF) FreeBSD Foundation Open Source Initiative (OSI) Open Source Technology Improvement Fund (OSTIF) Updated: June 2, 2026</p></div>
+      <div class="article-text article-markdown"><h1>Open Source Organizations Weigh in on Age Attestation</h1>
+<p>Operating systems are fundamental to the technology we use everyday — from personal computers to smart phones and tablets.Most people know the major operating system providers: Microsoft (Windows), Apple (iOS/macOS), and Google (Android/Chrome).But there are many other operating systems that make up a robust ecosystem of Open Source technology. They are community projects, broadly adopted, and often maintained by volunteers or a small team of developers, that make the code for the operating system available under an Open Source Initiative (OSI)-approved license so that anyone can use, study, modify, and share it. Open Source operating system projects include distributions of the Linux kernel (Ubuntu, Fedora, Debian, Mint, etc.) and many others including FreeBSD, FreeDOS, and GNU Hurd. Open Source operating system projects have been crucial to ensuring consumer choice, innovation, and competitiveness in the marketplace. These operating systems lower barriers to entry and enable users to customize the software for their needs without being locked into a specific vendor. They offer enormous flexibility and benefit to everyday technology users. Recent policy proposals meant to improve online safety for minors seek to require the collection of age information at the operating system level, regardless of if the code is Open Source or proprietary.In practice, this would mandate that any operating system provider must include a feature for the user to enter their age information and then provide a “signal” to application providers or browsers. These policy proposals risk shutting down smaller Open Source projects that exist for the benefit of all by creating a legal and technical environment that is so complex that only the large, proprietary vendors with significant resources can participate.And because Open Source code is present in 98% of codebases, policies that make it harder for these projects to operate will have ripple effects throughout technology that are not well understood. We recognize that some of the age verification and attestation bills being considered in the United States may not take into account the many Open Source operating systems that make their code available for public benefit. We appreciate the engagement thus far from some lawmakers and encourage others to work with the Open Source community to better understand how these projects operate and the impact of proposed age laws on these public resources. Contact: Katie Steen-James, Open Source Initiative (katie@opensource.org) Signed, <em>Apereo Foundation Electronic Frontier Foundation (EFF) FreeBSD Foundation Open Source Initiative (OSI) Open Source Technology Improvement Fund (OSTIF) </em> Updated: June 2, 2026</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-6e739c32b11ecbab.html">
@@ -578,7 +586,8 @@
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-24T15:41:56+00:00</li><li>審稿備註：由本機 PDF 上傳建立；來源資訊只採用 markitdown 抽取結果，抓不到則需人工補出處。
 2026-06-24T15:40:38+00:00 已將 PDF / MarkItDown 文字補成 reading_metadata.article_markdown，後續模型建議與編輯台會以全文為優先。
-2026-06-24T15:41:56+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+2026-06-24T15:41:56+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。
+2026-06-25T02:40:04+00:00 線上手動編輯全文（修正轉檔）。</li></ul>
   </div>
 </aside>
 <script>

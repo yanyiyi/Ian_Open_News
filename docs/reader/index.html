@@ -342,9 +342,9 @@
       stroke-linecap: round;
       stroke-linejoin: round;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
-    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
-    .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
     .article-main { display: grid; gap: 18px; min-width: 0; }
     .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
@@ -388,6 +388,9 @@
       font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-text blockquote {
       margin: 1.1em 0;
@@ -436,6 +439,8 @@
     .side-panel {
       position: sticky;
       top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
     }
     .side-panel h2 { font-size: 18px; margin-top: 18px; }
     .side-panel h2:first-child { margin-top: 0; }
@@ -498,9 +503,10 @@
     .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
-      .article-layout { grid-template-columns: 1fr; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
       .article-sequence-nav { grid-template-columns: 1fr; }
       .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
     }
   </style>
 </head>
@@ -513,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T02:30:16+00:00</p>
+            <p class="generated">產生時間：2026-06-25T02:40:09+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -611,7 +617,7 @@
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-06-24 23:40</span></div>
-    <h2><a href="articles/item-0313bf676d89a8d8.html">開源組織就年齡認證政策聯署表態</a></h2>
+    <h2><a href="articles/item-0313bf676d89a8d8.html">開源組織就年齡認證政策聯署表態 (PDF 全文)</a></h2>
     <p class="summary">美國多個開源組織（含 OSI、EFF、FreeBSD Foundation、Apereo Foundation、OSTIF）於 2026 年 6 月聯署聲明，針對美國正在審議的未成年人線上安全法案表態。這些法案提議要求在作業系統層級強制收集使用者年齡資訊，並向應用程式或瀏覽器傳送「年齡信號」，且不區分商業或開源性質。聲明指出，Ubuntu、Debian、FreeBSD 等由社群或小型團隊維護的開源作業系統，根本無力承擔隨之而來的法律與技術合規成本，實際效果是把市場拱手讓給微軟、蘋果、Google 等大型廠商。聲明進一步強調，開源程式碼存在於 98% 的程式碼庫中，對開源作業系統設置障礙將對整個科技生態系產生難以預估的連鎖效應。文件呼籲立法者與開源社群合作，確保法規設計能夠兼顧公益開源資源的特殊運作方式。</p>
     <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">年齡認證</span><span class="tag-chip">數位人權</span></div>
   </div>
@@ -1276,16 +1282,6 @@
 </article>
 
 <article class="story-card" data-reader-item data-item-date="2026-06-23T16:08:59+00:00">
-  <div class="thumb"><img src="https://i0.wp.com/opensource.org/wp-content/uploads/2026/05/dan-nelson-ah-HeguOe9k-unsplash-scaled.jpg?fit=1200%2C676&amp;quality=89&amp;ssl=1" alt=""></div>
-  <div class="story-body">
-    <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-24 00:08</span></div>
-    <h2><a href="articles/item-1bf0a6db7fd69f73.html">開源組織就作業系統年齡認證要求表態</a></h2>
-    <p class="summary">資料顯示 OSI、Apereo Foundation、EFF、FreeBSD Foundation 與 OSTIF 針對作業系統的年齡認證要求發出共同聲明。從現有文字只能確認參與組織與議題範圍，尚無法判斷聲明的具體主張、反對或支持的規範設計，以及對開源生態的實際影響。</p>
-    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">open technology</span></div>
-  </div>
-</article>
-
-<article class="story-card" data-reader-item data-item-date="2026-06-23T16:08:59+00:00">
   <div class="thumb"><span>開放科技</span></div>
   <div class="story-body">
     <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-24 00:08</span></div>
@@ -1342,6 +1338,16 @@
     <h2><a href="articles/item-e63d94566b253564.html">全球數位公共基礎設施峰會 2027 年將移師印尼</a></h2>
     <p class="summary">RSS 摘要指出，Global DPI Summit 將於 2027 年 3 月在峇里舉辦，這是該峰會首次移師亞洲。材料把此事放在印尼 DPI 領導力上升、全球超過 100 個國家投入基礎數位系統的脈絡下，並點出當前爭論：DPI 應建立在開放、可重用、互通的基礎上，還是可能成為新的專有鎖定層。</p>
     <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">open-source software</span><span class="tag-chip">digital public infrastructure</span><span class="tag-chip">open technology</span></div>
+  </div>
+</article>
+
+<article class="story-card" data-reader-item data-item-date="2026-06-23T16:08:59+00:00">
+  <div class="thumb"><img src="https://i0.wp.com/opensource.org/wp-content/uploads/2026/05/dan-nelson-ah-HeguOe9k-unsplash-scaled.jpg?fit=1200%2C676&amp;quality=89&amp;ssl=1" alt=""></div>
+  <div class="story-body">
+    <div><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-24 00:08</span></div>
+    <h2><a href="articles/item-1bf0a6db7fd69f73.html">Open Source Initiative (OSI) 開源組織就作業系統年齡認證要求表態</a></h2>
+    <p class="summary">資料顯示 OSI、Apereo Foundation、EFF、FreeBSD Foundation 與 OSTIF 針對作業系統的年齡認證要求發出共同聲明。從現有文字只能確認參與組織與議題範圍，尚無法判斷聲明的具體主張、反對或支持的規範設計，以及對開源生態的實際影響。</p>
+    <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">open technology</span></div>
   </div>
 </article>
 

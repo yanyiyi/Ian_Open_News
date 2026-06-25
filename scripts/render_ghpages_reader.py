@@ -15,6 +15,7 @@ from local_web import (
     action_label,
     clean_text,
     editor_item_lookup,
+    feature_hero_image,
     load_articles,
     content_kind_label,
     h,
@@ -759,9 +760,9 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       stroke-linecap: round;
       stroke-linejoin: round;
     }}
-    .article-layout {{ display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }}
-    .article-layout.is-sidebar-hidden {{ grid-template-columns: minmax(0, 1fr); }}
-    .article-layout.is-sidebar-hidden .side-panel {{ display: none; }}
+    .article-layout {{ display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }}
+    .article-layout.is-sidebar-hidden {{ grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }}
+    .article-layout.is-sidebar-hidden .side-panel {{ overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }}
     .article-main {{ display: grid; gap: 18px; min-width: 0; }}
     .article-summary-card, .article-fulltext-card, .side-panel {{
       background: #fff;
@@ -805,6 +806,9 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       font-variant-ligatures: common-ligatures contextual;
     }}
     .article-text img {{ max-width: 100%; height: auto; border-radius: 6px; }}
+    .article-hero {{ margin: 0 0 16px; }}
+    .article-hero img {{ width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }}
+    .article-hero figcaption {{ margin-top: 6px; color: var(--muted); font-size: 12px; }}
     .article-text pre {{ white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }}
     .article-text blockquote {{
       margin: 1.1em 0;
@@ -853,6 +857,8 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     .side-panel {{
       position: sticky;
       top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
     }}
     .side-panel h2 {{ font-size: 18px; margin-top: 18px; }}
     .side-panel h2:first-child {{ margin-top: 0; }}
@@ -915,9 +921,10 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     .empty {{ background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }}
     @media (max-width: 820px) {{
       main, .masthead {{ padding-left: 16px; padding-right: 16px; }}
-      .article-layout {{ grid-template-columns: 1fr; }}
+      .article-layout, .article-layout.is-sidebar-hidden {{ grid-template-columns: 1fr; gap: 18px; }}
       .article-sequence-nav {{ grid-template-columns: 1fr; }}
       .side-panel {{ position: static; }}
+      .article-layout.is-sidebar-hidden .side-panel {{ display: none; }}
     }}
   </style>
 </head>
@@ -1045,6 +1052,12 @@ def article_page(item: dict, repo_url: str, branch: str, previous_item: dict | N
         if source_url
         else h(title)
     )
+    hero_url = reader_image_url(item, depth=1)
+    hero_html = (
+        f'<figure class="article-hero"><img src="{h(hero_url)}" alt="" loading="lazy"></figure>'
+        if hero_url
+        else ""
+    )
     side = f"""
 <aside class="side-panel">
   <h2>我的關鍵紀錄</h2>
@@ -1113,6 +1126,7 @@ articleSideToggle?.addEventListener("click", () => {{
       <p class="lede">{h(item_zh_summary(item, 620))}</p>
       {public_tag_chips(item, 8)}
     </article>
+    {hero_html}
     <section class="article-fulltext-card">
       <div class="section-kicker">{h(fulltext_kicker)}</div>
       <h2>{h(fulltext_heading)}</h2>
@@ -1238,8 +1252,8 @@ def article_public_page(article: dict, item_lookup: dict, vp_lookup: dict) -> st
             source_rows += f'<li><a href="{h(url)}" target="_blank" rel="noreferrer">{h(rec_title)} ↗</a></li>'
         else:
             source_rows += f"<li>{h(rec_title)}</li>"
-    sources_block = (
-        f'<section class="article-fulltext-card"><div class="section-kicker">引用</div><h2>引用材料</h2><ul class="article-sources">{source_rows}</ul></section>'
+    sources_section = (
+        f'<div class="section-kicker">引用</div><h2>引用材料</h2><ul class="article-sources">{source_rows}</ul>'
         if source_rows
         else ""
     )
@@ -1253,31 +1267,82 @@ def article_public_page(article: dict, item_lookup: dict, vp_lookup: dict) -> st
         vp_body = clean_text(vp.get("body"), 200)
         vp_body_html = f'<br><span class="summary">{h(vp_body)}</span>' if vp_body else ""
         vp_rows += f"<li><strong>{h(vp_title)}</strong>{vp_body_html}</li>"
-    viewpoints_block = (
-        f'<section class="article-fulltext-card"><div class="section-kicker">觀點</div><h2>延伸觀點</h2><ul class="article-sources">{vp_rows}</ul></section>'
+    viewpoints_section = (
+        f'<div class="section-kicker">觀點</div><h2>延伸觀點</h2><ul class="article-sources">{vp_rows}</ul>'
         if vp_rows
         else ""
     )
+
+    # 專文題圖：取第一個有圖的引用材料，附「援引自」說明
+    hero_url, hero_credit = feature_hero_image(article, item_lookup)
+    if hero_url.startswith("/reader/"):
+        hero_url = "../" + hero_url.removeprefix("/reader/").lstrip("/")
+    hero_html = (
+        f'<figure class="article-hero"><img src="{h(hero_url)}" alt="" loading="lazy">'
+        f'<figcaption>圖片援引自：{h(hero_credit)}</figcaption></figure>'
+        if hero_url
+        else ""
+    )
+
+    side_sections = sources_section + viewpoints_section
+    if side_sections:
+        side_panel = f'<aside class="side-panel" id="public-article-side-panel">{side_sections}</aside>'
+        sidebar_toggle = f"""  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true">{action_icon("sidebar")}</span>
+    <span data-sidebar-toggle-label>隱藏延伸資料</span>
+  </button>"""
+        sidebar_script = """
+<script>
+(() => {
+  const layout = document.getElementById("public-article-layout");
+  const toggle = document.getElementById("public-article-side-toggle");
+  const panel = document.getElementById("public-article-side-panel");
+  if (!layout || !toggle) return;
+  const label = toggle.querySelector("[data-sidebar-toggle-label]");
+  const storageKey = "ian-open-news-public-feature-sidebar";
+  const apply = (hidden) => {
+    layout.classList.toggle("is-sidebar-hidden", hidden);
+    panel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+    toggle.setAttribute("aria-expanded", hidden ? "false" : "true");
+    if (label) label.textContent = hidden ? "顯示延伸資料" : "隱藏延伸資料";
+  };
+  let hidden = false;
+  try { hidden = localStorage.getItem(storageKey) === "hidden"; } catch (_e) { hidden = false; }
+  apply(hidden);
+  toggle.addEventListener("click", () => {
+    hidden = !layout.classList.contains("is-sidebar-hidden");
+    apply(hidden);
+    try { localStorage.setItem(storageKey, hidden ? "hidden" : "visible"); } catch (_e) {}
+  });
+})();
+</script>
+"""
+    else:
+        side_panel = ""
+        sidebar_toggle = ""
+        sidebar_script = ""
 
     body = f"""
 <style>.article-markdown h1 + hr, .article-markdown h2 + hr, .article-markdown h3 + hr, .article-markdown h4 + hr {{ display:none; }} .article-sources {{ margin:0; padding-left:18px; }} .article-sources li {{ margin:6px 0; }}</style>
 <nav class="article-top-nav" aria-label="返回">
   <a class="button article-back-button" href="../features.html" onclick="if (history.length > 1) {{ history.back(); return false; }}">返回專文</a>
+{sidebar_toggle}
 </nav>
-<div class="article-layout">
+<div class="article-layout" id="public-article-layout">
   <div class="article-main">
     <article class="article-summary-card">
       <div class="article-summary-meta">{reader_badge(track_meta(track)["short"], "opentech")}{reader_badge("專文", "suggest-keep")}{reader_badge(clean_text(article.get("updated_at"))[:10], "date")}</div>
       <h1>{h(title)}</h1>
       {article_tag_chips(article.get("tags"))}
     </article>
+    {hero_html}
     <section class="article-fulltext-card">
       <div class="article-text article-markdown">{body_html}</div>
     </section>
-    {sources_block}
-    {viewpoints_block}
   </div>
+  {side_panel}
 </div>
+{sidebar_script}
 """
     return page_shell(title, body, current="features", depth=1)
 

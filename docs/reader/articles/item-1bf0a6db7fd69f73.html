@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>開源組織就作業系統年齡認證要求表態 - Ian Open News</title>
+  <title>Open Source Initiative (OSI) 開源組織就作業系統年齡認證要求表態 - Ian Open News</title>
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
     :root {
@@ -342,9 +342,9 @@
       stroke-linecap: round;
       stroke-linejoin: round;
     }
-    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
-    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
-    .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
     .article-main { display: grid; gap: 18px; min-width: 0; }
     .article-summary-card, .article-fulltext-card, .side-panel {
       background: #fff;
@@ -388,6 +388,9 @@
       font-variant-ligatures: common-ligatures contextual;
     }
     .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
     .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
     .article-text blockquote {
       margin: 1.1em 0;
@@ -436,6 +439,8 @@
     .side-panel {
       position: sticky;
       top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
     }
     .side-panel h2 { font-size: 18px; margin-top: 18px; }
     .side-panel h2:first-child { margin-top: 0; }
@@ -498,9 +503,10 @@
     .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
     @media (max-width: 820px) {
       main, .masthead { padding-left: 16px; padding-right: 16px; }
-      .article-layout { grid-template-columns: 1fr; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
       .article-sequence-nav { grid-template-columns: 1fr; }
       .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
     }
   </style>
 </head>
@@ -513,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T02:30:17+00:00</p>
+            <p class="generated">產生時間：2026-06-25T02:40:09+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -543,10 +549,11 @@
   <div class="article-main">
     <article class="article-summary-card">
       <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-24 00:08</span></div>
-      <h1><a class="article-title-link" href="https://opensource.org/?p=411160" target="_blank" rel="noreferrer" title="開啟原始連結">開源組織就作業系統年齡認證要求表態</a></h1>
+      <h1><a class="article-title-link" href="https://opensource.org/?p=411160" target="_blank" rel="noreferrer" title="開啟原始連結">Open Source Initiative (OSI) 開源組織就作業系統年齡認證要求表態</a></h1>
       <p class="lede">資料顯示 OSI、Apereo Foundation、EFF、FreeBSD Foundation 與 OSTIF 針對作業系統的年齡認證要求發出共同聲明。從現有文字只能確認參與組織與議題範圍，尚無法判斷聲明的具體主張、反對或支持的規範設計，以及對開源生態的實際影響。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">open technology</span></div>
     </article>
+    <figure class="article-hero"><img src="https://i0.wp.com/opensource.org/wp-content/uploads/2026/05/dan-nelson-ah-HeguOe9k-unsplash-scaled.jpg?fit=1200%2C676&amp;quality=89&amp;ssl=1" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
       <h2>原始主文</h2>
@@ -558,14 +565,14 @@
 <p>The Open Source Initiative (OSI), Apereo Foundation, Electronic Frontier Foundation (EFF), FreeBSD Foundation, and Open Source Technology Improvement Fund (OSTIF) issued the following statement on age attestation requirements for operating systems. <a href="https://opensource.org/blog/open-technology-research-symposium-2026-opens-call-for-proposals" target="_blank" rel="noreferrer">Open Technology Research Symposium 2026 Opens Call for Proposals</a> <a href="https://opensource.org/blog/open-source-initiative-helps-g7-deliver-vision-on-ai-openness" target="_blank" rel="noreferrer">Open Source Initiative Helps G7 Deliver Vision On AI Openness</a></p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
-<a class="article-sequence-link" href="item-1bb3bf27f8a1bb9c.html">
+<a class="article-sequence-link" href="item-e63d94566b253564.html">
   <span class="article-sequence-label">上一則</span>
-  <span class="article-sequence-title">駭客入侵數十個熱門開源套件，供應鏈攻擊仍在擴大</span>
+  <span class="article-sequence-title">全球數位公共基礎設施峰會 2027 年將移師印尼</span>
 </a>
 
-<a class="article-sequence-link" href="item-fe57ccf9feba0dff.html">
+<a class="article-sequence-link" href="item-ad8a627b2e5c86be.html">
   <span class="article-sequence-label">下一則</span>
-  <span class="article-sequence-title">開放技術研究：共同研究議程</span>
+  <span class="article-sequence-title">IBM 與 Red Hat 投入 50 億美元，推動 AI 時代的開源安全模式</span>
 </a>
 </nav>
   </div>
