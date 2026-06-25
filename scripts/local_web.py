@@ -3523,6 +3523,7 @@ def action_icon(action: str) -> str:
         "tag": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.5l-7 7a2 2 0 0 1-2.8 0L3 12.8V4h8.8l8.7 8.7a2 2 0 0 1 0 2.8z"></path><circle cx="7.5" cy="8" r="1.5"></circle></svg>',
         "bookmark": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v17l-6-4-6 4z"></path></svg>',
         "sidebar": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg>',
+        "search": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M16.5 16.5L21 21"></path></svg>',
         "back": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path><path d="M9 12h12"></path></svg>',
         "previous": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>',
         "next": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>',
@@ -5709,6 +5710,7 @@ def page(title: str, body: str) -> bytes:
       </details>
     </nav>
     <form class="omnibar" action="/search" method="get" role="search" autocomplete="off">
+      {icon_span("search", "", "omnibar-search-icon")}
       <input type="search" name="q" id="omnibar-input" placeholder="搜尋標籤 / 材料 / 觀點 / 編輯歷程 / RSS / 專文" aria-label="全站搜尋" aria-expanded="false" aria-controls="omnibar-suggest" data-omnibar-input data-omnibar-box="omnibar-suggest">
       <div class="omnibar-suggest" id="omnibar-suggest" role="listbox" hidden></div>
     </form>
@@ -7324,8 +7326,11 @@ def search_result_card(res: dict) -> str:
 OMNIBAR_CSS = """
 <style>
   .omnibar { position:relative; margin-left:auto; flex:0 1 340px; min-width:200px; }
-  .omnibar input { width:100%; box-sizing:border-box; padding:8px 14px; border-radius:999px; border:1px solid var(--border,#cbd5e1); background:#fff; color:var(--ocf-dark); font:inherit; }
-  .omnibar input::placeholder { color:var(--muted,#94a3b8); }
+  .omnibar-search-icon { position:absolute; left:13px; top:50%; z-index:1; display:grid; place-items:center; width:16px; height:16px; color:#a7afbc; background:transparent; pointer-events:none; transform:translateY(-50%); }
+  .omnibar-search-icon svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .omnibar input { width:100%; box-sizing:border-box; padding:8px 34px 8px 37px; border-radius:999px; border:1px solid var(--border,#cbd5e1); background:#fff; color:var(--ocf-dark); font:inherit; }
+  .omnibar input::placeholder { color:#a7afbc; font-size:12px; font-weight:500; opacity:1; transition:opacity .12s ease; }
+  .omnibar input:focus::placeholder { opacity:0; }
   .omnibar input:focus { border-color:var(--ocf-primary,#6450dc); outline:none; box-shadow:0 0 0 3px rgba(100,80,220,0.15); }
   .omnibar-suggest { position:absolute; top:calc(100% + 6px); right:0; left:0; background:#fff; color:var(--ocf-dark); border:1px solid var(--line,#e2e8f0); border-radius:12px; box-shadow:0 12px 30px rgba(15,25,35,0.18); max-height:70vh; overflow:auto; z-index:60; padding:6px; }
   .omnibar-group-label { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--muted,#64748b); padding:6px 10px 2px; }
