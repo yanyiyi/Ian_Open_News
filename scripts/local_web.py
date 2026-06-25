@@ -574,6 +574,17 @@ def clean_text(value: object, limit: int | None = None) -> str:
     return text
 
 
+def clean_markdown_text(value: object, limit: int | None = None) -> str:
+    """Normalize stored Markdown without collapsing user-authored line breaks."""
+    if value is None:
+        return ""
+    text = str(value).replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", text).strip()
+    if limit and len(text) > limit:
+        return text[:limit].rstrip() + "..."
+    return text
+
+
 def h(value: object) -> str:
     return html.escape(str(value or ""), quote=True)
 
@@ -2798,7 +2809,7 @@ def item_translated_markdown(item: dict) -> str:
 
 def item_edited_markdown(item: dict) -> str:
     """使用者線上手動修正後的「全文」覆寫層（修排版、補截斷）。優先於自動翻譯與原文。"""
-    return clean_text(item_reading_metadata(item).get("edited_markdown"))
+    return clean_markdown_text(item_reading_metadata(item).get("edited_markdown"))
 
 
 def item_primary_markdown(item: dict) -> str:
@@ -2953,7 +2964,7 @@ def strip_duplicate_leading_heading(markdown: str, title: object) -> str:
     return "\n".join([*lines[:index], *lines[end:]]).lstrip()
 
 
-def markdown_to_html(markdown: str) -> str:
+def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
     raw = html.unescape(str(markdown or ""))
     raw = raw.replace("\r\n", "\n").replace("\r", "\n")
     raw = re.sub(r"[ \t\f\v]+", " ", raw)
@@ -2972,7 +2983,8 @@ def markdown_to_html(markdown: str) -> str:
 
     def flush_paragraph() -> None:
         if paragraph:
-            parts.append(f"<p>{inline_markdown_html(' '.join(paragraph))}</p>")
+            separator = "<br>\n" if preserve_soft_breaks else " "
+            parts.append(f"<p>{separator.join(inline_markdown_html(line) for line in paragraph)}</p>")
             paragraph.clear()
 
     for raw_line in lines:
@@ -11601,7 +11613,10 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         # 主全文（編輯版）面板：手動修正後成為要讀的版本
         primary_fulltext_panel = ""
         if is_edited:
-            edited_html = markdown_to_html(strip_duplicate_leading_heading(edited_markdown, display_title))
+            edited_html = markdown_to_html(
+                strip_duplicate_leading_heading(edited_markdown, display_title),
+                preserve_soft_breaks=True,
+            )
             primary_fulltext_panel = f"""
 <section class="card fulltext-panel source-card source-card--source" id="primary-fulltext-panel">
   <div class="section-kicker">全文（已手動修正）</div>

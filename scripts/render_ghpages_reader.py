@@ -1053,7 +1053,7 @@ def article_page(item: dict, repo_url: str, branch: str, previous_item: dict | N
         fulltext_heading = "原始主文"
     fulltext_kicker = "已編輯全文" if is_edited else ("中文翻譯" if is_translation else "全文")
     article_html = (
-        markdown_to_html(article_markdown)
+        markdown_to_html(article_markdown, preserve_soft_breaks=is_edited)
         if has_article_markdown
         else "<p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p>"
     )
