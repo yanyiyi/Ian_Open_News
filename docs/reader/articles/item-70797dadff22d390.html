@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T03:03:35+00:00</p>
+            <p class="generated">產生時間：2026-06-25T12:58:48+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,75 @@
       <p class="lede">這篇 GitHub Blog 介紹 git worktrees 的概念、使用方式，以及為什麼近年重新受到關注。從摘要看，它主要是開發者工具教學，可能有助於理解多分支或多工作區開發流程，但目前看不出明確的開放科技公共議題角度。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://github.blog/wp-content/uploads/2026/01/generic-mona-github.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>What are git worktrees, and why should I use them?</h1>
+<p>Git worktrees have been around since 2015, but it wasn’t until recently they became popular. Learn what they are, how to use them, and why you might. It seems like the latest hotness in git these days is the concept of worktrees. Which… is kind of funny because they’ve been around since 2015. But, nevertheless, they are cool, and you might be wondering why you’d use them, how they differ from branches, and why they are suddenly so popular.</p>
+<h2>Context switching with branches and stashing</h2>
+<p>Let’s say you lived in a worktree-less world, and were working on a ticket, and suddenly an urgent bug came to you and you had to switch contexts. First, you might stash your work: Then you’d switch to your main branch and update: Then you’d fix everything, commit, and push the branch: Then after merging a pull request, you might return back to your computer and pull main and remove the bug branch: And then you could go back to the feature you were working on: The mental overhead of switching around, reloading files, reinstalling <code>node_modules</code> based on whatever changed, and so on, is a lot. The context switching burden is heavy. Now, this is a basic example, but sometimes developers would work around this kind of chaos with doing some more complicated <code>git stash</code> commands, or even multiple clones of the same repo (I’m guilty of that one).</p>
+<h2>Context switching with worktrees</h2>
+<p>With worktrees, you never leave your branch and you never stash, and your editor context for your original feature stays untouched. This instantly creates a sibling folder called <code>hotfix-workspace</code>, and bases it on main, and checks out a new branch called <code>hotfix-bug</code>. Now you can open that folder in a new editor window (or <code>cd</code> into it) and fix the bug. Your original editor window stays exactly as you left it. You merge the pull request online just like before, and once it’s merged, you can simply delete the temporary folder. This is so much smoother! Worktrees can go beyond the git command line, too. For example, <a href="https://code.visualstudio.com/docs/sourcecontrol/branches-worktrees#_working-with-git-worktrees" target="_blank" rel="noreferrer">VS Code has full worktree support built in</a>. You have options! And no matter where you work, worktrees give you zero risk of stash conflicts, there’s no editor disruption, and you can truly work in parallel.</p>
+<h2>So… why now?</h2>
+<p>For a really long time, worktrees were relatively unknown. Most developers had never heard of them, because either Git GUIs didn’t support them (or treated them as second-class citizens), or because they just usually followed the known pattern of feature branch, then work, then PR, then merge, then repeat. Now, our work as developers has changed. AI has made us work in parallel more than we ever have before in the history of software development. Developers run so many sessions in parallel, and “code review culture” is growing beyond “code writing culture.” Agents and humans can do more in parallel with worktrees. It’s the default mode for the <a href="https://github.com/features/ai/github-app?utm_source=blog-git-worktree&amp;utm_medium=blog&amp;utm_campaign=github-copilot-app-ga-2026" target="_blank" rel="noreferrer">GitHub Copilot app</a>, and for many other modern tools.</p>
+<h2>What’s the catch?</h2>
+<p>Worktrees do solve a whole lot of issues, but there’s definitely some things to watch out for.</p>
+<ul>
+<li>Dependency bloat: each worktree folder requires its own copy of your project dependencies. If you’re running <code>npm install</code> or <code>pip install</code> across multiple of them, your computer might get very full, very quickly.</li>
+<li>Folder management: you have to delete the worktree folders, to avoid cluttering your parent directory over time. Apps like the GitHub Copilot app do often handle this for you, but it’s still something you might have to do yourself if you’re operating in the terminal yourself.</li>
+<li>Global <code>.gitignore</code> requirements: if you create worktree folders inside your main repo directory, you have to manually add them to <code>.gitignore</code> to not accidentally track them. You <em>can</em> make these worktrees outside of your main repo (and many apps do that by default), but it’s worth noting.</li>
+<li>One branch limits: Git prevents you from checking out the exact same branch in two different worktrees at the same time to prevent data corruption.</li>
+</ul>
+<h2>How do I use worktrees in the GitHub Copilot app?</h2>
+<p>Great question! What’s awesome is they “just work” out of the box. When you open the app, there’s a dropdown that asks you where you want to run your new session on the home screen. The default is a new worktree. Then, once you kick off a new session, you can click the session name at the top of the app, and you’ll see the (fun!) generated name of your worktree, as well as the path where it’s located, the project that worktree is for, and details about the changes that you’ve made.</p>
+<h2>Should I use worktrees?</h2>
+<p>I will give you the most senior developer answer I can: It depends! You might prefer working in one way or another. You might not do as much work in parallel and like the mental model of branches and stashing. You might only do worktrees from now on. You might want to do both! The world’s your oyster, and you can try them all in the <a href="https://github.com/features/ai/github-app?utm_source=blog-git-worktree&amp;utm_medium=blog&amp;utm_campaign=github-copilot-app-ga-2026" target="_blank" rel="noreferrer">GitHub Copilot app</a> today.</p>
+<h2>Tags</h2>
+<ul>
+<li><a href="https://github.blog/tag/git/" target="_blank" rel="noreferrer">Git</a></li>
+<li><a href="https://github.blog/tag/git-worktrees/" target="_blank" rel="noreferrer">git worktrees</a></li>
+<li><a href="https://github.blog/tag/github-copilot/" target="_blank" rel="noreferrer">GitHub Copilot</a></li>
+<li><a href="https://github.blog/tag/github-copilot-app/" target="_blank" rel="noreferrer">GitHub Copilot app</a></li>
+</ul>
+<h2>Written by</h2>
+<h3><a href="https://github.blog/author/cassidoo/" target="_blank" rel="noreferrer">Cassidy Williams</a></h3>
+<p><a href="https://github.com/cassidoo" target="_blank" rel="noreferrer">@cassidoo</a></p>
+<ul>
+<li><a href="https://github.blog/tag/git/" target="_blank" rel="noreferrer">Git</a></li>
+<li><a href="https://github.blog/tag/git-worktrees/" target="_blank" rel="noreferrer">git worktrees</a></li>
+<li><a href="https://github.blog/tag/github-copilot/" target="_blank" rel="noreferrer">GitHub Copilot</a></li>
+<li><a href="https://github.blog/tag/github-copilot-app/" target="_blank" rel="noreferrer">GitHub Copilot app</a></li>
+</ul>
+<h2>Table of Contents</h2>
+<ul>
+<li><a href="https://github.blog/ai-and-ml/github-copilot/what-are-git-worktrees-and-why-should-i-use-them/#h-context-switching-with-branches-and-stashing" target="_blank" rel="noreferrer">Context switching with branches and stashing</a></li>
+<li><a href="https://github.blog/ai-and-ml/github-copilot/what-are-git-worktrees-and-why-should-i-use-them/#h-context-switching-with-worktrees" target="_blank" rel="noreferrer">Context switching with worktrees</a></li>
+<li><a href="https://github.blog/ai-and-ml/github-copilot/what-are-git-worktrees-and-why-should-i-use-them/#h-so-why-now" target="_blank" rel="noreferrer">So... why now?</a></li>
+<li><a href="https://github.blog/ai-and-ml/github-copilot/what-are-git-worktrees-and-why-should-i-use-them/#h-what-s-the-catch" target="_blank" rel="noreferrer">What&#x27;s the catch?</a></li>
+<li><a href="https://github.blog/ai-and-ml/github-copilot/what-are-git-worktrees-and-why-should-i-use-them/#h-how-do-i-use-worktrees-in-the-github-copilot-app" target="_blank" rel="noreferrer">How do I use worktrees in the GitHub Copilot app?</a></li>
+<li><a href="https://github.blog/ai-and-ml/github-copilot/what-are-git-worktrees-and-why-should-i-use-them/#h-should-i-use-worktrees" target="_blank" rel="noreferrer">Should I use worktrees?</a></li>
+</ul>
+<h2>More on <a href="https://github.blog/tag/git/" target="_blank" rel="noreferrer">Git</a></h2>
+<h3><a href="https://github.blog/developer-skills/github/github-for-beginners-getting-started-with-git-and-github-in-vs-code/" target="_blank" rel="noreferrer">GitHub for Beginners: Getting started with Git and GitHub in VS Code</a></h3>
+<p>Discover how to use VS Code to interact with GitHub and maintain your projects.</p>
+<h3><a href="https://github.blog/open-source/git/highlights-from-git-2-54/" target="_blank" rel="noreferrer">Highlights from Git 2.54</a></h3>
+<p>The open source Git project just released Git 2.54. Here is GitHub’s look at some of the most interesting features and changes introduced since last time.</p>
+<h3><a href="https://github.blog/developer-skills/github/i-automated-my-job-and-it-made-me-a-better-leader/" target="_blank" rel="noreferrer">I automated my job (and it made me a better leader)</a></h3>
+<p>Explore how my day as a senior leader looks now that I use 40 automations to help, and learn more about some of my favorites.</p>
+<h3><a href="https://github.blog/ai-and-ml/github-copilot/how-we-built-an-internal-data-analytics-agent/" target="_blank" rel="noreferrer">How we built an internal data analytics agent</a></h3>
+<p>Qubot, our internal Copilot-powered analytics agent, allows any GitHub employee to ask questions about our data in plain language. Here’s what we learned as we built it.</p>
+<h3><a href="https://github.blog/ai-and-ml/github-copilot/getting-more-from-each-token-how-copilot-improves-context-handling-and-model-routing/" target="_blank" rel="noreferrer">Getting more from each token: How Copilot improves context handling and model routing</a></h3>
+<p>How GitHub Copilot is making more of each session go toward useful work, so your credits go further.</p>
+<h2>Explore more from GitHub</h2>
+<h3>Docs</h3>
+<p>Everything you need to master GitHub, all in one place.</p>
+<h3>GitHub</h3>
+<p>Build what’s next on GitHub, the place for anyone from anywhere to build anything.</p>
+<h3>Customer stories</h3>
+<p>Meet the companies and engineering teams that build with GitHub.</p>
+<h3>GitHub Universe 2026</h3>
+<p>Join us October 28-29 in San Francisco or online for GitHub Universe, our flagship developer event uniting people, agents, and the world’s code.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-fda1e1601c95d155.html">
@@ -580,7 +644,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-70797dadff22d390.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：What are git worktrees, and why should I use them?</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Natalie Guevara</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：What are git worktrees, and why should I use them?（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Natalie Guevara（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-20T16:41:02+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

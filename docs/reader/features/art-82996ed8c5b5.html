@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>「用了再說」該付出代價：面對隱性經營風險 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-25T12:58:48+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="is-active" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main><section class="page-heading"><h1>「用了再說」該付出代價：面對隱性經營風險</h1></section>
+<style>.article-markdown h1 + hr, .article-markdown h2 + hr, .article-markdown h3 + hr, .article-markdown h4 + hr { display:none; } .article-sources { margin:0; padding-left:18px; } .article-sources li { margin:6px 0; }</style>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../features.html" onclick="if (history.length > 1) { history.back(); return false; }">返回專文</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏延伸資料</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">專文</span><span class="badge badge--date">2026-06-25</span></div>
+      <h1>「用了再說」該付出代價：面對隱性經營風險</h1>
+      <div class="tag-chip-list"><span class="tag-chip">開源授權</span><span class="tag-chip">compliance</span><span class="tag-chip">OpenChain</span><span class="tag-chip">開源合規</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://www.linuxfoundation.org/hubfs/LF%20Research/Web%20Assets_CRA%20Readiness%26Awareness_Unaware%20and%20Uncertain_2025%20Report_Cover_Featured%20Image-gradient.png" alt="" loading="lazy"><figcaption>圖片援引自：Unaware and Uncertain: The Stark Realities of CRA Readiness in Open Source — LF Research 2025</figcaption></figure>
+    <section class="article-fulltext-card">
+      <div class="article-text article-markdown"><h1>「用了再說」該付出代價：CRA 如何把隱性的開源依賴變成經營風險</h1>
+<p>歐盟《網路韌性法》（Cyber Resilience Act，CRA）2027 年 12 月全面合規期限距今不到 18 個月，但全球開源生態系的整備狀況不但沒有改善，反而倒退。這不是一個遙遠的法規議題，而是一個正在計時的財務問題——對台灣出口導向的 ICT 中小製造業尤其如此。</p>
+<hr>
+<h2>趨勢與重點</h2>
+<p>Linux Foundation Research 與 OpenSSF 於 2026 年 6 月聯合發布《2026 CRA Awareness and Readiness Report》，由 LF Research、OpenSSF、Balena、Ericsson 與 Revanite 共同製作，是接續 2025 年報告《Unaware and Uncertain》的年度追蹤。兩份報告合計勾勒出一個幾乎沒有改善的停滯圖像。</p>
+<h3>整體世界對其認知「不升反降」</h3>
+<p>2025 年，62% 的全球受訪者對 CRA「幾乎不熟悉或完全不熟悉」；2026 年這個數字升至 66%（2026 年報告，第 7 頁）。在美國與加拿大，這個比例更高達 72%（第 8 頁）。CRA 的適用門檻是「在歐盟市場銷售含數位元素的產品」，與製造商總部所在地無關——北美企業把 CRA 視為「歐盟內部的事」，這個誤解將在 2026 年 9 月的第一個硬性期限（漏洞與資安事件強制通報義務）到來時，直接轉化為法律風險。</p>
+<h3>知道 CRA 的人，也大多看不懂它</h3>
+<p>在已知 CRA 的受訪者中，54% 仍搞不清楚「製造商」（manufacturer）與「管理人」（steward）的角色區別——這是判斷自身義務的基本概念，一年前是 57%，幾乎沒有改善（2026 年報告，第 9 頁）。只有 34% 正確指出 2027 年 12 月是全面合規日期（第 9 頁）；僅 41% 的製造商預期能在期限前達到完全合規（第 15 頁）。</p>
+<h3>被動等待上游的習慣正在惡化</h3>
+<p>仍被動仰賴上游專案提供安全修補的比例，從 2025 年的 46% 上升至 2026 年的 51%（第 13 頁）。與此同時，各組織平均維護 86 個私有分支（private fork），作為處理上游無法或不願修補的應急措施。LF Research 的分析顯示，平均每個私有分支在每次發布週期的人力成本約為 25 萬 8 千美元；對員工超過 5,000 人的組織，整體負擔超過 11,000 個工時（第 14 頁）。</p>
+<h3>中小企業承受最大的結構性曝險</h3>
+<p>62% 的中小企業產品有四分之三以上仰賴開源軟體，遠高於大型組織的 35%（第 13 頁）。只有 32% 的製造商為所有產品產出軟體物料清單（SBOM）。</p>
+<h3>安全威脅與法規壓力同步升高</h3>
+<p>根據 LFX 平台索引的 14,000 多個開源專案，2026 年第一季公布的 CVE 數量年增 394%，高嚴重性漏洞更增加 811%（第 24 頁）。報告指出 AI 驅動的自動化掃描是部分原因，但漏洞數量本身是真實的，而 AI 工具降低了漏洞利用的技術門檻，使整備窗口壓縮得更緊。</p>
+<h3>大多企業從開源社群是認知到本議題，而不是從傳統官方監管管道</h3>
+<p>在已知 CRA 的受訪者中，48% 是透過研討會、開源工具文件或社群媒體得知，而透過官方歐盟管道得知的只有 25%（第 8 頁）。</p>
+<hr>
+<h2>我的觀察</h2>
+<h3>「用了再說」已是經營風險，不只是治理問題</h3>
+<p>長期以來，企業對開源軟體的預設策略是「免費使用、被動等待上游修補、出了問題再處理」。這個模式在 CRA 框架下暴露了它從未被正視的真實成本：一旦上游無法提供及時修補，組織就只能維護私有分支，而私有分支的維護成本會隨著產品線累積成結構性負擔。</p>
+<p>AI 工具的普及進一步加速了這個矛盾。AI 代碼生成工具讓開發者更快納入開源元件，卻不必然增加對這些元件來源、授權與安全狀態的了解。結果是：開源依賴度上升，但整備能力並未跟上。CVE 年增 394% 的數字，有一部分正是 AI 掃描把潛藏問題浮出水面；但製造商如果仍被動等待上游，就等於把自己的合規風險外包給一個自己沒有能力掌握節奏的外部機制。</p>
+<p>這個邏輯不再停在治理層面。它已是帳面可以計算的財務決策：86 個私有分支、每次發布週期 25 萬 8 千美元，是可以拿去說服管理層的數字。</p>
+<h3>上游貢獻從選擇題變成成本試算題，從治理討論變成經營關係</h3>
+<p>過去，向上游開源專案貢獻資源（程式碼、維護人力、資金）被定義為企業社會責任或開源治理立場。CRA 的 SBOM 要求與來源可追蹤性規範，改變了這個框架。</p>
+<p>當私有分支策略在合規層面越來越難持續，上游貢獻就從「可以做但沒必要」，變成「不投入就要自己承擔更高的合規維護成本」。2026 年報告引用 LF Research 的貢獻 ROI 分析，以及「多組織參與的開源專案安全評分與參與組織數量呈正相關（Spearman 係數 0.57）」這項新發現，提供了一個可量測的論述基礎（第 23 頁）。</p>
+<p>這個轉變的含義是：是否投入上游，不再是工程師或 OSPO 的內部治理討論，而是一個需要財務長與法務長一起計算的採購與合規問題。</p>
+<h3>開源社群是 CRA 認知的主要入口，但自己也是最大的認知盲區</h3>
+<p>48% 透過社群管道、只有 25% 透過官方渠道得知 CRA，這個數字的解讀方式是雙向的。正面的解讀是：技術社群、基金會與維護者社群擁有官方監管渠道無法取代的傳遞能力。負面的解讀是：一年過去了，這套傳遞機制並沒有讓全球不熟悉比例從 62% 下降，反而從 62% 升到 66%。</p>
+<blockquote>OpenSSF 報告的說法是「缺的不是資訊，是把合規語境嵌入開發者日常工作流的社群機制」。</blockquote>
+<p>這意味著，光是把課程、文件和政策頁面做好是不夠的；需要的是讓合規意識進入 Pull Request 流程、進入套件管理工具的使用情境、進入社群的技術提問與解答文化中。指引已存在，但進入日常實踐的最後一哩路尚未打通。</p>
+<p>這也是開源社群需要誠實面對的：做為 CRA 認知傳播最主要的渠道，社群同時是傳播者，也是受眾的一部分——許多人既不清楚 CRA 如何適用自己，也還沒找到方法把這套語境轉化給同儕。</p>
+<h3>台灣中小企業的雙重曝險</h3>
+<p>台灣以出口導向 ICT 製造業著稱，大量中小型硬體與嵌入式系統廠商的供應鏈高度依賴開源元件，產品同時進入歐盟與北美市場。<strong>把報告的兩個數字疊加在一起，可以看到台灣中小廠商面對的結構性處境：</strong></p>
+<p><strong>第一，全球中小企業有 62% 的產品四分之三以上仰賴開源軟體</strong>，遠高於大型組織的 35%——開源依賴度高；</p>
+<p>第二，美加地區的 CRA 認知缺口（72% 不熟悉）比全球平均（66%）更大，而台灣目前沒有直接的調查數字，但以相似的出口市場結構與非歐盟地理位置，估計認知缺口不小於北美水準。</p>
+<p>在 CRA 框架下，這些廠商屬於「製造商」而非「管理人」，承擔主要的合規義務，包括：主動管理開源元件安全、產出 SBOM、建立漏洞揭露流程。距離 2027 年 12 月全面合規期限不到 18 個月，而第一個硬性期限「強制通報已被主動利用的漏洞與嚴重資安事件」將在 2026 年 9 月到來。若連「CRA 是否適用自己」都尚未評估，整備窗口已相當有限。</p>
+<h2>後續建議</h2>
+<h3>對企業（特別是中小製造商）</h3>
+<p>立即評估 CRA 適用性是最低起點，不是可以推遲的事。判斷自身屬於「製造商」還是「管理人」，決定了義務的性質與範圍。OpenSSF 的《CRA Readiness Guide for Maintainers and Developers》與《Stewards Playbook》（openssf.org/CRA）提供了依角色分類的實作步驟，可作為自評的第一份工具。對於有出口歐盟產品的台灣廠商，建議把 2026 年 9 月的漏洞通報義務列為最近期的合規行動項目。</p>
+<h3>對開源社群與基金會</h3>
+<p>如果 48% 的人是透過開源社群管道得知 CRA，那麼基金會、技術社群、開源工具維護者承擔著官方監管渠道無法替代的角色。接下來需要做的不是再製作更多文件，而是把合規語境嵌入開發者實際使用的工具——在套件管理工具的相依性報告中標注授權與安全狀態，在 PR review 流程中整合 SBOM 生成提示，讓合規不是另一份要閱讀的清單，而是工作流的一部分。</p>
+<h3>對政策討論</h3>
+<p>台灣目前缺乏針對本地廠商 CRA 認知狀況的系統性調查。在這個議題的討論中，「台灣廠商的準備度如何」是一個有數據缺口的問題。產業公會、資策會或學研機構若能複製類似 OpenSSF 的追蹤方法，建立在地基準數據，才能讓政策介入的優先順序有事實依據。</p>
+<hr>
+<p><strong>來源：</strong></p>
+<ul>
+<li>2026 CRA Awareness and Readiness Report，OpenSSF / LF Research（2026 年 6 月）。<a href="https://openssf.org/resources/publications/2026-cra-awareness-and-readiness-report/" target="_blank" rel="noreferrer">https://openssf.org/resources/publications/2026-cra-awareness-and-readiness-report/</a></li>
+<li>&quot;CRA 準備度的現實：2025 到 2026 年之間改變了什麼，又有哪些沒變？&quot;，Angelah Liu，Linux Foundation Blog（2026 年 6 月 19 日）。<a href="https://www.linuxfoundation.org/blog/the-cra-readiness-reality-what-changed-and-what-didnt-between-2025-and-2026" target="_blank" rel="noreferrer">https://www.linuxfoundation.org/blog/the-cra-readiness-reality-what-changed-and-what-didnt-between-2025-and-2026</a></li>
+<li>&quot;三分之二的開源社群對《網路韌性法》毫無概念&quot;，Phil Muncaster，InfoSecurity Magazine。<a href="https://www.infosecurity-magazine.com/news/open-source-unaware-cyber" target="_blank" rel="noreferrer">https://www.infosecurity-magazine.com/news/open-source-unaware-cyber</a></li>
+<li>Taking Stock of the State of European CRA Compliance，OpenSSF Blog（2026 年 5 月 18 日）。<a href="https://openssf.org/blog/2026/05/18/taking-stock-of-the-state-of-european-cyber-resilience-act-cra-compliance-an-urgent-wake-up-call-for-the-open-source-ecosystem/" target="_blank" rel="noreferrer">https://openssf.org/blog/2026/05/18/taking-stock-of-the-state-of-european-cyber-resilience-act-cra-compliance-an-urgent-wake-up-call-for-the-open-source-ecosystem/</a></li>
+<li>Unaware and Uncertain: The Stark Realities of Cyber Resilience Act Readiness in Open Source，LF Research（2025 年）。<a href="https://www.linuxfoundation.org/research/cra-readiness" target="_blank" rel="noreferrer">https://www.linuxfoundation.org/research/cra-readiness</a></li>
+</ul></div>
+    </section>
+  </div>
+  <aside class="side-panel" id="public-article-side-panel"><div class="section-kicker">引用</div><h2>引用材料</h2><ul class="article-sources"><li><a href="../articles/item-4e30e5cbad691b0e.html">2026 CRA Awareness and Readiness Report — OpenSSF</a></li><li><a href="../articles/item-c91cb192809bf0f7.html">OpenSSF Blog: Taking Stock of the State of European CRA Compliance（原版部落格文）</a></li><li><a href="../articles/item-e284d5632df57352.html">Unaware and Uncertain: The Stark Realities of CRA Readiness in Open Source — LF Research 2025</a></li><li><a href="../articles/item-94e56663498acc7b.html">Sustaining Open Source Software in the Research Enterprise — Ithaka S+R（DOI 永久連結）</a></li><li><a href="../articles/item-218dedb75a5b9548.html">調查：三分之二的開源社群對《CRA 網路韌性法》毫無概念</a></li><li><a href="../articles/item-154dc68142e448a4.html">研究機構如何維持開源軟體：一日工作坊發現</a></li><li><a href="../articles/item-7309379c4fe6da12.html">歐洲 CRA 合規現況盤點：給開源生態系的緊急提醒</a></li><li><a href="../articles/item-630cb244d0aae6da.html">CRA 準備度的現實 2025-2026</a></li></ul><div class="section-kicker">觀點</div><h2>延伸觀點</h2><ul class="article-sources"><li><strong>「用了再說」已是財務風險，不只是治理問題</strong><br><span class="summary">OpenSSF 2026 年報告顯示，超過半數製造商（51%）仍被動等待上游開源專案提供安全修補，且平均維護 86 個私有分支；每個分支每次發布週期耗費約 25 萬 8 千美元人力成本（2026 CRA Awareness and Readiness Report，第 14 頁）。我們的觀察：長期以「消費開源、不回饋上游」維持產品的企業，CRA 合規期限正在把這個選擇的隱性成本變成帳面數字，不再能...</span></li><li><strong>美加企業的認知缺口比歐洲更大，但法律義務相同</strong><br><span class="summary">2026 年調查中，美國與加拿大受訪者有 72% 對 CRA「完全不熟悉」或「略知皮毛」，高於全球平均的 66%（2026 CRA Readiness Report，第 8 頁）。CRA 的適用門檻是「在歐盟市場銷售含數位元素的產品」，與製造商總部所在地無關。我們的觀察：歐洲以外的企業往往把 CRA 理解為「歐盟內部的事」，但只要有出口歐盟的數位產品線，這個認知落差將在 2026 年 9 月第一個...</span></li><li><strong>開源社群是 CRA 認知的主要入口，但自己也是最大的認知盲區</strong><br><span class="summary">在已知 CRA 的受訪者中，有 48% 是透過研討會、開源工具文件或社群媒體得知，遠高於透過官方歐盟管道得知的 25%（2026 CRA Readiness Report，第 8 頁）。然而整體生態系的不熟悉比例，一年內不降反升，從 62% 升至 66%。我們的觀察：指引與課程材料已大量存在，缺的不是資訊，而是把合規語境嵌入開發者日常工作流的社群機制；基金會、維護者群與技術社群承擔著官方監管渠道無...</span></li><li><strong>上游貢獻從選擇題變成成本試算題</strong><br><span class="summary">報告引用 LF Research 的「開源貢獻 ROI」分析：相較於維護私有分支的成本，向上游專案投入貢獻在財務上更合理；且多組織參與的開源專案安全評分與參與組織數量呈正相關（Spearman 係數 0.57，2026 CRA Readiness Report，第 23 頁）。我們的觀察：CRA 對 SBOM 與來源可追蹤性的要求，使各自維護私有分支的合規策略越來越難持續；回饋上游不再只是企業社會...</span></li><li><strong>台灣中小企業的雙重曝險：開源依賴度高、CRA 認知缺口大</strong><br><span class="summary">報告指出，62% 的中小企業產品有四分之三以上仰賴開源軟體，遠高於大型組織的 35%（2026 CRA Readiness Report，第 13 頁）。台灣以出口為導向的 ICT 製造業中，許多中小型硬體與嵌入式系統廠商的供應鏈高度依賴開源元件，且產品同時進入歐美市場。我們的觀察：這類廠商在 CRA 框架下屬於「製造商」而非「steward」，承擔主要合規義務，但若連 CRA 適用範圍都尚未評估...</span></li></ul></aside>
+</div>
+
+<script>
+(() => {
+  const layout = document.getElementById("public-article-layout");
+  const toggle = document.getElementById("public-article-side-toggle");
+  const panel = document.getElementById("public-article-side-panel");
+  if (!layout || !toggle) return;
+  const label = toggle.querySelector("[data-sidebar-toggle-label]");
+  const storageKey = "ian-open-news-public-feature-sidebar";
+  const apply = (hidden) => {
+    layout.classList.toggle("is-sidebar-hidden", hidden);
+    panel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+    toggle.setAttribute("aria-expanded", hidden ? "false" : "true");
+    if (label) label.textContent = hidden ? "顯示延伸資料" : "隱藏延伸資料";
+  };
+  let hidden = false;
+  try { hidden = localStorage.getItem(storageKey) === "hidden"; } catch (_e) { hidden = false; }
+  apply(hidden);
+  toggle.addEventListener("click", () => {
+    hidden = !layout.classList.contains("is-sidebar-hidden");
+    apply(hidden);
+    try { localStorage.setItem(storageKey, hidden ? "hidden" : "visible"); } catch (_e) {}
+  });
+})();
+</script>
+
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T03:03:35+00:00</p>
+            <p class="generated">產生時間：2026-06-25T12:58:48+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,99 @@
       <p class="lede">這篇看起來是在整理 10 個協助遊戲開發者完成美術、動畫、關卡、音訊、對話、除錯介面與可導入引擎素材的開源工具。它的重點不在遊戲引擎本身，而是遊戲真正被做出來時所依賴的周邊開源工具鏈。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://github.blog/wp-content/uploads/2026/05/639edd29983f2d6a8dcb40b053416b222505bf0835096dea18d4af01202d0646-2400x1260-1.png?fit=2400%2C1260" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Beyond the engine: 10 open source projects shaping how games actually get made</h1>
+<p>Check out these 10 open source tools that help game developers create art, animation, levels, audio, dialogue, debug UIs, and engine-ready assets. Pick any game engine, and you are maybe a third of the way to having the tools you need to ship a game. But there are also elements that live outside the engine: the asset pipelines your artists depend on, the level editors your designers build in, the audio tools your sound team cleans up with, to name a few. Open source has tools for those workflows and more. Most of these open source projects exist because someone decided their team’s biggest pain point was worth fixing for everyone. The 10 below can help game developers with their common pain points, and every one of them can plug into your pipeline whether you ship on Godot, Unity, Unreal, MonoGame, or your own custom engine.</p>
+<h2>1 Blockbench: Low poly 3D modeling</h2>
+<p>Blockbench is a 3D model editor purpose built for low poly models with pixel art textures. It started life as a Minecraft model editor. That lineage shows in the interface, which is built around cubes, planes, and meshes you can animate without setting up a full rigging pipeline. Since then, the project has grown into a general purpose tool with texture painting, UV mapping, paint directly on the model in 3D, a keyframe animation timeline with a graph editor, a plugin store, and exports to glTF, OBJ, and a long list of game specific formats. <strong>Why it matters</strong>: A focused tool is a fast tool. Because Blockbench commits to one slice of 3D, an artist can go from a blank scene to a textured, animated, exported asset in a single afternoon without learning a full content pipeline first. That low time to first asset is what makes it stick.</p>
+<h2>2 Pencil2D: Traditional 2D animation</h2>
+<p>Pencil2D is a hand- drawn 2D animation tool aimed at frame-by-frame drawing. It supports bitmap and vector layers, with onion skinning and a redesigned camera system. Perspective grids and adjustable layer and keyframe opacity make clean fades easy. Exports go to image sequences and common video formats, which you can slice into spritesheets for your engine of choice. Pencil2D runs on Windows, macOS, Linux, and FreeBSD, including older hardware most modern creative tools have left behind. <strong>Why it matters</strong>: Pencil2D makes it easy to learn the craft of frame-by-frame animation. Roughing in raster strokes and inking on a vector layer above them happens in one timeline, no round trip to another app. The footprint stays small enough to run on a classroom laptop, which makes it one of the few places a beginner can sit down and learn timing and spacing from first principles.</p>
+<h2>3 Pixelorama: Pixel art built for game developers</h2>
+<p>Pixelorama is a pixel art tool built specifically for game development workflows, which means sprites, tilesets, and animations are first class, not features bolted onto a general purpose paint program. You get onion skinning, tile mode for seamless patterns, an animation timeline, and exports to PNG sequences and spritesheets that drop straight into an engine importer. It is built in Godot and runs on Windows, Linux, macOS, and the web, including a browser build that lets an artist open a project on a Chromebook. <strong>Why it matters</strong>: Because Pixelorama treats sprites and animations as the primary unit of work, the path from idea to a frame in your game is short. Tile mode, onion skinning, and the spritesheet exporter sit one click away on the toolbar instead of buried behind a plugin. That focus is what makes it the natural reach for a 2D pipeline.</p>
+<h2>4 Material Maker: Procedural texture authoring</h2>
+<p>Material Maker is a node based procedural texture authoring tool. You build a graph of generators, filters, and blends. Out the other end, you get PBR texture sets ready for a real time renderer. Like Pixelorama, it is built in Godot, which makes it a second entry on this list where an open source content tool runs on top of an open source game engine. <strong>Why it matters</strong>: Procedural authoring trades a one-off painted texture for a graph you can constantly adjust for new textures. Crank up the moss and instead of a newly painted stone wall you have one that looks like it’s been sitting in the woods for a decade. Multiply that across every surface in your game, and texture work starts to scale with the project instead of fighting it every time the art direction shifts.</p>
+<h2>5 LDtk: A level editor built around entities</h2>
+<p>LDtk is an entity-driven 2D level editor, which means you define your entity types up front, set up auto tiling rules, and use enums to keep your data clean as the project grows. The editor pushes you toward workflows that hold up at production scale instead of letting you paint yourself into a corner six months in. Exports are clean JSON, and there are official integration libraries for many engines. <strong>Why it matters</strong>: LDtk is opinionated on purpose. The entity first model, the auto tiling rules, and the typed enums all push you toward a project structure that survives the messy middle of production. It is the rare level editor where the constraints are the feature.</p>
+<h2>6 Tiled: The everywhere tilemap editor</h2>
+<p>Tiled is one of the longest running and most broadly supported tilemap editors in the open source space. It supports unlimited layers, configurable tile sizes, object layers with arbitrary properties, and exports to TMX and JSON. Tiled is engine agnostic by design. Native loaders exist for Godot, Unity, MonoGame, libGDX, Pygame, and basically anything else with a community. <strong>Why it matters</strong>: Tiled does one thing, 2D tilemaps, and does it everywhere. A level designer can learn Tiled once and bring that skill to every project they work on, which is rare in tooling. Over 15 years of continuous development means the file format is also stable enough to bet a pipeline on.</p>
+<h2>7 Audacity: A fast, focused audio editor</h2>
+<p>Audacity is the audio editor most game developers reach for when they need to clean up a recording, trim a music loop, batch convert formats, or chop up sound effects. It is multi-track, non-destructive, and handles the formats engines care about (WAV, OGG, FLAC, MP3) with full control over sample rate and bit depth. Spectral editing lets you surface and remove problems like room hum or a chair squeak that a waveform view would never reveal, and the macro system can run the same cleanup chain across an entire folder of SFX in one pass. <strong>Why it matters</strong>: Audacity owns the editing and asset prep layer that sits in front of any audio runtime. It is fast to launch, fast to cut a loop, and fast to export, which is exactly what an audio pass on a build actually needs. The version 4 rewrite is a signal that the project is investing in the next decade rather than coasting on the last one.</p>
+<h2>8 Yarn Spinner: Dialogue for narrative games</h2>
+<p>Yarn Spinner is a dialogue system for branching narrative. Writers author conversations in a markup language that reads like a screenplay, and programmers wire up the runtime separately. The two roles stay out of each other’s way, which is the entire point. It has runtime integrations for Unity, Godot, and a generic C# layer for everything else, and it powers the dialogue in Night in the Woods, A Short Hike, and DREDGE (which won a BAFTA). <strong>Why it matters</strong>: Yarn Spinner is built around one decision: the writer’s tool and the programmer’s runtime are separate surfaces. That separation is what makes a branching script of any size actually maintainable, and it is why a writer can own a dialogue layer end to end without waiting on engineering for every conversation tweak.</p>
+<h2>9 Gum: A layout engine and visual editor for in-game UI</h2>
+<p>Gum is a general purpose UI layout tool for the menus, HUDs, and screens that ship inside your game. The visual editor handles the layout work (anchoring, stretching, nested containers, states for things like hover and pressed) and exports human readable XML that runtime libraries load at game time. Native integrations exist for many frameworks such as MonoGame, FNA, WPF, MAUI, Avalonia, and more. <strong>Why it matters</strong>: Most engines ship their own UI system, but if you are working in MonoGame, FNA, raylib, or any of the lighter weight frameworks, you usually end up writing menus by hand or pulling in something heavier than you wanted. Gum fills that gap with a real visual designer and a small runtime, which is why it has become a default in the .NET game ecosystem.</p>
+<h2>10 Dear ImGui: The debug UI library half the industry runs on</h2>
+<p>Dear ImGui is an immediate mode GUI library for building tools, debug overlays, and editors inside your game. It works in every engine, has bindings in 30- plus programming languages, and the API is designed so you can put a debug panel together in a few lines of code without thinking about layout systems. <strong>Why it matters</strong>: The immediate mode model is what makes ImGui different. There is no scene graph and no widget tree to manage, you just call functions each frame. That collapses the cost of adding a debug knob from a half day of UI plumbing to a single line, which is exactly why it has spread across the industry as the default in game tooling layer.</p>
+<h2>Get involved</h2>
+<p>These projects are maintained by people who care about making games easier to build. A few ways to support that work:</p>
+<ul>
+<li><strong>Star the repos.</strong> It is free and it tells maintainers their work is being used.</li>
+<li><strong>Open issues with real reproductions.</strong> A good bug report is one of the highest value contributions you can make.</li>
+<li><strong>Pick up a “good first issue.”</strong> Many projects tag them.</li>
+<li><strong>Sponsor a maintainer.</strong> Several of these projects accept funding through <a href="https://github.com/sponsors" target="_blank" rel="noreferrer">GitHub Sponsors</a>.</li>
+</ul>
+<p>Want to take a break from building a game and <em>play</em> a game instead? <a href="https://github.blog/open-source/gaming/dungeons-desktops-10-roguelikes-that-never-die-because-their-communities-wont-let-them/" target="_blank" rel="noreferrer">Check out these 10 roguelikes</a>, maintained by their awesome communities!</p>
+<h2>Tags</h2>
+<ul>
+<li><a href="https://github.blog/tag/game-development/" target="_blank" rel="noreferrer">game development</a></li>
+<li><a href="https://github.blog/tag/gaming/" target="_blank" rel="noreferrer">gaming</a></li>
+<li><a href="https://github.blog/tag/github-sponsors/" target="_blank" rel="noreferrer">GitHub Sponsors</a></li>
+<li><a href="https://github.blog/tag/godot/" target="_blank" rel="noreferrer">godot</a></li>
+<li><a href="https://github.blog/tag/maintainers/" target="_blank" rel="noreferrer">maintainers</a></li>
+<li><a href="https://github.blog/tag/open-source/" target="_blank" rel="noreferrer">open source</a></li>
+<li><a href="https://github.blog/tag/unity/" target="_blank" rel="noreferrer">unity</a></li>
+<li><a href="https://github.blog/tag/unreal-engine-2/" target="_blank" rel="noreferrer">unreal engine</a></li>
+</ul>
+<h2>Written by</h2>
+<h3><a href="https://github.blog/author/stahaff/" target="_blank" rel="noreferrer">Stacey Haffner</a></h3>
+<p><a href="https://github.com/stahaff" target="_blank" rel="noreferrer">@stahaff</a> Stacey Haffner is the Director of Microsoft&#x27;s OSPO and a developer advocate, where she focuses on open source, AI, and the future of developer tools. For over a decade she&#x27;s been a product leader, builder, and teacher, working across startups and big tech on .NET, Xbox, Unity, and much more. She&#x27;s also an independent game developer and teaches on YouTube at youtube.com/@staceyhaffner.</p>
+<ul>
+<li><a href="https://github.blog/tag/game-development/" target="_blank" rel="noreferrer">game development</a></li>
+<li><a href="https://github.blog/tag/gaming/" target="_blank" rel="noreferrer">gaming</a></li>
+<li><a href="https://github.blog/tag/github-sponsors/" target="_blank" rel="noreferrer">GitHub Sponsors</a></li>
+<li><a href="https://github.blog/tag/godot/" target="_blank" rel="noreferrer">godot</a></li>
+<li><a href="https://github.blog/tag/maintainers/" target="_blank" rel="noreferrer">maintainers</a></li>
+<li><a href="https://github.blog/tag/open-source/" target="_blank" rel="noreferrer">open source</a></li>
+<li><a href="https://github.blog/tag/unity/" target="_blank" rel="noreferrer">unity</a></li>
+<li><a href="https://github.blog/tag/unreal-engine-2/" target="_blank" rel="noreferrer">unreal engine</a></li>
+</ul>
+<h2>Table of Contents</h2>
+<ul>
+<li><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/#h-1-nbsp-blockbench-low-poly-3d-modeling-nbsp" target="_blank" rel="noreferrer">1 Blockbench: Low poly 3D modeling</a></li>
+<li><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/#h-2-pencil2d-traditional-2d-animation" target="_blank" rel="noreferrer">2 Pencil2D: Traditional 2D animation</a></li>
+<li><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/#h-3-pixelorama-pixel-art-built-for-game-developers" target="_blank" rel="noreferrer">3 Pixelorama: Pixel art built for game developers</a></li>
+<li><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/#h-4-material-maker-procedural-texture-authoring" target="_blank" rel="noreferrer">4 Material Maker: Procedural texture authoring</a></li>
+<li><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/#h-5-ldtk-a-level-editor-built-around-entities" target="_blank" rel="noreferrer">5 LDtk: A level editor built around entities</a></li>
+<li><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/#h-6-tiled-the-everywhere-tilemap-editor" target="_blank" rel="noreferrer">6 Tiled: The everywhere tilemap editor</a></li>
+<li><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/#h-7-audacity-a-fast-focused-audio-editor" target="_blank" rel="noreferrer">7 Audacity: A fast, focused audio editor</a></li>
+<li><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/#h-8-yarn-spinner-dialogue-for-narrative-games" target="_blank" rel="noreferrer">8 Yarn Spinner: Dialogue for narrative games</a></li>
+<li><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/#h-9-gum-a-layout-engine-and-visual-editor-for-in-game-ui" target="_blank" rel="noreferrer">9 Gum: A layout engine and visual editor for in-game UI</a></li>
+<li><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/#h-10-dear-imgui-the-debug-ui-library-half-the-industry-runs-on" target="_blank" rel="noreferrer">10 Dear ImGui: The debug UI library half the industry runs on</a></li>
+<li><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/#get-involved" target="_blank" rel="noreferrer">Get involved</a></li>
+</ul>
+<h2>More on <a href="https://github.blog/tag/game-development/" target="_blank" rel="noreferrer">game development</a></h2>
+<h3><a href="https://github.blog/open-source/gaming/dungeons-desktops-10-roguelikes-that-never-die-because-their-communities-wont-let-them/" target="_blank" rel="noreferrer">Dungeons &amp; Desktops: 10 roguelikes that never die (because their communities won’t let them)</a></h3>
+<p>Roguelikes don’t die. They fork, mutate, get argued over, rewritten, abandoned, and revived again. Sometimes all at once.</p>
+<h3><a href="https://github.blog/open-source/maintainers/github-action-hero-keirron-stach/" target="_blank" rel="noreferrer">GitHub Action Hero: Keirron Stach</a></h3>
+<p>GitHub Actions gives you the power to automate your workflow. Connect with the tools you know and love. Have more freedom to innovate and be creative. Deploy to any cloud,…</p>
+<h3><a href="https://github.blog/open-source/from-pledge-to-practice-building-a-more-inclusive-open-source-ecosystem/" target="_blank" rel="noreferrer">From pledge to practice: Building a more inclusive open source ecosystem</a></h3>
+<p>Learn about the progress we’ve made toward our accessibility goals and how you can help make open source more inclusive.</p>
+<h3><a href="https://github.blog/open-source/maintainers/how-pull-request-limits-are-cutting-down-the-noise/" target="_blank" rel="noreferrer">How pull request limits are cutting down the noise</a></h3>
+<p>Learn how pull request limits can help manage contribution volume in your repositories, and see what’s next on the roadmap.</p>
+<h3><a href="https://github.blog/open-source/building-githubs-next-chapter-in-accessibility/" target="_blank" rel="noreferrer">Building GitHub’s next chapter in accessibility</a></h3>
+<p>Explore our update on GitHub’s accessibility strategy, and learn how you can join us in building a culture of accessibility.</p>
+<h2>Explore more from GitHub</h2>
+<h3>Docs</h3>
+<p>Everything you need to master GitHub, all in one place.</p>
+<h3>GitHub</h3>
+<p>Build what’s next on GitHub, the place for anyone from anywhere to build anything.</p>
+<h3>Customer stories</h3>
+<p>Meet the companies and engineering teams that build with GitHub.</p>
+<h3>GitHub Universe 2026</h3>
+<p>Join us October 28-29 in San Francisco or online for GitHub Universe, our flagship developer event uniting people, agents, and the world’s code.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-50b6b4164f692d54.html">
@@ -580,7 +668,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-2696a1c5cb68d483.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Beyond the engine: 10 open source projects shaping how games actually get made</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Natalie Guevara</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Beyond the engine: 10 open source projects shaping how games actually get made（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Natalie Guevara（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-21T16:09:08+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

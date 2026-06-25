@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T03:03:35+00:00</p>
+            <p class="generated">產生時間：2026-06-25T12:58:48+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -556,8 +556,57 @@
 
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>DeepSeek-V3: A Large-Scale MoE Pretraining Benchmark for MLPerf Training v6.0 - MLCommons</h1>
+<h2>DeepSeek-V3: A Large-Scale MoE Pretraining Benchmark for MLPerf Training v6.0</h2>
+<p>How MLCommons is bringing large-scale Mixture-of-Experts (MoE) pretraining to the MLPerf Training v6.0 suite.</p>
+<h2><strong>Motivation and Architectural Relevance</strong></h2>
+<p>As Large Language Model (LLM) development increasingly adopts sparse computation, the benchmarks used to evaluate training performance need to keep pace. MLPerf™ Training v6.0 adds a large-scale pretraining benchmark built on DeepSeek-V3, a Mixture-of-Experts (MoE) architecture with 671B total parameters, of which 37B are activated per token. This benchmark captures the performance of critical innovations now standard in the industry, including Multi-head Latent Attention (MLA) and auxiliary-loss<strong>–</strong>free load balancing.</p>
+<h2><strong>Technical Architecture &amp; Implementation</strong></h2>
+<p>DeepSeek-V3 introduces specific computational patterns that differentiate it from the dense models (e.g., Llama 3.1) currently in the suite:</p>
+<ul>
+<li><strong>Multi-head Latent Attention (MLA):</strong> Unlike standard Multi-Head Attention (MHA), MLA uses low-rank joint compression for Key-Value (KV) caches to reduce memory bandwidth bottlenecks during training and inference.</li>
+<li><strong>Fine-Grained Expert Segmentation:</strong> Each expert feed-forward network (FFN) is segmented into $m$ smaller experts. While a typical MoE might use a top-2 routing over 16 experts, DeepSeek-V3 expands this to 160 routed experts plus shared experts to capture common knowledge.</li>
+<li><strong>Multi-Token Prediction (MTP):</strong> The model is trained with a 2-token prediction objective. This requires a shared trunk and two dedicated output heads, increasing the compute-to-memory ratio during the backward pass.</li>
+<li><strong>Auxiliary-Loss-Free Load Balancing:</strong> To prevent routing collapse without the performance degradation of heavy auxiliary losses, a bias term is dynamically adjusted for each expert based on real-time load.</li>
+</ul>
+<h2><strong>Benchmark Definition &amp; Reference Setup</strong></h2>
+<p>The task is defined as <strong>LLM Pretraining</strong> using a Mixture-of-Experts objective.</p>
+<h3><strong>Dataset and Tokenization</strong></h3>
+<ul>
+<li><strong>Dataset:</strong> C4 (Colossal Clean Crawled Corpus)</li>
+<li><strong>Tokenizer:</strong> Llama-3 compatible tokenizer (128k vocabulary)</li>
+<li><strong>Sequence Length:</strong> 4,096 tokens</li>
+</ul>
+<h3><strong>Convergence and Checkpointing</strong></h3>
+<p>The task force identified that MoE models spend early training time in a state of token imbalance. Since the benchmark captures only a small slice of the full end-to-end training, this token imbalance state lasted for approximately 50% of the benchmarking time, which is not representative of steady-state MoE training. To ensure the benchmark measures steady-state hardware efficiency, the task force adopted a warm-start approach. Since the benchmark uses a Llama 8B tokenizer instead of the original DeepSeek tokenizer, initializing from a Hugging Face checkpoint leads to significant token imbalance. To address this, the task force fine-tuned the checkpoint for 50 steps, bringing the token-per-expert distribution close to that obtained with the original DeepSeek tokenizer (Fig 1). The resulting checkpoint is in HuggingFace format and <a href="https://training.mlcommons-storage.org/index.html#deepseekv3-benchmark" target="_blank" rel="noreferrer">is hosted by MLCommons</a>. This methodology ensures more than 98% of the benchmark run occurs in a balanced expert state, reflecting long-term training dynamics.</p>
+<h3><strong>Global Batch Size (GBS) Selection</strong></h3>
+<p>This benchmark requires a GBS of 15,360 or greater.While internal testing showed that the model maintains computational efficiency at lower batch sizes (e.g., 512, 1k, or 2k), the task force mandated a higher floor for three reasons:</p>
+<ul>
+<li><strong>Representativeness:</strong> The original DeepSeek-V3 pretraining used a batch size scheduling strategy that peaked at 15,360. To remain representative of the real-world, large-scale pretraining described in the paper, the benchmark targets the 15k-18k range.</li>
+<li><strong>Fairness in Benchmarking:</strong> Setting a minimum GBS of 15k ensures a fair and representative playing field for all submitters, preventing “hero runs” on tiny batch sizes that don’t reflect production-scale MoE training.</li>
+<li><strong>Convergence Scaling:</strong> The task force established a square-root scaling rule for the learning rate to maintain stability across these larger batch sizes: L R ( G B S ) = 2.4 × 10 − 5 × G B S 16384 LR(GBS) = 2.4 \times 10^{-5} \times \sqrt{\frac{GBS}{16384}}</li>
+</ul>
+<h2><strong>Engineering Challenges and Validations</strong></h2>
+<p>Development of the reference implementation (using NVIDIA NeMo Megatron-bridge) highlighted several critical requirements for convergence:</p>
+<ul>
+<li><strong>Expert Parallelism (EP):</strong> For a single layer, routed experts are uniformly deployed across 64 GPUs (8 nodes). Node-limited routing is enforced where each token is sent to a maximum of M=4 nodes.</li>
+<li><strong>Memory Management:</strong> Expert capacity must not be restricted to avoid out-of-memory errors (OOMs) caused by token imbalance during the initial steps after checkpoint loading, ensuring the benchmark remains representative of real-world training conditions.</li>
+<li><strong>Target Metric:</strong> The benchmark targets a cross-entropy validation loss of 3.6 with a Coefficient of Variation (CV) of 1.5% (Fig 2).</li>
+</ul>
+<h2><strong>Conclusion</strong></h2>
+<p>This benchmark provides a standardized platform for evaluating the training efficiency of a leading open-weights MoE model at production scale. By defining clear requirements for convergence, batch size, and expert parallelism, the DeepSeek-V3 benchmark ensures that MLPerf Training continues to reflect the contemporary state of AI infrastructure. The reference implementation is available on the <a href="https://github.com/mlcommons/training/tree/master/llm_moe_pretraining/nemo" target="_blank" rel="noreferrer">MLCommons GitHub repository</a>, and the task force welcomes submissions and feedback from the community. For additional information on MLCommons and details on becoming a member, please visit <a href="http://mlcommons.org" target="_blank" rel="noreferrer">MLCommons.org</a>. Denys Fridman (NVIDIA) Michal Marcinkiewicz (NVIDIA) Shriya Rishab (NVIDIA) Qinwen Xu (Google) Parmita Mehta (Google)</p>
+<ul>
+<li><a href="https://mlcommons.org/cdn-cgi/l/email-protection#f7c88482959d929483cab49f92949cdc988283dc839f9e84dc87988483dc9185989adcbabbb4989a9a989984d2c4b6dcb3929287a492929cdaa1c4d2c4b6dcb6dcbb96859092daa494969b92dcba98b2dca785928385969e999e9990dcb59299949f9a96859cdc919885dcbabba7928591dca385969e999e9990dc81c1d9c7d19598938ecaa5929693dc839f92dc9685839e949b92dc9899dc9a9b94989a9a989984d9988590dc9f928592d2c4b6dc9f83838784d2c4b6d2c5b1d2c5b19a9b94989a9a989984d9988590d2c5b1c5c7c5c1d2c5b1c7c2d2c5b1939292878492929cda81c4da8385969e999e9990da81c1dac7d2c5b1" target="_blank" rel="noreferrer">Share via email</a></li>
+<li><a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fmlcommons.org%2F2026%2F05%2Fdeepseek-v3-training-v6-0%2F" target="_blank" rel="noreferrer">Share on facebook</a></li>
+<li><a href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3A%2F%2Fmlcommons.org%2F2026%2F05%2Fdeepseek-v3-training-v6-0%2F&amp;title=DeepSeek-V3%3A+A+Large-Scale+MoE+Pretraining+Benchmark+for+MLPerf+Training+v6.0" target="_blank" rel="noreferrer">Share LinkedIn</a></li>
+<li><a href="https://twitter.com/intent/tweet?text=DeepSeek-V3%3A+A+Large-Scale+MoE+Pretraining+Benchmark+for+MLPerf+Training+v6.0&amp;url=https%3A%2F%2Fmlcommons.org%2F2026%2F05%2Fdeepseek-v3-training-v6-0%2F" target="_blank" rel="noreferrer">Share on X</a></li>
+</ul>
+<h4>Related Insights</h4>
+<h3><a href="https://mlcommons.org/2026/06/mlperf-training-v6-0-results/" target="_blank" rel="noreferrer">MLCommons Releases MLPerf Training v6.0 Results</a></h3>
+<h3><a href="https://mlcommons.org/2026/06/mlperf-mobile-v6/" target="_blank" rel="noreferrer">MLCommons Releases MLPerf Mobile v6.0 with New Generative AI Benchmarks for On-Device LLMs</a></h3>
+<h3><a href="https://mlcommons.org/2026/06/responsible-disclosure/" target="_blank" rel="noreferrer">The patch model is breaking. AI evaluation needs a new way to disclose what it finds.</a></h3>
+<h3><a href="https://mlcommons.org/2026/06/chakra-comes-of-age/" target="_blank" rel="noreferrer">Chakra Comes of Age: A Standardized Trace Ecosystem for AI Systems Benchmarking and Co-design</a></h3></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-2f4c50d1d48d3768.html">
@@ -580,7 +629,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-50f49ffce471ad5e.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：DeepSeek-V3: A Large-Scale MoE Pretraining Benchmark for MLPerf Training v6.0</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：lori@mlcommons.org</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：DeepSeek-V3: A Large-Scale MoE Pretraining Benchmark for MLPerf Training v6.0（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：lori@mlcommons.org（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-23T03:22:04+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

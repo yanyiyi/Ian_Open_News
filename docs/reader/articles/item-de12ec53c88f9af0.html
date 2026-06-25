@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T03:03:35+00:00</p>
+            <p class="generated">產生時間：2026-06-25T12:58:48+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -556,8 +556,51 @@
 
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>GPT-OSS 20B: A Sparse MoE Pretraining Benchmark for MLPerf Training v6.0 - MLCommons</h1>
+<h2>GPT-OSS 20B: A Sparse MoE Pretraining Benchmark for MLPerf Training v6.0</h2>
+<p>How MLCommons engineered a stable, accessible Mixture-of-Experts (MoE) pretraining benchmark for MLPerf Training v6.0 that runs on a single 8-GPU node.</p>
+<h2><strong>Motivation and Architectural Relevance</strong></h2>
+<p>Pretraining large language models (LLMs) requires massive computational resources, and the MLPerf™ Training benchmark suite has reflected that reality. Pretraining tests like Llama 3.1 405B and Llama 3.1 8B focus on dense models that can require substantial multi-node infrastructure. This can create a barrier to entry for many organizations looking to participate in benchmarking. To address this, the MLPerf Training Working Group—led by a task force from AMD, NVIDIA, and NIT University—is introducing a new pretraining benchmark: GPT-OSS 20B. A modern, Mixture-of-Experts (MoE) alternative, GPT-OSS 20B allows researchers and organizations to evaluate the complex routing logic and sparse computation patterns common to MoE architectures—on hardware configurations as small as a single 8-GPU node.</p>
+<h2><strong>Model Selection and Architecture</strong></h2>
+<p>The task force identified GPT-OSS 20B as the ideal small-scale candidate with a modern, sparse architecture for three reasons:</p>
+<ul>
+<li><strong>Sparse Efficiency:</strong> The model features 21B total parameters, but utilizes an MoE design that activates only 3.6B parameters per token. This allows it to maintain a massive knowledge base with a computational footprint similar to less dense models.</li>
+<li><strong>From-Scratch Training:</strong> To keep the benchmark simple and avoid the overhead of multi-gigabyte checkpoint downloads, GPT-OSS 20B is trained from randomized weights. This makes it a pure test of a system’s ability to optimize a sparse model from its initial state.</li>
+<li><strong>Reference Implementation:</strong> The reference code is built on AMD’s <a href="https://github.com/AMD-AGI/Primus" target="_blank" rel="noreferrer">Primus framework</a>, a versatile new training library supporting both AMD and NVIDIA backends. Primary validation was conducted on AMD Instinct™ MI355X and NVIDIA B200 systems.</li>
+</ul>
+<h2><strong>Dataset and Tokenization</strong></h2>
+<p>GPT-OSS 20B leverages the C4 (Colossal Cleaned Common Crawl) dataset, specifically using the same pre-tokenized subset and Llama-3 compatible tokenizer as the Llama 3.1 8B benchmark. This makes it easy for submitters who already have the dataset setup for other MLPerf Training benchmarks to run GPT-OSS 20B as well. The training data consists of approximately 80 GB of pre-shuffled C4 shards hosted on MLCommons™ storage. To maintain stability, the benchmark evaluates against the first 1,024 samples of the validation set every 12,288 samples (768 iterations at GBS=16).</p>
+<h2><strong>The Challenge of Statistical Variance (CV)</strong></h2>
+<p>A primary objective in benchmarking is ensuring fairness. In large-scale training, this is measured by the Coefficient of Variation (CV), or the ratio of the standard deviation to the mean ($CV = \frac{\sigma}{\mu} \times 100\%$).</p>
+<h3><strong>Why High CV Undermines Fairness</strong></h3>
+<p>When a benchmark has a high CV, it suffers from “statistical noise.” If one run takes 170k samples and another takes 250k samples due to random chance, the results no longer reflect hardware or software superiority. For a benchmark to be a trusted industry standard, a user must be able to reproduce the results. High variance makes it impossible to distinguish between an engineering breakthrough and luck.</p>
+<h3><strong>Engineering Stability: The Path to 5% CV</strong></h3>
+<p>One common approach to reducing CV is starting from a pretrained checkpoint that has already passed through the unstable early stages of training. The task force wanted to keep the benchmark simple, so requiring submitters to download a multi-gigabyte checkpoint would add overhead and complexity. Instead, the task force implemented three critical technical interventions to reduce CV from <strong>approximately</strong>15% toless than 5%.</p>
+<h4><strong>1. Eliminating Validation Noise</strong></h4>
+<p>Early tests showed massive, non-representative spikes in evaluation loss.</p>
+<ul>
+<li><strong>The Discovery:</strong> The validation dataset was being shuffled at every evaluation interval. In a sparse MoE model, where routing is highly sensitive to input distribution, this shuffling introduced artificial “jitter.”</li>
+<li><strong>The Fix:</strong> The benchmark now mandates evaluation on a static, unshuffled set of the first 1024 samples of the C4 validation set. This ensures the test remains identical across every step of every run.</li>
+</ul>
+<h4><strong>2. Stabilizing the Optimizer</strong></h4>
+<p>While many modern models use an Adam epsilon ($\epsilon$) of $10^{-8}$, the task force found this caused excessive divergence in 20B-scale MoE training from scratch. By aligning to <strong>$\epsilon = 10^{-5}$</strong> (the standard used in Llama 3.1 8B), the team provided the numerical stability necessary to prevent “unlucky” gradient updates from derailing the sparse experts.</p>
+<h4><strong>3. Standardizing Initialization</strong></h4>
+<h2><strong>Technical Configuration and Quality Metrics</strong></h2>
+<p>To ensure all participants start with the same “statistical energy,” the task force strictly defined the weight initialization standard (init_method_std = 0.008). This prevents variance born from different starting points in the high-dimensional loss landscape. The target accuracy for the benchmark is a validation loss (log perplexity) of <strong>3.34</strong>. This target was chosen based on extensive sweeps on AMD MI355X and NVIDIA B200 hardware, representing a point of stable convergence that balances thoroughness with a reasonable runtime (~6.5 hours to convergence) using BFloat16 precision. To optimize for their specific hardware, submitters are permitted to tune three hyperparameters: global batch size, learning rate, and learning rate warmup.</p>
+<h2><strong>Conclusion</strong></h2>
+<p>GPT-OSS 20B brings MoE pretraining into the MLPerf Training benchmark suite. By identifying and neutralizing the sources of training variance—specifically validation shuffling, optimizer instability, and initialization inconsistency—the task force has delivered a stable, high-fidelity benchmark that remains accessible to all submitters. This ensures that MLPerf Training v6.0 scores reflect genuine hardware and software efficiency. GPT-OSS 20B provides the community with a standardized way to evaluate sparse pretraining performance alongside the suite’s existing dense workloads. The reference implementation is available on the <a href="https://github.com/mlcommons/training/tree/master/small_llm_moe_pretraining/primus" target="_blank" rel="noreferrer">MLCommons GitHub repository</a>. For additional information on MLCommons and details on becoming a member, please visit <a href="http://mlcommons.org" target="_blank" rel="noreferrer">MLCommons.org</a> or email [[email protected]](https://mlcommons.org/cdn-cgi/l/email-protection#5020312224393339203124393f3e103d3c333f3d3d3f3e237e3f2237). Sarthak Arora (AMD), Su-Ann Chong (AMD), Ravi Dwivedula (AMD), Miro Hodak (AMD), Michal Marcinkiewicz (NVIDIA), Shriya Rishab (NVIDIA)</p>
+<ul>
+<li><a href="https://mlcommons.org/cdn-cgi/l/email-protection#83bcf0f6e1e9e6e0f7bec0ebe6e0e8a8ecf6f7a8f7ebeaf0a8f3ecf0f7a8e5f1eceea8cecfc0eceeeeecedf0a6b0c2a8c4d3d7aeccd0d0a8b1b3c1a6b0c2a8c2a8d0f3e2f1f0e6a8ceecc6a8d3f1e6f7f1e2eaedeaede4a8c1e6ede0ebeee2f1e8a8e5ecf1a8cecfd3e6f1e5a8d7f1e2eaedeaede4a8f5b5adb3a5e1ece7fabed1e6e2e7a8f7ebe6a8e2f1f7eae0efe6a8eceda8eeefe0eceeeeecedf0adecf1e4a8ebe6f1e6a6b0c2a8ebf7f7f3f0a6b0c2a6b1c5a6b1c5eeefe0eceeeeecedf0adecf1e4a6b1c5b1b3b1b5a6b1c5b3b6a6b1c5e4f3f7aeecf0f0aeeeece6aef7f1e2eaedeaede4b5a6b1c5" target="_blank" rel="noreferrer">Share via email</a></li>
+<li><a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fmlcommons.org%2F2026%2F05%2Fgpt-oss-moe-training6%2F" target="_blank" rel="noreferrer">Share on facebook</a></li>
+<li><a href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3A%2F%2Fmlcommons.org%2F2026%2F05%2Fgpt-oss-moe-training6%2F&amp;title=GPT-OSS+20B%3A+A+Sparse+MoE+Pretraining+Benchmark+for+MLPerf+Training+v6.0" target="_blank" rel="noreferrer">Share LinkedIn</a></li>
+<li><a href="https://twitter.com/intent/tweet?text=GPT-OSS+20B%3A+A+Sparse+MoE+Pretraining+Benchmark+for+MLPerf+Training+v6.0&amp;url=https%3A%2F%2Fmlcommons.org%2F2026%2F05%2Fgpt-oss-moe-training6%2F" target="_blank" rel="noreferrer">Share on X</a></li>
+</ul>
+<h4>Related Insights</h4>
+<h3><a href="https://mlcommons.org/2026/06/mlperf-training-v6-0-results/" target="_blank" rel="noreferrer">MLCommons Releases MLPerf Training v6.0 Results</a></h3>
+<h3><a href="https://mlcommons.org/2026/06/mlperf-mobile-v6/" target="_blank" rel="noreferrer">MLCommons Releases MLPerf Mobile v6.0 with New Generative AI Benchmarks for On-Device LLMs</a></h3>
+<h3><a href="https://mlcommons.org/2026/06/responsible-disclosure/" target="_blank" rel="noreferrer">The patch model is breaking. AI evaluation needs a new way to disclose what it finds.</a></h3>
+<h3><a href="https://mlcommons.org/2026/06/chakra-comes-of-age/" target="_blank" rel="noreferrer">Chakra Comes of Age: A Standardized Trace Ecosystem for AI Systems Benchmarking and Co-design</a></h3></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-e8a5cc1c9fd0ba03.html">
@@ -580,7 +623,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-de12ec53c88f9af0.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：GPT-OSS 20B: A Sparse MoE Pretraining Benchmark for MLPerf Training v6.0</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：lori@mlcommons.org</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：GPT-OSS 20B: A Sparse MoE Pretraining Benchmark for MLPerf Training v6.0（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：lori@mlcommons.org（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-21T12:11:13+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

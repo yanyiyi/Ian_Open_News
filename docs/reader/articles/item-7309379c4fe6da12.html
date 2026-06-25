@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T03:03:35+00:00</p>
+            <p class="generated">產生時間：2026-06-25T12:58:48+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,53 @@
       <p class="lede">這筆資料說明文章原本刊登於 OpenSSF Blog，主題是歐洲 Cyber Resilience Act 合規現況，以及它對開源生態系造成的壓力或警訊。摘要沒有提供實際盤點結果，但從標題可看出它可能涉及開源安全、法規遵循與社群準備度。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">compliance</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://www.linuxfoundation.org/hubfs/OpenSSF%20CRA%20blog.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Taking Stock of the State of European Cyber Resilience Act (CRA) Compliance: An Urgent Wake-up Call for the Open Source Ecosystem</h1>
+<ul>
+<li><a href="https://www.linuxfoundation.org/?hsLang=en" target="_blank" rel="noreferrer">Home</a></li>
+<li><a href="https://www.linuxfoundation.org/blog" target="_blank" rel="noreferrer">Blog</a></li>
+<li>Taking Stock of the State of European Cyber Resilience Act (CRA) Compliance: An Urgent Wake-up Call for the Open Source Ecosystem</li>
+</ul>
+<h4>Christopher Robinson | 03 June 2026</h4>
+<p>This blog post was originally posted on the OpenSSF blog on May 18, 2026. You can access the original here: <a href="https://openssf.org/blog/2026/05/18/taking-stock-of-the-state-of-european-cyber-resilience-act-cra-compliance-an-urgent-wake-up-call-for-the-open-source-ecosystem/?hsLang=en" target="_blank" rel="noreferrer">https://openssf.org/blog/2026/05/18/taking-stock-of-the-state-of-european-cyber-resilience-act-cra-compliance-an-urgent-wake-up-call-for-the-open-source-ecosystem/</a> By Christopher (CRob) Robinson, OpenSSF For the better part of two years, discussions surrounding the European Cyber Resilience Act (CRA) have been somewhat theoretical: mapping requirements, debating definitions, and analyzing how the requirements will impact our amazing ecosystem. But folks, it’s mid-2026, and the CRA is live. Theory is officially in the rearview mirror as implementation milestones roll out over the next two years. I’ve just finished reviewing the finalized 2026 CRA Awareness and Readiness Report, a joint effort with LF Research experts, and to be blunt, the results are a sobering reality check. Despite tireless community work, the broader ecosystem is far from ready for CRA compliance.</p>
+<h2>CRA Awareness Has Stalled</h2>
+<p>The most disappointing finding is that awareness surrounding this regulation has decreased year-over-year. Today, 66% of respondents remain unfamiliar with the CRA, a slight increase from 62% in 2025. That means a growing portion of the software ecosystem is unaware of a regulation with global consequences and hefty fines. The geographic disparity is even more alarming. In the United States and Canada, nearly 72% of respondents are unfamiliar with the regulation. It cannot be understated: if you are a North American company selling software products into the EU market, you are legally required to comply with the CRA. However, the majority of the neighborhood is still walking unprepared toward a September 2026 reporting deadline.</p>
+<h2>Why the “Consume and Forget” Model is No Longer Possible</h2>
+<p>For years, organizations have treated open source like a free lunch: grabbing code and assuming the lights are being kept on by someone else. Under the CRA, that posture is no longer tenable. Manufacturers now bear the legal responsibility for the security of the components they integrate. For some (read: most) this is a stark wake up call. Despite that, 51% of manufacturers still passively rely on upstream projects for security fixes. In the new world of the CRA, “passive” is a level 10 risk.</p>
+<h2>Private Forks Are Not the Answer (They’re Worse)</h2>
+<p>Many of you have tried to dodge the upstream journey by maintaining private forks, but inefficient code is still inefficient code, and now we have the bill to prove it. The report shows that maintaining private workarounds is a massive form of technical debt, costing organizations an average of $258,000 in labor every single release cycle. With some release cycles as short as a matter of hours, these costs can quickly get out of hand. For large organizations (5,000+ employees), this burden exceeds 11,152 labor hours per cycle. Maintaining these divergent codebases is a giant bill for a strategy that actually makes supply chain transparency worse. Contributing fixes upstream isn’t just being a “good neighbor” – it’s the only financially rational path forward. For the last several years, the OpenSSF community has observed traditional vulnerability disclosure systems buckling under the strain of volume of discoveries being reported through them. Data from the report points to a surge of 394% increase in Common Vulnerabilities and Exposures (CVEs) and an 811% spike in vulnerabilities that fall within the High+ severity categories in the first quarter of 2026. Several factors contribute to this trend:</p>
+<ul>
+<li>Transparency: Open source is open and transparent, which means the community cannot hide vulnerabilities behind opaque processes or paywalls.</li>
+<li>Project Growth: Year-over-year we’re seeing an explosion of <a href="https://github.blog/news-insights/octoverse/octoverse-a-new-developer-joins-github-every-second-as-ai-leads-typescript-to-1/" target="_blank" rel="noreferrer">MORE open source projects</a>.</li>
+<li>Ubiquity: Open source is quite literally <a href="https://www.sonatype.com/state-of-the-software-supply-chain/2023/open-source-supply-and-demand" target="_blank" rel="noreferrer">the majority of software used</a> globally.</li>
+<li>AI Tools: More users are leveraging Large Language Models (LLMs) and other tools to explore and analyze software. The transparency of open source software offers a low barrier of entry for those using these new tools and test code.</li>
+</ul>
+<p>Globally, regulations like the CRA are codifying long-standing security guidance into law. This shifts security from a “nice-to-have” recommendation to a legal requirement backed by heavy non-compliance fines.</p>
+<h2>How Does Upstream Investment Improve Your Security Posture?</h2>
+<p>On the bright-ish side the data reveals a clear correlation: organizational diversity is a strong predictor of a project’s security posture. When more organizations invest in a project, that project becomes more resilient, making upstream investment a direct catalyst for your own compliance posture. Organizations have an important role in their own security health through their participation in open source projects. However, the participation of small and medium-sized enterprises (SMEs) is crucial to the entire ecosystem, they are the backbone of the industry. Currently, over half of European SMEs remain unfamiliar with the CRA, creating a significant gap in project diversity. Directed investment in SME engagement is essential to prevent compliance from becoming a structural barrier to innovation. By funding the support and tools these smaller players need to remain compliant, we ensure the entire upstream supply chain remains robust and competitive.</p>
+<h2>What OpenSSF Resources Can Help Organizations Prepare for the CRA?</h2>
+<p>While we wait for the full 2026 report to drop, the tools to succeed already exist. Our previous research, <a href="https://www.linuxfoundation.org/research/cra-readiness?hsLang=en" target="_blank" rel="noreferrer">Unaware and Uncertain: The Stark Realities of Cyber Resilience Act Readiness in Open Source</a>, highlighted these same gaps a year ago. It’s time to start acting. The tools to succeed already exist and practitioners who find our resources rate them highly:</p>
+<ul>
+<li><a href="http://google.com/search?q=LFEL1001+Training+Course&amp;rlz=1C5CHFA_enCA982CA983&amp;oq=LFEL1001+Training+Course&amp;gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIGCAEQRRhAMgYIAhBFGEDSAQY3OWowajeoAgCwAgA&amp;sourceid=chrome&amp;ie=UTF-8" target="_blank" rel="noreferrer">LFEL1001 Training Course</a>: A free, 90-minute course providing the essential foundation for CRA compliance.</li>
+<li><a href="https://openssf.org/projects/osps-baseline/?hsLang=en" target="_blank" rel="noreferrer">OpenSSF OSPS Baseline</a>: A starting point for security attestation.</li>
+<li><a href="https://github.com/ossf/wg-globalcyberpolicy/" target="_blank" rel="noreferrer">Global Cyber Policy Working Group and CRA Special Interest Groups (SIGs)</a>: Community-driven spaces for tackling implementation hurdles.</li>
+</ul>
+<p>This ecosystem is rife with the talent and the collaborative instincts to meet this challenge. The December 2027 deadline is a forcing function, but it’s an opportunity to build a software supply chain that is actually secure by design. Europe is leading the way in protecting consumers globally. Despite our geographic distance in the U.S., the oceans between us all do not provide isolation from this regulation any longer. Software and products with digital elements are built with hardware, software, and firmware created through international collaboration. That fact feeds the global economy and makes manufacturers globally responsible for CRA adherence. Events that happen “over there” DO truly affect everyone. The results of the CRA research conducted with our peers in LF Europe is truly grave. A significant amount of work and collaboration has occurred across the ecosystem since CRA enforcement. It is shocking to look back at all this work done by both the OpenSSF and its partners and see that 39% of manufacturers, who have BILLIONS of euros at stake in potential non-compliance penalties, are still unaware and uncertain about their requirements. The next stage in our shared journey together unfolds in September 2026 when the vulnerability reporting obligations are enforced. There is not much time to prepare. Organizations have a narrow window to audit their upstream dependencies and establish the processes needed to report and patch new vulnerabilities as they emerge. The more complex aspects of the CRA are currently a year out, coming due December 2027. Please, take action today to protect yourselves, your companies, the upstream maintainers on whom you depend, and your customers. The OpenSSF encourages everyone that benefits from open source software to consider the beauty and complexity of the open software world. Every day in software repositories, chat channels, and mailing lists a talented cohort of developers co-engineer the tools you use and love. We ask that organizations and their leaders understand that free software is NOT free. Being a responsible consumer and participant in the ecosystem creates benefits for everyone. With CRA in our midst, there is ample opportunity to make this shared space better and more secure for everyone. My hope is that we can rise to that opportunity.</p>
+<h2>Stay Ahead of the CRA</h2>
+<p>Get involved with the <a href="https://github.com/ossf/wg-globalcyberpolicy/" target="_blank" rel="noreferrer">OpenSSF Global Cyber Policy Working Group</a>.</p>
+<h4>Christopher Robinson</h4>
+<h3>About the Author</h3>
+<p>Christopher Robinson (aka CRob) is the Chief Technical Officer and Chief Security Architect for the Open Source Software Foundation (OpenSSF). With over 25 years of experience in engineering and leadership, he has worked with Fortune 500 companies in industries like finance, healthcare, and manufacturing, and spent six years as Program Architect for Red Hat’s Product Security team.</p>
+<ul>
+<li><a href="https://twitter.com/intent/tweet?text=https%3A%2F%2Fwww.linuxfoundation.org%2Fblog%2Ftaking-stock-of-the-state-of-european-cyber-resilience-act-cra-compliance-an-urgent-wake-up-call-for-the-open-source-ecosystem" target="_blank" rel="noreferrer">Follow us on Twitter --&gt;</a></li>
+<li><a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fwww.linuxfoundation.org%2Fblog%2Ftaking-stock-of-the-state-of-european-cyber-resilience-act-cra-compliance-an-urgent-wake-up-call-for-the-open-source-ecosystem" target="_blank" rel="noreferrer">Follow us on Facebook</a></li>
+<li><a href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3A%2F%2Fwww.linuxfoundation.org%2Fblog%2Ftaking-stock-of-the-state-of-european-cyber-resilience-act-cra-compliance-an-urgent-wake-up-call-for-the-open-source-ecosystem&amp;title=&amp;summary=&amp;source=" target="_blank" rel="noreferrer">Follow us on LinkedIn</a></li>
+</ul>
+<h4>Similar Articles</h4>
+<h4>Browse Categories</h4></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-6e29bf86ca538a7e.html">
@@ -580,7 +622,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-7309379c4fe6da12.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Taking Stock of the State of European Cyber Resilience Act (CRA) Compliance: An Urgent Wake-up Call for the Open Source Ecosystem</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Christopher Robinson</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Taking Stock of the State of European Cyber Resilience Act (CRA) Compliance: An Urgent Wake-up Call for the Open Source Ecosystem（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Christopher Robinson（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-21T13:03:25+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

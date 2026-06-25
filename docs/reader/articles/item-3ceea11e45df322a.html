@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T03:03:35+00:00</p>
+            <p class="generated">產生時間：2026-06-25T12:58:48+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,94 @@
       <p class="lede">這筆資料看起來是在介紹一個 agent 透過串接兩個 Hugging Face Spaces，建立 3D 巴黎藝廊的案例。從標題能看出的重點是工具鏈組合與 agent 自動化流程，但尚無法確認內容深度。</p>
       <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://cdn-uploads.huggingface.co/production/uploads/60a551a34ecc5d054c8ad93e/0tamlKpAvO3lZEklNmwHT.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>How an Agent Built a 3D Paris Gallery by Chaining Two Hugging Face Spaces</h1>
+<h2>a]:hidden&quot;&gt;</h2>
+<p>How an Agent Built a 3D Paris Gallery by Chaining Two Hugging Face Spaces <a href="https://huggingface.co/blog/mishig/spaces-agents-md#the-building-block-economy-comes-for-multimedia" target="_blank" rel="noreferrer">The building-block economy comes for multimedia</a> <a href="https://huggingface.co/blog/mishig/spaces-agents-md#every-space-is-a-building-block-via-agentsmd" target="_blank" rel="noreferrer">agents.md &quot;&gt; Every Space is a building block, via agents.md</a> <a href="https://huggingface.co/blog/mishig/spaces-agents-md#the-worked-example-paris-monuments-→-splats" target="_blank" rel="noreferrer">The worked example: Paris monuments → splats</a> <a href="https://huggingface.co/blog/mishig/spaces-agents-md#two-prompts-a-whole-new-gallery" target="_blank" rel="noreferrer">Two prompts, a whole new gallery</a> <a href="https://huggingface.co/blog/mishig/spaces-agents-md#why-this-matters" target="_blank" rel="noreferrer">Why this matters</a> <a href="https://huggingface.co/blog/mishig/spaces-agents-md#try-it-yourself" target="_blank" rel="noreferrer">Try it yourself</a> <a href="https://huggingface.co/blog/mishig/spaces-agents-md#the-building-block-economy-comes-for-multimedia-1" target="_blank" rel="noreferrer">The building-block economy comes for multimedia</a> <a href="https://huggingface.co/blog/mishig/spaces-agents-md#every-space-is-a-building-block-via-agentsmd-1" target="_blank" rel="noreferrer">agents.md &quot;&gt; Every Space is a building block, via agents.md</a> <a href="https://huggingface.co/blog/mishig/spaces-agents-md#the-worked-example-paris-monuments-→-splats-1" target="_blank" rel="noreferrer">The worked example: Paris monuments → splats</a> <a href="https://huggingface.co/blog/mishig/spaces-agents-md#two-prompts-a-whole-new-gallery-1" target="_blank" rel="noreferrer">Two prompts, a whole new gallery</a> <a href="https://huggingface.co/blog/mishig/spaces-agents-md#why-this-matters-1" target="_blank" rel="noreferrer">Why this matters</a> <a href="https://huggingface.co/blog/mishig/spaces-agents-md#try-it-yourself-1" target="_blank" rel="noreferrer">Try it yourself</a> <em>An agent built a 3D Paris gallery from two Hugging Face Spaces.</em> I asked a coding agent to build a beautiful website showcasing the monuments of Paris as 3D Gaussian splats. I never opened an image generator. I never touched a 3D reconstruction tool. The agent produced every asset (the images <strong>and</strong> the 3D splats) by calling two Hugging Face Spaces directly, then wired them into a cinematic viewer. Here&#x27;s the result, live as a static Space: 👉 **<a href="https://huggingface.co/spaces/mishig/monuments-de-paris" target="_blank" rel="noreferrer">mishig/monuments-de-paris</a>** This post is about <em>how</em> that&#x27;s possible now, and why I think it&#x27;s a preview of how a lot of multimedia software gets built from here on.</p>
+<h2>The building-block economy comes for multimedia</h2>
+<p>Mitchell Hashimoto recently described a shift he calls the <a href="https://mitchellh.com/writing/building-block-economy" target="_blank" rel="noreferrer">building block economy</a>: the most effective path to software is no longer a polished monolith, but small, well-documented components that others (increasingly <em>agents</em>) can assemble. His key observation: AI is okay at building everything from scratch, but it is <strong>really good at gluing together</strong> proven pieces. That thesis has mostly been told with <em>code</em> libraries. But the same forces are hitting <strong>multimedia AI</strong>. The hard part of using a state-of-the-art image model, a video model, a TTS model, or a 3D reconstruction model was never the model. It was the integration: SDKs, weights, GPUs, input formats, polling. If each model were instead a documented, callable block, an agent could glue them together the same way it globs together npm packages. That&#x27;s exactly what Hugging Face Spaces have quietly become.</p>
+<h2>Every Space is a building block, via <code>agents.md</code></h2>
+<p>The Hub hosts thousands of state-of-the-art models (a huge share of them <strong>open-weights</strong>), and most are deployed as interactive <strong>Spaces</strong>. As of now, every Gradio Space also exposes a plain-text <a href="https://huggingface.co/docs/hub/en/spaces-agents" target="_blank" rel="noreferrer">agents.md</a> that tells an agent <em>exactly</em> how to call it: returns everything needed in one shot: the schema URL, the call and poll templates, how to upload files, and the auth hint: No client library. No hardcoded integration. An agent reads that, and it can drive the Space end to end. Set an <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer">HF_TOKEN</a> and you&#x27;re going. You can find these instructions on any Gradio Space via its <strong>Agents</strong> button: The real unlock is <strong>chaining</strong>: the output of one Space becomes the input to the next. Prompt → image → 3D. That&#x27;s the whole pipeline behind this gallery.</p>
+<h2>The worked example: Paris monuments → splats</h2>
+<p>The agent chained two Spaces:</p>
+<ul>
+<li><strong>Image:</strong> an image-generation Space turned each monument into a clean,</li>
+</ul>
+<p>dark-background &quot;specimen&quot; shot (and the Eiffel Tower into a little diorama on a plinth). Prompt in, image out.</p>
+<ul>
+<li><strong>Splat:</strong> <a href="https://huggingface.co/spaces/VAST-AI/TripoSplat" target="_blank" rel="noreferrer">VAST-AI/TripoSplat</a></li>
+</ul>
+<p>reconstructed a 3D Gaussian splat (<code>.ply</code>) from each single image. Image in, 3D out. The six source images the agent generated, all isolated on black, ready for single-image 3D reconstruction: From there the agent did the &quot;glue&quot; work too. It noticed TripoSplat outputs are Y-down and flipped them upright, auto-framed each monument, compressed the <code>.ply</code> files to <code>.ksplat</code> (~3× smaller, so they load fast), built a Three.js viewer with a scroll-to-switch and drag-to-rotate UI, and deployed the whole thing as a static Space. The only human inputs were taste-level: &quot;make it zoomed out,&quot; &quot;replace the obelisk with something better for splatting,&quot; &quot;the transition lingers too long.&quot; Several of those steps were <strong>the agent reacting to reality</strong>. A wide glass pyramid splats poorly. A thin obelisk is dull. A single-view reconstruction infers the back. That is exactly the &quot;outsourced R&amp;D, fast iteration&quot; loop the building-block economy predicts, except the R&amp;D was a conversation.</p>
+<h2>Two prompts, a whole new gallery</h2>
+<p>The real test of a building block is how cheaply you can reuse it. Once this pipeline existed, spinning up entirely new galleries cost about one sentence each. &quot;Create a similar Space with splats for Japan,&quot; then the same for Egypt, and the agent did the rest: six monument images, six splats, compression, a viewer, and a deployed Space, per country.</p>
+<ul>
+<li>🏛️ <a href="https://huggingface.co/spaces/mishig/monuments-of-egypt" target="_blank" rel="noreferrer">Monuments of Egypt</a>:</li>
+</ul>
+<p>the Great Pyramid, the Sphinx, Abu Simbel, the mask of Tutankhamun, Karnak, the Colossi of Memnon. &lt;video autoplay loop muted playsinline width=&quot;100%&quot; src=&quot;</p>
+<ul>
+<li>⛩️ <a href="https://huggingface.co/spaces/mishig/monuments-of-japan" target="_blank" rel="noreferrer">Monuments of Japan</a>:</li>
+</ul>
+<p>Tokyo Tower, Himeji Castle, Kinkaku-ji, Osaka Castle, the Great Buddha of Kamakura, the Itsukushima torii. &lt;video autoplay loop muted playsinline width=&quot;100%&quot; src=&quot; Same two Spaces, same <code>agents.md</code>, only the prompts changed. That is the building-block economy in one line: the marginal cost of a new multimedia app falls toward the cost of describing it.</p>
+<h2>Why this matters</h2>
+<ul>
+<li><strong>Models become composable.</strong> A SOTA splat model and a SOTA image model, from</li>
+</ul>
+<p>different orgs, chained with zero integration code. The Hub&#x27;s open-weights catalog turns into a library of callable multimedia primitives.</p>
+<ul>
+<li><strong>Agents prefer what&#x27;s documented and reachable.</strong> <code>agents.md</code> makes a Space</li>
+</ul>
+<p>trivially reachable, so an agent will pick it over a model it has to set up by hand. That is the same dynamic Hashimoto flags for open-source libraries.</p>
+<ul>
+<li><strong>The barrier was integration, and it&#x27;s largely gone.</strong> &quot;Turn a prompt into a</li>
+</ul>
+<p>rotating 3D monument&quot; used to be a project. Here it was a step in a pipeline.</p>
+<h2>Try it yourself</h2>
+<p>Point your own agent at a Space&#x27;s <code>agents.md</code> and let it cook: Paste either link into your coding agent (Claude Code, etc.), set your <code>HF_TOKEN</code>, and ask it to build something. The full, reproducible pipeline for this gallery, the scripts that hit those two <code>agents.md</code> endpoints, lives in the <a href="https://huggingface.co/spaces/mishig/monuments-de-paris/tree/main" target="_blank" rel="noreferrer">Space repo</a>. The building blocks are sitting right there on the Hub. The agents already know how to glue. I asked a coding agent to build a beautiful website showcasing the monuments of Paris as 3D Gaussian splats. I never opened an image generator. I never touched a 3D reconstruction tool. The agent produced every asset (the images <strong>and</strong> the 3D splats) by calling two Hugging Face Spaces directly, then wired them into a cinematic viewer. Here&#x27;s the result, live as a static Space: 👉 **<a href="https://huggingface.co/spaces/mishig/monuments-de-paris" target="_blank" rel="noreferrer">mishig/monuments-de-paris</a>** This post is about <em>how</em> that&#x27;s possible now, and why I think it&#x27;s a preview of how a lot of multimedia software gets built from here on.</p>
+<h2>The building-block economy comes for multimedia</h2>
+<p>Mitchell Hashimoto recently described a shift he calls the <a href="https://mitchellh.com/writing/building-block-economy" target="_blank" rel="noreferrer">building block economy</a>: the most effective path to software is no longer a polished monolith, but small, well-documented components that others (increasingly <em>agents</em>) can assemble. His key observation: AI is okay at building everything from scratch, but it is <strong>really good at gluing together</strong> proven pieces. That thesis has mostly been told with <em>code</em> libraries. But the same forces are hitting <strong>multimedia AI</strong>. The hard part of using a state-of-the-art image model, a video model, a TTS model, or a 3D reconstruction model was never the model. It was the integration: SDKs, weights, GPUs, input formats, polling. If each model were instead a documented, callable block, an agent could glue them together the same way it globs together npm packages. That&#x27;s exactly what Hugging Face Spaces have quietly become.</p>
+<h2>Every Space is a building block, via <code>agents.md</code></h2>
+<p>The Hub hosts thousands of state-of-the-art models (a huge share of them <strong>open-weights</strong>), and most are deployed as interactive <strong>Spaces</strong>. As of now, every Gradio Space also exposes a plain-text <a href="https://huggingface.co/docs/hub/en/spaces-agents" target="_blank" rel="noreferrer">agents.md</a> that tells an agent <em>exactly</em> how to call it: returns everything needed in one shot: the schema URL, the call and poll templates, how to upload files, and the auth hint: No client library. No hardcoded integration. An agent reads that, and it can drive the Space end to end. Set an <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer">HF_TOKEN</a> and you&#x27;re going. The real unlock is <strong>chaining</strong>: the output of one Space becomes the input to the next. Prompt → image → 3D. That&#x27;s the whole pipeline behind this gallery.</p>
+<h2>The worked example: Paris monuments → splats</h2>
+<p>The agent chained two Spaces:</p>
+<ul>
+<li><strong>Image:</strong> <a href="https://huggingface.co/spaces/ideogram-ai/ideogram4" target="_blank" rel="noreferrer">ideogram-ai/ideogram4</a> turned each monument into a clean,</li>
+</ul>
+<p>dark-background &quot;specimen&quot; shot (and the Eiffel Tower into a little diorama on a plinth). Prompt in, image out.</p>
+<ul>
+<li><strong>Splat:</strong> <a href="https://huggingface.co/spaces/VAST-AI/TripoSplat" target="_blank" rel="noreferrer">VAST-AI/TripoSplat</a></li>
+</ul>
+<p>reconstructed a 3D Gaussian splat (<code>.ply</code>) from each single image. Image in, 3D out. The six source images the agent generated, all isolated on black, ready for single-image 3D reconstruction: From there the agent did the &quot;glue&quot; work too. It noticed TripoSplat outputs are Y-down and flipped them upright, auto-framed each monument, compressed the <code>.ply</code> files to <code>.ksplat</code> (~3× smaller, so they load fast), built a Three.js viewer with a scroll-to-switch and drag-to-rotate UI, and deployed the whole thing as a static Space. The only human inputs were taste-level: &quot;make it zoomed out,&quot; &quot;replace the obelisk with something better for splatting,&quot; &quot;the transition lingers too long.&quot; Several of those steps were <strong>the agent reacting to reality</strong>. A wide glass pyramid splats poorly. A thin obelisk is dull. A single-view reconstruction infers the back. That is exactly the &quot;outsourced R&amp;D, fast iteration&quot; loop the building-block economy predicts, except the R&amp;D was a conversation.</p>
+<h2>Two prompts, a whole new gallery</h2>
+<p>The real test of a building block is how cheaply you can reuse it. Once this pipeline existed, spinning up entirely new galleries cost about one sentence each. &quot;Create a similar Space with splats for Japan,&quot; then the same for Egypt, and the agent did the rest: six monument images, six splats, compression, a viewer, and a deployed Space, per country.</p>
+<ul>
+<li>🏛️ <a href="https://huggingface.co/spaces/mishig/monuments-of-egypt" target="_blank" rel="noreferrer">Monuments of Egypt</a>:</li>
+</ul>
+<p>the Great Pyramid, the Sphinx, Abu Simbel, the mask of Tutankhamun, Karnak, the Colossi of Memnon.</p>
+<ul>
+<li>⛩️ <a href="https://huggingface.co/spaces/mishig/monuments-of-japan" target="_blank" rel="noreferrer">Monuments of Japan</a>:</li>
+</ul>
+<p>Tokyo Tower, Himeji Castle, Kinkaku-ji, Osaka Castle, the Great Buddha of Kamakura, the Itsukushima torii. Same two Spaces, same <code>agents.md</code>, only the prompts changed. That is the building-block economy in one line: the marginal cost of a new multimedia app falls toward the cost of describing it.</p>
+<h2>Why this matters</h2>
+<ul>
+<li><strong>Models become composable.</strong> A SOTA splat model and a SOTA image model, from</li>
+</ul>
+<p>different orgs, chained with zero integration code. The Hub&#x27;s open-weights catalog turns into a library of callable multimedia primitives.</p>
+<ul>
+<li><strong>Agents prefer what&#x27;s documented and reachable.</strong> <code>agents.md</code> makes a Space</li>
+</ul>
+<p>trivially reachable, so an agent will pick it over a model it has to set up by hand. That is the same dynamic Hashimoto flags for open-source libraries.</p>
+<ul>
+<li><strong>The barrier was integration, and it&#x27;s largely gone.</strong> &quot;Turn a prompt into a</li>
+</ul>
+<p>rotating 3D monument&quot; used to be a project. Here it was a step in a pipeline.</p>
+<h2>Try it yourself</h2>
+<p>Point your own agent at a Space&#x27;s <code>agents.md</code> and let it cook: Paste either link into your coding agent (Claude Code, etc.), set your <code>HF_TOKEN</code>, and ask it to build something. The full, reproducible pipeline for this gallery, the scripts that hit those two <code>agents.md</code> endpoints, lives in the <a href="https://huggingface.co/spaces/mishig/monuments-de-paris/tree/main" target="_blank" rel="noreferrer">Space repo</a>. The building blocks are sitting right there on the Hub. The agents already know how to glue.</p>
+<h2>Spaces mentioned in this article 5</h2>
+<h4>TripoSplat</h4>
+<p>Generate 3D Gaussian models from a single image</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-dd76ae022a8163e7.html">
@@ -580,7 +663,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-3ceea11e45df322a.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：How an Agent Built a 3D Paris Gallery by Chaining Two Hugging Face Spaces</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：How an Agent Built a 3D Paris Gallery by Chaining Two Hugging Face Spaces（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Mishig Davaadorj（json-ld）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-21T12:10:39+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
