@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>讓 AI 為社群服務：開放知識基金會（OKFN）2026 年 6 月通訊 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-25 08:00</span></div>
+      <h1><a class="article-title-link" href="https://blog.okfn.org/2026/06/25/making-ai-work-for-communities-okfn-newsletter-june-2026/" target="_blank" rel="noreferrer" title="開啟原始連結">讓 AI 為社群服務：開放知識基金會（OKFN）2026 年 6 月通訊</a></h1>
+      <p class="lede">開放知識基金會（OKFN）發布 2026 年 6 月通訊，核心關注如何建構公共數位架構以防止知識被封閉。本期宣布與烏拉圭政府機構 AGESIC 合作，在其開放資料目錄中導入 AI 整合原型，讓民眾以自然語言問答並直接追溯底層數據。此專案與巴西試點相同，皆使用 Model Context Protocol (MCP) 技術，旨在打造可推廣至各國政府的負責任 AI 開放資料藍圖。然而，計畫經理強調，技術對接相對簡單，最大挑戰是協助 AI 理解資料的實際脈絡（如欄位意義與方法論），若缺乏人類對脈絡的理解，AI 容易自行填補空白產生幻覺。此外，通訊亦提及瓜地馬拉實體檔案數位化的 AI 協作，以及 7 月即將舉辦的腦部共用（Brain Commons）與 SkyCommons 觀測站啟動活動。</p>
+      <div class="tag-chip-list"><span class="tag-chip">open data</span><span class="tag-chip">開放資料</span><span class="tag-chip">Open Knowledge</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://blog.okfn.org/wp-content/uploads/2025/12/news-thumb-blog.png" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">已編輯全文</div>
+      <h2>全文</h2>
+      <div class="article-text article-markdown"><h1>讓 AI 為社群所用——OKFN 2026 年 6 月電子報 - Open Knowledge Blog</h1>
+<ul>
+<li>發布者：*<a href="https://blog.okfn.org/author/okfnglobal/" target="_blank" rel="noreferrer">OKFN</a>*</li>
+</ul>
+<p>開放知識社群的各位，大家好：</p>
+<p>我們的知識未來正面臨威脅。設計一套公共數位架構，扭轉知識加速封閉的趨勢，是開放知識基金會（Open Knowledge Foundation）目前的首要任務。本月，我們正將這項願景化為具體的跨國合作，包括<a href="https://blog.okfn.org/2026/06/03/new-uruguay-okfn-partnership-scaling-reliable-ai-for-open-data-across-latin-america/" target="_blank" rel="noreferrer">將可追溯 AI 的試辦計畫從巴西拓展至烏拉圭</a>，並與瓜地馬拉的合作夥伴攜手，深入探討<a href="https://blog.okfn.org/2026/06/18/roundtable-recap-how-to-digitise-a-physical-archive-to-work-strategically-with-ai/" target="_blank" rel="noreferrer">將面臨風險的實體檔案數位化</a>這項細緻的工作。</p>
+<p>我們的 AI 學習實驗室（AI Learning Labs）確實帶來許多洞見。我們發現，要讓公共資料中的 AI 值得信賴，遠不只是建構技術橋梁而已；更需要由人深入理解資料實際代表的意義。我們透過一篇<a href="https://blog.okfn.org/2026/06/10/mcp-for-open-data-portals-trust-depends-on-understanding-the-data/" target="_blank" rel="noreferrer">反思文章</a>分享這些心得，也與聯合國大數據中心（UN Big Data Hub）合辦一場<a href="https://blog.okfn.org/2026/06/16/webinar-traceable-ai-for-public-data-an-open-model-for-latin-america/" target="_blank" rel="noreferrer">網路研討會</a>，匯聚來自拉丁美洲各地超過 200 位實務工作者。</p>
+<p>接著仍是學習實驗室的消息。請繼續往下閱讀，看看我們透過「<a href="https://okfn.org/en/projects/ai-learning-labs/climate-change-chatbot/#resources" target="_blank" rel="noreferrer">持續更新的學習資源</a>」整理出的更多心得：即使內容尚未完整開發，我們仍持續收集並分享各種知識片段，邀請社群提供意見。<br>
+在倡議方面，我們正籌備七月的兩場重要活動：<a href="https://blog.okfn.org/the-tech-we-want-brain-commons-registration/" target="_blank" rel="noreferrer">我們的大腦公地需要怎樣的科技（The Tech We Want for our Brain Commons）</a>與 <a href="https://blog.okfn.org/skycommons-observatory-registration-form/" target="_blank" rel="noreferrer">SkyCommons 觀測站（SkyCommons Observatory）</a>啟動活動。我們也聽取了<a href="https://opentechresearch.org/blog/the-demand-side-policymaker-perspectives-on-open-technology-research/" target="_blank" rel="noreferrer">全球政策制定者提出的最新見解</a>，探討如何讓開放科技研究真正發揮影響力；此外，<a href="https://blog.ukdataservice.ac.uk/open-knowledge-foundation-part-1/" target="_blank" rel="noreferrer">英國資料服務（UK Data Service）的深度專訪</a>也難得帶領讀者一窺我們的運作方式。</p>
+<h2>圓桌會議回顧：如何將實體檔案數位化，以策略性地運用 AI？</h2>
+<p>這個問題是開放知識基金會（Open Knowledge）上個月舉辦線上圓桌會議的核心議題。這場會議是我們與瓜地馬拉社會科學促進協會（Association for the Advancement of Social Sciences in Guatemala，AVANCSO）合作推動的 AI 學習實驗室（AI Learning Labs）計畫之一；該協會的文獻中心目前正面臨風險。</p>
+<p>我們聽取了世界各地倡議計畫的經驗。這些計畫採取不同的保存方式，將文件、照片與音訊檔案數位化。它們各自訴說著如何改變人們與內容互動的方式，為塵封已久的檔案注入新生命。</p>
+<p><strong>「全球北方與全球南方之間的落差，影響了哪些資料得以保存，以及誰能取得歷史紀錄。」</strong><br>
+Alejandro Flores Aguilar 🎥 <a href="https://www.youtube.com/shorts/1KQ8vpZoyQk" target="_blank" rel="noreferrer">觀看影片</a><br>
+↪ <a href="https://blog.okfn.org/2026/06/18/roundtable-recap-how-to-digitise-a-physical-archive-to-work-strategically-with-ai/" target="_blank" rel="noreferrer">深入了解</a></p>
+<h2>烏拉圭與 OKFN 的全新合作：在拉丁美洲擴大可信賴 AI 於開放資料的應用</h2>
+<p>OKFN 宣布與烏拉圭共和國總統府轄下的電子政府暨資訊與知識社會局（Agency for Electronic Government and the Information and Knowledge Society，AGESIC）展開全新合作，讓公共資料在 AI 時代更容易取得、更可靠，也更便於使用。</p>
+<p>作為 AI 學習實驗室計畫的一環，我們正在製作一項與烏拉圭開放資料目錄整合的原型，讓民眾能以自然語言提問，並獲得可直接追溯至原始資料集的回答。這套開放橋接機制採用模型情境協定（Model Context Protocol，MCP）伺服器，與我們同期在巴西推動的試辦計畫使用相同技術。<br>
+透過在兩個截然不同的國家生態系中同步進行試行計畫，我們正建立一套可複製的藍圖，讓 AI 能以負責任的方式整合至開放資料基礎設施，並有望供各國政府採用與分享。<br>
+↪ <a href="https://blog.okfn.org/2026/06/03/new-uruguay-okfn-partnership-scaling-reliable-ai-for-open-data-across-latin-america/" target="_blank" rel="noreferrer">進一步瞭解</a></p>
+<h2><strong>開放資料入口網站的 MCP：信任取決於能否理解資料</strong></h2>
+<p>在本文中，專案經理 Kannika Thaimai 分享開放知識基金會（OKFN）近期在公共資料與 AI 領域工作中獲得的一些初步經驗：「開始建置後，我們發現，將 AI 助理連接至開放資料入口網站其實相對簡單。更大的挑戰在於協助系統理解資料的實際意義。欄位名稱不等於定義，資料集標題不等於方法論，時間序列也不會自行解釋其中的資料缺口。當 AI 系統缺乏這些脈絡時，往往會試圖自行填補空白。」<br>
+↪ <a href="https://blog.okfn.org/2026/06/10/mcp-for-open-data-portals-trust-depends-on-understanding-the-data/" target="_blank" rel="noreferrer">進一步瞭解</a></p>
+<p><strong>當開放資料與開放科學遇上 AI：由 MCP 串起彼此之間的落差</strong><br>
+誠摯邀請所有前往巴黎參加 Wikimania 2026 的朋友，加入我們團隊的工作坊，一同瞭解我們近期如何運用 AI 進行實驗，讓任何人都能輕鬆存取與分享資料，並為其他知識生態系提供動力。<br>
+↪ <a href="https://wikimedia.eventyay.com/wm/wikimania2026/talk/LVUGAP/" target="_blank" rel="noreferrer">進一步瞭解</a></p>
+<h2><strong>持續演進的學習資源：濃縮我們所學的知識片段</strong></h2>
+<p>AI Learning Labs（AI 學習實驗室）的核心原則之一，是透過實作並以社群協作的方式學習。然而，我們往往難以抽出足夠時間整理討論內容，也缺乏將其發展成更完整知識成果所需的資源。因此，今年我們正嘗試一種新形式：從專案討論中彙整短篇知識片段，也就是我們所稱的「持續演進的學習資源」（living learning resources）。之所以稱為「持續演進」，是因為這些資源尚未定稿，而是作為初步素材，為社群保留共同協作的空間。<br>
+以下是上個月發布的兩項資源：<br>
+↪ <a href="https://okfn.org/en/projects/ai-learning-labs/climate-change-chatbot/#resources" target="_blank" rel="noreferrer">進一步瞭解</a></p>
+<p><strong>請預留時間，參加 OKFN 將於 7 月推動的兩場重要活動。</strong></p>
+<p>思想自由是開放社會的先決條件。能夠私下、自由地思考，並在不受脅迫的情況下行動，是所有其他基本權利的基礎。如今，商業腦機介面（brain-computer interfaces，BCIs）正悄然進入消費市場、職場與公共機構，使這項自由面臨風險。各家供應商爭相推出封閉韌體、專有資料與技術，以及僅能透過雲端使用的產品；這些產品的預設設定往往不利於使用者掌握控制權。</p>
+<p>這場為期一天的線上高峰會是「The Tech We Want」系列活動之一，將探討如何讓開放性——包括可稽核性、可攜性與使用者控制權——成為實際可行的治理機制。開放性並非獨立發揮作用，而是促成制度監督與權利落實的結構性基礎。</p>
+<p>低地球軌道（Low Earth Orbit，LEO）衛星服務在全球南方與衝突地區迅速部署，揭示了一種反覆出現的局面：迫切的連線需求與維護國家數位主權之間存在張力。這些服務固然提供了至關重要的生命線，卻也帶來系統性風險，例如可能造成市場綁定、資料流向不透明，以及「單點故障」風險——一國的關鍵基礎設施可能受制於外國行為者的政治或個人利益。</p>
+<p>開放知識基金會（Open Knowledge Foundation）正透過 SkyCommons Observatory 回應這些問題。這個平台將提供現有及規劃中衛星的視覺化資訊，以及供應商與相關風險的分布地圖。我們將在本次活動中正式公開推出平台，並與數位政策、電信基礎設施及地緣政治領域的專家共同討論低地球軌道衛星的未來。</p>
+<h2>開放知識與關鍵基礎設施：一場北歐對話</h2>
+<p>上週，北歐開放運動社群及其夥伴在奧盧（Oulu）與線上齊聚一堂。參與者包括檔案工作者、研究人員、維基媒體人、開放資料倡議者、開放知識網絡（Open Knowledge Network）成員、記者、文化工作者與數位權利專家，共同探討一個問題：如果社會將知識系統視為關鍵基礎設施，並加以承認與保障，將會帶來什麼改變？</p>
+<p>這場討論是開放知識基金會（Open Knowledge Foundation）與維基媒體政策團隊（Wikimedia Policy team），以及開放知識運動中的其他夥伴共同推動的一項新倡議。我們共同關注的是：各國政府雖然正大力投資數位主權與數位公共基礎建設，卻持續忽略知識基礎建設。我們的目標是提出有力論述，促使各界提供長期支持。<br>
+↪ <a href="https://blog.okfn.org/2026/06/24/open-knowledge-and-critical-infrastructure-a-nordic-conversation/" target="_blank" rel="noreferrer">深入了解</a></p>
+<h2>政策制定者如何看待開放科技研究</h2>
+<p>在制定開放科技研究（Open Technology Research，OTR）共同研究議程的過程中，這項倡議訪談了來自不同地區與機構背景的多位政策制定者及公部門實務工作者。受訪者背景相當廣泛，從全球南方的國家級數位轉型機構、亞太與歐洲的數位事務部會，到美國地方層級的立法幕僚都有。<br>
+本文整理了我們持續與政策制定者對話後得出的初步重要發現。我們的發現聚焦於政策制定者實際上如何運用開放科技相關證據、最關鍵的缺口在哪裡，以及研究社群若想真正影響公共決策，需要採取哪些不同的做法。<br>
+↪ <a href="https://opentechresearch.org/blog/the-demand-side-policymaker-perspectives-on-open-technology-research/" target="_blank" rel="noreferrer">深入了解</a></p>
+<h2>英國資料服務專文介紹 OKFN：開放原則如何轉化為開放實踐</h2>
+<p>幾週前，英國資料服務（UK Data Service）邀集開放知識基金會與開放知識網絡（Open Knowledge Network）團隊成員，深入討論我們的工作。這場討論成果豐碩，因此這篇集體訪談拆分為兩篇文章刊出。<br>
+🌱 <a href="https://blog.ukdataservice.ac.uk/open-knowledge-foundation-part-1/" target="_blank" rel="noreferrer">開放知識基金會如何讓多元觀點匯聚成共同聲音？</a><br>
+🌱 <a href="https://blog.ukdataservice.ac.uk/open-knowledge-foundation-part-2/" target="_blank" rel="noreferrer">開放原則如何轉化為開放實踐？</a><br>
+這是一份重要資源，可協助你了解 OKFN 的運作方式：我們的工作橫跨眾多領域，但始終堅持開放是知識、內容、資料與科技的根本原則。</p>
+<h2>CKAN 2.12 即將推出：協助我們打造歷來最佳的 CKAN 版本</h2>
+<p>CKAN 2.12 是近年來最重大的版本。大型資料集的下載速度更快，在部分設定下最高可達 15 倍。Docker 基礎映像檔大幅精簡，也更加安全。許多長期存在的問題終於獲得解決。如果你一直在維運 CKAN 入口網站，默默忍受它不盡理想之處，這個版本就是為你而來。<br>
+我們已正式啟動版本發布流程。程式碼已準備好接受測試、翻譯與文件撰寫，而這個版本的品質，將直接取決於未來幾週有多少人投入這些工作。<br>
+↪ <a href="https://ckan.org/blog/ckan-212-release-how-to-contribute" target="_blank" rel="noreferrer">了解更多</a></p>
+<p>📘 <strong>《開放基礎設施的政治：數位知識實踐中的權力、治理與正義》</strong>（The Politics of Open Infrastructures: Power, Governance, and Justice in Digital Knowledge Practices，Open Book Publishers，2026）探討當代數位知識基礎設施中的開放性如何被設計、治理、爭論與實踐。從開放原始碼軟體與網際網路標準，到公民科學平台、公部門資料系統及另類運算實踐，本書指出，基礎設施從來不只是中立的技術骨幹，而是深具政治性的安排，不僅內嵌特定價值、分配權力，也形塑哪些人的知識能獲得認可。<br>
+↪ <a href="https://www.openbookpublishers.com/books/10.11647/obp.0528" target="_blank" rel="noreferrer">了解更多</a></p>
+<p>📖 這篇由合作夥伴 OpenForum Europe 撰寫的文章，分析<strong>歐盟科技主權方案（EU’s Tech Sovereignty Package）</strong>如何開創新局，終於將開放原始碼定位為策略優先事項，而非事後才想到的附帶議題。這項倡議設定了公部門採用及關鍵基礎設施方面的宏大目標，帶來令人樂見的轉變；不過，作者提醒，其能否成功仍取決於能否克服幾項實務障礙，包括釐清與開放標準之間的關係、將關注範圍擴大至硬體、爭取更充足的經費，以及培養扎實的技術能力，而不只是停留在表層認知。<br>
+↪ <a href="https://www.techpolicy.press/how-the-eus-tech-sovereignty-package-finally-puts-open-source-to-the-test/" target="_blank" rel="noreferrer">了解更多</a></p>
+<p>📉 <strong>AI 已經開始獲利了嗎？</strong> 這個網站集中追蹤多數主要 AI 公司的累計支出與營收，讓你大致了解有多少資金流入這個產業，以及距離損益兩平還有多遠。所以，商業 AI 現在獲利了嗎？還沒有，大家都還在燒錢。<br>
+↪ <a href="https://isaiprofitable.com/" target="_blank" rel="noreferrer">了解更多</a></p>
+<p>以下是開放知識論壇（Open Knowledge Forum）上的最新討論。歡迎分享你的看法！<br>
+<strong>@jamaica</strong> 在 <a href="https://discuss.okfn.org/t/ckan-category-mods-admins/12839" target="_blank" rel="noreferrer">CKAN 分類版主與管理員</a> ↗ 表示：<em>「有一小群 CKAN 生態系成員在幕後協助協調這個討論空間（有時也會透過像這樣的貼文站到第一線！），讓這裡能持續正常運作，並維持友善且相互尊重的氛圍。」</em><br>
+<strong>@kannika</strong> 在 <a href="https://discuss.okfn.org/t/is-traceability-enough-when-ai-answers-questions-about-open-data/12851" target="_blank" rel="noreferrer">AI 學習實驗室</a> ↗ 提問：<em>「透過 AI 介面存取開放資料時，哪一類中繼資料或說明文件最實用？」</em><br>
+<strong>@petermr</strong> 在 <a href="https://discuss.okfn.org/t/how-would-you-build-a-responsible-climate-chatbot/12787/5" target="_blank" rel="noreferrer">AI 學習實驗室</a> ↗ 表示：<em>「我對聊天機器人最大的擔憂，是網路上的通用模型並不可信。大多數時候，它們的表現還算合理，但偶爾也會產生幻覺。」</em><br>
+<strong>來看看我們全球運動的最新亮點。</strong></p>
+<p><a href="https://oknp.org/blogs/introducing-mulcam-building-the-language-foundation-for-nepals-digital-safety-needs" target="_blank" rel="noreferrer">MuLCAM 語言語料庫正式推出</a>：OKN 推出開放語言語料庫 MuLCAM，為尼泊爾的數位安全需求建立語言基礎，協助提供更完善的證據，並強化線上騷擾案件的跨境協作。<br>
+Open Data Nepal 變得更聰明、更好用：三項重大升級現已上線，包括支援自然語言資料探索的 <a href="https://oknp.org/blogs/stop-searching-start-asking-ai-integration-is-now-live-on-open-data-nepal" target="_blank" rel="noreferrer">AI 整合功能</a>，以及「無縫發布」和完整的<a href="https://oknp.org/blogs/publishing-and-exploring-data-just-got-easier-on-open-data-nepal" target="_blank" rel="noreferrer">資料探索工具</a>，讓貢獻與尋找資料都比以往更簡單。<br>
+<a href="https://oknp.org/blogs/when-algorithm-decides-what-nepals-digital-creators-are-up-against" target="_blank" rel="noreferrer">當演算法做出決定</a>：OKN 推出的新刊物（zine）取材自尼泊爾創作者、記者與倡議者的故事，記錄了遠離尼泊爾開發、且主要以英文訓練的自動化內容審核系統，如何壓制當地聲音，以及其背後在透明度、語言支援與究責機制上的缺口。<br>
+🇸<br>
+🇪 <strong>瑞典開放知識（Open Knowledge Sweden）</strong>將參與 <a href="https://almedalsveckan.info/rg/almedalsveckan/det-har-ar-almedalsveckan/almedalsveckan-in-english" target="_blank" rel="noreferrer">Almedalsveckan</a>（阿爾梅達倫週），這是一個開放、民主的交流平台，歡迎所有人參與並貢獻意見。Almedalsveckan 被公認為重要的政治節慶，多年來啟發數個國家舉辦類似活動。我們將參與一場探討遊說與政府透明度的座談會：<a href="https://almedalsveckan.info/rg/almedalsveckan/evenemang-almedalsveckan/2026/9021" target="_blank" rel="noreferrer">「透明度能遏止川普主義嗎？」</a>。活動由新成立的公民科技計畫「政府查核」（The Government Check，瑞典文：<a href="https://www.regeringskollen.se/" target="_blank" rel="noreferrer">Regeringskollen</a>）主辦。該計畫旨在蒐集並分析政府相關資料，檢視政府是否履行選舉期間的承諾。</p>
+<h4>請記下這些日期！</h4>
+<h3><a href="https://wikimania.wikimedia.org/wiki/2026:Wikimania" target="_blank" rel="noreferrer">Wikimania 2026</a></h3>
+<p>Wikimania 將慶祝維基百科創立 25 週年。然而，這部自由百科全書及其整個生態系所面臨的環境，從未像現在這般危險。Wikimania 2026 是採取行動、守護知識自由近用的契機。</p>
+<h3><a href="https://symposium.opentechresearch.org/" target="_blank" rel="noreferrer">開放科技研究研討會（Open Technology Research Symposium）</a></h3>
+<p>這場全球性的跨領域研究研討會匯聚學術研究者與實務工作者，共同深化對開放科技在現代世界中所扮演角色的理解，並產出與政策相關的研究，協助決策者發揮影響力。活動免費入場。</p>
+<h3><a href="https://abrelatam.org/" target="_blank" rel="noreferrer">Abrelatam Condatos 2026</a></h3>
+<p><strong>瓜地馬拉市，10 月 7 日至 9 日</strong><br>
+Abrelatam 是拉丁美洲與加勒比海地區開放資料對話的核心平台，匯聚政府、學術界、私部門與公民社會，共同因應在地及全球挑戰。這場活動促進跨部門合作與對話，透過資料推動透明治理、包容性發展，並強化民主。</p>
+<h3><a href="https://www.intgovforum.org/en/dashboard/igf-2026" target="_blank" rel="noreferrer">2026 年網際網路治理論壇（Internet Governance Forum 2026）</a></h3>
+<p>網際網路治理論壇（Internet Governance Forum，IGF）是一個全球多方利害關係人平台，促進各界討論與網際網路治理相關的公共政策議題。IGF 是聯合國資訊社會世界高峰會（World Summit on the Information Society，WSIS）最重要的成果之一；該峰會授權聯合國祕書長正式召集此論壇。</p>
+<h3>關於我們</h3>
+<p><a href="https://opendefinition.org/" target="_blank" rel="noreferrer">開放知識</a>是指任何人都能自由使用、再利用及重新散布的內容、資訊或資料，不受任何法律、技術或社會限制。<strong>開放知識基金會（Open Knowledge Foundation）的使命，是打造公平、永續且開放的數位未來</strong>，推動開放知識成為不僅適用於資料的設計原則。我們透過引導並支持數位基礎設施的建置、制定政策與方法、凝聚社群力量，以及以永續、合乎倫理且靈活的方式倡議相關素養與標準，來實現這項使命。</p>
+<ul>
+<li><a href="https://blog.okfn.org/tag/open-content/" target="_blank" rel="noreferrer">開放內容</a></li>
+<li><a href="https://blog.okfn.org/tag/open-knowledge/" target="_blank" rel="noreferrer">開放知識</a></li>
+<li><a href="https://blog.okfn.org/tag/publications/" target="_blank" rel="noreferrer">出版品</a></li>
+</ul>
+<h3>相關內容</h3>
+<ul>
+<li>由 <a href="https://blog.okfn.org/author/okfnglobal/" target="_blank" rel="noreferrer">OKFN</a> 發布</li>
+<li>由 <a href="https://blog.okfn.org/author/okfnglobal/" target="_blank" rel="noreferrer">OKFN</a> 發布</li>
+<li>由 <a href="https://blog.okfn.org/author/okfnglobal/" target="_blank" rel="noreferrer">OKFN</a> 發布</li>
+<li>2026 年 2 月 4 日</li>
+</ul>
+<h3><a href="https://blog.okfn.org/author/okfnglobal/" target="_blank" rel="noreferrer">OKFN</a></h3>
+<p>開放知識基金會的官方發聲平台。</p>
+<h3>延伸閱讀</h3>
+<h2>文章導覽</h2>
+<h3><a href="https://blog.okfn.org/2026/06/24/open-knowledge-and-critical-infrastructure-a-nordic-conversation/" target="_blank" rel="noreferrer">開放知識與關鍵基礎設施：一場北歐對話</a></h3></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-6981bde981e13ae7.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">2026 年《網路韌性法》認知與準備度報告：開源生態仍未就緒</span>
+</a>
+
+<a class="article-sequence-link" href="item-921b2f03e891057a.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">公部門 OSPO 網絡</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-f65287aa5b5f66cb.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Making AI work for communities – OKFN Newsletter June 2026 - Open Knowledge Blog</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：讓 AI 為社群所用——OKFN 2026 年 6 月電子報 - Open Knowledge Blog（Codex）</li><li><strong>原始作者</strong>：OKFN（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-25T16:24:42+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-25T16:24:42+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。
+2026-06-25T16:27:21+00:00 線上手動編輯全文（修正排版／補截斷，base=zh）。
+2026-06-25T16:30:26+00:00 彙整式電子報拆 link：新增 3 筆，重複 3 筆，略過 17 筆。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-f65287aa5b5f66cb";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
