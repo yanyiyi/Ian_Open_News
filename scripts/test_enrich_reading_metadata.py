@@ -16,6 +16,42 @@ import page_metadata
 
 
 class ReadingMetadataRulesTest(unittest.TestCase):
+    def test_html_article_markdown_uses_blank_lines_between_paragraphs(self) -> None:
+        html = """
+        <article>
+          <h1>Example article</h1>
+          <p>This is the first paragraph with enough text to pass the article filter.</p>
+          <p>This is the second paragraph with enough text to remain a separate block.</p>
+        </article>
+        """
+
+        markdown, method = page_metadata.extract_article_markdown(
+            html,
+            final_url="https://example.com/article",
+            title="Example article",
+        )
+
+        self.assertEqual(method, "all-paragraphs")
+        self.assertIn(
+            "This is the first paragraph with enough text to pass the article filter.\n\n"
+            "This is the second paragraph with enough text to remain a separate block.",
+            markdown,
+        )
+
+    def test_text_to_markdown_preserves_paragraph_separators(self) -> None:
+        markdown = page_metadata.text_to_markdown(
+            "First paragraph has enough content to be useful.\n\n"
+            "Second paragraph should stay separate in Markdown.",
+            title="Example",
+        )
+
+        self.assertEqual(
+            markdown,
+            "# Example\n\n"
+            "First paragraph has enough content to be useful.\n\n"
+            "Second paragraph should stay separate in Markdown.",
+        )
+
     def test_missing_reader_fields_checks_all_three_fields(self) -> None:
         item = {
             "summary": "",

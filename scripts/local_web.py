@@ -2784,11 +2784,11 @@ def item_provider_translation_markdown(item: dict, provider: str) -> str:
     metadata = item_reading_metadata(item)
     provider = normalize_ai_provider(provider)
     if provider == "codex":
-        return clean_text(
+        return clean_markdown_text(
             metadata.get("codex_translated_article_markdown_zh")
             or metadata.get("translated_article_markdown_zh")
         )
-    return clean_text(metadata.get(AI_PROVIDER_META[provider]["translation_markdown_key"]))
+    return clean_markdown_text(metadata.get(AI_PROVIDER_META[provider]["translation_markdown_key"]))
 
 
 def item_translation_entries(item: dict) -> list[tuple[str, str]]:
@@ -2906,7 +2906,7 @@ def item_article_text(item: dict) -> str:
 
 def item_article_markdown(item: dict) -> str:
     metadata = item_reading_metadata(item)
-    markdown = clean_text(metadata.get("article_markdown"))
+    markdown = clean_markdown_text(metadata.get("article_markdown"))
     if markdown:
         return markdown
     article_text = clean_text(metadata.get("article_text"))
@@ -3735,6 +3735,21 @@ def layout_toggle(section_id: str, current: str = "list") -> str:
     return f'<div class="layout-toggle" role="group" aria-label="顯示模式">{"".join(buttons)}</div>'
 
 
+def material_layout_toggle(target_id: str, current: str = "list") -> str:
+    """材料頁 2-mode 顯示切換（列表式詳細卡 / 清單式精簡列）；沿用 .layout-toggle 樣式與切換 JS。"""
+    modes = [("list", "列表式", "list"), ("compact", "清單式", "compact")]
+    buttons = []
+    for mode, label, icon in modes:
+        active = " is-active" if mode == current else ""
+        buttons.append(
+            f'<button type="button" class="layout-toggle-button{active}" '
+            f'data-layout-target="{h(target_id)}" data-layout-mode="{h(mode)}" '
+            f'aria-pressed="{str(mode == current).lower()}" title="{h(label)}">'
+            f"{layout_icon(icon)}<span>{h(label)}</span></button>"
+        )
+    return f'<div class="layout-toggle" role="group" aria-label="顯示模式">{"".join(buttons)}</div>'
+
+
 def is_reader_item(item: dict) -> bool:
     if item.get("status") in {"triaged", "researching", "drafting", "reviewing", "fact-checking", "ready", "published"}:
         return True
@@ -3765,6 +3780,39 @@ def model_review_card_html(provider: str, review: dict, compact: bool = False) -
         f"<p class='recommendation-line'>{h(one_line)}</p>"
         f"{reason_rows}"
         f"{summary_html}"
+        "</div>"
+    )
+
+
+def item_compact_row(item: dict) -> str:
+    """材料「清單式」精簡列：軌道｜旗標｜建議｜標題 + 時間靠右，下一行 AI 一句話與信心。≤3 行。
+    與詳細卡共用同一張 .candidate-card 的 checkbox，只是切換顯示的 body。"""
+    css_class = track_class(item.get("track", "unclassified"))
+    recommendation = candidate_recommendation(item)
+    reviews = record_model_reviews(item)
+    ai_line = ""
+    if reviews:
+        provider, review = reviews[-1]  # 取最新一筆 review
+        confidence = confidence_score_10(review.get("confidence"))
+        bits = [f"{ai_provider_label(provider)} 生成"]
+        if confidence:
+            bits.append(f"信心 {score_label(confidence)}/10")
+        head = "閱讀建議 " + " · ".join(bits)
+        one_line = workflow_display_text(review.get("one_line_recommendation"), 140)
+        ai_line = f'<p class="compact-rec">{h(head)}{("：" + h(one_line)) if one_line else ""}</p>'
+    badges = (
+        f'{badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}'
+        f'{reader_flag_badges(item)}'
+        f'{badge(recommendation_label(recommendation), recommendation)}'
+    )
+    return (
+        '<div class="candidate-compact">'
+        '<div class="compact-head">'
+        f'<span class="compact-badges">{badges}</span>'
+        f'<a class="compact-title" href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a>'
+        f'<span class="compact-time">{h(item_display_time(item, "published_at", "captured_at"))}</span>'
+        "</div>"
+        f"{ai_line}"
         "</div>"
     )
 
@@ -4943,6 +4991,20 @@ def page(title: str, body: str) -> bytes:
       from {{ opacity: 1; transform: translateY(0); max-height: 900px; }}
       to {{ opacity: 0; transform: translateY(-4px); max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; border-width: 0; }}
     }}
+    /* 材料頁「清單式」精簡列：列表式=詳細卡(.candidate-detailed)，清單式=精簡列(.candidate-compact)。
+       兩者都預先 render，靠 .list[data-layout] 切換顯示；checkbox 共用、兩 mode 都能批次勾選。 */
+    .candidate-compact {{ display: none; }}
+    .list[data-layout="compact"] .candidate-detailed {{ display: none; }}
+    .list[data-layout="compact"] .candidate-compact {{ display: block; }}
+    .list[data-layout="compact"] .candidate-card {{ gap: 6px; padding: 10px 14px; }}
+    .list[data-layout="compact"] .select-item {{ margin: 0; }}
+    .list[data-layout="compact"] .select-item-text {{ display: none; }}
+    .compact-head {{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 8px; }}
+    .compact-badges {{ display: inline-flex; flex-wrap: wrap; gap: 4px; }}
+    .compact-title {{ font-weight: 700; color: var(--ocf-dark); text-decoration: none; flex: 1 1 240px; min-width: 0; }}
+    .compact-title:hover {{ text-decoration: underline; }}
+    .compact-time {{ margin-left: auto; color: var(--muted, #64748b); font-size: 12px; white-space: nowrap; }}
+    .compact-rec {{ margin: 2px 0 0; color: var(--muted, #475569); font-size: 13px; line-height: 1.5; }}
     .decision-panel {{ border-top: 1px solid var(--line); padding-top: 10px; }}
     .reason-presets {{ display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }}
     .reason-presets button {{ margin-top: 0; }}
@@ -4971,8 +5033,11 @@ def page(title: str, body: str) -> bytes:
       display: flex;
       justify-content: flex-end;
       align-items: center;
+      gap: 10px;
       margin: 14px 0 10px;
     }}
+    /* 材料頁顯示切換放工具列最左、與「顯示工具列」同一列 */
+    .workspace-toolbar .layout-toggle {{ margin-right: auto; }}
     .workspace-sidebar-toggle {{
       margin: 0;
       padding: 8px 10px;
@@ -5771,6 +5836,17 @@ def page(title: str, body: str) -> bytes:
     }}
     .pdf-relation-dialog::backdrop {{ background: rgba(28, 31, 38, .52); }}
     .dialog-close-row {{ display: flex; justify-content: flex-end; }}
+    /* 拆連結勾選視窗 */
+    .nl-dialog {{ width: min(720px, calc(100vw - 28px)); }}
+    /* 蓋掉 .article-dock-actions form 的 inline-flex（dialog 是 dock 的子節點） */
+    .nl-dialog form {{ display: block; margin: 0; }}
+    .nl-cand-list {{ display: grid; gap: 4px; max-height: 52vh; overflow: auto; margin: 10px 0; padding-right: 4px; }}
+    .nl-cand {{ display: flex; align-items: baseline; gap: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }}
+    .nl-cand input {{ flex: 0 0 auto; }}
+    .nl-cand-title {{ flex: 1 1 auto; min-width: 0; font-weight: 600; word-break: break-word; }}
+    .nl-cand-host {{ flex: 0 0 auto; color: var(--muted, #64748b); font-size: 12px; }}
+    .nl-skip {{ margin-top: 6px; }}
+    .nl-skip ul {{ margin: 6px 0 0; padding-left: 18px; color: var(--muted, #64748b); font-size: 13px; }}
     .pdf-relation-grid, .pdf-split-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }}
     .pdf-relation-card {{ border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--panel); }}
     .pdf-relation-actions form, .pdf-cli-confirm-form {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }}
@@ -5913,17 +5989,32 @@ def page(title: str, body: str) -> bytes:
     window.addEventListener("resize", positionMenu);
   }});
 
+  const syncLayoutButtons = (targetId, mode) => {{
+    document.querySelectorAll(`.layout-toggle-button[data-layout-target="${{targetId}}"]`).forEach((peer) => {{
+      const active = peer.dataset.layoutMode === mode;
+      peer.classList.toggle("is-active", active);
+      peer.setAttribute("aria-pressed", active ? "true" : "false");
+    }});
+  }};
   document.querySelectorAll(".layout-toggle-button").forEach((button) => {{
     button.addEventListener("click", () => {{
       const target = document.getElementById(button.dataset.layoutTarget);
       if (!target) return;
-      target.dataset.layout = button.dataset.layoutMode;
-      document.querySelectorAll(`.layout-toggle-button[data-layout-target="${{button.dataset.layoutTarget}}"]`).forEach((peer) => {{
-        const active = peer === button;
-        peer.classList.toggle("is-active", active);
-        peer.setAttribute("aria-pressed", active ? "true" : "false");
-      }});
+      const mode = button.dataset.layoutMode;
+      target.dataset.layout = mode;
+      syncLayoutButtons(button.dataset.layoutTarget, mode);
+      if (target.hasAttribute("data-layout-persist")) {{
+        try {{ window.localStorage.setItem(`ian-open-news-layout:${{button.dataset.layoutTarget}}`, mode); }} catch (_error) {{}}
+      }}
     }});
+  }});
+  // 還原有 data-layout-persist 的容器先前選的顯示模式
+  document.querySelectorAll("[data-layout-persist]").forEach((target) => {{
+    let saved = null;
+    try {{ saved = window.localStorage.getItem(`ian-open-news-layout:${{target.id}}`); }} catch (_error) {{ saved = null; }}
+    if (!saved) return;
+    target.dataset.layout = saved;
+    syncLayoutButtons(target.id, saved);
   }});
 
   document.querySelectorAll("[data-workspace-toggle]").forEach((button) => {{
@@ -7076,6 +7167,79 @@ EDITOR_TASK_HINTS = {
     "extract-viewpoints": "從所選材料抽出 2-5 條可存進觀點庫的觀點。",
     "newsletter-extract": "針對彙整式電子報或 roundup 產出外部萃取報告，分清文章/報告 link 與功能性連結。",
 }
+# 撰稿生產線（決定下一步建議）：選法檢查→查核找原文→萃取觀點→撰稿。
+# compose-* 是末端二選一（彼此不建議）；newsletter-extract 外於生產線、不建議下一步。
+EDITOR_PIPELINE_TASKS = ["theme-check", "factcheck", "extract-viewpoints", "compose-digest", "compose-thematic"]
+EDITOR_PIPELINE_NEXT = {
+    "theme-check": "factcheck",
+    "factcheck": "extract-viewpoints",
+    "extract-viewpoints": "compose-thematic",  # 萃取完→撰稿（彙報式／主題式二選一，預設主題式）
+}
+
+
+def next_pipeline_task(task_type: str) -> str:
+    """沿生產線推下一步任務 key；末端（compose-*）與電子報（newsletter-extract）回空字串。"""
+    return EDITOR_PIPELINE_NEXT.get(clean_text(task_type), "")
+
+
+def editor_task_options_html(selected_key: str = "") -> str:
+    """任務下拉：彙整萃取報告獨立成「電子報專用」群組放最前，其餘為「撰稿生產線」群組。"""
+    selected_key = clean_text(selected_key)
+
+    def opt(key: str) -> str:
+        sel = " selected" if key == selected_key else ""
+        return f'<option value="{h(key)}"{sel}>{h(EDITOR_TASK_LABELS.get(key, key))}</option>'
+
+    pipeline = "".join(opt(key) for key in EDITOR_PIPELINE_TASKS)
+    return (
+        f'<optgroup label="電子報專用（外於生產線）">{opt("newsletter-extract")}</optgroup>'
+        f'<optgroup label="撰稿生產線">{pipeline}</optgroup>'
+    )
+
+
+WRITING_STYLES_DIR = ROOT / "knowledge" / "writing-styles"
+
+
+def load_writing_styles() -> list[dict]:
+    """掃 knowledge/writing-styles/*.md，回傳 [{name,title,description}]；default 置頂、其餘依檔名。"""
+    out: list[dict] = []
+    if WRITING_STYLES_DIR.exists():
+        for path in sorted(WRITING_STYLES_DIR.glob("*.md")):
+            name = path.stem
+            title, description = name, ""
+            try:
+                text = path.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            if text.startswith("---"):
+                parts = text.split("---", 2)
+                if len(parts) == 3:
+                    for line in parts[1].splitlines():
+                        key, sep, value = line.partition(":")
+                        if not sep:
+                            continue
+                        key = key.strip()
+                        value = value.strip().strip('"').strip("'")
+                        if key == "name" and value:
+                            title = value
+                        elif key == "description" and value:
+                            description = value
+            out.append({"name": name, "title": title, "description": description})
+    out.sort(key=lambda s: (s["name"] != "default", s["name"]))
+    return out
+
+
+def writing_style_names() -> set[str]:
+    return {s["name"] for s in load_writing_styles()}
+
+
+def writing_style_options_html(selected: str = "") -> str:
+    selected = clean_text(selected)
+    opts = ['<option value="">（不套用特定風格）</option>']
+    for style in load_writing_styles():
+        sel = " selected" if style["name"] == selected else ""
+        opts.append(f'<option value="{h(style["name"])}"{sel}>{h(style["title"])}</option>')
+    return "".join(opts)
 
 
 def editor_cli_path(name: str) -> str | None:
@@ -7779,16 +7943,31 @@ ARTICLE_EDITOR_JS = """
   var vpSearch = document.getElementById("article-viewpoint-search");
   var vpResults = document.getElementById("article-viewpoint-results");
   var vpList = document.getElementById("article-viewpoint-list");
+  function moveViewpoint(id, dir){
+    var ids = viewpointIds();
+    var i = ids.indexOf(id);
+    if (i < 0) return;
+    var j = dir === "up" ? i - 1 : i + 1;
+    if (j < 0 || j >= ids.length) return;
+    ids.splice(j, 0, ids.splice(i, 1)[0]);
+    var next = new Map();
+    ids.forEach(function(k){ next.set(k, selectedViewpoints.get(k)); });
+    selectedViewpoints = next;
+    renderViewpoints(); markDirty();
+  }
   function renderViewpoints(){
     if (!vpList) return;
     var ids = viewpointIds();
-    vpList.innerHTML = ids.length ? ids.map(function(id){
+    // 已關聯觀點只顯示標題（細節在 hover），用 ↑↓ 排序＝專文裡的觀點順序
+    vpList.innerHTML = ids.length ? ids.map(function(id, idx){
       var v = selectedViewpoints.get(id) || { id:id, title:id };
-      return '<div class="article-pick-card"><div class="article-pick-title">' + escapeHtml(v.title || id) + '</div>' +
-        (v.body ? '<p class="article-pick-summary">' + escapeHtml(v.body) + '</p>' : '') +
-        '<div class="button-row"><a class="button button-small secondary" target="_blank" href="/editor/viewpoints?focus=' + encodeURIComponent(id) + '">打開觀點</a>' +
+      return '<div class="article-pick-card article-vp-picked"><div class="article-pick-title" title="' + escapeHtml(v.body || "") + '">' + escapeHtml(v.title || id) + '</div>' +
+        '<div class="button-row">' +
+        '<button type="button" class="button button-small quiet" data-move-vp="' + escapeHtml(id) + '" data-dir="up"' + (idx === 0 ? " disabled" : "") + ' aria-label="上移">↑</button>' +
+        '<button type="button" class="button button-small quiet" data-move-vp="' + escapeHtml(id) + '" data-dir="down"' + (idx === ids.length - 1 ? " disabled" : "") + ' aria-label="下移">↓</button>' +
+        '<a class="button button-small secondary" target="_blank" href="/editor/viewpoints?focus=' + encodeURIComponent(id) + '">打開</a>' +
         '<button type="button" class="button button-small quiet" data-remove-vp="' + escapeHtml(id) + '">移除</button></div></div>';
-    }).join("") : '<p class="muted">尚未關聯觀點。</p>';
+    }).join("") : '<p class="muted">尚未關聯觀點。加入後可用 ↑↓ 調整在專文裡的排序。</p>';
   }
   function renderVpResults(){
     if (!vpResults) return;
@@ -7812,6 +7991,7 @@ ARTICLE_EDITOR_JS = """
     else if (t.dataset.removeMat) { selectedMaterials.delete(t.dataset.removeMat); renderMaterials(); renderMatResults(); markDirty(); }
     else if (t.dataset.addVp) { var v = allViewpoints.find(function(x){ return x.id === t.dataset.addVp; }); if (v) { selectedViewpoints.set(v.id, v); renderViewpoints(); renderVpResults(); markDirty(); } }
     else if (t.dataset.removeVp) { selectedViewpoints.delete(t.dataset.removeVp); renderViewpoints(); renderVpResults(); markDirty(); }
+    else if (t.dataset.moveVp) { moveViewpoint(t.dataset.moveVp, t.dataset.dir); }
   });
   if (matSearch) matSearch.addEventListener("input", renderMatResults);
   if (vpSearch) vpSearch.addEventListener("input", renderVpResults);
@@ -8326,6 +8506,8 @@ class Handler(BaseHTTPRequestHandler):
             self.show_editor_session(query)
         elif parsed.path == "/editor/viewpoints":
             self.show_viewpoints(query)
+        elif parsed.path == "/writing-styles":
+            self.show_writing_styles(query)
         elif parsed.path == "/articles/edit":
             self.show_article_editor(query)
         elif parsed.path == "/articles/view":
@@ -8488,10 +8670,7 @@ class Handler(BaseHTTPRequestHandler):
             suffix = "" if available else "（未安裝）"
             return f'<option value="{name}"{selected}{disabled}>{h(label + suffix)}</option>'
 
-        task_options = ""
-        for key, label in EDITOR_TASK_LABELS.items():
-            sel = " selected" if key == default_task else ""
-            task_options += f'<option value="{key}"{sel}>{h(label)}</option>'
+        task_options = editor_task_options_html(default_task)
 
         session_entries = list(reversed(load_jsonl(EDITOR_SESSIONS)))
         for session in session_entries:
@@ -8564,6 +8743,9 @@ class Handler(BaseHTTPRequestHandler):
       </label>
     </div>
     {hints}
+    <label class="editor-label">撰文風格 <a class="editor-style-link" href="/writing-styles" target="_blank">（管理 / 看風格檔）</a>
+      <select name="writing_style" class="editor-select">{writing_style_options_html()}</select>
+    </label>
     <label class="editor-label">額外指示（可留空）
       <textarea name="instructions" rows="2" placeholder="例如：聚焦台灣讀者、強調公共政策意涵"></textarea>
     </label>
@@ -8608,6 +8790,7 @@ class Handler(BaseHTTPRequestHandler):
   .editor-label {{ display:block; margin:12px 0; font-size:14px; }}
   .editor-label textarea, .editor-select, .editor-search-row input {{ width:100%; margin-top:6px; box-sizing:border-box; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; }}
   .editor-hint {{ font-size:13px; color:var(--muted,#64748b); margin:8px 0 0; }}
+  .editor-style-link {{ font-weight:400; font-size:12px; color:var(--muted,#64748b); }}
   .editor-draft-bin {{ min-height:220px; border:1px dashed var(--line); border-radius:8px; background:#fbfdfc; padding:10px; display:grid; align-content:start; gap:8px; transition:border-color .16s ease, background .16s ease; }}
   .editor-draft-bin.is-over {{ border-color:#1a8ca8; background:#eefcff; }}
   .editor-draft-empty {{ color:var(--muted); font-size:14px; padding:18px; text-align:center; }}
@@ -8792,6 +8975,8 @@ class Handler(BaseHTTPRequestHandler):
         choice = form_value(data, "choice")
         items_raw = form_value(data, "items")
         instructions = form_value(data, "instructions")
+        writing_style = form_value(data, "writing_style")
+        rerun_of = form_value(data, "rerun_of")
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
 
         ids = [x for x in re.split(r"[\s,]+", items_raw) if x]
@@ -8824,6 +9009,10 @@ class Handler(BaseHTTPRequestHandler):
             command += ["--choice", choice]
         if instructions:
             command += ["--instructions", instructions]
+        if writing_style and writing_style in writing_style_names():
+            command += ["--writing-style", writing_style]
+        if rerun_of:
+            command += ["--rerun-of", rerun_of]
         try:
             result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800)
             ok = result.returncode == 0
@@ -8842,6 +9031,36 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"ok": False, "error": f"執行失敗：{tail}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
         else:
             self.redirect(redirect_to if ok else "/editor")
+
+    def show_writing_styles(self, query: dict[str, list[str]]) -> None:
+        cards = ""
+        for style in load_writing_styles():
+            path = WRITING_STYLES_DIR / f'{style["name"]}.md'
+            try:
+                text = path.read_text(encoding="utf-8")
+            except OSError:
+                text = ""
+            if text.startswith("---"):
+                parts = text.split("---", 2)
+                if len(parts) == 3:
+                    text = parts[2].strip()
+            desc = f'<p class="muted">{h(style["description"])}</p>' if style["description"] else ""
+            cards += (
+                '<section class="card">'
+                f'<div class="section-kicker">{h(style["name"])}.md</div>'
+                f'<h2>{h(style["title"])}</h2>{desc}'
+                f'<div class="article-text article-markdown">{markdown_to_html(text)}</div>'
+                "</section>"
+            )
+        if not cards:
+            cards = '<p class="empty">還沒有風格檔。在 <code>knowledge/writing-styles/</code> 放 .md（frontmatter 設 name / description）即可。</p>'
+        body = f"""
+{back_nav_html(self.same_origin_referer_path("/editor"))}
+<h1>撰文風格</h1>
+<p class="lede">編輯台「撰文風格」下拉會列出這裡的每個 .md；選了之後，該風格內容會在撰稿時餵給 AI（在 CLAUDE.md 寫作守則之上加套）。檔案放在 <code>knowledge/writing-styles/</code>。</p>
+{cards}
+"""
+        self.send_html("撰文風格", body)
 
     def show_editor_session(self, query: dict[str, list[str]]) -> None:
         session_id = clean_text((query.get("id") or [""])[0])
@@ -8930,7 +9149,7 @@ class Handler(BaseHTTPRequestHandler):
                 f'<input type="hidden" name="title" value="{h(title_c)}">'
                 f'<input type="hidden" name="body" value="{h(body_c)}">'
                 f'<input type="hidden" name="related_item_ids" value="{h(related_csv)}">'
-                f'<span>{h(body_c)}</span>'
+                f'<span class="editor-vp-cand-title" title="{h(body_c)}">{h(title_c)}</span>'
                 '<button type="submit" class="button button-small">+ 串聯加入觀點庫</button></form>'
             )
         extract_button = ""
@@ -8981,21 +9200,57 @@ class Handler(BaseHTTPRequestHandler):
             suffix = "" if available else "（未安裝）"
             return f'<option value="{name}"{disabled}>{h(label + suffix)}</option>'
 
-        task_options = ""
-        for key, label in EDITOR_TASK_LABELS.items():
-            selected = " selected" if key == task_type else ""
-            task_options += f'<option value="{h(key)}"{selected}>{h(label)}</option>'
+        # C8：沿生產線建議下一步（compose-* 與 newsletter-extract 不建議）
+        suggested_next = next_pipeline_task(task_type)
+        toolbox_default_task = suggested_next or task_type
+        if suggested_next:
+            next_hint = (
+                f'<p class="editor-hint editor-next-hint">建議下一步：<strong>{h(EDITOR_TASK_LABELS.get(suggested_next, suggested_next))}</strong>　'
+                f'{h(EDITOR_TASK_HINTS.get(suggested_next, ""))}</p>'
+            )
+        elif task_type in {"compose-thematic", "compose-digest"}:
+            next_hint = '<p class="editor-hint editor-next-hint">這篇已到「撰稿」生產線末端（彙報式／主題式二選一）。需要的話可回頭做查核或萃取觀點。</p>'
+        elif task_type == "newsletter-extract":
+            next_hint = '<p class="editor-hint editor-next-hint">彙整萃取報告外於撰稿生產線，沒有建議的下一步。</p>'
+        else:
+            next_hint = ""
+        toolbox_task_options = editor_task_options_html(toolbox_default_task)
+        toolbox_hints = "".join(
+            f'<p data-toolbox-hint="{h(k)}" class="editor-hint"{"" if k == toolbox_default_task else " hidden"}>{h(v)}</p>'
+            for k, v in EDITOR_TASK_HINTS.items()
+        )
+        # C6：列出本 session 材料（可取消勾選排除），並提供搜尋加入新材料
+        session_item_ids = [clean_text(i) for i in (session.get("item_ids") or []) if clean_text(i)]
+        session_titles = session.get("item_titles") or []
+        toolbox_mat_rows = ""
+        for idx, mid in enumerate(session_item_ids):
+            title = clean_text(session_titles[idx]) if idx < len(session_titles) else mid
+            toolbox_mat_rows += (
+                f'<label class="toolbox-mat"><input type="checkbox" class="toolbox-mat-box" value="{h(mid)}" checked>'
+                f'<span>{h(title)}</span></label>'
+            )
+        if not toolbox_mat_rows:
+            toolbox_mat_rows = '<p class="muted">這個 session 沒有記錄材料；用下方搜尋加入。</p>'
+        _seen_session_ids = set(session_item_ids)
+        toolbox_mat_pool = [
+            {"id": clean_text(r.get("id")), "title": editor_item_title(r)}
+            for r in load_jsonl(ITEMS)
+            if is_skill_candidate(r) and clean_text(r.get("id")) not in _seen_session_ids
+        ]
+        toolbox_mat_pool_json = json.dumps(toolbox_mat_pool[:400], ensure_ascii=False).replace("<", "\\u003c")
         toolbox_panel = f"""
 <details class="card editor-session-toolbox" open>
-  <summary><h2>工具箱</h2><span class="help-dot" title="用同一組材料改跑其他寫法、其他任務，或換另一個 AI。">?</span></summary>
+  <summary><h2>工具箱</h2><span class="help-dot" title="用同一組材料改跑其他寫法、其他任務，或換另一個 AI。可取消勾選排除材料、搜尋加入新材料。">?</span></summary>
+  {next_hint}
   <form method="post" action="/editor/run" class="editor-session-toolbox-form" data-toolbox-form>
     <input type="hidden" name="items" value="{h(related_csv)}">
-    <div class="editor-toolbox-grid">
+    <input type="hidden" name="rerun_of" value="{h(session_id)}">
+    <div class="editor-control-grid">
       <label class="editor-label">模型
         <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換另外兩個）</option>{toolbox_engine_option('gemini', 'Gemini')}{toolbox_engine_option('claude', 'Claude CLI')}{toolbox_engine_option('codex', 'Codex CLI')}</select>
       </label>
       <label class="editor-label">任務
-        <select name="task_type" class="editor-select">{task_options}</select>
+        <select name="task_type" class="editor-select" data-toolbox-task>{toolbox_task_options}</select>
       </label>
       <label class="editor-label">寫文模式
         <select name="choice" class="editor-select">
@@ -9004,12 +9259,59 @@ class Handler(BaseHTTPRequestHandler):
         </select>
       </label>
     </div>
+    {toolbox_hints}
+    <label class="editor-label">撰文風格 <a class="editor-style-link" href="/writing-styles" target="_blank">（管理 / 看風格檔）</a>
+      <select name="writing_style" class="editor-select">{writing_style_options_html(clean_text(session.get("writing_style")))}</select>
+    </label>
+    <div class="editor-label">材料（取消勾選＝這次不用；搜尋可加入新材料）</div>
+    <div class="toolbox-materials" id="toolbox-materials">{toolbox_mat_rows}</div>
+    <div class="article-search-row"><input type="search" id="toolbox-mat-search" placeholder="搜尋可用材料標題加入這次"></div>
+    <div class="toolbox-mat-results" id="toolbox-mat-results"></div>
     <label class="editor-label">這次額外指示
       <textarea name="instructions" rows="2" placeholder="例如：換成較短的彙報式，或改用另一個觀點切入"></textarea>
     </label>
     <button type="submit" class="button">{button_content('用這組材料再跑一次', 'wand')}</button>
   </form>
 </details>
+<script>
+(function() {{
+  var form = document.querySelector('[data-toolbox-form]');
+  if (!form) return;
+  var itemsHidden = form.querySelector('input[name=items]');
+  var matWrap = document.getElementById('toolbox-materials');
+  function syncItems() {{
+    var ids = Array.prototype.slice.call(matWrap.querySelectorAll('.toolbox-mat-box'))
+      .filter(function(b) {{ return b.checked; }}).map(function(b) {{ return b.value; }});
+    itemsHidden.value = ids.join(',');
+  }}
+  if (matWrap) {{ matWrap.addEventListener('change', syncItems); syncItems(); }}
+  var taskSel = form.querySelector('[data-toolbox-task]');
+  if (taskSel) taskSel.addEventListener('change', function() {{
+    form.querySelectorAll('[data-toolbox-hint]').forEach(function(p) {{ p.hidden = p.getAttribute('data-toolbox-hint') !== taskSel.value; }});
+  }});
+  function esc(s) {{ return (s || '').replace(/[&<>\"]/g, function(c) {{ return {{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}}[c]; }}); }}
+  var pool = {toolbox_mat_pool_json};
+  var search = document.getElementById('toolbox-mat-search');
+  var results = document.getElementById('toolbox-mat-results');
+  function present(id) {{ return Array.prototype.some.call(matWrap.querySelectorAll('.toolbox-mat-box'), function(b) {{ return b.value === id; }}); }}
+  if (search) search.addEventListener('input', function() {{
+    var q = search.value.trim().toLowerCase();
+    if (!q) {{ results.innerHTML = ''; return; }}
+    var hits = pool.filter(function(m) {{ return !present(m.id) && (m.title || '').toLowerCase().indexOf(q) !== -1; }}).slice(0, 12);
+    results.innerHTML = hits.length
+      ? hits.map(function(m) {{ return '<button type="button" class="button button-small quiet" data-add-mat="' + esc(m.id) + '">+ ' + esc(m.title) + '</button>'; }}).join('')
+      : '<span class="muted">沒有符合的可用材料</span>';
+  }});
+  if (results) results.addEventListener('click', function(e) {{
+    var btn = e.target.closest('[data-add-mat]'); if (!btn) return;
+    var id = btn.getAttribute('data-add-mat');
+    var m = pool.filter(function(x) {{ return x.id === id; }})[0]; if (!m) return;
+    var label = document.createElement('label'); label.className = 'toolbox-mat';
+    label.innerHTML = '<input type="checkbox" class="toolbox-mat-box" value="' + esc(id) + '" checked> <span>' + esc(m.title) + '</span>';
+    matWrap.appendChild(label); syncItems(); search.value = ''; results.innerHTML = '';
+  }});
+}})();
+</script>
 """
 
         current_ids = {clean_text(item_id) for item_id in (session.get("item_ids") or []) if clean_text(item_id)}
@@ -9088,6 +9390,35 @@ class Handler(BaseHTTPRequestHandler):
   </form>
 </section>
 """
+        # B3：本次額外指示／風格，沿 rerun_of 串成歷程（同一條工作鏈看得到下過哪些 prompt）
+        _sessions_by_id = {clean_text(s.get("id")): s for s in editor_sessions}
+        instruction_trail = []
+        _cur = session
+        _seen_trail: set[str] = set()
+        while _cur and clean_text(_cur.get("id")) not in _seen_trail:
+            _seen_trail.add(clean_text(_cur.get("id")))
+            _instr = clean_text(_cur.get("instructions"))
+            _style = clean_text(_cur.get("writing_style"))
+            if _instr or _style:
+                instruction_trail.append((_cur, _instr, _style))
+            _cur = _sessions_by_id.get(clean_text(_cur.get("rerun_of")))
+        instructions_panel = ""
+        if instruction_trail:
+            trail_rows = ""
+            for idx, (s, instr, style) in enumerate(instruction_trail):
+                tag = "本次" if idx == 0 else editor_relative_time(s.get("created_at"))
+                style_pill = f'<span class="tag-pill">風格：{h(style)}</span>' if style else ""
+                instr_html = f"<p>{h(instr)}</p>" if instr else '<p class="muted">（這步沒有額外指示，只套了風格）</p>'
+                trail_rows += (
+                    f'<li><strong>{h(tag)}</strong> '
+                    f'<span class="tag-pill">{h(s.get("task_label") or s.get("task_type"))}</span>{style_pill}{instr_html}</li>'
+                )
+            instructions_panel = (
+                '<section class="card"><h2>額外指示歷程 '
+                '<span class="help-dot" title="沿著「用這組材料再跑一次」往回追，看得到這條工作鏈當初下過哪些額外指示與撰文風格。">?</span></h2>'
+                f'<ul class="editor-instruction-trail">{trail_rows}</ul></section>'
+            )
+
         body = f"""
 {back_nav_html(self.same_origin_referer_path("/editor"))}
 <section class="card">
@@ -9098,6 +9429,7 @@ class Handler(BaseHTTPRequestHandler):
   <h2>材料</h2>
   <ul>{material_rows or '<li class="muted">（無）</li>'}</ul>
 </section>
+{instructions_panel}
 {toolbox_panel}
 <section class="card editor-output">{output_html}</section>
 {article_panel}
@@ -9108,14 +9440,27 @@ class Handler(BaseHTTPRequestHandler):
   .editor-session-toolbox summary {{ cursor:pointer; display:flex; align-items:center; gap:8px; }}
   .editor-session-toolbox summary h2 {{ display:inline; margin:0; }}
   .editor-session-toolbox-form .editor-label {{ display:block; margin:0 0 10px; font-weight:600; }}
+  /* 再跑工具箱對齊首頁：三欄排版（B9） */
+  .editor-session-toolbox-form .editor-control-grid {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }}
+  .editor-session-toolbox-form .editor-control-grid select {{ max-width:none; }}
+  .editor-next-hint {{ margin:0 0 10px; padding:8px 10px; border-radius:8px; background:var(--soft,#eef6ff); color:var(--ocf-dark,#14304a); }}
+  .editor-style-link {{ font-weight:400; font-size:12px; color:var(--muted,#64748b); }}
+  .editor-instruction-trail {{ margin:6px 0 0; padding-left:18px; }}
+  .editor-instruction-trail li {{ margin:8px 0; }}
+  .editor-instruction-trail p {{ margin:4px 0 0; }}
+  .toolbox-materials {{ display:grid; gap:4px; max-height:32vh; overflow:auto; margin:4px 0 8px; padding-right:2px; }}
+  .toolbox-mat {{ display:flex; gap:8px; align-items:baseline; font-size:13px; padding:5px 8px; border:1px solid var(--border,#e2e8f0); border-radius:8px; background:#fff; }}
+  .toolbox-mat span {{ min-width:0; word-break:break-word; }}
+  .toolbox-mat-results {{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }}
   .editor-toolbox-grid {{ display:flex; flex-direction:column; gap:0; }}
   .editor-vp-candidates {{ display:flex; flex-direction:column; gap:8px; margin:8px 0; }}
   .editor-vp-candidate {{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 10px; border:1px solid var(--border,#e2e8f0); border-radius:10px; }}
   .editor-vp-candidate span {{ flex:1; min-width:160px; }}
+  .editor-vp-cand-title {{ font-weight:600; }}
   .editor-vp-quickform, .editor-session-toolbox-form {{ margin-top:10px; }}
   .editor-vp-quickform input, .editor-vp-quickform textarea, .editor-session-toolbox-form textarea, .editor-session-toolbox-form select {{ width:100%; max-width:560px; box-sizing:border-box; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; margin-bottom:6px; }}
   .editor-vp-extract {{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }}
-  @media (max-width: 900px) {{ .editor-toolbox-grid {{ grid-template-columns:1fr; }} }}
+  @media (max-width: 900px) {{ .editor-toolbox-grid {{ grid-template-columns:1fr; }} .editor-session-toolbox-form .editor-control-grid {{ grid-template-columns:1fr; }} }}
 </style>
 <script>
 document.querySelectorAll("form[data-async-collect]").forEach(function(form) {{
@@ -10295,8 +10640,9 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 <article class="card candidate-card candidate-card--{h(recommendation)}" data-item-id="{h(item_id)}">
   <label class="select-item">
     <input type="checkbox" class="item-select" value="{h(item_id)}">
-    選取這則做批次處理
+    <span class="select-item-text">選取這則做批次處理</span>
   </label>
+  <div class="candidate-detailed">
   <div>
     {badge("RSS 新進", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
@@ -10340,6 +10686,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     </details>
   </div>
   {editorial_triage_html(item, compact=True)}
+  </div>
+  {item_compact_row(item)}
 </article>
 """
                 )
@@ -10350,8 +10698,9 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 <article class="card candidate-card candidate-card--{h(recommendation)}" data-item-id="{h(item_id)}">
   <label class="select-item">
     <input type="checkbox" class="item-select" value="{h(item_id)}">
-    選取這則做批次處理
+    <span class="select-item-text">選取這則做批次處理</span>
   </label>
+  <div class="candidate-detailed">
   <div>
     {badge("已入庫待分流", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
@@ -10393,6 +10742,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     </details>
   </div>
   {editorial_triage_html(item)}
+  </div>
+  {item_compact_row(item)}
 </article>
 """
             )
@@ -10486,6 +10837,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   {metric_card(counts.get("suggest-skip", 0), "建議不要看", items_metric_href("suggest-skip"), "只看建議不要看", "is-active" if recommendation_filter == "suggest-skip" else "")}
 </div>
 <div class="workspace-toolbar">
+  {material_layout_toggle("items-list")}
   {workspace_sidebar_toggle("items-workspace", "items-sidebar", "items", "篩選與批次工具")}
 </div>
 <div class="workspace-layout" id="items-workspace">
@@ -10493,7 +10845,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <h2>待入庫材料</h2>
     <p class="muted">符合條件：{len(filtered)} 筆。{'' if show_all else f'目前先顯示 {len(visible)} 筆。'}</p>
     {more_link}
-    <div class="list">{''.join(rows)}</div>
+    <div class="list" id="items-list" data-layout="list" data-layout-persist>{''.join(rows)}</div>
     {more_link}
   </section>
   <aside class="workspace-sidebar" id="items-sidebar">
@@ -10785,6 +11137,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
             skill_rows.append(
                 f"""
 <article class="card candidate-card">
+  <div class="candidate-detailed">
   <div>
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge("可進編輯台", "neutral")}
@@ -10801,6 +11154,8 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
     <a class="button button-small secondary" href="{h(detail_href)}">打開單篇整理</a>
   </div>
   <p class="help">下一步：拖進編輯台做選法檢查、撰稿或查核；整理好後才會成為 article。<br>系統原判斷：{h(workflow_display_text(triage.get('reason', '未標示')))}</p>
+  </div>
+  {item_compact_row(item)}
 </article>
 """
             )
@@ -10840,13 +11195,14 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
   {metric_card(track_counts.get("unclassified", 0), "未分類", candidate_metric_href("unclassified"), "只看未分類", "is-active" if track_filter == "unclassified" else "")}
 </div>
 <div class="workspace-toolbar">
+  {material_layout_toggle("candidates-list")}
   {workspace_sidebar_toggle("candidates-workspace", "candidates-sidebar", "candidates", "篩選工具")}
 </div>
 <div class="workspace-layout" id="candidates-workspace">
   <section class="workspace-main">
     <h2>已確認收，可進編輯台</h2>
     <p class="muted">符合條件：{len(filtered_skill)} 筆。</p>
-    <div class="list">{''.join(skill_rows)}</div>
+    <div class="list" id="candidates-list" data-layout="list" data-layout-persist>{''.join(skill_rows)}</div>
   </section>
   <aside class="workspace-sidebar" id="candidates-sidebar">
     <section class="workspace-sidebar-section">
@@ -11796,13 +12152,46 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             )
         derived_actions: list[str] = []
         if newsletter_candidates:
+            nl_cand_rows = "".join(
+                f'<label class="nl-cand"><input type="checkbox" name="url" value="{h(clean_text(c.get("url")))}" checked>'
+                f'<span class="nl-cand-title">{h(clean_text(c.get("title")) or clean_text(c.get("url")))}</span>'
+                f'<span class="nl-cand-host">{h(host_label(clean_text(c.get("url"))))}</span></label>'
+                for c in newsletter_candidates
+            )
+            nl_skip_block = ""
+            if newsletter_skipped:
+                nl_skip_rows = "".join(
+                    f'<li>{h(clean_text(s.get("title")) or clean_text(s.get("url")))} <span class="muted">— {h(clean_text(s.get("reason"), 60))}</span></li>'
+                    for s in newsletter_skipped[:40]
+                )
+                nl_skip_block = (
+                    f'<details class="nl-skip"><summary>系統判斷略過 {len(newsletter_skipped)} 個（功能性或非文章連結）</summary>'
+                    f'<ul>{nl_skip_rows}</ul></details>'
+                )
             derived_actions.append(
                 f"""
-    <form method="post" action="/items/extract-newsletter-links">
-      <input type="hidden" name="id" value="{h(item_id)}">
-      <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
-      <button type="submit" class="secondary">{button_content(f'拆出文章 link（{len(newsletter_candidates)}）', 'source')}</button>
-    </form>
+    <button type="button" class="secondary" onclick="document.getElementById('nl-dialog').showModal()">{button_content(f'拆出文章 link（{len(newsletter_candidates)}）', 'source')}</button>
+    <dialog id="nl-dialog" class="pdf-relation-dialog nl-dialog">
+      <form method="dialog" class="dialog-close-row"><button class="quiet">{button_content('關閉', 'clear')}</button></form>
+      <h2>選要入庫的文章連結</h2>
+      <p class="help">先勾選真的想收的連結再入庫，避免彙整電子報裡的雜訊整批進入庫建檔區。預設全勾。</p>
+      <form method="post" action="/items/extract-newsletter-links">
+        <input type="hidden" name="id" value="{h(item_id)}">
+        <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+        <input type="hidden" name="selected" value="1">
+        <div class="button-row">
+          <button type="button" class="button button-small quiet" onclick="this.closest('form').querySelectorAll('input[name=url]').forEach(b=>b.checked=true)">全選</button>
+          <button type="button" class="button button-small quiet" onclick="this.closest('form').querySelectorAll('input[name=url]').forEach(b=>b.checked=false)">全不選</button>
+        </div>
+        <div class="nl-cand-list">{nl_cand_rows}</div>
+        {nl_skip_block}
+        <div class="button-row" style="margin-top:12px">
+          <button type="submit">{button_content('入庫勾選的連結', 'accept')}</button>
+          <button type="button" class="quiet" onclick="this.closest('dialog').close()">取消</button>
+        </div>
+        <p class="help">入庫的連結會先進入庫建檔區，照單篇材料審核流程處理；重複網址會自動略過。</p>
+      </form>
+    </dialog>
 """
             )
             derived_actions.append(
@@ -12676,13 +13065,19 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             write_jsonl(path, updated_records)
         return found, changed, response_item, error
 
-    def extract_newsletter_links_record(self, path: Path, item_id: str) -> tuple[bool, dict]:
+    def extract_newsletter_links_record(self, path: Path, item_id: str, selected_urls: list[str] | None = None) -> tuple[bool, dict]:
         target_records = load_jsonl(path)
         parent = next((item for item in target_records if clean_text(item.get("id")) == item_id), None)
         if not parent:
             return False, {}
 
         candidates, skipped = newsletter_link_candidates(parent)
+        # 勾選視窗：selected_urls 不為 None 時只匯入被勾選的連結（空清單＝一筆都不收）；
+        # None 代表沒帶選擇（舊行為），維持全部匯入。
+        selected_set = None
+        if selected_urls is not None:
+            selected_set = {canonical_item_url(u) for u in selected_urls if clean_text(u)}
+        deselected_count = 0
         existing_items = load_jsonl(ITEMS)
         existing_candidates = load_jsonl(CANDIDATES)
         existing_keys = {key for record in [*existing_items, *existing_candidates] for key in item_url_keys(record)}
@@ -12699,6 +13094,9 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             url = canonical_item_url(link.get("url"))
             if not url or url in existing_keys:
                 duplicate_links.append(link)
+                continue
+            if selected_set is not None and url not in selected_set:
+                deselected_count += 1
                 continue
             child, source_info = build_newsletter_child_item(parent, link, extracted_at, keyword_config, editorial_context)
             source_id, did_source_change = ensure_derived_source(
@@ -12724,6 +13122,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             "imported_count": len(imported),
             "duplicate_count": len(duplicate_links),
             "skipped_count": len(skipped),
+            "deselected_count": deselected_count,
             "imported_item_ids": imported_ids,
             "duplicate_urls": [clean_text(link.get("url")) for link in duplicate_links[:12]],
             "skipped_samples": [
@@ -12760,9 +13159,11 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
     def extract_newsletter_links_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
-        found, stats = self.extract_newsletter_links_record(ITEMS, item_id)
+        # 浮動勾選視窗會帶 selected=1 + 多個 url；沒帶 selected 就維持舊的全部匯入
+        selected_urls = data.get("url") or [] if form_value(data, "selected") == "1" else None
+        found, stats = self.extract_newsletter_links_record(ITEMS, item_id, selected_urls)
         if not found:
-            found, stats = self.extract_newsletter_links_record(CANDIDATES, item_id)
+            found, stats = self.extract_newsletter_links_record(CANDIDATES, item_id, selected_urls)
         if not found:
             self.send_html("找不到項目", "<h1>找不到可拆 link 的項目</h1><p><a class='button' href='/items'>回入庫建檔區</a></p>", HTTPStatus.NOT_FOUND)
             return

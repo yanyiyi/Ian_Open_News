@@ -79,6 +79,19 @@ def clean_text(value: object, limit: int | None = None) -> str:
     return text
 
 
+def clean_markdown(value: object, limit: int | None = None) -> str:
+    """Clean generated Markdown while preserving blank lines between blocks."""
+    text = html.unescape(str(value or ""))
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", text)
+    text = re.sub(r"[ \t\f\v]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    if limit and len(text) > limit:
+        return text[:limit].rstrip() + "..."
+    return text
+
+
 def normalized(value: object) -> str:
     return re.sub(r"\s+", " ", clean_text(value)).casefold()
 
@@ -409,7 +422,7 @@ def text_to_markdown(text: str, title: str = "", limit: int = 60000) -> str:
             lines.append("- " + re.sub(r"^[-•]\s+", "", paragraph))
         else:
             lines.extend([paragraph, ""])
-    return clean_text("\n".join(lines), limit)
+    return clean_markdown("\n".join(lines), limit)
 
 
 def block_to_markdown(block: str, title: str = "", base_url: str = "", limit: int = 60000) -> str:
@@ -456,7 +469,7 @@ def block_to_markdown(block: str, title: str = "", base_url: str = "", limit: in
             if len(plain) >= 28 and len(re.sub(r"\W+", "", plain)) >= 20:
                 append_block(plain)
 
-    return clean_text("\n".join(lines), limit)
+    return clean_markdown("\n".join(lines), limit)
 
 
 def extract_article_markdown(html_text: str, final_url: str = "", title: str = "", limit: int = 60000) -> tuple[str, str]:

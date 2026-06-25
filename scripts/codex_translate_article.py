@@ -34,6 +34,17 @@ def clean_text(value: object, limit: int | None = None) -> str:
     return text
 
 
+def clean_markdown(value: object, limit: int | None = None) -> str:
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", text)
+    text = re.sub(r"[ \t\f\v]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    if limit and len(text) > limit:
+        return text[:limit].rstrip() + "\n\n..."
+    return text
+
+
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
@@ -137,7 +148,7 @@ def item_title(record: dict[str, Any]) -> str:
 
 def source_markdown(record: dict[str, Any]) -> str:
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
-    markdown = clean_text(metadata.get("article_markdown"), 42000)
+    markdown = clean_markdown(metadata.get("article_markdown"), 42000)
     if markdown:
         return markdown
     text = clean_text(metadata.get("article_text"), 36000)
@@ -360,8 +371,7 @@ def _sentence_split(text: str, max_chars: int) -> list[str]:
 
 
 def split_markdown_chunks(markdown: str, max_chars: int = 2400) -> list[str]:
-    """把全文切成接近 max_chars 的段。先用空行分段；沒有空行就退用單行、再退用句子，
-    確保長文一定會被切開（clean_text 會移除空行，故不能只靠 \\n\\n）。"""
+    """把全文切成接近 max_chars 的段。先用 Markdown 空行分段；過長才退用單行與句子。"""
     units: list[str] = []
     for block in re.split(r"\n\s*\n", markdown):
         block = block.strip()
@@ -547,7 +557,7 @@ def apply_translation(record: dict[str, Any], payload: dict[str, Any], language:
     metadata = dict(metadata)
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     zh_title = clean_text(payload.get("zh_title"), 320)
-    zh_markdown = clean_text(payload.get("zh_markdown"), 90000)
+    zh_markdown = clean_markdown(payload.get("zh_markdown"), 90000)
     source_label = provider_label(provider)
     provider_prefix = provider if provider in {"claude", "gemini"} else "codex"
     metadata.update(

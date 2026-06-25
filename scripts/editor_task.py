@@ -32,6 +32,23 @@ CACHE = ROOT / ".cache"
 CANDIDATES = CACHE / "rss-candidates.jsonl"
 SESSIONS = CACHE / "editor-sessions.jsonl"
 STATUS = CACHE / "editor-status.json"
+WRITING_STYLES = ROOT / "knowledge" / "writing-styles"
+
+
+def load_writing_style_text(name: str) -> str:
+    """讀 knowledge/writing-styles/<name>.md 的內文（去掉 YAML frontmatter）當撰文風格規則。"""
+    name = (name or "").strip()
+    if not name or "/" in name or "\\" in name:
+        return ""
+    path = WRITING_STYLES / f"{name}.md"
+    if not path.exists():
+        return ""
+    text = path.read_text(encoding="utf-8")
+    if text.startswith("---"):
+        parts = text.split("---", 2)
+        if len(parts) == 3:
+            text = parts[2]
+    return text.strip()
 
 TASK_TYPES = {
     "theme-check",
@@ -388,10 +405,15 @@ def newsletter_extract_schema() -> dict[str, Any]:
     }
 
 
-def build_prompt(task_type: str, choice: str, materials: list[dict], viewpoints: list[dict], instructions: str) -> str:
+def build_prompt(task_type: str, choice: str, materials: list[dict], viewpoints: list[dict], instructions: str, writing_style_text: str = "") -> str:
     mat_json = json.dumps(materials, ensure_ascii=False, indent=2)
     vp_json = json.dumps(viewpoints, ensure_ascii=False, indent=2)
-    extra = f"\n額外指示：{instructions}\n" if instructions else ""
+    style_part = (
+        f"\n撰文風格（請優先遵循；與上面寫作守則衝突時，以守則為底線）：\n{writing_style_text}\n"
+        if writing_style_text
+        else ""
+    )
+    extra = style_part + (f"\n額外指示：{instructions}\n" if instructions else "")
     choice_label = CHOICE_LABELS.get(choice, choice or "未指定")
 
     if task_type == "theme-check":
@@ -728,6 +750,8 @@ def main() -> None:
     parser.add_argument("--items", default="", help="逗號分隔的 item id")
     parser.add_argument("--choice", choices=["thematic", "digest"], default="")
     parser.add_argument("--instructions", default="")
+    parser.add_argument("--writing-style", default="", help="knowledge/writing-styles 下的風格檔名（不含 .md）")
+    parser.add_argument("--rerun-of", default="", help="這次是從哪個 session 用同組材料再跑的")
     parser.add_argument("--session-id", default="")
     parser.add_argument("--timeout", type=int, default=1500)
     parser.add_argument("--dry-run", action="store_true")
@@ -752,7 +776,8 @@ def main() -> None:
             if args.task_type in {"theme-check", "compose-thematic", "compose-digest", "newsletter-extract"}
             else []
         )
-        prompt = build_prompt(args.task_type, args.choice, materials, viewpoints, args.instructions)
+        writing_style_text = load_writing_style_text(args.writing_style)
+        prompt = build_prompt(args.task_type, args.choice, materials, viewpoints, args.instructions, writing_style_text)
 
         schema_for = {
             "theme-check": theme_check_schema(),
@@ -797,6 +822,9 @@ def main() -> None:
             "task_type": args.task_type,
             "task_label": TASK_LABELS.get(args.task_type, args.task_type),
             "choice": args.choice,
+            "instructions": args.instructions,
+            "writing_style": args.writing_style,
+            "rerun_of": args.rerun_of,
             "item_ids": [clean_text(r.get("id")) for r in records],
             "item_titles": [record_title(r) for r in records],
             "used_translation": [m["id"] for m in materials if m["body_kind"] == "translated_full"],

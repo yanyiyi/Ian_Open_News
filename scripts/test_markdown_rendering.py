@@ -12,6 +12,26 @@ import local_web  # noqa: E402
 
 
 class MarkdownRenderingTest(unittest.TestCase):
+    def test_article_markdown_reader_keeps_blank_lines(self) -> None:
+        markdown = "# Title\n\nFirst paragraph.\n\nSecond paragraph."
+
+        self.assertEqual(
+            local_web.item_article_markdown(
+                {"reading_metadata": {"article_markdown": markdown}}
+            ),
+            markdown,
+        )
+
+    def test_translation_reader_keeps_blank_lines(self) -> None:
+        markdown = "# 中文標題\n\n第一段。\n\n第二段。"
+
+        self.assertEqual(
+            local_web.item_translated_markdown(
+                {"reading_metadata": {"translated_article_markdown_zh": markdown}}
+            ),
+            markdown,
+        )
+
     def test_edited_markdown_reader_does_not_collapse_blank_lines(self) -> None:
         markdown = "第一行\n\n第二段"
 
