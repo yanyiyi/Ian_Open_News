@@ -7082,7 +7082,11 @@ def editor_cli_path(name: str) -> str | None:
     found = shutil.which(name)
     if found:
         return found
-    for candidate in (f"/opt/homebrew/bin/{name}", f"/usr/local/bin/{name}"):
+    for candidate in (
+        str(Path.home() / ".local" / "bin" / name),
+        f"/opt/homebrew/bin/{name}",
+        f"/usr/local/bin/{name}",
+    ):
         if Path(candidate).exists():
             return candidate
     return None

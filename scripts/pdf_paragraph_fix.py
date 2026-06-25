@@ -56,7 +56,7 @@ def _resolve(name: str, fallbacks: list[str]) -> str:
     found = shutil.which(name)
     if found:
         return found
-    for path in fallbacks:
+    for path in [str(Path.home() / ".local" / "bin" / name), *fallbacks]:
         if Path(path).exists():
             return path
     raise RuntimeError(f"找不到 {name} CLI。")

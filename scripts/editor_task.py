@@ -506,7 +506,11 @@ def cli_path(name: str) -> str:
     candidate = shutil.which(name)
     if candidate:
         return candidate
-    for path in (f"/opt/homebrew/bin/{name}", f"/usr/local/bin/{name}"):
+    for path in (
+        str(Path.home() / ".local" / "bin" / name),
+        f"/opt/homebrew/bin/{name}",
+        f"/usr/local/bin/{name}",
+    ):
         if Path(path).exists():
             return path
     raise RuntimeError(f"找不到 {name} CLI，請先確認是否已安裝。")
@@ -514,7 +518,11 @@ def cli_path(name: str) -> str:
 
 def _env() -> dict[str, str]:
     env = os.environ.copy()
-    env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
+    env["PATH"] = (
+        f"{Path.home() / '.local' / 'bin'}:"
+        "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:"
+        + env.get("PATH", "")
+    )
     return env
 
 

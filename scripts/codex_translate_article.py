@@ -52,7 +52,7 @@ def codex_path() -> str:
     candidate = shutil.which("codex")
     if candidate:
         return candidate
-    for path in ["/opt/homebrew/bin/codex", "/usr/local/bin/codex"]:
+    for path in [str(Path.home() / ".local" / "bin" / "codex"), "/opt/homebrew/bin/codex", "/usr/local/bin/codex"]:
         if Path(path).exists():
             return path
     raise RuntimeError("找不到 codex CLI，請先確認 /opt/homebrew/bin/codex 是否可用。")
@@ -62,7 +62,7 @@ def claude_path() -> str:
     candidate = shutil.which("claude")
     if candidate:
         return candidate
-    for path in ["/opt/homebrew/bin/claude", "/usr/local/bin/claude"]:
+    for path in [str(Path.home() / ".local" / "bin" / "claude"), "/opt/homebrew/bin/claude", "/usr/local/bin/claude"]:
         if Path(path).exists():
             return path
     raise RuntimeError("找不到 claude CLI，請先確認 /opt/homebrew/bin/claude 是否可用。")
@@ -72,7 +72,7 @@ def agy_path() -> str:
     candidate = shutil.which("agy")
     if candidate:
         return candidate
-    for path in ["/opt/homebrew/bin/agy", "/usr/local/bin/agy"]:
+    for path in [str(Path.home() / ".local" / "bin" / "agy"), "/opt/homebrew/bin/agy", "/usr/local/bin/agy"]:
         if Path(path).exists():
             return path
     raise RuntimeError("找不到 agy CLI，請先確認 /opt/homebrew/bin/agy 是否可用。")
