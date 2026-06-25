@@ -21,7 +21,9 @@ REPORT = ROOT / ".cache" / "codex-review-report.md"
 
 READER_STATUSES = {"triaged", "researching", "drafting", "reviewing", "fact-checking", "ready", "published"}
 READER_ACTIONS = {"accepted-for-editing", "direct-pr-small-news", "revisit-with-personal-notes"}
-CURRENT_READING_PRIORITY_DAYS = 2
+CURRENT_READING_PRIORITY_DAYS = 1
+# 隨機（--provider random）時每筆獨立抽引擎的加權比例（Codex 40 / Claude 40 / Gemini 20）。
+PROVIDER_WEIGHTS = {"codex": 40, "claude": 40, "gemini": 20}
 AI_PROVIDERS = {
     "codex": {
         "label": "Codex",
@@ -161,13 +163,12 @@ def available_providers() -> list[str]:
     return available
 
 
-def choose_provider(provider: str) -> str:
-    if provider != "random":
-        return provider
-    providers = available_providers()
-    if not providers:
-        raise RuntimeError("找不到可用的 Codex 或 Claude Code CLI。")
-    return random.choice(providers)
+def weighted_choice(providers: list[str]) -> str:
+    """在可用引擎中依 PROVIDER_WEIGHTS 加權抽一個；權重全為 0 時退回等機率。"""
+    weights = [PROVIDER_WEIGHTS.get(provider, 0) for provider in providers]
+    if sum(weights) <= 0:
+        return random.choice(providers)
+    return random.choices(providers, weights=weights, k=1)[0]
 
 
 def has_provider_review(record: dict[str, Any], provider: str) -> bool:
@@ -175,6 +176,13 @@ def has_provider_review(record: dict[str, Any], provider: str) -> bool:
     if not isinstance(editorial, dict):
         return False
     return isinstance(editorial.get(provider_meta(provider)["review_key"]), dict)
+
+
+def has_any_review(record: dict[str, Any]) -> bool:
+    editorial = record.get("editorial_triage")
+    if not isinstance(editorial, dict):
+        return False
+    return any(isinstance(editorial.get(provider_meta(name)["review_key"]), dict) for name in AI_PROVIDERS)
 
 
 def local_decision_action(record: dict[str, Any]) -> str:
@@ -497,10 +505,10 @@ def run_gemini(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[di
     return reviews
 
 
-def run_provider(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[dict[str, Any]]:
-    if args.provider == "claude":
+def run_provider(batch: list[dict[str, Any]], args: argparse.Namespace, provider: str) -> list[dict[str, Any]]:
+    if provider == "claude":
         return run_claude(batch, args)
-    if args.provider == "gemini":
+    if provider == "gemini":
         return run_gemini(batch, args)
     return run_codex(batch, args)
 
@@ -581,15 +589,21 @@ def collect_targets(records: list[dict[str, Any]], args: argparse.Namespace, kin
     ids = set(args.id or [])
     recommendations = set(args.recommendation or [])
     selected: list[dict[str, Any]] = []
+    # random：每筆會各自加權抽引擎，所以「已有 review」以任一引擎為準，避免同一篇被反覆補。
+    def already_reviewed(record: dict[str, Any]) -> bool:
+        if args.provider == "random":
+            return has_any_review(record)
+        return has_provider_review(record, args.provider)
+
     for record in records:
         if ids:
             if str(record.get("id") or "") not in ids:
                 continue
-            if args.missing_only and has_provider_review(record, args.provider):
+            if args.missing_only and already_reviewed(record):
                 continue
             selected.append(record)
             continue
-        if args.missing_only and has_provider_review(record, args.provider):
+        if args.missing_only and already_reviewed(record):
             continue
         if kind == "items":
             if not in_item_scope(record, tracks, statuses, args.workflow_scope):
@@ -613,17 +627,35 @@ def process_file(path: Path, kind: str, args: argparse.Namespace) -> tuple[int, 
     if args.prepare_only or not targets:
         return len(targets), 0
 
+    # 每筆獨立決定引擎：random 時逐筆加權抽（40 Codex / 40 Claude / 20 Gemini），
+    # 其餘沿用指定引擎。再依引擎分組，同組仍可分批送一次 CLI。
+    if args.provider == "random":
+        providers = available_providers()
+        if not providers:
+            raise RuntimeError("找不到可用的 Codex、Claude Code 或 Gemini CLI。")
+        assignments = [(weighted_choice(providers), record) for record in targets]
+    else:
+        assignments = [(args.provider, record) for record in targets]
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for provider, record in assignments:
+        grouped.setdefault(provider, []).append(record)
+
     changed = 0
-    for batch_records in batched(targets, max(1, args.batch_size)):
-        batch_input = [review_input(record) for record in batch_records]
-        reviews = run_provider(batch_input, args)
-        batch_changed = apply_reviews(records, reviews, args.provider)
-        changed += batch_changed
-        if batch_changed and not args.dry_run:
-            for record in records:
-                record.pop("_line", None)
-            write_jsonl(path, records)
-        print(f"{kind}: batch selected {len(batch_records)}, updated {batch_changed}", flush=True)
+    for provider, group in grouped.items():
+        for batch_records in batched(group, max(1, args.batch_size)):
+            batch_input = [review_input(record) for record in batch_records]
+            reviews = run_provider(batch_input, args, provider)
+            batch_changed = apply_reviews(records, reviews, provider)
+            changed += batch_changed
+            if batch_changed and not args.dry_run:
+                for record in records:
+                    record.pop("_line", None)
+                write_jsonl(path, records)
+            print(
+                f"{kind}: {provider_meta(provider)['label']} batch selected {len(batch_records)}, updated {batch_changed}",
+                flush=True,
+            )
     return len(targets), changed
 
 
@@ -646,7 +678,12 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Call Codex but do not write JSONL.")
     parser.add_argument("--report", type=Path, default=REPORT)
     args = parser.parse_args()
-    args.provider = choose_provider(args.provider)
+
+    provider_label = (
+        "隨機（Codex 40 / Claude 40 / Gemini 20，逐筆加權）"
+        if args.provider == "random"
+        else provider_meta(args.provider)["label"]
+    )
 
     totals: list[tuple[str, int, int]] = []
     if args.target in {"candidates", "both"}:
@@ -655,11 +692,11 @@ def main() -> None:
         totals.append(("資料庫項目", *process_file(args.items, "items", args)))
 
     lines = [
-        f"# {provider_meta(args.provider)['label']} review enrichment report",
+        f"# {provider_label} review enrichment report",
         "",
         f"- Generated at: {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
         f"- Target: {args.target}",
-        f"- Provider: {provider_meta(args.provider)['label']}",
+        f"- Provider: {provider_label}",
         f"- Tracks: {', '.join(args.track) if args.track else 'all'}",
         f"- Mode: {'prepare only' if args.prepare_only else 'dry run' if args.dry_run else 'write'}",
         "",
