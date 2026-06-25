@@ -514,7 +514,7 @@ COMMANDS = {
     },
     "codex_enrich_reviews": {
         "label": "隨機補 AI 閱讀建議與摘要",
-        "description": "針對入庫建檔區與閱讀區中還沒有模型 review 的項目，隨機使用 Codex CLI, Claude Code CLI 或 Gemini (agy) CLI 產生給 Ian 的一句話推薦、三個閱讀理由、中文標題與中文摘要；未指定項目時會先看長時間標記的正在閱讀材料。",
+        "description": "針對入庫建檔區與閱讀區中還沒有任何模型 review 的項目，逐筆加權隨機（Codex 40 / Claude Code 40 / Gemini agy 20）挑一個 CLI 產生給 Ian 的一句話推薦、三個閱讀理由、中文標題與中文摘要；未指定項目時會先看標記超過 1 天的正在閱讀材料。",
         "button": "隨機補 AI 建議",
         "command": [
             sys.executable,
@@ -878,6 +878,59 @@ def remove_jsonl_ids(path: Path, record_ids: set[str]) -> int:
     if removed:
         write_jsonl(path, kept_records)
     return removed
+
+
+def database_integrity_report() -> dict:
+    """掃出 validate_database.py 會擋下、且能在本機一鍵決斷的兩類問題：
+    1) 同一筆 id 同時在可用材料區(items)與已退件(rejected) 2) 指向不存在項目的孤兒審查事件。"""
+    items = load_jsonl(ITEMS)
+    rejected = load_jsonl(REJECTED_ITEMS)
+    reviews = load_jsonl(REVIEW_EVENTS)
+    item_by_id = {clean_text(r.get("id")): r for r in items if r.get("id")}
+    rejected_by_id = {clean_text(r.get("id")): r for r in rejected if r.get("id")}
+    item_ids = set(item_by_id)
+    rejected_ids = set(rejected_by_id)
+
+    issues: list[dict] = []
+    for item_id in sorted(item_ids & rejected_ids):
+        active = item_by_id.get(item_id, {})
+        archived = rejected_by_id.get(item_id, {})
+        decision = archived.get("local_decision") if isinstance(archived.get("local_decision"), dict) else {}
+        issues.append(
+            {
+                "type": "duplicate_item",
+                "id": item_id,
+                "title": clean_text(active.get("title") or archived.get("title")) or item_id,
+                "track": track_label(clean_text(active.get("track") or archived.get("track"))),
+                "detail": "這筆同時出現在『可用材料區』和『已退件』，資料庫不允許同一筆 id 兩邊都在。",
+                "rejected_reason": clean_text(decision.get("reason")),
+                "rejected_at": clean_text(decision.get("decided_at")),
+                # 已有明確退件決定 → 預設尊重退件；否則預設留為可用材料。
+                "recommended": "keep_rejected" if decision.get("action") == "rejected" else "keep_active",
+            }
+        )
+
+    for review in reviews:
+        referenced = clean_text(review.get("item_id"))
+        if not referenced or referenced == "manual-seed":
+            continue
+        if referenced in item_ids or referenced in rejected_ids:
+            continue
+        issues.append(
+            {
+                "type": "orphan_review",
+                "id": clean_text(review.get("id")),
+                "item_id": referenced,
+                "step": clean_text(review.get("step")),
+                "reviewer": clean_text(review.get("reviewer")),
+                "created_at": clean_text(review.get("created_at")),
+                "notes": clean_text(review.get("notes"), 120),
+                "detail": f"這筆審查事件指向的項目 {referenced} 已經不在資料庫（可能被刪或改過 id），形成孤兒紀錄。",
+                "recommended": "drop_event",
+            }
+        )
+
+    return {"ok": not issues, "issues": issues, "count": len(issues)}
 
 
 def now_iso() -> str:
@@ -1617,6 +1670,64 @@ def command_card(name: str, config: dict) -> str:
         f"{controls}"
         "</div>"
     )
+
+
+def render_integrity_issue(issue: dict) -> str:
+    target_id = h(issue.get("id"))
+    issue_type = issue.get("type")
+    if issue_type == "duplicate_item":
+        recommended = issue.get("recommended")
+
+        def fix_button(action: str, label: str) -> str:
+            is_rec = action == recommended
+            cls_attr = "" if is_rec else " class='secondary'"
+            suffix = "（建議）" if is_rec else ""
+            return (
+                "<form method='post' action='/integrity/fix' style='display:inline'>"
+                "<input type='hidden' name='issue_type' value='duplicate_item'>"
+                f"<input type='hidden' name='target_id' value='{target_id}'>"
+                f"<input type='hidden' name='action' value='{h(action)}'>"
+                f"<button type='submit'{cls_attr}>{h(label)}{suffix}</button>"
+                "</form>"
+            )
+
+        meta_bits = []
+        if issue.get("rejected_reason"):
+            meta_bits.append(f"退件原因：{h(issue['rejected_reason'])}")
+        if issue.get("rejected_at"):
+            meta_bits.append(f"退件時間：{h(issue['rejected_at'])}")
+        meta = f"<p class='help'>{'　'.join(meta_bits)}</p>" if meta_bits else ""
+        return (
+            "<div class='card'>"
+            f"<strong>重複項目：{h(issue.get('title'))}</strong>"
+            f"<p class='muted'>{h(issue.get('detail'))}</p>"
+            f"<p class='help'>id：<code>{target_id}</code>　主線：{h(issue.get('track'))}</p>"
+            f"{meta}"
+            f"<div class='button-row'>{fix_button('keep_active', '保留為可用材料')}{fix_button('keep_rejected', '確定退件')}</div>"
+            "<p class='help'>「保留為可用材料」會從已退件移除這筆；「確定退件」會從可用材料區移除，並保留退件學習檔。</p>"
+            "</div>"
+        )
+    if issue_type == "orphan_review":
+        extra = ""
+        if issue.get("step"):
+            extra += f"　階段：{h(issue.get('step'))}"
+        if issue.get("notes"):
+            extra += f"<br>備註：{h(issue.get('notes'))}"
+        return (
+            "<div class='card'>"
+            "<strong>孤兒審查事件</strong>"
+            f"<p class='muted'>{h(issue.get('detail'))}</p>"
+            f"<p class='help'>事件 id：<code>{target_id}</code>　指向項目：<code>{h(issue.get('item_id'))}</code>{extra}</p>"
+            "<form method='post' action='/integrity/fix' style='display:inline'>"
+            "<input type='hidden' name='issue_type' value='orphan_review'>"
+            f"<input type='hidden' name='target_id' value='{target_id}'>"
+            "<input type='hidden' name='action' value='drop_event'>"
+            "<button type='submit'>移除這筆審查事件（建議）</button>"
+            "</form>"
+            "<p class='help'>若項目只是被誤刪，可先去『已退件』找回再回來重檢；否則移除孤兒事件即可。</p>"
+            "</div>"
+        )
+    return ""
 
 
 def remove_local_candidate_fields(record: dict) -> dict:
@@ -8150,6 +8261,8 @@ class Handler(BaseHTTPRequestHandler):
             self.redirect(f"/items{suffix}")
         elif parsed.path == "/keywords":
             self.show_keywords()
+        elif parsed.path == "/integrity":
+            self.show_integrity(query)
         elif parsed.path == "/items":
             self.show_items(query)
         elif parsed.path == "/items/view":
@@ -8311,6 +8424,8 @@ class Handler(BaseHTTPRequestHandler):
             self.restore_source_item(self.read_form())
         elif parsed.path == "/commands/run":
             self.run_command(self.read_form())
+        elif parsed.path == "/integrity/fix":
+            self.apply_integrity_fix_request(self.read_form())
         elif parsed.path == "/editor/run":
             self.run_editor_task(self.read_form())
         elif parsed.path == "/editor/viewpoints/save":
@@ -9982,6 +10097,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 """
             )
         command_cards = [command_card(name, config) for name, config in COMMANDS.items()]
+        integrity_count = database_integrity_report()["count"]
         body = f"""
 <h1>共通入口</h1>
 <p class="lede">這裡是每天 RSS 自動抓取、手動收藏、資料檢查與兩條知識主線的起點。資料正本仍在 GitHub 裡的 JSONL，網頁只是讓你比較好操作。</p>
@@ -10051,6 +10167,13 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <button type="submit" class="secondary">送 commit 儲存狀態</button>
     </form>
     <p class="help">最近狀態：{h(data_commit_message_text)}<br>最近更新：{h(data_commit_last)}<br>下次自動檢查：{h(data_commit_next)}</p>
+  </div>
+  <div class="card">
+    <h3>資料庫健檢</h3>
+    <p class="muted">檢查可用材料區與已退件有沒有重複 id、審查事件有沒有指向不存在的項目，並附建議讓你一鍵修好。</p>
+    <div class="metric-row">{metric_tile(integrity_count, "待處理", "/integrity", "去處理")}</div>
+    <p><a class="button {'secondary' if integrity_count == 0 else ''}" href="/integrity">打開資料庫健檢</a></p>
+    <p class="help">{'目前沒有發現問題。' if integrity_count == 0 else '送 PR 前先把這裡清成 0，避免 CI 擋下。'}</p>
   </div>
 </div>
 <h2>本機指令</h2>
@@ -15135,6 +15258,69 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             self.redirect(f"/sources/view?{query}")
             return
         self.redirect(f"/sources?track={quote(record['track'])}")
+
+    def show_integrity(self, query: dict[str, list[str]]) -> None:
+        report = database_integrity_report()
+        issues = report["issues"]
+        message = clean_text(unquote((query.get("msg") or [""])[0]))
+        flash = f"<div class='notice'>{h(message)}</div>" if message else ""
+        if not issues:
+            body = (
+                "<h1>資料庫健檢</h1>"
+                "<p class='lede'>檢查可用材料區與已退件有沒有重複 id，以及審查事件是否指向已不存在的項目。送 PR 前這頁是綠的就沒問題。</p>"
+                f"{flash}"
+                "<div class='card'><strong>✓ 資料庫健檢通過</strong>"
+                "<p class='muted'>目前沒有重複項目，也沒有孤兒審查事件。</p></div>"
+                "<p><a class='button quiet' href='/'>回總覽</a></p>"
+            )
+            self.send_html("資料庫健檢", body)
+            return
+        cards = "".join(render_integrity_issue(issue) for issue in issues)
+        body = (
+            "<h1>資料庫健檢</h1>"
+            f"<p class='lede'>找到 {len(issues)} 個需要你決斷的問題。每張卡片的按鈕按下去就會直接修好，並回到這頁重新檢查；標「（建議）」的是我推薦的處理方式。</p>"
+            f"{flash}"
+            f"<div class='grid'>{cards}</div>"
+            "<p><a class='button quiet' href='/'>回總覽</a></p>"
+        )
+        self.send_html("資料庫健檢", body)
+
+    @with_db_write_lock
+    def apply_integrity_fix(self, issue_type: str, target_id: str, action: str) -> dict:
+        if not target_id:
+            return {"ok": False, "message": "缺少要處理的項目 id。"}
+        if issue_type == "duplicate_item":
+            if action == "keep_active":
+                removed = remove_jsonl_ids(REJECTED_ITEMS, {target_id})
+                if removed:
+                    return {"ok": True, "message": f"已把 {target_id} 保留為可用材料，並從已退件移除。"}
+                return {"ok": False, "message": "找不到對應的已退件紀錄，可能已處理過。"}
+            if action == "keep_rejected":
+                removed = remove_jsonl_ids(ITEMS, {target_id})
+                if removed:
+                    return {"ok": True, "message": f"已確定退件 {target_id}，從可用材料區移除並保留退件學習檔。"}
+                return {"ok": False, "message": "找不到對應的可用材料紀錄，可能已處理過。"}
+            return {"ok": False, "message": "未知的處理方式。"}
+        if issue_type == "orphan_review":
+            if action == "drop_event":
+                removed = remove_jsonl_ids(REVIEW_EVENTS, {target_id})
+                if removed:
+                    return {"ok": True, "message": f"已移除孤兒審查事件 {target_id}。"}
+                return {"ok": False, "message": "找不到對應的審查事件，可能已處理過。"}
+            return {"ok": False, "message": "未知的處理方式。"}
+        return {"ok": False, "message": "未知的健檢項目類型。"}
+
+    def apply_integrity_fix_request(self, data: dict[str, list[str]]) -> None:
+        issue_type = clean_text(form_value(data, "issue_type"))
+        target_id = clean_text(form_value(data, "target_id"))
+        action = clean_text(form_value(data, "action"))
+        result = self.apply_integrity_fix(issue_type, target_id, action)
+        message = result.get("message") or ("已處理。" if result.get("ok") else "沒有變更。")
+        if self.is_async_request():
+            report = database_integrity_report()
+            self.send_json({"ok": bool(result.get("ok")), "message": message, "count": report["count"]})
+            return
+        self.redirect(f"/integrity?msg={quote(message)}")
 
     def run_command(self, data: dict[str, list[str]]) -> None:
         command_name = form_value(data, "command")
