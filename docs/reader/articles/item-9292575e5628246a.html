@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>垃圾收集 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(280px, 360px); gap: 18px; align-items: start; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
+    .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout { grid-template-columns: 1fr; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-25T02:03:24+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-24 08:00</span></div>
+      <h1><a class="article-title-link" href="https://www.nature.com/articles/d41586-026-01720-4" target="_blank" rel="noreferrer" title="開啟原始連結">垃圾收集</a></h1>
+      <p class="lede">現有資料僅提供「垃圾收集」這個標題與一句「似曾相識」的描述，沒有足夠資訊判斷文章實際內容。</p>
+
+    </article>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><h1>垃圾回收</h1>
+<ul>
+<li>Aidan Lawson</li>
+</ul>
+<p>Aidan Lawson 是常駐田納西州的作家、軟體工程學生，也是「模態路徑倫理學」（Modal Path Ethics）的創立者。他撰寫小說與散文，探討運算、後果，以及值得保存的可能未來。 搜尋作者： <a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=search&amp;term=Aidan+Lawson" target="_blank" rel="noreferrer">PubMed</a> <a href="https://scholar.google.co.uk/scholar?as_q=&amp;btnG=Search+Scholar&amp;as_sauthors=%22Aidan%2BLawson%22" target="_blank" rel="noreferrer">Google Scholar</a></p>
+<ul>
+<li>[Bluesky](https://bsky.app/intent/compose?text=Garbage+collection https%3A%2F%2Fwww.nature.com%2Farticles%2Fd41586-026-01720-4)</li>
+<li><a href="https://www.facebook.com/sharer.php?u=https%3A%2F%2Fwww.nature.com%2Farticles%2Fd41586-026-01720-4&amp;t=Garbage+collection" target="_blank" rel="noreferrer">Facebook</a></li>
+<li><a href="https://www.linkedin.com/shareArticle?text=Garbage+collection&amp;url=https%3A%2F%2Fwww.nature.com%2Farticles%2Fd41586-026-01720-4" target="_blank" rel="noreferrer">LinkedIn</a></li>
+<li><a href="https://www.reddit.com/submit?title=Garbage+collection&amp;url=https%3A%2F%2Fwww.nature.com%2Farticles%2Fd41586-026-01720-4" target="_blank" rel="noreferrer">Reddit</a></li>
+<li>[WhatsApp](https://wa.me/?text=Garbage+collection https%3A%2F%2Fwww.nature.com%2Farticles%2Fd41586-026-01720-4)</li>
+<li><a href="https://twitter.com/intent/tweet?text=Garbage+collection&amp;url=https%3A%2F%2Fwww.nature.com%2Farticles%2Fd41586-026-01720-4" target="_blank" rel="noreferrer">X</a></li>
+</ul>
+<p>弗雷德就站在 27B 號公寓門口，臉色蒼白得像是從十一月起就沒見過陽光，渾身散發著循環空氣與臭氧的氣味。今天爬這段樓梯可讓他吃足了苦頭。 「房租上星期就該繳了，」班一邊說，一邊從碗裡舀起泡得軟爛的碎麥片塞進嘴裡。「所以，你欠我三個月。」 弗雷德走進屋內，鎖上門閂。他扣上門鏈，又把一張椅子卡在門把下。他轉過身，卻沒有查看窗戶，反而背靠牆壁坐到地板上，緩慢而小心地吐出一口長氣，彷彿這個房間隨時可能在他周遭碎裂。 「所以，你又跑去那個倉庫了？對吧？」班大口嚼著濕軟的麥片問道。「我早跟你說過，大家會抱怨那股味道。他們會把鎖剪掉。」 閱讀更多 Nature Futures 科幻小說 「不。我沒去倉庫，」弗雷德冷冷地說。「是麻省理工學院去了倉庫。接著，一家我從沒聽過、擁有能源部安全許可的私人承包商，把倉庫裡的東西全部收走。然後，他們也把我帶走了。」 班放下湯匙。「靠。他們把你<em>逮捕</em>了？」 「他們是來<em>招募</em>我的。他們早就驗證過那些數學了，Ben。我跟你說過什麼？那些公理呢？宇宙自指程式（Universe-Quine）是真的。他們在離散晶格上跑了模擬，然後，呃，」Fred 雙手搓了搓臉。「然後我們把它完成了。」 Ben 盯著他。冰箱的壓縮機啟動了。60 赫茲的嗡鳴充滿整個房間，平凡得不尋常。 「你和麻省理工學院造出了一台時光機？」 「蛤？」Fred 抬起頭，雙眼無神。 Fred 發出一聲沒有真正笑出來的笑。「我怎麼可能知道？」 「Ben，動動腦。你根本沒在想那些公理。我老是在跟你講公理，結果你根本沒在聽。」他的聲音很虛弱。「宇宙是一個<em>可逆細胞自動機</em>，懂嗎？而可逆性意味著雙射。正向反向都是一對一。所以，如果我們反轉運算，我們並不是外部觀察者。我們不會被拋出時間流，再被扔到過去。我們<em>就是</em>正在被處理的資料。」 「如果我把系統狀態從星期二反轉回星期一，我大腦的物理構造也會回到星期一。那些編碼了星期二記憶的突觸模式，會被拆解，用來重建先前的狀態。」 「所以這根本沒用。你把它打開，宇宙倒轉，你忘了自己曾經打開它，重新過一次那天，再把它打開，宇宙又倒轉。這就只是一個迴圈。」 「對，但不是一個<em>封閉</em>迴圈。只是緊密得不可思議而已。」Fred 拉扯著地毯上一根鬆脫的線頭。「因為決定論只有在真空中才是絕對的，但我們並不活在真空裡。我們活在充滿量子擾動、位元腐化與<em>退相干</em>的熱浴中。」 Fred 在空中胡亂揮了揮手。 「當你把完全相同的星期二重跑十兆次，到了最後，<em>總有一天</em>，底層載體中的熱雜訊會創造出一條分岔路徑。某個電子穿隧到先前沒去過的地方，或是某個決定出現改變。到最後，迴圈就會被打破。」 Ben 感覺一股恐懼沉進胃裡。此刻，那嗡鳴聲比以往任何時候都更加響亮。「所以，你們不是穿越回過去修正事情？你們只是用暴力窮舉機率，直到得到想要的結果？」 「你們和麻省理工學院一起，靠讀檔洗結果來操弄現實？」 「還有能源部。聽著，沒有人想追尋歷史。他們要的是某個特定的未來。基本概念是，一旦時間線進入『失敗』狀態、他們設定的某項不變條件遭到破壞——例如爆發核戰、生態崩潰，或只是遇上他們不喜歡的股市崩盤——機器就會啟動全球逆轉。我們倒轉十年，不會記得那次失敗，再重來一遍。也許這次運氣會好一點。如果沒有，我們還能一次次重試。因為有這個迴圈。<em>幾乎</em>每次都可以。」 佛瑞德沒有回應。他望向門口。椅子正緩緩滑出。 「可是，你人在這裡，」班慢慢意識到。「你回來了。這表示你們停下來了。機器已經關閉。」</p>
+<h2>喜歡我們的最新內容嗎？</h2>
+<p>登入或建立帳號以繼續閱讀</p>
+<ul>
+<li>閱讀《Nature》獲獎團隊最新的新聞報導</li>
+<li>探索涵蓋突破性研究的最新專題與評論</li>
+</ul>
+<p><em>doi: https://doi.org/10.1038/d41586-026-01720-4</em></p>
+<h2>相關文章</h2>
+<ul>
+<li><a href="https://www.nature.com/articles/d41586-026-01719-x" target="_blank" rel="noreferrer">Mark Arnold〈Wah-ult in the vault〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01718-y" target="_blank" rel="noreferrer">Paul Renault〈Doubting Thomas〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01716-0" target="_blank" rel="noreferrer">Jordan W Suchow〈Book of Cron Job〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01091-w" target="_blank" rel="noreferrer">Dan Peacock〈Sarcophagus〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01089-4" target="_blank" rel="noreferrer">Laura O’Meara〈Scraping〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01087-6" target="_blank" rel="noreferrer">John McLaughlin〈Neuroflix〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01085-8" target="_blank" rel="noreferrer">Shiao Wang〈The CAPTCHA protocol〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01083-w" target="_blank" rel="noreferrer">Kevin Power〈Serebral〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01081-y" target="_blank" rel="noreferrer">Wendy Nikel〈The futile beauty of flightless birds〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01079-6" target="_blank" rel="noreferrer">Mari Harrison〈Matter of taste〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01077-8" target="_blank" rel="noreferrer">Alex Shvartsman〈Origin story〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01075-w" target="_blank" rel="noreferrer">Fei Qi〈The imperfect legacy〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01073-y" target="_blank" rel="noreferrer">Jasmin Kirkbride〈In the flesh〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01071-0" target="_blank" rel="noreferrer">Addidi Youness〈The memory dealer of Old Jeddah〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01069-8" target="_blank" rel="noreferrer">Marissa Lingen〈Waiting for them〉</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01067-w" target="_blank" rel="noreferrer">新年，還是原來的我，Robert Blasiak 著</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01065-y" target="_blank" rel="noreferrer">不死的奧茲曼迪亞斯，Bryce Saputo 著</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01063-0" target="_blank" rel="noreferrer">心靈無家可歸，Tomias Keno 著</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01039-0" target="_blank" rel="noreferrer">自焚，Lucy Zhang 著</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-00616-7" target="_blank" rel="noreferrer">虛假的希望，Hall Jameson 著</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-00614-9" target="_blank" rel="noreferrer">襪子。什麼的。呃。，Daniel Roop 著</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-00612-x" target="_blank" rel="noreferrer">演化，Zhouhe Zhang、Haochen Hua 著</a></li>
+</ul>
+<h2>主題</h2>
+<ul>
+<li><a href="https://www.nature.com/subjects/arts" target="_blank" rel="noreferrer">藝術</a></li>
+<li><a href="https://www.nature.com/subjects/culture" target="_blank" rel="noreferrer">文化</a></li>
+</ul>
+<h2>最新內容</h2>
+<ul>
+<li>[寶庫裡的 Wah-ult</li>
+</ul>
+<p>Futures 26 年 6 月 17 日](https://www.nature.com/articles/d41586-026-01719-x)</p>
+<ul>
+<li>[科學家工作實況的五幅得獎影像</li>
+</ul>
+<p>職涯專題 26 年 6 月 10 日](https://www.nature.com/articles/d41586-026-01819-8)</p>
+<ul>
+<li>[多疑的多馬</li>
+</ul>
+<p>Futures 26 年 6 月 10 日](https://www.nature.com/articles/d41586-026-01718-y)</p>
+<ul>
+<li>[為什麼科學比以往更需要人文學科</li>
+</ul>
+<p>評論 26 年 6 月 24 日](https://www.nature.com/articles/d41586-026-01958-y)</p>
+<ul>
+<li>[寶庫裡的 Wah-ult</li>
+</ul>
+<p>Futures 26 年 6 月 17 日](https://www.nature.com/articles/d41586-026-01719-x)</p>
+<ul>
+<li>[多疑的多馬</li>
+</ul>
+<p>Futures 26 年 6 月 10 日](https://www.nature.com/articles/d41586-026-01718-y)</p>
+<h3><a href="https://www.nature.com/naturecareers/" target="_blank" rel="noreferrer">職缺</a></h3>
+<ul>
+<li><a href="https://www.nature.com/naturecareers/job/12861069/founding-scientist-ai-review-of-biomedical-grants-and-papers-for-copair-collaborative-peer-ai-review-/?TrackID=62&amp;utm_source=widget&amp;utm_medium=referral&amp;utm_campaign=62" target="_blank" rel="noreferrer">創始科學家——運用 AI 審查 CoPAIR（協作式同儕 AI 審查）的生物醫學補助申請與論文</a></li>
+</ul>
+<p>辦公室位於紐約市中城，採以到辦公室為主的混合工作制。提供搬遷協助。 CoPAIR LLC</p>
+<ul>
+<li><a href="https://www.nature.com/naturecareers/job/12861066/three-multidisciplinary-postdoctoral-scholarships-2-years-/?TrackID=62&amp;utm_source=widget&amp;utm_medium=referral&amp;utm_campaign=62" target="_blank" rel="noreferrer">三項跨領域博士後獎學金（兩年期）</a></li>
+</ul>
+<p>加入于默奧大學（Umeå University）的 IceLab：五項跨領域計畫共提供三個博士後獎學金名額，可申請一項或多項計畫。 瑞典于默奧 于默奧大學</p>
+<ul>
+<li><a href="https://www.nature.com/naturecareers/job/12861060/postdoctoral-associate-dna-origami-charge-amplifiers-for-biomolecular-sensing/?TrackID=62&amp;utm_source=widget&amp;utm_medium=referral&amp;utm_campaign=62" target="_blank" rel="noreferrer">博士後研究員：用於生物分子感測的 DNA 摺紙電荷放大器</a></li>
+</ul>
+<p>徵求博士後研究員，開發用於晶片級生物分子感測的 DNA 摺紙電荷放大器。 美國馬里蘭州蓋瑟斯堡 美國國家標準暨技術研究院（NIST）生物物理與生物醫學量測研究團隊</p>
+<ul>
+<li><a href="https://www.nature.com/naturecareers/job/12861056/associate-or-senior-editor-nature-reviews-materials/?TrackID=62&amp;utm_source=widget&amp;utm_medium=referral&amp;utm_campaign=62" target="_blank" rel="noreferrer">《Nature Reviews Materials》副編輯或資深編輯</a></li>
+</ul>
+<p>職稱：《Nature Reviews Materials》副編輯或資深編輯；工作地點：柏林、海德堡、馬德里、米蘭及浦那；採混合辦公模式；申請截止日…… 德國柏林、海德堡、馬德里、米蘭及浦那 施普林格・自然集團（Springer Nature Ltd）</p>
+<ul>
+<li><a href="https://www.nature.com/naturecareers/job/12861052/interim-associate-senior-editor-bmc-musculoskeletal-disorders-/?TrackID=62&amp;utm_source=widget&amp;utm_medium=referral&amp;utm_campaign=62" target="_blank" rel="noreferrer">《BMC Musculoskeletal Disorders》代理副編輯／資深編輯</a></li>
+</ul>
+<p>職缺說明 職稱：《BMC Musculoskeletal Disorders》代理副編輯／資深編輯；定期契約（代理育嬰假職缺）；工作地點：…… 英國大倫敦地區倫敦市中心 施普林格・自然集團（Springer Nature Ltd）</p>
+<h2>相關文章</h2>
+<ul>
+<li><a href="https://www.nature.com/articles/d41586-026-01719-x" target="_blank" rel="noreferrer">〈保險庫裡的 Wah-ult〉，Mark Arnold</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01718-y" target="_blank" rel="noreferrer">〈多疑的湯瑪斯〉，Paul Renault</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01716-0" target="_blank" rel="noreferrer">〈Cron Job 之書〉，Jordan W Suchow</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01091-w" target="_blank" rel="noreferrer">〈石棺〉，Dan Peacock</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01089-4" target="_blank" rel="noreferrer">〈資料抓取〉，Laura O’Meara</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01087-6" target="_blank" rel="noreferrer">〈Neuroflix〉，John McLaughlin</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01085-8" target="_blank" rel="noreferrer">〈CAPTCHA 協定〉，Shiao Wang</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01083-w" target="_blank" rel="noreferrer">〈Serebral〉，Kevin Power</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01081-y" target="_blank" rel="noreferrer">〈不會飛的鳥徒勞之美〉，Wendy Nikel</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01079-6" target="_blank" rel="noreferrer">〈品味問題〉，Mari Harrison</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01077-8" target="_blank" rel="noreferrer">起源故事，作者 Alex Shvartsman</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01075-w" target="_blank" rel="noreferrer">不完美的遺產，作者 Fei Qi</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01073-y" target="_blank" rel="noreferrer">血肉之軀，作者 Jasmin Kirkbride</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01071-0" target="_blank" rel="noreferrer">吉達老城的記憶商人，作者 Addidi Youness</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01069-8" target="_blank" rel="noreferrer">等待他們，作者 Marissa Lingen</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01067-w" target="_blank" rel="noreferrer">新年，舊的我，作者 Robert Blasiak</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01065-y" target="_blank" rel="noreferrer">不死的奧茲曼迪亞斯，作者 Bryce Saputo</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01063-0" target="_blank" rel="noreferrer">心靈無家可歸，作者 Tomias Keno</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-01039-0" target="_blank" rel="noreferrer">自焚，作者 Lucy Zhang</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-00616-7" target="_blank" rel="noreferrer">虛假的希望，作者 Hall Jameson</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-00614-9" target="_blank" rel="noreferrer">襪子。什麼的。呃。作者 Daniel Roop</a></li>
+<li><a href="https://www.nature.com/articles/d41586-026-00612-x" target="_blank" rel="noreferrer">演化，作者 Zhouhe Zhang 與 Haochen Hua</a></li>
+</ul>
+<h2>主題</h2>
+<ul>
+<li><a href="https://www.nature.com/subjects/arts" target="_blank" rel="noreferrer">藝術</a></li>
+<li><a href="https://www.nature.com/subjects/culture" target="_blank" rel="noreferrer">文化</a></li>
+</ul>
+<h2>訂閱《Nature Briefing》</h2>
+<p>每個工作日將不可錯過的科學新聞、觀點與分析摘要寄到你的信箱。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-28afe1fa0d2b905e.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">基因資料揭示尼安德塔人的族群變動與消亡</span>
+</a>
+
+<a class="article-sequence-link" href="item-c26cc360e5071f2d.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">人工智慧不再只是專家工具：當前就業市場重視的新技能</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-9292575e5628246a.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Garbage collection</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：垃圾回收（Codex）</li><li><strong>原始作者</strong>：Lawson, Aidan（dc.creator）</li><li><strong>原始網站授權</strong>：2026 Springer Nature Limited（dc.rights）</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：direct-pr-small-news / 2026-06-25T01:53:26+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-25T01:53:26+00:00 本機標記直接送 PR（小消息）；純事實項目，不進編輯台撰稿。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-9292575e5628246a";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
