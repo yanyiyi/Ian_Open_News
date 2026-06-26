@@ -66,7 +66,10 @@ EDITOR_SESSIONS = ROOT / ".cache" / "editor-sessions.jsonl"
 EDITOR_STATUS = ROOT / ".cache" / "editor-status.json"
 DECISION_DIVERGENCES = DATABASE / "decision-divergences.jsonl"
 INSIGHT_REPORTS = DATABASE / "insight-reports.jsonl"
+SYSTEM_CHANGE_PROPOSALS = DATABASE / "system-change-proposals.jsonl"
+TASTE_PROFILE = DATABASE / "taste-profile.json"
 CACHE_DIR = ROOT / ".cache"
+INSIGHT_APPLY_STATUS = ROOT / ".cache" / "insight-apply-status.json"
 PDF_SPLIT_STATUS = ROOT / ".cache" / "pdf-split-status.json"
 TRANSLATE_STATUS = ROOT / ".cache" / "translate-status.json"
 PDF_UPLOADS = ROOT / ".cache" / "uploads"
@@ -282,7 +285,7 @@ COMMAND_SHORTCUTS = {
     "git_diff_stat": "I",
     "commit_database_state": "K",
 }
-DATA_AUTOCOMMIT_FILES = [ITEMS, REVIEW_EVENTS, SOURCES]
+DATA_AUTOCOMMIT_FILES = [ITEMS, REVIEW_EVENTS, SOURCES, DECISION_DIVERGENCES, INSIGHT_REPORTS, SYSTEM_CHANGE_PROPOSALS, TASTE_PROFILE]
 DATA_AUTOCOMMIT_LOCK = threading.Lock()
 # 序列化資料庫的「讀取→修改→整檔覆寫」交易。ThreadingHTTPServer 會並發處理請求，
 # 沒有這把鎖時，批次或快速連點的收件/分流會 lost-update：item 被另一執行緒的舊
@@ -1022,129 +1025,20 @@ def _detect_divergence_type(ai_rec: str, user_action: str) -> str | None:
     return None
 
 
-def scan_existing_divergences() -> int:
-    """掃描 items.jsonl 與 rejected-items.jsonl，把尚未記錄的分歧寫入 decision-divergences.jsonl。回傳新增筆數。"""
-    items = load_jsonl(ITEMS) + load_jsonl(REJECTED_ITEMS)
+def _existing_divergence_item_ids() -> set[str]:
     existing = load_jsonl(DECISION_DIVERGENCES)
-    existing_item_ids: set[str] = set()
+    ids: set[str] = set()
     for div in existing:
         for iid in (div.get("item_ids") or []):
-            existing_item_ids.add(iid)
-
-    added = 0
-    # 收集 over-rejected cluster 候選（按 track+source_group+tags 分組）
-    over_rejected_candidates: dict[str, list[dict]] = {}
-
-    for item in items:
-        item_id = item.get("id", "")
-        if item_id in existing_item_ids:
-            continue
-        ai_sug = _ai_suggestion_from_item(item)
-        if ai_sug is None:
-            continue
-        user_action = _user_action_from_item(item)
-        if not user_action:
-            continue
-        div_type = _detect_divergence_type(ai_sug["recommendation"], user_action)
-        if div_type is None:
-            continue
-
-        if div_type == "under-collected":
-            record = {
-                "id": _divergence_id(),
-                "divergence_type": "under-collected",
-                "item_ids": [item_id],
-                "item_titles": [item.get("title", "（無標題）")],
-                "track": item.get("track", ""),
-                "logged_at": now_iso(),
-                "ai_suggestion": ai_sug,
-                "user_action": user_action,
-                "cluster_size": 1,
-                "user_explanation": "",
-                "dismissed": False,
-                "included_in_analysis_at": None,
-            }
-            append_jsonl(DECISION_DIVERGENCES, record)
-            added += 1
-        elif div_type == "over-rejected":
-            # 收集後再 cluster
-            confidence = ai_sug.get("confidence", "")
-            tags_key = ",".join(sorted((item.get("tags") or [])[:3]))
-            source_group = ""
-            ref = item.get("reference") or {}
-            if isinstance(ref, dict):
-                source_group = ref.get("source_group", "")
-            cluster_key = f"{item.get('track','')}__{source_group}__{tags_key}"
-            over_rejected_candidates.setdefault(cluster_key, []).append({
-                "item_id": item_id,
-                "title": item.get("title", "（無標題）"),
-                "track": item.get("track", ""),
-                "ai_suggestion": ai_sug,
-                "user_action": user_action,
-                "confidence": confidence,
-                "source_group": source_group,
-            })
-
-    # 寫入 over-rejected cluster（≥3 筆才算）
-    for cluster_key, candidates in over_rejected_candidates.items():
-        if len(candidates) < 3:
-            continue
-        # 去掉已有的
-        fresh = [c for c in candidates if c["item_id"] not in existing_item_ids]
-        if len(fresh) < 3:
-            continue
-        first = fresh[0]
-        tags_label = cluster_key.split("__")[2].replace(",", " / ")
-        source_group = first.get("source_group", "")
-        cluster_title = f"Cluster：{source_group or tags_label or first['track']}"
-        record = {
-            "id": _divergence_id(),
-            "divergence_type": "over-rejected",
-            "item_ids": [c["item_id"] for c in fresh],
-            "item_titles": [c["title"] for c in fresh],
-            "track": first["track"],
-            "logged_at": now_iso(),
-            "ai_suggestion": first["ai_suggestion"],
-            "user_action": "rejected",
-            "cluster_size": len(fresh),
-            "cluster_label": cluster_title,
-            "user_explanation": "",
-            "dismissed": False,
-            "included_in_analysis_at": None,
-        }
-        append_jsonl(DECISION_DIVERGENCES, record)
-        added += 1
-
-    return added
+            ids.add(iid)
+    return ids
 
 
-def detect_and_log_divergence(item: dict) -> None:
-    """在 accept/reject 後呼叫，若有新分歧即寫入（單筆 under-collected 或累積 over-rejected）。"""
-    item_id = item.get("id", "")
-    if not item_id:
-        return
-    existing = load_jsonl(DECISION_DIVERGENCES)
-    existing_ids: set[str] = set()
-    for div in existing:
-        for iid in (div.get("item_ids") or []):
-            existing_ids.add(iid)
-    if item_id in existing_ids:
-        return
-
-    ai_sug = _ai_suggestion_from_item(item)
-    if ai_sug is None:
-        return
-    user_action = _user_action_from_item(item)
-    if not user_action:
-        return
-    div_type = _detect_divergence_type(ai_sug["recommendation"], user_action)
-    if div_type != "under-collected":
-        return  # over-rejected 由 scan_existing_divergences 批次處理
-
-    record = {
+def _divergence_record_from_item(item: dict, div_type: str, ai_sug: dict, user_action: str) -> dict:
+    return {
         "id": _divergence_id(),
-        "divergence_type": "under-collected",
-        "item_ids": [item_id],
+        "divergence_type": div_type,
+        "item_ids": [item.get("id", "")],
         "item_titles": [item.get("title", "（無標題）")],
         "track": item.get("track", ""),
         "logged_at": now_iso(),
@@ -1155,7 +1049,54 @@ def detect_and_log_divergence(item: dict) -> None:
         "dismissed": False,
         "included_in_analysis_at": None,
     }
-    append_jsonl(DECISION_DIVERGENCES, record)
+
+
+def sample_divergences_into_cue(limit: int = 5) -> int:
+    """從 items + rejected-items 中找出尚未記錄的分歧，隨機抽 limit 筆寫入待填清單。回傳新增筆數。"""
+    import random
+    existing_item_ids = _existing_divergence_item_ids()
+    pool: list[dict] = []
+    for item in load_jsonl(ITEMS) + load_jsonl(REJECTED_ITEMS):
+        item_id = item.get("id", "")
+        if not item_id or item_id in existing_item_ids:
+            continue
+        ai_sug = _ai_suggestion_from_item(item)
+        if ai_sug is None:
+            continue
+        user_action = _user_action_from_item(item)
+        if not user_action:
+            continue
+        div_type = _detect_divergence_type(ai_sug["recommendation"], user_action)
+        if div_type is None:
+            continue
+        pool.append(_divergence_record_from_item(item, div_type, ai_sug, user_action))
+
+    random.shuffle(pool)
+    chosen = pool[:limit]
+    for record in chosen:
+        append_jsonl(DECISION_DIVERGENCES, record)
+    return len(chosen)
+
+
+def detect_and_log_divergence(item: dict) -> None:
+    """在 accept/reject 後呼叫，若有新分歧即寫入（單筆，under/over 皆可）。"""
+    item_id = item.get("id", "")
+    if not item_id:
+        return
+    if item_id in _existing_divergence_item_ids():
+        return
+
+    ai_sug = _ai_suggestion_from_item(item)
+    if ai_sug is None:
+        return
+    user_action = _user_action_from_item(item)
+    if not user_action:
+        return
+    div_type = _detect_divergence_type(ai_sug["recommendation"], user_action)
+    if div_type is None:
+        return
+
+    append_jsonl(DECISION_DIVERGENCES, _divergence_record_from_item(item, div_type, ai_sug, user_action))
 
 
 def _patch_divergence(div_id: str, **kwargs: object) -> bool:
@@ -1227,7 +1168,7 @@ def _build_analysis_prompt(divergences: list[dict]) -> str:
 
 def _insights_nav_badge() -> str:
     divs = load_jsonl(DECISION_DIVERGENCES)
-    pending = [d for d in divs if not d.get("dismissed") and not d.get("included_in_analysis_at")]
+    pending = [d for d in divs if not d.get("dismissed") and not d.get("user_explanation")]
     count = len(pending)
     if count == 0:
         return ""
@@ -1280,6 +1221,200 @@ def _run_claude_analysis(divergences: list[dict], mode: str) -> dict:
         _patch_divergence(div_id, included_in_analysis_at=ts)
 
     return rpt
+
+
+# ------------------------------------------------------------------ #
+# 個人品味設定檔
+# ------------------------------------------------------------------ #
+
+def _default_taste_profile() -> dict:
+    return {"version": 1, "global": {}, "tracks": {}, "learned_signals": []}
+
+
+def load_taste_profile() -> dict:
+    """讀 taste-profile.json，缺檔回安全預設（不影響計分）。"""
+    if not TASTE_PROFILE.exists():
+        return _default_taste_profile()
+    data = load_json(TASTE_PROFILE)
+    if not isinstance(data, dict):
+        return _default_taste_profile()
+    data.setdefault("global", {})
+    data.setdefault("tracks", {})
+    data.setdefault("learned_signals", [])
+    return data
+
+
+def taste_profile_summary_lines() -> list[str]:
+    """供 prompt 注入與畫面摘要共用的條列。"""
+    profile = load_taste_profile()
+    lines: list[str] = []
+    g = profile.get("global") or {}
+    if g.get("emphasize"):
+        lines.append("優先重視：" + "、".join(g["emphasize"]))
+    if g.get("de_emphasize"):
+        lines.append("要警惕/淡化：" + "、".join(g["de_emphasize"]))
+    if g.get("taiwan_context_required"):
+        lines.append("台灣切角為必要條件")
+    for track, meta in (profile.get("tracks") or {}).items():
+        prio = (meta or {}).get("priority_themes") or []
+        avoid = (meta or {}).get("avoid_themes") or []
+        if prio:
+            lines.append(f"[{track}] 偏好主題：" + "、".join(prio))
+        if avoid:
+            lines.append(f"[{track}] 避開主題：" + "、".join(avoid))
+    for sig in (profile.get("learned_signals") or []):
+        if isinstance(sig, dict) and sig.get("signal"):
+            lines.append("已學到：" + sig["signal"])
+    return lines
+
+
+# ------------------------------------------------------------------ #
+# 程式調整提案
+# ------------------------------------------------------------------ #
+
+def _proposal_id() -> str:
+    import secrets
+    return "prop-" + secrets.token_hex(4)
+
+
+# CLI 輸出中標記「需要改程式本體」的固定段落標題
+CODE_PROPOSAL_HEADING = "需要改程式本體（後續評估）"
+
+
+def extract_code_proposals(report_text: str, source_report: str) -> list[dict]:
+    """從 CLI 輸出擷取固定段落下的條列，轉成提案 record。擷取不到回空清單。"""
+    if CODE_PROPOSAL_HEADING not in report_text:
+        return []
+    section = report_text.split(CODE_PROPOSAL_HEADING, 1)[1]
+    proposals: list[dict] = []
+    for raw in section.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        # 遇到下一個 markdown 標題就停
+        if line.startswith("#"):
+            break
+        # 接受 -、*、數字. 開頭的條列
+        cleaned = re.sub(r"^([-*]|\d+[.)])\s+", "", line)
+        if cleaned == line and not line.startswith(("-", "*")):
+            continue
+        if not cleaned:
+            continue
+        proposals.append({
+            "id": _proposal_id(),
+            "proposed_at": now_iso(),
+            "source_report": source_report,
+            "title": cleaned[:200],
+            "rationale": "",
+            "target_area": "",
+            "status": "pending",
+            "notes": "",
+        })
+    return proposals
+
+
+def _patch_proposal(prop_id: str, **kwargs: object) -> bool:
+    records = load_jsonl(SYSTEM_CHANGE_PROPOSALS)
+    found = False
+    updated = []
+    for rec in records:
+        if rec.get("id") == prop_id:
+            rec = dict(rec)
+            rec.update(kwargs)
+            found = True
+        updated.append(rec)
+    if found:
+        write_jsonl(SYSTEM_CHANGE_PROPOSALS, updated)
+    return found
+
+
+def _build_apply_prompt(report: dict) -> str:
+    report_text = report.get("report_text", "")
+    rpt_id = report.get("id", "")
+    return (
+        "你是 Ian Open News 本機系統的設定維護助理。以下是一份「決策分歧分析報告」，"
+        "請依報告中的建議，更新使用者的個人品味設定檔，並把無法用設定表達的改動列為後續提案。\n\n"
+        f"## 品味設定檔位置\n`{TASTE_PROFILE.relative_to(ROOT)}`（JSON）。"
+        "請直接編輯它：可更新 global.emphasize / global.de_emphasize、各 track 的 priority_themes / avoid_themes，"
+        f"並在 learned_signals 陣列 append 新學到的偏好（每筆含 signal、source_report=\"{rpt_id}\"、added_at）。"
+        "保持原本 JSON 結構與既有內容，只增修必要欄位。\n\n"
+        "## 規則\n"
+        "1. 只動 taste-profile.json，不要改其他程式檔。\n"
+        f"2. 凡是「無法用品味設定表達、需要改程式本體」的建議（例如改計分公式、改 triage 流程、新增欄位），"
+        f"不要動程式，改成在你回覆的最後用這個固定標題段落條列：\n\n## {CODE_PROPOSAL_HEADING}\n- <一句話描述要改什麼、為什麼、大概動哪個檔>\n\n"
+        "3. 回覆開頭簡述你對 taste-profile.json 做了哪些更新。\n\n"
+        "## 分析報告全文\n\n"
+        f"{report_text}\n"
+    )
+
+
+def _run_apply_cli(report: dict, engine: str) -> None:
+    """背景執行：用指定 CLI 依報告更新品味檔，擷取程式提案，更新狀態檔。"""
+    import subprocess
+    import time
+
+    rpt_id = report.get("id", "")
+    cli = editor_cli_path(engine)
+
+    def status(state: str, message: str, **extra: object) -> None:
+        write_status_json(INSIGHT_APPLY_STATUS, {
+            "state": state, "report_id": rpt_id, "engine": engine,
+            "message": message, "updated_at": now_iso(), **extra,
+        })
+
+    if not cli:
+        status("failed", f"找不到 {engine} CLI（未安裝或不在 PATH）。")
+        return
+
+    status("running", f"正在用 {engine} 依報告更新品味檔…")
+    prompt = _build_apply_prompt(report)
+
+    # 記下執行前的 taste-profile 內容以便算 diff
+    before = TASTE_PROFILE.read_text(encoding="utf-8") if TASTE_PROFILE.exists() else ""
+    try:
+        result = subprocess.run(
+            [cli, "-p", prompt] if engine in {"claude", "codex"} else [cli, "-p", prompt],
+            cwd=ROOT, capture_output=True, text=True, timeout=600,
+        )
+        output = result.stdout or result.stderr or "（CLI 無輸出）"
+    except FileNotFoundError:
+        status("failed", f"找不到 {engine} CLI。")
+        return
+    except subprocess.TimeoutExpired:
+        status("failed", "CLI 執行逾時。")
+        return
+
+    # 擷取程式提案
+    proposals = extract_code_proposals(output, rpt_id)
+    for prop in proposals:
+        append_jsonl(SYSTEM_CHANGE_PROPOSALS, prop)
+
+    # 算 taste-profile diff
+    after = TASTE_PROFILE.read_text(encoding="utf-8") if TASTE_PROFILE.exists() else ""
+    try:
+        diff_result = subprocess.run(
+            ["git", "diff", "--", str(TASTE_PROFILE.relative_to(ROOT))],
+            cwd=ROOT, capture_output=True, text=True, timeout=20,
+        )
+        diff_text = diff_result.stdout.strip()
+    except Exception:
+        diff_text = ""
+    if not diff_text and before != after:
+        diff_text = "（品味檔有變更，但無法取得 git diff）"
+
+    # 把這次執行記回 report
+    reports = load_jsonl(INSIGHT_REPORTS)
+    for rec in reports:
+        if rec.get("id") == rpt_id:
+            runs = rec.get("apply_runs") or []
+            runs.append({"engine": engine, "ran_at": now_iso(), "output": output, "taste_diff": diff_text, "proposals_added": len(proposals)})
+            rec["apply_runs"] = runs
+            rec["implementation_status"] = "attempted"
+            break
+    write_jsonl(INSIGHT_REPORTS, reports)
+
+    status("done", f"{engine} 執行完成：品味檔{'有更新' if diff_text else '未變更'}、新增 {len(proposals)} 筆程式提案。",
+           proposals_added=len(proposals), taste_changed=bool(diff_text))
 
 
 def online_reader_commit_message(dt: datetime | None = None) -> str:
@@ -4082,6 +4217,14 @@ def is_reader_item(item: dict) -> bool:
     return isinstance(decision, dict) and decision.get("action") in {"accepted-for-editing", "direct-pr-small-news"}
 
 
+def item_detail_panel_id(item: dict) -> str:
+    raw_id = clean_text(item.get("id"), 160)
+    safe_id = re.sub(r"[^A-Za-z0-9_-]+", "-", raw_id).strip("-")
+    if not safe_id:
+        safe_id = stable_id("item-panel", item.get("title", ""), item.get("url", ""))
+    return f"candidate-detail-{safe_id}"
+
+
 def model_review_card_html(provider: str, review: dict, compact: bool = False) -> str:
     label = ai_provider_label(provider)
     one_line = workflow_display_text(review.get("one_line_recommendation"), 420)
@@ -4130,9 +4273,12 @@ def item_compact_row(item: dict) -> str:
         f'{reader_flag_badges(item)}'
         f'{badge(recommendation_label(recommendation), recommendation)}'
     )
+    detail_id = item_detail_panel_id(item)
     return (
         '<div class="candidate-compact">'
         '<div class="compact-head">'
+        f'<button type="button" class="candidate-expand-toggle" data-item-expand aria-controls="{h(detail_id)}" '
+        f'aria-expanded="false" aria-label="展開這則材料" title="展開這則材料"><span class="candidate-expand-triangle" aria-hidden="true"></span></button>'
         f'<span class="compact-badges">{badges}</span>'
         f'<a class="compact-title" href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a>'
         f'<span class="compact-time">{h(item_display_time(item, "published_at", "captured_at"))}</span>'
@@ -5321,10 +5467,49 @@ def page(title: str, body: str) -> bytes:
     .candidate-compact {{ display: none; }}
     .list[data-layout="compact"] .candidate-detailed {{ display: none; }}
     .list[data-layout="compact"] .candidate-compact {{ display: block; }}
+    .list[data-layout="compact"] .candidate-card.is-expanded .candidate-detailed {{
+      display: grid;
+      gap: 10px;
+      padding-top: 10px;
+      margin-top: 2px;
+      border-top: 1px solid var(--line);
+    }}
     .list[data-layout="compact"] .candidate-card {{ gap: 6px; padding: 10px 14px; }}
+    .list[data-layout="compact"] .candidate-card.is-expanded {{ border-color: #d7dcf0; }}
     .list[data-layout="compact"] .select-item {{ margin: 0; }}
     .list[data-layout="compact"] .select-item-text {{ display: none; }}
     .compact-head {{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 8px; }}
+    .candidate-expand-toggle {{
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 26px;
+      height: 26px;
+      margin: 0;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--muted);
+      box-shadow: none;
+    }}
+    .candidate-expand-toggle:hover {{
+      background: var(--soft);
+      color: var(--link);
+      box-shadow: none;
+      transform: none;
+      filter: none;
+    }}
+    .candidate-expand-triangle {{
+      width: 0;
+      height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 7px solid currentColor;
+      transform: translateX(1px);
+      transition: transform .16s ease;
+    }}
+    .candidate-card.is-expanded .candidate-expand-triangle {{ transform: rotate(90deg) translateX(1px); }}
     .compact-badges {{ display: inline-flex; flex-wrap: wrap; gap: 4px; }}
     .compact-title {{ font-weight: 700; color: var(--ocf-dark); text-decoration: none; flex: 1 1 240px; min-width: 0; }}
     .compact-title:hover {{ text-decoration: underline; }}
@@ -6343,6 +6528,23 @@ def page(title: str, body: str) -> bytes:
     if (!saved) return;
     target.dataset.layout = saved;
     syncLayoutButtons(target.id, saved);
+  }});
+
+  const setCandidateExpanded = (button, expanded) => {{
+    const card = button.closest(".candidate-card");
+    if (!card) return;
+    card.classList.toggle("is-expanded", expanded);
+    button.setAttribute("aria-expanded", expanded ? "true" : "false");
+    const label = expanded ? "收合這則材料" : "展開這則材料";
+    button.setAttribute("aria-label", label);
+    button.title = label;
+  }};
+  document.querySelectorAll("[data-item-expand]").forEach((button) => {{
+    button.addEventListener("click", (event) => {{
+      event.preventDefault();
+      const card = button.closest(".candidate-card");
+      setCandidateExpanded(button, !card?.classList.contains("is-expanded"));
+    }});
   }});
 
   document.querySelectorAll("[data-workspace-toggle]").forEach((button) => {{
@@ -8854,9 +9056,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(status)
         elif parsed.path == "/insights":
             self.show_insights(query)
-        elif parsed.path == "/insights/init-scan":
-            added = scan_existing_divergences()
-            self.redirect(f"/insights?scanned={added}")
+        elif parsed.path == "/api/insight-apply-status":
+            self.send_json(load_json(INSIGHT_APPLY_STATUS))
         elif parsed.path == "/api/pdf-split-status":
             self.send_json(load_json(PDF_SPLIT_STATUS))
         elif parsed.path == "/api/translate-status":
@@ -8977,12 +9178,18 @@ class Handler(BaseHTTPRequestHandler):
             self.save_divergence_explanation(self.read_form())
         elif parsed.path == "/insights/dismiss":
             self.dismiss_divergence(self.read_form())
+        elif parsed.path == "/insights/sample-into-cue":
+            self.sample_into_cue(self.read_form())
         elif parsed.path == "/insights/generate-report":
-            self.generate_divergence_report(self.read_form(), mode="full")
-        elif parsed.path == "/insights/generate-sample":
-            self.generate_divergence_report(self.read_form(), mode="sample-5")
+            self.generate_divergence_report(self.read_form(), mode="explained")
         elif parsed.path == "/insights/mark-implemented":
             self.mark_report_implemented(self.read_form())
+        elif parsed.path == "/insights/apply-report":
+            self.apply_report_with_cli(self.read_form())
+        elif parsed.path == "/insights/proposal-add":
+            self.proposal_add(self.read_form())
+        elif parsed.path == "/insights/proposal-status":
+            self.proposal_status(self.read_form())
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
 
@@ -10312,14 +10519,21 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     # ------------------------------------------------------------------ #
 
     def show_insights(self, query: dict[str, list[str]]) -> None:
-        scanned_msg = ""
-        if query.get("scanned"):
-            n = (query.get("scanned") or ["0"])[0]
-            scanned_msg = f'<p class="success-banner">掃描完成，新增 {h(n)} 筆分歧記錄。</p>'
+        banner = ""
+        if query.get("sampled"):
+            n = (query.get("sampled") or ["0"])[0]
+            if n == "0":
+                banner = '<p class="success-banner">沒有可抽的新分歧了（既有資料中的分歧都已在清單裡）。</p>'
+            else:
+                banner = f'<p class="success-banner">已抽 {h(n)} 筆分歧進待填清單。</p>'
+        elif query.get("error") == "no-explained":
+            banner = '<p class="error-banner">沒有「已填說明」的分歧可分析。先在卡片裡填想法再按分析。</p>'
 
         divs = load_jsonl(DECISION_DIVERGENCES)
-        pending_b = [d for d in divs if d.get("divergence_type") == "over-rejected" and not d.get("dismissed")]
-        pending_a = [d for d in divs if d.get("divergence_type") == "under-collected" and not d.get("dismissed")]
+        # 待填（未填說明、未略過）
+        unfilled = [d for d in divs if not d.get("dismissed") and not d.get("user_explanation")]
+        pending_b = [d for d in unfilled if d.get("divergence_type") == "over-rejected"]
+        pending_a = [d for d in unfilled if d.get("divergence_type") == "under-collected"]
         explained = [d for d in divs if d.get("user_explanation") and not d.get("dismissed")]
         pending_b.sort(key=lambda d: d.get("cluster_size", 1), reverse=True)
         pending_a.sort(key=lambda d: (d.get("ai_suggestion") or {}).get("confidence", ""), reverse=True)
@@ -10327,7 +10541,9 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         reports = load_jsonl(INSIGHT_REPORTS)
         reports.sort(key=lambda r: r.get("generated_at", ""), reverse=True)
 
-        total_pending = len([d for d in divs if not d.get("dismissed") and not d.get("included_in_analysis_at")])
+        explained_count = len(explained)
+        engines = editor_engine_status()
+        proposals = load_jsonl(SYSTEM_CHANGE_PROPOSALS)
 
         def div_card(div: dict) -> str:
             div_id = h(div.get("id", ""))
@@ -10368,39 +10584,72 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   </form>
 </div>"""
 
+        def cli_button(rpt_id: str, engine: str, label: str) -> str:
+            available = engines.get(engine)
+            disabled = "" if available else " disabled"
+            suffix = "" if available else "（未安裝）"
+            return f'''<form method="post" action="/insights/apply-report" data-apply-form style="display:inline">
+  <input type="hidden" name="id" value="{rpt_id}">
+  <input type="hidden" name="engine" value="{engine}">
+  <button type="submit" class="button small"{disabled}>用 {label} 實作{suffix}</button>
+</form>'''
+
         def report_row(rpt: dict) -> str:
             rpt_id = h(rpt.get("id", ""))
             gen_at = rpt.get("generated_at", "")[:10]
-            mode_label = {"full": "完整分析", "sample-5": "隨機 5 筆"}.get(rpt.get("mode", ""), rpt.get("mode", ""))
+            mode_label = {"full": "完整分析", "sample-5": "隨機 5 筆", "explained": "已填說明"}.get(rpt.get("mode", ""), rpt.get("mode", ""))
             status = rpt.get("implementation_status", "pending")
-            status_label = {"pending": "待實作", "implemented": "✓ 已實作", "skipped": "略過"}.get(status, status)
+            status_label = {"pending": "待實作", "attempted": "已跑過 CLI", "implemented": "✓ 已實作", "skipped": "略過"}.get(status, status)
+            status_cls = "badge-green" if status == "implemented" else ("badge-blue" if status == "attempted" else "badge-gray")
             summary = h((rpt.get("report_summary") or "")[:120])
             notes_val = h(rpt.get("implementation_notes", ""))
-            impl_btn = ""
-            if status == "pending":
-                impl_btn = f'''<form method="post" action="/insights/mark-implemented" style="display:inline">
+            report_text = h(rpt.get("report_text", ""))
+
+            cli_buttons = "".join([
+                cli_button(rpt_id, "claude", "Claude"),
+                cli_button(rpt_id, "codex", "Codex"),
+                cli_button(rpt_id, "gemini", "Gemini"),
+            ])
+
+            runs_html = ""
+            for run in (rpt.get("apply_runs") or []):
+                diff = h(run.get("taste_diff", "") or "（品味檔未變更）")
+                out = h(run.get("output", ""))
+                runs_html += f"""
+<div class="apply-run">
+  <div class="muted">{h(run.get('engine',''))} · {h((run.get('ran_at','') or '')[:16])} · 新增提案 {run.get('proposals_added',0)} 筆</div>
+  <details><summary>品味檔 diff</summary><pre class="report-pre">{diff}</pre></details>
+  <details><summary>CLI 完整輸出（不能自動改的請手動處理）</summary><pre class="report-pre">{out}</pre></details>
+</div>"""
+
+            impl_form = f'''<form method="post" action="/insights/mark-implemented" style="display:inline">
   <input type="hidden" name="id" value="{rpt_id}">
   <input type="text" name="notes" value="" placeholder="備註（拿去做了什麼）" style="font-size:0.85em;width:200px">
-  <button type="submit" class="button small">標記已實作</button>
+  <button type="submit" class="button small secondary">標記已實作</button>
 </form>'''
-            report_text = h(rpt.get("report_text", ""))
+
             return f"""
 <details class="report-row">
   <summary>
     <strong>{gen_at}</strong> {h(mode_label)}
-    <span class="badge {'badge-green' if status=='implemented' else 'badge-gray'}">{h(status_label)}</span>
+    <span class="badge {status_cls}">{h(status_label)}</span>
     <span class="muted" style="font-size:0.85em">{summary}</span>
   </summary>
   <pre class="report-pre">{report_text}</pre>
-  {impl_btn}
+  <div class="report-actions">{cli_buttons}{impl_form}</div>
+  {runs_html}
   {f'<p class="muted">實作備註：{notes_val}</p>' if notes_val else ''}
 </details>"""
+
+        empty_hint = ""
+        if not pending_b and not pending_a:
+            empty_hint = '<p class="muted">待填清單是空的。按「隨機抓 5 筆進待填」抽幾筆來填，或在收件/分流時系統會自動累積。</p>'
 
         section_b = ""
         if pending_b:
             section_b = f"""
 <section>
-  <h2>類型 B：AI 超推但你拒收（{len(pending_b)} 筆 cluster）</h2>
+  <h2>類型 B：AI 超推但你拒收（{len(pending_b)} 筆）</h2>
   {''.join(div_card(d) for d in pending_b)}
 </section>"""
 
@@ -10428,16 +10677,57 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   {''.join(report_row(r) for r in reports[:20])}
 </section>"""
 
+        analyze_disabled = "" if explained_count else " disabled"
         action_bar = f"""
 <div class="action-bar">
-  <a class="button" href="/insights/init-scan">掃描現有資料</a>
-  <form method="post" action="/insights/generate-sample" style="display:inline">
-    <button type="submit" class="button secondary">隨機抓 5 筆分析</button>
+  <form method="post" action="/insights/sample-into-cue" style="display:inline">
+    <button type="submit" class="button secondary">隨機抓 5 筆進待填</button>
   </form>
   <form method="post" action="/insights/generate-report" style="display:inline">
-    <button type="submit" class="button secondary">產出完整報告（{total_pending} 筆待分析）</button>
+    <button type="submit" class="button"{analyze_disabled}>分析已填說明的 {explained_count} 筆</button>
   </form>
 </div>"""
+
+        # 品味摘要卡
+        taste_lines = taste_profile_summary_lines()
+        taste_html = "".join(f"<li>{h(line)}</li>" for line in taste_lines) or "<li class='muted'>尚未設定品味，跑一次分析並用 CLI 實作後會開始累積。</li>"
+        taste_card = f"""
+<section class="taste-card">
+  <h2>目前品味檔（系統現在認識的你）</h2>
+  <ul>{taste_html}</ul>
+</section>"""
+
+        # 程式調整提案區
+        open_props = [p for p in proposals if p.get("status") not in {"done", "wontfix"}]
+        prop_status_opts = lambda cur: "".join(
+            f'<option value="{s}"{" selected" if s==cur else ""}>{lbl}</option>'
+            for s, lbl in [("pending","待評估"),("evaluating","評估中"),("done","已完成"),("wontfix","不做")]
+        )
+        prop_rows = ""
+        for p in open_props:
+            prop_rows += f"""
+<div class="prop-row">
+  <div><strong>{h(p.get('title',''))}</strong>
+    {f"<span class='muted'>· {h(p.get('target_area',''))}</span>" if p.get('target_area') else ''}</div>
+  {f"<div class='muted'>{h(p.get('rationale',''))}</div>" if p.get('rationale') else ''}
+  <form method="post" action="/insights/proposal-status" style="display:inline">
+    <input type="hidden" name="id" value="{h(p.get('id',''))}">
+    <select name="status" onchange="this.form.submit()">{prop_status_opts(p.get('status','pending'))}</select>
+  </form>
+</div>"""
+        proposals_section = f"""
+<section>
+  <h2>程式調整提案（品味檔接不住、需評估改程式）</h2>
+  {prop_rows or '<p class="muted">目前沒有待評估的程式提案。</p>'}
+  <details><summary>手動新增一筆提案</summary>
+    <form method="post" action="/insights/proposal-add" class="prop-add-form">
+      <input type="text" name="title" placeholder="提案標題（要改什麼）" required>
+      <input type="text" name="target_area" placeholder="大概動哪個檔">
+      <input type="text" name="rationale" placeholder="理由">
+      <button type="submit" class="button small">新增</button>
+    </form>
+  </details>
+</section>"""
 
         css = """<style>
 .div-card{border:1px solid #ddd;border-radius:8px;padding:12px 16px;margin-bottom:12px;background:#fafafa}
@@ -10453,19 +10743,39 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 .badge-gray{background:#e2e8f0;color:#4a5568}
 .action-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
 .report-row{border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;margin-bottom:8px}
-.report-pre{background:#f7f7f7;padding:12px;border-radius:4px;white-space:pre-wrap;font-size:0.85em;max-height:400px;overflow-y:auto}
+.report-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.report-pre{background:#1e1e2e;color:#e8e8f0;padding:12px;border-radius:4px;white-space:pre-wrap;font-size:0.85em;max-height:420px;overflow-y:auto;line-height:1.55}
+.apply-run{border-left:3px solid #6450dc;padding-left:10px;margin:10px 0}
+.taste-card{background:#f4f2ff;border:1px solid #d7dcf0;border-radius:8px;padding:12px 16px;margin-bottom:20px}
+.taste-card ul{margin:6px 0 0;padding-left:20px;line-height:1.7}
+.prop-row{border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;flex-direction:column;gap:4px}
+.prop-add-form{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.prop-add-form input{padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:0.9em}
 .success-banner{background:#c6f6d5;color:#276749;padding:8px 12px;border-radius:6px;margin-bottom:16px}
+.error-banner{background:#fed7d7;color:#c53030;padding:8px 12px;border-radius:6px;margin-bottom:16px}
 </style>"""
+
+        apply_poll_js = """<script>
+document.querySelectorAll('[data-apply-form] button:not([disabled])').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    btn.textContent = '執行中…請稍候（最長數分鐘），完成後重整';
+  });
+});
+</script>"""
 
         body = f"""
 {css}
 <h1>決策洞察面板</h1>
-{scanned_msg}
+{banner}
+{taste_card}
 {action_bar}
+{empty_hint}
 {section_b}
 {section_a}
 {explained_section}
 {reports_section}
+{proposals_section}
+{apply_poll_js}
 """
         self.send_html("決策洞察", body)
 
@@ -10480,23 +10790,58 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         _patch_divergence(div_id, dismissed=True)
         self.redirect("/insights")
 
-    def generate_divergence_report(self, data: dict[str, list[str]], mode: str = "full") -> None:
+    def sample_into_cue(self, data: dict[str, list[str]]) -> None:
+        added = sample_divergences_into_cue(5)
+        self.redirect(f"/insights?sampled={added}")
+
+    def generate_divergence_report(self, data: dict[str, list[str]], mode: str = "explained") -> None:
         divs = load_jsonl(DECISION_DIVERGENCES)
-        candidates = [d for d in divs if not d.get("dismissed")]
-        if mode == "sample-5":
-            import random
-            random.shuffle(candidates)
-            candidates = candidates[:5]
+        # 只分析「已填說明、未略過」的
+        candidates = [d for d in divs if not d.get("dismissed") and d.get("user_explanation")]
         if not candidates:
-            self.redirect("/insights?error=no-divergences")
+            self.redirect("/insights?error=no-explained")
             return
         rpt = _run_claude_analysis(candidates, mode)
         self.redirect(f"/insights?report={rpt['id']}")
+
+    def apply_report_with_cli(self, data: dict[str, list[str]]) -> None:
+        rpt_id = form_value(data, "id")
+        engine = form_value(data, "engine") or "claude"
+        report = next((r for r in load_jsonl(INSIGHT_REPORTS) if r.get("id") == rpt_id), None)
+        if not report:
+            self.redirect("/insights?error=no-report")
+            return
+        # 背景執行，避免 HTTP 卡住；前端輪詢 /api/insight-apply-status
+        threading.Thread(target=_run_apply_cli, args=(report, engine), daemon=True).start()
+        self.redirect("/insights")
 
     def mark_report_implemented(self, data: dict[str, list[str]]) -> None:
         rpt_id = form_value(data, "id")
         notes = form_value(data, "notes")
         _patch_report(rpt_id, implementation_status="implemented", implemented_at=now_iso(), implementation_notes=notes)
+        self.redirect("/insights")
+
+    def proposal_add(self, data: dict[str, list[str]]) -> None:
+        title = form_value(data, "title")
+        if not title:
+            self.redirect("/insights")
+            return
+        append_jsonl(SYSTEM_CHANGE_PROPOSALS, {
+            "id": _proposal_id(),
+            "proposed_at": now_iso(),
+            "source_report": form_value(data, "source_report"),
+            "title": title,
+            "rationale": form_value(data, "rationale"),
+            "target_area": form_value(data, "target_area"),
+            "status": "pending",
+            "notes": "",
+        })
+        self.redirect("/insights")
+
+    def proposal_status(self, data: dict[str, list[str]]) -> None:
+        prop_id = form_value(data, "id")
+        status = form_value(data, "status") or "pending"
+        _patch_proposal(prop_id, status=status)
         self.redirect("/insights")
 
     def show_article_editor(self, query: dict[str, list[str]]) -> None:
@@ -11168,6 +11513,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             priority_score = score_label(candidate_priority_scores(item)["overall"])
             css_class = track_class(item.get("track", "unclassified"))
             item_id = str(item.get("id") or "")
+            detail_panel_id = item_detail_panel_id(item)
             if entry_type == "rss":
                 detail_href = item_detail_href(item)
                 rows.append(
@@ -11177,7 +11523,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <input type="checkbox" class="item-select" value="{h(item_id)}">
     <span class="select-item-text">選取這則做批次處理</span>
   </label>
-  <div class="candidate-detailed">
+  <div class="candidate-detailed" id="{h(detail_panel_id)}">
   <div>
     {badge("RSS 新進", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
@@ -11235,7 +11581,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <input type="checkbox" class="item-select" value="{h(item_id)}">
     <span class="select-item-text">選取這則做批次處理</span>
   </label>
-  <div class="candidate-detailed">
+  <div class="candidate-detailed" id="{h(detail_panel_id)}">
   <div>
     {badge("已入庫待分流", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
@@ -11669,10 +12015,11 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
             css_class = track_class(item.get("track", "unclassified"))
             decided_at = (item.get("local_decision") or {}).get("decided_at", "未標示時間")
             detail_href = item_detail_href(item)
+            detail_panel_id = item_detail_panel_id(item)
             skill_rows.append(
                 f"""
 <article class="card candidate-card">
-  <div class="candidate-detailed">
+  <div class="candidate-detailed" id="{h(detail_panel_id)}">
   <div>
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge("可進編輯台", "neutral")}

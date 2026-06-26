@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "updated_at": "2026-06-26T00:00:00+00:00",
+  "global": {
+    "taiwan_context_required": true,
+    "emphasize": ["台灣脈絡", "長期法規動向", "風險與限制"],
+    "de_emphasize": ["樂觀敘事", "未驗證宣稱", "廠商新聞稿語氣"],
+    "writing_style_ref": "ian-xuexi-xinde"
+  },
+  "tracks": {
+    "open-tech-open-industry": {
+      "priority_themes": ["開源治理", "供應鏈安全", "數位人權"],
+      "avoid_themes": ["純產品發表"]
+    },
+    "digital-humanities-local-knowledge": {
+      "priority_themes": ["數位典藏", "在地知識", "族群記憶"],
+      "avoid_themes": []
+    }
+  },
+  "learned_signals": []
+}

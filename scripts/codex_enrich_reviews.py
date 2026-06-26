@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "database" / "items.jsonl"
 CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
 REPORT = ROOT / ".cache" / "codex-review-report.md"
+TASTE_PROFILE = ROOT / "database" / "taste-profile.json"
 
 READER_STATUSES = {"triaged", "researching", "drafting", "reviewing", "fact-checking", "ready", "published"}
 READER_ACTIONS = {"accepted-for-editing", "direct-pr-small-news", "revisit-with-personal-notes"}
@@ -352,10 +353,51 @@ def output_schema() -> dict[str, Any]:
     }
 
 
+def taste_profile_block() -> str:
+    """讀 taste-profile.json，組成可注入 prompt 的「使用者品味」區塊。缺檔回空字串。"""
+    if not TASTE_PROFILE.exists():
+        return ""
+    try:
+        profile = json.loads(TASTE_PROFILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return ""
+    if not isinstance(profile, dict):
+        return ""
+    lines: list[str] = []
+    g = profile.get("global") or {}
+    if g.get("emphasize"):
+        lines.append("優先重視：" + "、".join(g["emphasize"]))
+    if g.get("de_emphasize"):
+        lines.append("要警惕/淡化：" + "、".join(g["de_emphasize"]))
+    if g.get("taiwan_context_required"):
+        lines.append("台灣切角為必要條件")
+    for track, meta in (profile.get("tracks") or {}).items():
+        prio = (meta or {}).get("priority_themes") or []
+        avoid = (meta or {}).get("avoid_themes") or []
+        if prio:
+            lines.append(f"[{track}] 偏好主題：" + "、".join(prio))
+        if avoid:
+            lines.append(f"[{track}] 避開主題：" + "、".join(avoid))
+    for sig in (profile.get("learned_signals") or []):
+        if isinstance(sig, dict) and sig.get("signal"):
+            lines.append("已從過去決策學到：" + sig["signal"])
+    if not lines:
+        return ""
+    body = "\n".join(f"- {line}" for line in lines)
+    return f"""
+## 使用者品味（請優先參考，這是 Ian 的個人判斷偏好）
+{body}
+
+請在判斷 recommendation / confidence / content_kind 時把上述品味納入考量；命中偏好主題、有台灣切角的，傾向 recommend-collect 或 recommend-review，不要輕易 skip。
+"""
+
+
 def build_prompt(batch: list[dict[str, Any]], provider: str = "codex") -> str:
     label = provider_meta(provider)["label"]
     data = json.dumps({"items": batch}, ensure_ascii=False, indent=2)
+    taste = taste_profile_block()
     return f"""你是 Ian Open News 的編輯助理，請為下列 RSS/知識項目補上 {label} 版閱讀建議。
+{taste}
 
 請只根據每筆提供的 source_text 判斷，不要上網，不要補不存在的事實。
 若 source_basis 是「只有標題」或 source_text 太短，請明確降低 confidence，needs_fulltext 設為 true，摘要只做保守判斷。

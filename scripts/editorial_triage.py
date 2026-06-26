@@ -1,9 +1,29 @@
 from __future__ import annotations
 
+import json
 import re
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
+
+
+TASTE_PROFILE = Path(__file__).resolve().parents[1] / "database" / "taste-profile.json"
+
+
+def load_taste_profile() -> dict[str, Any]:
+    """讀 taste-profile.json，缺檔或壞檔回安全預設（不影響計分）。"""
+    if not TASTE_PROFILE.exists():
+        return {"global": {}, "tracks": {}, "learned_signals": []}
+    try:
+        data = json.loads(TASTE_PROFILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {"global": {}, "tracks": {}, "learned_signals": []}
+    if not isinstance(data, dict):
+        return {"global": {}, "tracks": {}, "learned_signals": []}
+    data.setdefault("global", {})
+    data.setdefault("tracks", {})
+    return data
 
 
 TRACK_LABELS = {
@@ -215,7 +235,31 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
         "rejected_reasons": rejected_reasons,
         "prior_count": len(prior_records),
         "rejected_count": len(rejected_records),
+        "taste_profile": load_taste_profile(),
     }
+
+
+def evaluate_taste_fit(text: str, tags: list[str], track: str, taste: dict[str, Any]) -> tuple[int, list[str]]:
+    """命中品味偏好主題 +1/個、避開主題 -1/個。回傳 (score, signals)。只用來往「收」的方向微調。"""
+    track_meta = (taste.get("tracks") or {}).get(track) or {}
+    priority = [t for t in (track_meta.get("priority_themes") or []) if t]
+    avoid = [t for t in (track_meta.get("avoid_themes") or []) if t]
+    haystack = (text or "") + " " + " ".join(tags or [])
+    signals: list[str] = []
+    score = 0
+    hit_priority = [t for t in priority if t in haystack]
+    hit_avoid = [t for t in avoid if t in haystack]
+    if hit_priority:
+        score += len(hit_priority)
+        signals.append("命中偏好主題：" + "、".join(hit_priority[:6]))
+    if hit_avoid:
+        score -= len(hit_avoid)
+        signals.append("命中避開主題：" + "、".join(hit_avoid[:6]))
+    g = taste.get("global") or {}
+    if g.get("taiwan_context_required") and ("台灣" in haystack or "臺灣" in haystack):
+        score += 1
+        signals.append("含台灣脈絡（品味設為必要）")
+    return score, signals
 
 
 def cue_matches(text: str, cues: list[str]) -> list[str]:
@@ -357,6 +401,8 @@ def evaluate_editorial_triage(
         deletion_signals.append("Inoreader 舊收藏且發布超過兩年，容易只是歷史待清資料")
     deletion_score = min(6, len(deletion_signals) + len(skip_keywords))
 
+    taste_score, taste_signals = evaluate_taste_fit(text, tags, track, context.get("taste_profile") or {})
+
     if deletion_score >= 3 and keyword_score <= 2:
         recommendation = "suggest-skip"
     elif keyword_score >= 2 and deletion_score == 0 and prior_score >= 1:
@@ -367,6 +413,11 @@ def evaluate_editorial_triage(
         recommendation = "suggest-review"
     else:
         recommendation = "suggest-skip"
+
+    # 品味微調：只往「收」的方向。命中偏好且非明確該刪時，把 skip 升為 review，降低誤刪。
+    if taste_score >= 2 and recommendation == "suggest-skip" and deletion_score < 3:
+        recommendation = "suggest-review"
+        taste_signals.append("因符合個人品味，從建議略過上修為建議人工看過")
 
     confidence_points = 0
     confidence_points += 2 if abs(keyword_score) >= 3 else 1 if abs(keyword_score) >= 1 else 0
@@ -434,6 +485,11 @@ def evaluate_editorial_triage(
             "score": prior_score,
             "signals": prior_signals[:6],
             "judgement": "越高越像過去已收錄或值得保留的資料。",
+        },
+        "taste_fit": {
+            "score": taste_score,
+            "signals": taste_signals[:6],
+            "judgement": "越高越符合個人品味；只用來往收的方向微調，降低誤刪。",
         },
         "next_step_hint": next_step,
     }
