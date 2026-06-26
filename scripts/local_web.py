@@ -9354,6 +9354,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(status)
         elif parsed.path == "/insights":
             self.show_insights(query)
+        elif parsed.path == "/insights/edit-taste-profile":
+            self.show_taste_profile_editor(query)
         elif parsed.path == "/api/insight-status":
             self.send_json(load_json(INSIGHT_STATUS))
         elif parsed.path == "/api/pdf-split-status":
@@ -10871,7 +10873,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 joined += f"…等 {len(item_titles)} 筆"
             return joined
 
-        def div_card(div: dict) -> str:
+        def div_card(div: dict, state: str = "unfilled") -> str:
             div_id = h(div.get("id", ""))
             dt = div.get("divergence_type", "")
             dt_label = "AI 超推卻拒收" if dt == "over-rejected" else "AI 說不收你卻收"
@@ -10885,10 +10887,14 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             cluster_label = h(div.get("cluster_label", ""))
             expl = h(div.get("user_explanation", ""))
             conf_label = f'<span class="muted">信心度：{h(confidence)}</span>' if confidence else ""
+            state_badge = ('<span class="badge badge-blue">已填說明</span>'
+                           if state == "explained" else
+                           '<span class="badge badge-gray">待填寫</span>')
             return f"""
-<div class="div-card">
+<div class="div-card" data-filter-group="cue" data-div-type="{h(dt)}" data-div-state="{h(state)}">
   <div class="div-card-header">
     <span class="badge {dt_class}">{h(dt_label)}{cluster_badge}</span>
+    {state_badge}
     {conf_label}
   </div>
   <div class="div-card-body">
@@ -10930,11 +10936,15 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   <button type="submit" class="button small">結案</button>
 </form>'''
                 card_class = "div-card div-analyzed-ready"
+            state_badge = ('<span class="badge badge-green">可結案</span>'
+                           if state == "ready" else
+                           '<span class="badge badge-gray">等待提案</span>')
             return f"""
-<div class="{card_class}">
+<div class="{card_class}" data-filter-group="cue" data-div-type="{h(dt)}" data-div-state="analyzed">
   <div class="div-card-header">
     <span class="badge {dt_class}">{h(dt_label)}</span>
-    <span class="badge badge-gray">已分析 {analyzed_at}</span>
+    {state_badge}
+    <span class="badge badge-gray" style="font-weight:400">已分析 {analyzed_at}</span>
   </div>
   <div class="div-card-body">
     <span class="div-titles">《{title_links}》</span><br>
@@ -10998,7 +11008,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             rpt_prompt_id = f"prompt-rpt-{rpt_id}"
             rpt_prompt_text = h(build_report_prompt(rpt))
             return f"""
-<details class="report-row">
+<details class="report-row" data-filter-group="reports" data-rpt-status="{h(status)}">
   <summary>
     <strong>{gen_at}</strong> {h(mode_label)}
     <span class="badge {status_cls}">{h(status_label)}</span>
@@ -11014,86 +11024,81 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   {f'<p class="muted">實作備註：{notes_val}</p>' if notes_val else ''}
 </details>"""
 
-        empty_hint = ""
-        if not pending_b and not pending_a and not explained:
-            empty_hint = '<p class="muted">待填清單是空的。按「隨機抓 5 筆進待填」抽幾筆來填，或在收件/分流時系統會自動累積。</p>'
-
-        section_b = ""
-        if pending_b:
-            section_b = f"""
-<section>
-  <h2>類型 B：AI 超推但你拒收（{len(pending_b)} 筆）</h2>
-  {''.join(div_card(d) for d in pending_b)}
-</section>"""
-
-        section_a = ""
-        if pending_a:
-            section_a = f"""
-<section>
-  <h2>類型 A：AI 說不收你卻收下（{len(pending_a)} 筆）</h2>
-  {''.join(div_card(d) for d in pending_a)}
-</section>"""
-
-        explained_section = ""
-        if explained:
-            explained_section = f"""
-<details>
-  <summary>已填說明（{len(explained)} 筆）</summary>
-  {''.join(div_card(d) for d in explained)}
-</details>"""
-
-        analyzed_section = ""
-        if analyzed_waiting or analyzed_ready:
-            waiting_html = ''.join(div_analyzed_card(d, "waiting") for d in analyzed_waiting)
-            ready_html = ''.join(div_analyzed_card(d, "ready") for d in analyzed_ready)
-            analyzed_section = f"""
-<details>
-  <summary>已分析（{len(analyzed_waiting) + len(analyzed_ready)} 筆）{f' — {len(analyzed_ready)} 筆可結案' if analyzed_ready else ''}</summary>
-  {ready_html}
-  {waiting_html}
-</details>"""
-
-        reports_section = ""
-        if reports:
-            reports_section = f"""
-<section>
-  <h2>報告管理</h2>
-  {''.join(report_row(r) for r in reports[:20])}
-</section>"""
-
         analyze_disabled = "" if explained_count else " disabled"
         batch_close_disabled = "" if analyzed_ready else " disabled"
-        action_bar = f"""
-<div class="action-bar">
-  <form method="post" action="/insights/sample-into-cue" style="display:inline">
-    <button type="submit" class="button secondary">隨機抓 5 筆進待填</button>
-  </form>
-  <form method="post" action="/insights/generate-report" data-insight-job="分析已填說明的分歧" style="display:inline">
-    <button type="submit" class="button"{analyze_disabled}>分析已填說明的 {explained_count} 筆</button>
-  </form>
-  <form method="post" action="/insights/close-all-resolved" style="display:inline">
-    <button type="submit" class="button secondary"{batch_close_disabled}>批次結案（{len(analyzed_ready)} 筆可結案）</button>
-  </form>
-</div>"""
 
-        # 品味工具箱 sidebar
+        # 待釐清案例：所有 cue 卡片合成一個 section
+        all_cue_cards = (
+            ''.join(div_card(d, "unfilled") for d in pending_b)
+            + ''.join(div_card(d, "unfilled") for d in pending_a)
+            + ''.join(div_card(d, "explained") for d in explained)
+            + ''.join(div_analyzed_card(d, "ready") for d in analyzed_ready)
+            + ''.join(div_analyzed_card(d, "waiting") for d in analyzed_waiting)
+        )
+        total_cue = len(pending_b) + len(pending_a) + len(explained) + len(analyzed_waiting) + len(analyzed_ready)
+        cue_empty = '<p class="muted">待填清單是空的。在右側按「隨機抓 5 筆進待填」抽幾筆來填，或在收件/分流時系統會自動累積。</p>' if not total_cue else ""
+        cue_section = f"""
+<section>
+  <div class="section-header" data-filter-section="cue">
+    <div class="section-header-left">
+      <h2>待釐清案例 <span class="badge badge-gray">{total_cue} 筆</span></h2>
+      <p class="section-sub">AI 建議與你的收錄決策不一致，填上理由後可送分析。</p>
+    </div>
+    <div class="section-filters">
+      <button class="filter-pill is-active" data-filter-group="cue" data-filter-attr="divState" data-filter-val="all">全部</button>
+      <button class="filter-pill" data-filter-group="cue" data-filter-attr="divState" data-filter-val="unfilled">待填</button>
+      <button class="filter-pill" data-filter-group="cue" data-filter-attr="divState" data-filter-val="explained">已填說明</button>
+      <button class="filter-pill" data-filter-group="cue" data-filter-attr="divState" data-filter-val="analyzed">已分析</button>
+      <button class="filter-pill" data-filter-group="cue" data-filter-attr="divType" data-filter-val="over-rejected">AI 超推</button>
+      <button class="filter-pill" data-filter-group="cue" data-filter-attr="divType" data-filter-val="under-collected">AI 低估</button>
+    </div>
+  </div>
+  {cue_empty}
+  {all_cue_cards}
+</section>"""
+
+        # 分析報告
+        reports_html = ''.join(report_row(r) for r in reports[:20])
+        rpt_count = len(reports)
+        reports_section = f"""
+<section>
+  <div class="section-header" data-filter-section="reports">
+    <div class="section-header-left">
+      <h2>分析報告 <span class="badge badge-gray">{rpt_count} 份</span></h2>
+      <p class="section-sub">每次「分析已填說明」的完整記錄，可用 CLI 把建議套用進系統。</p>
+    </div>
+    <div class="section-filters">
+      <button class="filter-pill is-active" data-filter-group="reports" data-filter-attr="rptStatus" data-filter-val="all">全部</button>
+      <button class="filter-pill" data-filter-group="reports" data-filter-attr="rptStatus" data-filter-val="pending">待實作</button>
+      <button class="filter-pill" data-filter-group="reports" data-filter-attr="rptStatus" data-filter-val="attempted">已跑過 CLI</button>
+      <button class="filter-pill" data-filter-group="reports" data-filter-attr="rptStatus" data-filter-val="implemented">✓ 已實作</button>
+    </div>
+  </div>
+  {reports_html or '<p class="muted">尚無報告。填好說明後在右側按「分析」。</p>'}
+</section>"""
+
+        # sidebar
         taste_lines = taste_profile_summary_lines()
         taste_ul = "".join(f"<li>{h(line)}</li>" for line in taste_lines) or "<li class='muted'>尚未設定，分析並用 CLI 實作後會開始累積。</li>"
-        taste_json_str = h(json.dumps(load_taste_profile(), ensure_ascii=False, indent=2))
         taste_sidebar = f"""
 <section class="workspace-sidebar-section">
-  <h2>目前品味（已內化進 AI 分析）</h2>
-  <ul class="taste-sidebar-list">{taste_ul}</ul>
+  <h2>操作</h2>
+  <div class="sidebar-actions">
+    <form method="post" action="/insights/sample-into-cue">
+      <button type="submit" class="button secondary" style="width:100%">隨機抓 5 筆進待填</button>
+    </form>
+    <form method="post" action="/insights/generate-report" data-insight-job="分析已填說明的分歧">
+      <button type="submit" class="button" style="width:100%"{analyze_disabled}>分析已填說明的 {explained_count} 筆</button>
+    </form>
+    <form method="post" action="/insights/close-all-resolved">
+      <button type="submit" class="button secondary" style="width:100%"{batch_close_disabled}>批次結案（{len(analyzed_ready)} 筆可結案）</button>
+    </form>
+  </div>
 </section>
 <section class="workspace-sidebar-section">
-  <h2>直接編輯 taste-profile.json</h2>
-  <form method="post" action="/insights/save-taste-profile">
-    <textarea name="content" class="taste-edit-area" rows="20" spellcheck="false">{taste_json_str}</textarea>
-    <div style="margin-top:6px">
-      <button type="submit" class="button small">儲存</button>
-      <span class="muted taste-save-hint" style="font-size:0.82em;margin-left:8px"></span>
-    </div>
-  </form>
+  <h2>品味設定</h2>
+  <ul class="taste-sidebar-list">{taste_ul}</ul>
+  <a href="/insights/edit-taste-profile" class="button secondary small" style="margin-top:8px;display:inline-block;width:100%;text-align:center">編輯品味檔 →</a>
 </section>"""
 
         # 程式調整提案區
@@ -11131,8 +11136,9 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                               + (f'<br><span class="muted">你的理由：{h(expl)}</span>' if expl else "")
                               + '</li>')
                 cases_html = f'<details class="prop-cases"><summary>對應的 {len(cases)} 筆分歧案例</summary><ul>{items}</ul></details>'
+            prop_status_val = h(p.get("status", "pending"))
             prop_rows += f"""
-<div class="prop-row{' prop-done' if done else ''}">
+<div class="prop-row{' prop-done' if done else ''}" data-filter-group="proposals" data-prop-status="{prop_status_val}">
   <div><strong>{h(p.get('title',''))}</strong>
     {f"<span class='muted'>· {h(p.get('target_area',''))}</span>" if p.get('target_area') else ''}</div>
   {src_line}
@@ -11147,12 +11153,24 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   </div>
   <textarea id="{ta_id}" class="copy-src" readonly>{prompt_text}</textarea>
 </div>"""
+        prop_count = len(proposals_sorted)
         proposals_section = f"""
 <section>
-  <h2>程式調整提案（品味檔接不住、需評估改程式）</h2>
-  <p class="muted">每筆都附一段可複製的 prompt，貼到你自己的 Codex / Claude Code 就能請它實作。</p>
+  <div class="section-header" data-filter-section="proposals">
+    <div class="section-header-left">
+      <h2>程式調整提案 <span class="badge badge-gray">{prop_count} 筆</span></h2>
+      <p class="section-sub">品味檔接不住的結構性建議，評估後才改程式本體。</p>
+    </div>
+    <div class="section-filters">
+      <button class="filter-pill is-active" data-filter-group="proposals" data-filter-attr="propStatus" data-filter-val="all">全部</button>
+      <button class="filter-pill" data-filter-group="proposals" data-filter-attr="propStatus" data-filter-val="pending">待評估</button>
+      <button class="filter-pill" data-filter-group="proposals" data-filter-attr="propStatus" data-filter-val="evaluating">評估中</button>
+      <button class="filter-pill" data-filter-group="proposals" data-filter-attr="propStatus" data-filter-val="done">✓ 已完成</button>
+      <button class="filter-pill" data-filter-group="proposals" data-filter-attr="propStatus" data-filter-val="wontfix">不做</button>
+    </div>
+  </div>
   {prop_rows or '<p class="muted">目前沒有程式提案。</p>'}
-  <details><summary>手動新增一筆提案</summary>
+  <details style="margin-top:10px"><summary>手動新增一筆提案</summary>
     <form method="post" action="/insights/proposal-add" class="prop-add-form">
       <input type="text" name="title" placeholder="提案標題（要改什麼）" required>
       <input type="text" name="target_area" placeholder="大概動哪個檔">
@@ -11164,7 +11182,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 
         css = """<style>
 .div-card{border:1px solid #ddd;border-radius:8px;padding:12px 16px;margin-bottom:12px;background:#fafafa}
-.div-card-header{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.div-card-header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
 .div-card-body{margin-bottom:8px;line-height:1.6}
 .div-titles{font-weight:500}
 .item-link{color:inherit;text-decoration:underline dotted}
@@ -11178,13 +11196,18 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 .badge-blue{background:#bee3f8;color:#2b6cb0}
 .badge-green{background:#c6f6d5;color:#276749}
 .badge-gray{background:#e2e8f0;color:#4a5568}
-.action-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.section-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:12px}
+.section-header-left h2{margin:0}
+.section-sub{margin:2px 0 0;font-size:0.85em;color:#718096}
+.section-filters{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;flex-shrink:0}
+.filter-pill{padding:2px 10px;border-radius:12px;border:1px solid #cbd5e0;background:#fff;font-size:0.8em;cursor:pointer;line-height:1.6}
+.filter-pill.is-active{background:#e9d8fd;border-color:#9f7aea;color:#553c9a;font-weight:600}
+.sidebar-actions{display:flex;flex-direction:column;gap:6px}
 .report-row{border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;margin-bottom:8px}
 .report-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .report-pre{background:#1e1e2e;color:#e8e8f0;padding:12px;border-radius:4px;white-space:pre-wrap;font-size:0.85em;max-height:420px;overflow-y:auto;line-height:1.55}
 .apply-run{border-left:3px solid #6450dc;padding-left:10px;margin:10px 0}
 .taste-sidebar-list{margin:6px 0 0;padding-left:20px;line-height:1.7;font-size:0.88em}
-.taste-edit-area{width:100%;font-family:monospace;font-size:0.82em;border:1px solid #ccc;border-radius:4px;padding:8px;resize:vertical;background:#fafafa}
 .prop-row{border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;flex-direction:column;gap:4px}
 .prop-done{opacity:0.5}
 .prop-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
@@ -11197,6 +11220,22 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 
         apply_poll_js = """<script>
 (function(){
+  // filter-pill 客戶端篩選
+  document.querySelectorAll('.filter-pill').forEach(function(pill){
+    pill.addEventListener('click', function(){
+      var filterGroup = pill.dataset.filterGroup;
+      var filterAttr  = pill.dataset.filterAttr;
+      var filterVal   = pill.dataset.filterVal;
+      pill.closest('.section-filters').querySelectorAll('.filter-pill')
+          .forEach(function(p){ p.classList.toggle('is-active', p===pill); });
+      var camel = filterAttr.replace(/-([a-z])/g, function(_,c){ return c.toUpperCase(); });
+      document.querySelectorAll('[data-filter-group="'+filterGroup+'"]').forEach(function(el){
+        if(filterVal==='all') el.hidden=false;
+        else el.hidden = (el.dataset[camel] !== filterVal);
+      });
+    });
+  });
+
   var cw = document.getElementById('command-window');
   var ct = document.getElementById('command-title');
   var cs = document.getElementById('command-status');
@@ -11297,12 +11336,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 <div class="workspace-toolbar">{sidebar_toggle}</div>
 <div class="workspace-layout" id="insights-workspace">
   <section class="workspace-main">
-    {action_bar}
-    {empty_hint}
-    {section_b}
-    {section_a}
-    {explained_section}
-    {analyzed_section}
+    {cue_section}
     {reports_section}
     {proposals_section}
   </section>
@@ -11313,6 +11347,36 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 {apply_poll_js}
 """
         self.send_html("決策洞察", body)
+
+    def show_taste_profile_editor(self, query: dict) -> None:
+        draft_file = ROOT / ".cache" / "taste-edit-draft.txt"
+        error_msg = ""
+        if (query.get("error") or [None])[0] == "json":
+            error_msg = '<div class="error-banner">JSON 格式有誤，請修正後再儲存。</div>'
+        draft_val = ""
+        if (query.get("draft") or [None])[0] == "1" and draft_file.exists():
+            try:
+                draft_val = draft_file.read_text(encoding="utf-8")
+            except Exception:
+                draft_val = ""
+        if not draft_val:
+            draft_val = json.dumps(load_taste_profile(), ensure_ascii=False, indent=2)
+        saved_banner = '<div class="success-banner">✓ 品味檔已儲存。</div>' if (query.get("saved") or [None])[0] == "taste" else ""
+        body = f"""
+<a href="/insights" style="font-size:0.9em">← 回洞察面板</a>
+<h1>編輯品味設定檔</h1>
+{saved_banner}
+{error_msg}
+<p class="muted" style="font-size:0.88em">可修改 <code>global.emphasize</code>、各 track 的 <code>priority_themes</code> / <code>avoid_themes</code>，以及手動 append <code>learned_signals</code>（附 <code>source_report</code>）。</p>
+<form method="post" action="/insights/save-taste-profile">
+  <textarea name="content" style="width:100%;font-family:monospace;font-size:0.85em;border:1px solid #ccc;border-radius:4px;padding:10px;resize:vertical;background:#fafafa" rows="36" spellcheck="false">{h(draft_val)}</textarea>
+  <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+    <button type="submit" class="button">儲存</button>
+    <a href="/insights" class="button secondary">取消</a>
+  </div>
+</form>
+"""
+        self.send_html("編輯品味檔", body)
 
     def save_divergence_explanation(self, data: dict[str, list[str]]) -> None:
         div_id = form_value(data, "id")
@@ -11413,16 +11477,16 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         raw = form_value(data, "content") or ""
         try:
             parsed = json.loads(raw)
-        except json.JSONDecodeError as exc:
-            self.send_html(
-                "品味檔格式錯誤",
-                f'<h1>JSON 格式錯誤</h1><p>{h(str(exc))}</p>'
-                f'<p><a class="button" href="/insights">回洞察面板</a></p>',
-                HTTPStatus.BAD_REQUEST,
-            )
+        except json.JSONDecodeError:
+            draft_file = ROOT / ".cache" / "taste-edit-draft.txt"
+            try:
+                draft_file.write_text(raw, encoding="utf-8")
+            except Exception:
+                pass
+            self.redirect("/insights/edit-taste-profile?error=json&draft=1")
             return
         TASTE_PROFILE.write_text(json.dumps(parsed, ensure_ascii=False, indent=2), encoding="utf-8")
-        self.redirect("/insights?saved=taste")
+        self.redirect("/insights/edit-taste-profile?saved=taste")
 
     def show_article_editor(self, query: dict[str, list[str]]) -> None:
         article_id = clean_text((query.get("id") or [""])[0])
