@@ -1399,17 +1399,55 @@ INSIGHT_REPO_CONTEXT = (
 )
 
 
+def divergence_cases_for_report(rpt: dict) -> list[dict]:
+    """依報告 divergence_ids 的順序，取出當時分析的分歧案例（含使用者解釋）。
+    順序與報告內「案例 N」編號一致，方便 rationale 的『案例3』對得回來。"""
+    ids = rpt.get("divergence_ids") or []
+    by_id = {d.get("id"): d for d in load_jsonl(DECISION_DIVERGENCES)}
+    cases = []
+    for div_id in ids:
+        d = by_id.get(div_id)
+        if not d:
+            continue
+        ai = d.get("ai_suggestion") or {}
+        cases.append({
+            "titles": d.get("item_titles") or [],
+            "type": d.get("divergence_type", ""),
+            "ai": ai.get("recommendation", ""),
+            "user_action": d.get("user_action", ""),
+            "confidence": ai.get("confidence", ""),
+            "explanation": d.get("user_explanation", ""),
+        })
+    return cases
+
+
+def _format_cases_block(cases: list[dict]) -> str:
+    if not cases:
+        return ""
+    lines = ["## 觸發這次調整的實際分歧案例（編號對應報告中的「案例 N」）\n"]
+    for i, c in enumerate(cases, 1):
+        title = "；".join(c.get("titles") or []) or "（無標題）"
+        lines.append(f"案例 {i}：《{title}》")
+        lines.append(f"  AI 判斷：{c.get('ai','')} → 你實際：{c.get('user_action','')}"
+                     + (f"（信心度 {c.get('confidence')}）" if c.get("confidence") else ""))
+        if c.get("explanation"):
+            lines.append(f"  你的理由：{c['explanation']}")
+    return "\n".join(lines) + "\n"
+
+
 def build_proposal_prompt(prop: dict) -> str:
+    cases_block = _format_cases_block(prop.get("source_divergences") or [])
     return (
         "你正在 Ian Open News 專案。請依下面這個來自「決策分歧分析」的改進建議，實作對應的程式修改。\n\n"
         "## 要實作的建議\n"
         f"- 標題：{prop.get('title','')}\n"
         f"- 理由：{prop.get('rationale','') or '（無）'}\n"
         f"- 大概要動：{prop.get('target_area','') or '（自行判斷）'}\n\n"
+        f"{cases_block}\n"
         f"{INSIGHT_REPO_CONTEXT}\n"
         "## 請這樣做\n"
-        "1. 先讀相關檔案，提出最小、可回退的改動方案。\n"
-        "2. 實作後說明改了什麼、附上 diff。\n"
+        "1. 先讀相關檔案，對照上面的實際案例，提出最小、可回退的改動方案。\n"
+        "2. 實作後說明改了什麼、附上 diff，並說明上面那些案例下次會如何被正確處理。\n"
         "3. 確保 `python3 scripts/validate_database.py` 通過，並避免影響既有 triage 行為的其他案例。\n"
     )
 
@@ -1523,9 +1561,11 @@ def _apply_list_patch(current: list, add: list, remove: list) -> list:
     return result
 
 
-def apply_structured_patch(patch: dict, source_report: str) -> dict:
+def apply_structured_patch(patch: dict, report: dict, engine: str = "") -> dict:
     """把 CLI 回傳的結構化 patch 套用到 taste-profile / triage-keywords / sources。
     回傳套用摘要 dict。"""
+    source_report = report.get("id", "")
+    cases = divergence_cases_for_report(report)
     changes: dict[str, object] = {"taste": False, "keywords": 0, "sources": 0, "proposals": 0}
 
     # 1. taste-profile
@@ -1597,6 +1637,8 @@ def apply_structured_patch(patch: dict, source_report: str) -> dict:
             "id": _proposal_id(),
             "proposed_at": now_iso(),
             "source_report": source_report,
+            "source_engine": engine,
+            "source_divergences": cases,
             "title": str(prop.get("title", ""))[:200],
             "rationale": str(prop.get("rationale", "")),
             "target_area": str(prop.get("target_area", "")),
@@ -1629,7 +1671,7 @@ def run_apply_job(report: dict, engine: str) -> None:
         return
 
     insight_status("running", "正在套用設定調整並計算 diff…", engine=engine, report_id=rpt_id)
-    changes = apply_structured_patch(patch, rpt_id)
+    changes = apply_structured_patch(patch, report, engine)
 
     # 算被編輯檔的合併 diff
     labels = [str(p.relative_to(ROOT)) for p in APPLY_EDITABLE_FILES]
@@ -10969,11 +11011,34 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             done = p.get("status") in {"done", "wontfix"}
             ta_id = f"prompt-prop-{pid}"
             prompt_text = h(build_proposal_prompt(p))
+            # 紀錄行
+            src_line = ""
+            if p.get("source_report"):
+                src_line = (f'<div class="muted" style="font-size:0.82em">紀錄：'
+                            f'{h(p.get("source_engine","") or "手動")} · {h((p.get("proposed_at","") or "")[:16])} · '
+                            f'來源報告 {h(p.get("source_report",""))}</div>')
+            # 案例 block
+            cases = p.get("source_divergences") or []
+            cases_html = ""
+            if cases:
+                items = ""
+                for ci, c in enumerate(cases, 1):
+                    title = "；".join(c.get("titles") or []) or "（無標題）"
+                    expl = c.get("explanation", "")
+                    items += (f'<li>案例 {ci}：《{h(title)}》<br>'
+                              f'<span class="muted">AI: {h(c.get("ai",""))} → 你: {h(c.get("user_action",""))}'
+                              + (f'（信心度 {h(c.get("confidence"))}）' if c.get("confidence") else "")
+                              + '</span>'
+                              + (f'<br><span class="muted">你的理由：{h(expl)}</span>' if expl else "")
+                              + '</li>')
+                cases_html = f'<details class="prop-cases"><summary>對應的 {len(cases)} 筆分歧案例</summary><ul>{items}</ul></details>'
             prop_rows += f"""
 <div class="prop-row{' prop-done' if done else ''}">
   <div><strong>{h(p.get('title',''))}</strong>
     {f"<span class='muted'>· {h(p.get('target_area',''))}</span>" if p.get('target_area') else ''}</div>
+  {src_line}
   {f"<div class='muted'>{h(p.get('rationale',''))}</div>" if p.get('rationale') else ''}
+  {cases_html}
   <div class="prop-actions">
     <button type="button" class="button small" data-copy="{ta_id}">複製給 Codex / CC 的 prompt</button>
     <form method="post" action="/insights/proposal-status" style="display:inline">
