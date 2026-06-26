@@ -535,9 +535,11 @@ def evaluate_triage(record: dict, keyword_config: dict) -> dict:
     track_config = (keyword_config.get("tracks") or {}).get(track, {})
     keep_keywords = track_config.get("keep_keywords") or []
     skip_keywords = track_config.get("skip_keywords") or []
+    mechanism_keywords = track_config.get("mechanism_keywords") or []
     text = candidate_haystack(record)
     keep_matches = keyword_matches(text, keep_keywords)
     skip_matches = keyword_matches(text, skip_keywords)
+    mechanism_matches = keyword_matches(text, mechanism_keywords)
 
     if skip_matches:
         recommendation = "suggest-skip"
@@ -545,6 +547,15 @@ def evaluate_triage(record: dict, keyword_config: dict) -> dict:
     elif keep_matches:
         recommendation = "suggest-keep"
         reason = "符合主線關鍵字，建議進候選清單人工看過。"
+    elif mechanism_matches:
+        # 表層主題沒命中主線關鍵字，但命中底層機制框架詞（FOIA、公共數位基礎建設、
+        # 開源永續、貢獻者權利、數位人權等）→ 不自主略過，改標成「先問你」並附切角提示。
+        recommendation = "suggest-ask"
+        reason = (
+            "未命中主線關鍵字，但命中底層機制關鍵字「"
+            + "、".join(mechanism_matches[:4])
+            + "」，可能有切角價值，建議先問你再決定，不要直接略過。"
+        )
     else:
         recommendation = "suggest-skip"
         reason = "沒有符合目前主線關鍵字，建議先不要看。"
@@ -554,6 +565,7 @@ def evaluate_triage(record: dict, keyword_config: dict) -> dict:
         "reason": reason,
         "matched_keywords": keep_matches,
         "skip_keywords": skip_matches,
+        "mechanism_keywords": mechanism_matches,
         "keyword_config_version": keyword_config.get("version", 1),
     }
 

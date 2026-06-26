@@ -311,7 +311,7 @@ def recommendation_label(recommendation: str) -> str:
     if recommendation == "suggest-skip":
         return "建議不要看"
     if recommendation == "suggest-ask":
-        return "命中個人 beat，請確認"
+        return "建議先問你（命中個人 beat 或底層機制）"
     return "未判斷"
 
 
@@ -433,6 +433,16 @@ def evaluate_editorial_triage(
         if beat_hits:
             recommendation = "suggest-ask"
             taste_signals.append("命中個人 beat 主題：" + "、".join(beat_hits[:4]) + "；請確認是否值得追蹤")
+
+    # 機制關鍵字保護層：表層主題沒命中主線、但命中底層機制框架詞（FOIA、公共數位基礎建設、
+    # 開源永續、貢獻者權利、數位人權等）時，輸出 suggest-ask 而非自主 skip，避免誤刪有切角價值的稿件。
+    if recommendation == "suggest-skip" and deletion_score < 4:
+        track_cfg = (keyword_config.get("tracks") or {}).get(track, {})
+        mechanism_keywords = track_cfg.get("mechanism_keywords") or []
+        mech_hits = [kw for kw in mechanism_keywords if normalized(kw) and normalized(kw) in normalized(text)]
+        if mech_hits:
+            recommendation = "suggest-ask"
+            taste_signals.append("命中底層機制關鍵字：" + "、".join(mech_hits[:4]) + "；表層主題偏移但機制吻合，建議先確認再決定")
 
     confidence_points = 0
     confidence_points += 2 if abs(keyword_score) >= 3 else 1 if abs(keyword_score) >= 1 else 0

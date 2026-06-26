@@ -3133,6 +3133,8 @@ def recommendation_label(recommendation: str) -> str:
         return "建議收"
     if recommendation == "suggest-skip":
         return "建議不要看"
+    if recommendation == "suggest-ask":
+        return "機制吻合，先問你"
     return "未判斷"
 
 
@@ -3144,7 +3146,7 @@ def editorial_recommendation_label(recommendation: str) -> str:
     if recommendation == "suggest-skip":
         return "建議不要看"
     if recommendation == "suggest-ask":
-        return "命中個人 beat，請確認"
+        return "建議先問你（命中個人 beat 或底層機制）"
     return "尚未初篩"
 
 
@@ -3202,6 +3204,8 @@ def editorial_badge_class(recommendation: str) -> str:
         return "neutral"
     if recommendation == "suggest-skip":
         return "suggest-skip"
+    if recommendation == "suggest-ask":
+        return "suggest-ask"
     return "neutral"
 
 
@@ -5460,6 +5464,21 @@ def page(title: str, body: str) -> bytes:
       flex: 0 0 auto;
     }}
     button:active, .button:active {{ transform: translateY(0); box-shadow: 0 2px 6px rgba(15,25,35,.14); }}
+    button:disabled, .button:disabled, button[disabled], .button[disabled] {{
+      background: #e2e8f0;
+      color: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+      filter: none;
+      opacity: 1;
+    }}
+    button:disabled:hover, .button:disabled:hover, button[disabled]:hover, .button[disabled]:hover {{
+      background: #e2e8f0;
+      color: #94a3b8;
+      transform: none;
+      box-shadow: none;
+      filter: none;
+    }}
     .button-row {{ display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }}
     .button-row .button, .button-row button {{ margin-top: 0; }}
     .button-opentech {{ background: var(--ocf-primary); }}
@@ -5532,6 +5551,7 @@ def page(title: str, body: str) -> bytes:
     .badge--archived {{ background: #eceff5; color: #667085; }}
     .badge--suggest-keep {{ background: #ece8ff; color: var(--ocf-primary); }}
     .badge--suggest-skip {{ background: #fff0f6; color: var(--ocf-magenda); }}
+    .badge--suggest-ask {{ background: #fff7e6; color: #b7791f; }}
     .badge--reading {{ background: #fff8db; color: #7a5a00; }}
     .tag-chip-list {{ display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }}
     .tag-chip {{
@@ -11152,7 +11172,14 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         # sidebar
         taste_lines = taste_profile_summary_lines()
         taste_ul = "".join(f"<li>{h(line)}</li>" for line in taste_lines) or "<li class='muted'>尚未設定，分析並用 CLI 實作後會開始累積。</li>"
-        analyze_hint = "" if explained_count else '<p class="section-sub" style="margin:4px 0 0">先在卡片填上「你的想法」再分析</p>'
+        if explained_count:
+            analyze_hint = ""
+        elif unfilled:
+            analyze_hint = '<p class="section-sub" style="margin:4px 0 0">先在待填卡片填上「你的想法」再分析</p>'
+        elif analyzed:
+            analyze_hint = '<p class="section-sub" style="margin:4px 0 0">已填的都分析過了；抽新分歧或填新想法後才有可分析的</p>'
+        else:
+            analyze_hint = '<p class="section-sub" style="margin:4px 0 0">目前沒有待分析的分歧</p>'
         batch_hint = "" if analyzed_ready else '<p class="section-sub" style="margin:4px 0 0">尚無可結案項目</p>'
         taste_sidebar = f"""
 <section class="workspace-sidebar-section">
@@ -11284,8 +11311,10 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 .section-header-left h2{margin:0}
 .section-sub{margin:2px 0 0;font-size:0.85em;color:#718096}
 .section-filters{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;flex-shrink:0}
-.filter-pill{padding:2px 10px;border-radius:12px;border:1px solid #cbd5e0;background:#fff;font-size:0.8em;cursor:pointer;line-height:1.6}
+.filter-pill{padding:2px 10px;border-radius:12px;border:1px solid #cbd5e0;background:#fff;color:#4a5568;font-size:0.8em;cursor:pointer;line-height:1.6;font-weight:normal}
+.filter-pill:hover{background:#f7fafc;color:#2d3748;border-color:#a0aec0}
 .filter-pill.is-active{background:#e9d8fd;border-color:#9f7aea;color:#553c9a;font-weight:600}
+.filter-pill.is-active:hover{background:#e9d8fd;color:#553c9a}
 .sidebar-actions{display:flex;flex-direction:column;gap:6px}
 .report-row{border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;margin-bottom:8px}
 .report-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}

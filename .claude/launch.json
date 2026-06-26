@@ -4,8 +4,8 @@
     {
       "name": "local-web (本機網頁收件箱)",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["scripts/local_web.py", "--port", "8768"],
-      "port": 8768
+      "runtimeArgs": ["scripts/local_web.py", "--port", "8769", "--port-scan-count", "1"],
+      "port": 8769
     }
   ]
 }
