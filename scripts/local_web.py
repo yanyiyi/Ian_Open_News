@@ -5887,6 +5887,11 @@ def page(title: str, body: str) -> bytes:
     .flow-line {{ margin: 4px 0; color: var(--muted, #64748b); }}
     .flow-line--change {{ margin-top: 10px; }}
     .flow-current {{ display: inline-block; padding: 2px 12px; border-radius: 999px; background: var(--soft, #eef6ff); color: var(--ocf-dark, #14304a); font-weight: 700; }}
+    /* 「目前為」標籤色 = 下方對應分流按鈕的 hover 色，讓狀態與動作視覺一致 */
+    .flow-current--small-news {{ background: var(--ocf-cyan); color: #fff; }}
+    .flow-current--reading {{ background: var(--ocf-magenda); color: #fff; }}
+    .flow-current--accept {{ background: var(--ocf-primary); color: #fff; }}
+    .flow-current--reject {{ background: var(--danger); color: #fff; }}
     /* 入庫建檔區：完全用原生語彙色，與列表頁(/items)一致 —— 收=紫(預設)、閱讀=洋紅(.reading-button)、
        新聞=藍(.secondary)、不收=淡粉 chip(.reason-chip--danger)。不另外覆寫。 */
     /* 可用材料區（重新檢視已判斷）：三顆實心動作鈕白底，hover 才回原生語彙色；不收原因維持原生淡色 chip。 */
@@ -9492,6 +9497,8 @@ class Handler(BaseHTTPRequestHandler):
             self.pdf_split_apply(self.read_form())
         elif parsed.path == "/items/codex-review":
             self.codex_review_item(self.read_form())
+        elif parsed.path == "/items/codex-review-batch":
+            self.codex_review_batch(self.read_form())
         elif parsed.path == "/items/update-url":
             self.update_item_url(self.read_form())
         elif parsed.path == "/items/update-title":
@@ -12342,6 +12349,12 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         elif (query.get("saved") or [""])[0] == "rejected":
             count = h((query.get("count") or ["1"])[0])
             notice = f'<div class="notice">已標記不收 {count} 筆，項目已離開入庫建檔區，原因也已寫進不收學習檔與 review event。</div>'
+        elif (query.get("saved") or [""])[0] == "codex_review_batch":
+            count = h((query.get("count") or ["0"])[0])
+            prov = h(ai_provider_label((query.get("provider") or [""])[0]) or "AI")
+            notice = f'<div class="notice">已用 {prov} 批次補上 {count} 筆的 AI 閱讀建議；可進各篇查看判斷與信心度。</div>'
+        elif (query.get("error") or [""])[0] == "codex_review":
+            notice = '<div class="notice">這次批次補閱讀建議沒有全部成功，可稍後再試或改用其他引擎。</div>'
         elif (query.get("error") or [""])[0] == "empty-selection":
             notice = '<div class="notice">請先勾選至少一則，再做批次處理。</div>'
         elif (query.get("error") or [""])[0] == "reason":
@@ -12630,6 +12643,14 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             </div>
           </details>
         </form>
+        <div class="batch-ai-review">
+          <p class="help" style="margin-top:10px">批次補 AI 閱讀建議（不改分流）</p>
+          <div class="button-row">
+            <select id="batch-ai-engine" aria-label="選擇 AI 引擎">{option_list([("codex", "Codex"), ("claude", "Claude Code"), ("gemini", "Gemini")], "codex")}</select>
+            <button type="button" id="batch-ai-review" class="secondary">{button_content("批次跑 AI 閱讀建議", "wand", "I")}</button>
+          </div>
+          <p class="help">用選定引擎對勾選項目逐筆生成閱讀建議；進度看右下角狀態列，可能需要數分鐘。</p>
+        </div>
         <p class="help">只處理已勾選項目；完成後會離開入庫建檔區。</p>
       </div>
     </section>
@@ -12665,6 +12686,39 @@ document.getElementById("clear-selection").addEventListener("click", () => {{
   liveCheckboxes().forEach((box) => {{ box.checked = false; }});
   syncSelection();
 }});
+
+// 批次 AI 閱讀建議：用選定引擎對勾選項目逐筆生成，走右下角狀態列（runEngineJob）。
+const aiBatchBtn = document.getElementById("batch-ai-review");
+const aiBatchEngine = document.getElementById("batch-ai-engine");
+if (aiBatchBtn && typeof window.runEngineJob === "function") {{
+  aiBatchBtn.addEventListener("click", async () => {{
+    if (aiBatchBtn.dataset.running === "1") return;  // 防連點
+    const ids = syncSelection();
+    if (!ids.length) {{ window.alert("請先勾選至少一筆項目，再批次跑 AI 閱讀建議。"); return; }}
+    const engine = aiBatchEngine ? aiBatchEngine.value : "codex";
+    const origText = aiBatchBtn.textContent;
+    aiBatchBtn.dataset.running = "1";
+    aiBatchBtn.disabled = true;
+    aiBatchBtn.textContent = "執行中…（看右下角）";
+    try {{
+      await window.runEngineJob({{
+        label: `批次 AI 閱讀建議（${{ids.length}} 筆）`,
+        url: "/items/codex-review-batch",
+        baseBody: "ids=" + encodeURIComponent(ids.join(",")),
+        engine: engine,
+        onSuccess: (payload) => {{
+          if (payload && payload.redirect) {{
+            setTimeout(() => {{ window.location = payload.redirect; }}, 1000);
+          }}
+        }},
+      }});
+    }} finally {{
+      aiBatchBtn.dataset.running = "";
+      aiBatchBtn.disabled = false;
+      aiBatchBtn.textContent = origText;
+    }}
+  }});
+}}
 
 function buildRequestBody(form, submitter) {{
   let data;
@@ -13802,25 +13856,33 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 else "可重新分流：標成可進編輯台、近期正在讀、小消息，或改成不收。"
             )
             _flow_status = clean_text(item.get("status"))
+            # flow_state 對應下方分流按鈕的 hover 色：
+            # accept→primary(紫)、reading→magenda(洋紅)、small-news(secondary)→cyan(青)、reject→danger、inbox→neutral
             if _flow_status in {"rejected", "archived"}:
                 flow_current = "不收 / 封存"
+                flow_state = "reject"
             elif is_direct_pr_item(item):
                 flow_current = "小消息（直接送 PR）"
+                flow_state = "small-news"
             elif item_is_current_reading(item):
                 flow_current = "閱讀中 / 超想看"
+                flow_state = "reading"
             elif _flow_status == "inbox":
                 flow_current = "入庫建檔區（待整理）"
+                flow_state = "inbox"
             elif is_skill_candidate(item) or _flow_status == "triaged":
                 flow_current = "可用材料（可進編輯台）"
+                flow_state = "accept"
             else:
                 flow_current = status_label(_flow_status) or "待整理"
+                flow_state = "inbox"
             # 入庫建檔區（inbox）維持語彙色；可用材料區（已判斷）才用白底→hover 上色
             flow_cls = "flow-options" if _flow_status == "inbox" else "flow-options--review"
             reason_options = rejection_reason_options(load_jsonl(ITEMS))
             inbox_actions = f"""
 <div class="card">
   <h2>{h(action_title)} <span class="help-dot" title="{h(action_help)}">?</span></h2>
-  <p class="flow-line">目前為：<span class="flow-current">{h(flow_current)}</span></p>
+  <p class="flow-line">目前為：<span class="flow-current flow-current--{h(flow_state)}">{h(flow_current)}</span></p>
   <p class="flow-line flow-line--change">修改為：</p>
   <div class="button-row {flow_cls}">
     <form method="post" action="/items/accept">
@@ -15617,6 +15679,65 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
 
         separator = "&" if "?" in redirect_to else "?"
         final_redirect = f"{redirect_to}{separator}{'saved=codex_review' if ok else 'error=codex_review'}"
+        if wants_json:
+            self.send_json(
+                {
+                    "ok": ok,
+                    "returncode": result.returncode,
+                    "command": command,
+                    "output": output,
+                    "redirect": final_redirect,
+                    "error": "" if ok else clean_text(output, 1000),
+                },
+                HTTPStatus.OK if ok else HTTPStatus.BAD_GATEWAY,
+            )
+            return
+        self.redirect(final_redirect)
+
+    def codex_review_batch(self, data: dict[str, list[str]]) -> None:
+        """對勾選的多筆項目，用指定引擎批次補 AI 閱讀建議。沿用 runEngineJob（右下角狀態列）。"""
+        raw_ids = ",".join(data.get("ids") or [])
+        item_ids = [item_id.strip() for item_id in raw_ids.split(",") if item_id.strip()]
+        provider = normalize_ai_provider(form_value(data, "provider", "codex"))
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
+        if not item_ids:
+            if wants_json:
+                self.send_json({"ok": False, "error": "請先勾選至少一筆項目"}, HTTPStatus.BAD_REQUEST)
+                return
+            self.redirect("/items?error=empty-selection")
+            return
+
+        command = [
+            sys.executable,
+            str(ROOT / "scripts" / "codex_enrich_reviews.py"),
+            "--provider",
+            provider,
+            "--target",
+            "both",
+            "--workflow-scope",
+            "--no-missing-only",
+            "--limit",
+            str(len(item_ids)),
+            "--batch-size",
+            "4",
+        ]
+        for item_id in item_ids:
+            command += ["--id", item_id]
+
+        try:
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800)
+            output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
+            ok = result.returncode == 0
+        except subprocess.TimeoutExpired as exc:
+            output = (exc.stdout or "") + ("\nSTDERR:\n" + exc.stderr if exc.stderr else "")
+            output = (output + f"\n{ai_provider_label(provider)} 批次生成逾時。").strip()
+            ok = False
+            result = subprocess.CompletedProcess(command, returncode=124, stdout="", stderr=output)
+
+        if ok:
+            final_redirect = f"/items?saved=codex_review_batch&count={len(item_ids)}&provider={quote(provider)}"
+        else:
+            final_redirect = "/items?error=codex_review"
         if wants_json:
             self.send_json(
                 {
