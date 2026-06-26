@@ -17,6 +17,18 @@ class TranslationMarkdownTest(unittest.TestCase):
 
         self.assertEqual(translate.source_markdown(record), markdown)
 
+    def test_source_markdown_prefers_edited_fulltext(self) -> None:
+        original = "# Original\n\nOld paragraph."
+        edited = "# Original\n\nCorrected paragraph.\n\nAdded context."
+        record = {
+            "reading_metadata": {
+                "article_markdown": original,
+                "edited_markdown": edited,
+            }
+        }
+
+        self.assertEqual(translate.source_markdown(record), edited)
+
     def test_apply_translation_keeps_blank_lines(self) -> None:
         record = {"reading_metadata": {}}
         markdown = "# 中文標題\n\n第一段。\n\n第二段。"

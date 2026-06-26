@@ -148,6 +148,9 @@ def item_title(record: dict[str, Any]) -> str:
 
 def source_markdown(record: dict[str, Any]) -> str:
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
+    edited = clean_markdown(metadata.get("edited_markdown"), 42000)
+    if edited:
+        return edited
     markdown = clean_markdown(metadata.get("article_markdown"), 42000)
     if markdown:
         return markdown

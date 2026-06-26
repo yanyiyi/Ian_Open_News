@@ -13308,8 +13308,8 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
     <section class="fulltext-panel source-card source-card--source" id="{fulltext_id}" hidden>
       <div class="section-kicker">原始主文</div>
       <p class="help" data-fulltext-meta></p>
-      <div class="button-row" data-translation-actions hidden></div>
       <div class="article-text article-markdown" data-fulltext-body></div>
+      <div class="button-row" data-translation-actions hidden></div>
     </section>
   </div>
 </article>
@@ -13719,6 +13719,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         original_title = item_original_title(item)
         original_language = item_original_language(item)
         translate_actions = translation_actions_html(item, item_id, item_detail_href(item))
+        translate_actions_row = f'<div class="button-row" data-translation-actions{"" if translate_actions else " hidden"}>{translate_actions}</div>'
         fulltext_hidden = "" if article_markdown or article_text else " hidden"
         fulltext_message = (
             f"Markdown 閱讀版，約 {article_meta.get('article_markdown_chars', len(article_markdown)) or article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_markdown_method') or article_meta.get('article_text_method', 'metadata')}。"
@@ -13742,16 +13743,17 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
   <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
   {original_edit_row}
-  <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
+  {translate_actions_row}
 </section>
 """
         else:
+            original_translation_row = "" if is_edited else translate_actions_row
             original_fulltext_panel = f"""
 <details class="card fulltext-panel source-card source-card--source original-fulltext-collapsible" id="fulltext-panel"{fulltext_hidden}>
   <summary><div class="section-kicker">原始主文（原文）</div></summary>
   <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
   <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
-  <div class="button-row" data-translation-actions{'' if translate_actions else ' hidden'}>{translate_actions}</div>
+  {original_translation_row}
 </details>
 """
         # 主全文（編輯版）面板：手動修正後成為要讀的版本
@@ -13766,6 +13768,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
   <div class="section-kicker">全文（已手動修正）</div>
   <div class="article-text article-markdown">{edited_html}</div>
   <div class="button-row">{edit_fulltext_button}</div>
+  {translate_actions_row}
 </section>
 """
         # 自動翻譯：沒編輯時當主全文（prominent + 編輯鈕）；編輯後收合供比對（point 2）
@@ -15919,7 +15922,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             self.send_html("找不到項目", "<h1>找不到可翻譯項目</h1><p><a class='button' href='/items'>回入庫建檔區</a></p>", HTTPStatus.NOT_FOUND)
             return
         found, changed, response_item, error = self.update_read_more_record(target_path, item_id)
-        article_markdown = item_article_markdown(response_item or {})
+        article_markdown = item_edited_markdown(response_item or {}) or item_article_markdown(response_item or {})
         if not found or (error and not article_markdown) or not article_markdown:
             if wants_json:
                 self.send_json({"ok": False, "error": "還沒有可翻譯的全文，請先展開全文。"}, HTTPStatus.BAD_GATEWAY)
