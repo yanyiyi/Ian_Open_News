@@ -1388,6 +1388,46 @@ def extract_code_proposals(report_text: str, source_report: str) -> list[dict]:
     return proposals
 
 
+INSIGHT_REPO_CONTEXT = (
+    "## 專案背景（Ian Open News，本機 repo）\n"
+    "- 收件 triage 判斷在 `scripts/editorial_triage.py`：`evaluate_editorial_triage()` 算 "
+    "keyword_fit / prior_collection_fit / deletion_pattern_fit / taste_fit 四個分數，決定 "
+    "suggest-collect / suggest-review / suggest-skip。\n"
+    "- 全域保留/排除關鍵字在 `database/triage-keywords.json`；個人品味在 `database/taste-profile.json`。\n"
+    "- RSS 抓取與初判在 `scripts/fetch_rss.py`；本機網頁在 `scripts/local_web.py`。\n"
+    "- 正本是 `database/*.jsonl`（一筆一行）。改完請跑 `python3 scripts/validate_database.py` 確認格式。\n"
+)
+
+
+def build_proposal_prompt(prop: dict) -> str:
+    return (
+        "你正在 Ian Open News 專案。請依下面這個來自「決策分歧分析」的改進建議，實作對應的程式修改。\n\n"
+        "## 要實作的建議\n"
+        f"- 標題：{prop.get('title','')}\n"
+        f"- 理由：{prop.get('rationale','') or '（無）'}\n"
+        f"- 大概要動：{prop.get('target_area','') or '（自行判斷）'}\n\n"
+        f"{INSIGHT_REPO_CONTEXT}\n"
+        "## 請這樣做\n"
+        "1. 先讀相關檔案，提出最小、可回退的改動方案。\n"
+        "2. 實作後說明改了什麼、附上 diff。\n"
+        "3. 確保 `python3 scripts/validate_database.py` 通過，並避免影響既有 triage 行為的其他案例。\n"
+    )
+
+
+def build_report_prompt(rpt: dict) -> str:
+    return (
+        "你正在 Ian Open News 專案。下面是一份「決策分歧分析報告」，請依其中建議調整系統，"
+        "讓收件 triage 更貼近我的實際取捨（重點是減少誤刪）。\n\n"
+        f"{INSIGHT_REPO_CONTEXT}\n"
+        "## 請這樣做\n"
+        "1. 能用設定表達的（關鍵字、品味主題）改 `database/triage-keywords.json` 或 `database/taste-profile.json`。\n"
+        "2. 需要改判斷邏輯的，動 `scripts/editorial_triage.py`，提出最小改動。\n"
+        "3. 說明改了什麼、附 diff，並跑 `python3 scripts/validate_database.py`。\n\n"
+        "## 分析報告全文\n\n"
+        f"{rpt.get('report_text','')}\n"
+    )
+
+
 def _patch_proposal(prop_id: str, **kwargs: object) -> bool:
     records = load_jsonl(SYSTEM_CHANGE_PROPOSALS)
     found = False
@@ -10840,6 +10880,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   <button type="submit" class="button small secondary">標記已實作</button>
 </form>'''
 
+            rpt_prompt_id = f"prompt-rpt-{rpt_id}"
+            rpt_prompt_text = h(build_report_prompt(rpt))
             return f"""
 <details class="report-row">
   <summary>
@@ -10848,7 +10890,11 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <span class="muted" style="font-size:0.85em">{summary}</span>
   </summary>
   <pre class="report-pre">{report_text}</pre>
-  <div class="report-actions">{cli_buttons}{impl_form}</div>
+  <div class="report-actions">
+    <button type="button" class="button small" data-copy="{rpt_prompt_id}">複製整份報告的實作 prompt</button>
+    {cli_buttons}{impl_form}
+  </div>
+  <textarea id="{rpt_prompt_id}" class="copy-src" readonly>{rpt_prompt_text}</textarea>
   {runs_html}
   {f'<p class="muted">實作備註：{notes_val}</p>' if notes_val else ''}
 </details>"""
@@ -10910,27 +10956,38 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 </section>"""
 
         # 程式調整提案區
-        open_props = [p for p in proposals if p.get("status") not in {"done", "wontfix"}]
+        # 顯示全部提案（不再因改狀態而消失）；已完成/不做的排到後面並淡化
+        status_order = {"pending": 0, "evaluating": 1, "done": 2, "wontfix": 3}
+        proposals_sorted = sorted(proposals, key=lambda p: status_order.get(p.get("status", "pending"), 0))
         prop_status_opts = lambda cur: "".join(
             f'<option value="{s}"{" selected" if s==cur else ""}>{lbl}</option>'
             for s, lbl in [("pending","待評估"),("evaluating","評估中"),("done","已完成"),("wontfix","不做")]
         )
         prop_rows = ""
-        for p in open_props:
+        for i, p in enumerate(proposals_sorted):
+            pid = h(p.get("id", ""))
+            done = p.get("status") in {"done", "wontfix"}
+            ta_id = f"prompt-prop-{pid}"
+            prompt_text = h(build_proposal_prompt(p))
             prop_rows += f"""
-<div class="prop-row">
+<div class="prop-row{' prop-done' if done else ''}">
   <div><strong>{h(p.get('title',''))}</strong>
     {f"<span class='muted'>· {h(p.get('target_area',''))}</span>" if p.get('target_area') else ''}</div>
   {f"<div class='muted'>{h(p.get('rationale',''))}</div>" if p.get('rationale') else ''}
-  <form method="post" action="/insights/proposal-status" style="display:inline">
-    <input type="hidden" name="id" value="{h(p.get('id',''))}">
-    <select name="status" onchange="this.form.submit()">{prop_status_opts(p.get('status','pending'))}</select>
-  </form>
+  <div class="prop-actions">
+    <button type="button" class="button small" data-copy="{ta_id}">複製給 Codex / CC 的 prompt</button>
+    <form method="post" action="/insights/proposal-status" style="display:inline">
+      <input type="hidden" name="id" value="{pid}">
+      <select name="status" onchange="this.form.submit()">{prop_status_opts(p.get('status','pending'))}</select>
+    </form>
+  </div>
+  <textarea id="{ta_id}" class="copy-src" readonly>{prompt_text}</textarea>
 </div>"""
         proposals_section = f"""
 <section>
   <h2>程式調整提案（品味檔接不住、需評估改程式）</h2>
-  {prop_rows or '<p class="muted">目前沒有待評估的程式提案。</p>'}
+  <p class="muted">每筆都附一段可複製的 prompt，貼到你自己的 Codex / Claude Code 就能請它實作。</p>
+  {prop_rows or '<p class="muted">目前沒有程式提案。</p>'}
   <details><summary>手動新增一筆提案</summary>
     <form method="post" action="/insights/proposal-add" class="prop-add-form">
       <input type="text" name="title" placeholder="提案標題（要改什麼）" required>
@@ -10961,6 +11018,9 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 .taste-card{background:#f4f2ff;border:1px solid #d7dcf0;border-radius:8px;padding:12px 16px;margin-bottom:20px}
 .taste-card ul{margin:6px 0 0;padding-left:20px;line-height:1.7}
 .prop-row{border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;flex-direction:column;gap:4px}
+.prop-done{opacity:0.5}
+.prop-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.copy-src{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
 .prop-add-form{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .prop-add-form input{padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:0.9em}
 .success-banner{background:#c6f6d5;color:#276749;padding:8px 12px;border-radius:6px;margin-bottom:16px}
@@ -11005,6 +11065,26 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       }catch(e){}
     }, 1200);
   }
+  // 複製 prompt 按鈕
+  document.querySelectorAll('button[data-copy]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var ta = document.getElementById(btn.getAttribute('data-copy'));
+      if(!ta) return;
+      var text = ta.value;
+      var orig = btn.textContent;
+      var ok = function(){ btn.textContent = '✓ 已複製，貼到 Codex / CC 即可'; setTimeout(function(){ btn.textContent = orig; }, 2500); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(ok).catch(function(){
+          ta.style.position='static'; ta.style.width='100%'; ta.style.height='160px'; ta.style.opacity='1'; ta.select();
+          try{ document.execCommand('copy'); ok(); }catch(e){}
+        });
+      } else {
+        ta.style.position='static'; ta.style.width='100%'; ta.style.height='160px'; ta.style.opacity='1'; ta.select();
+        try{ document.execCommand('copy'); ok(); }catch(e){}
+      }
+    });
+  });
+
   document.querySelectorAll('form[data-insight-job]').forEach(function(form){
     form.addEventListener('submit', async function(ev){
       ev.preventDefault();
