@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,21 @@
       <p class="lede">文章摘要描述美國 FCC 禁止銷售非美國製新型家用路由器，理由是國家安全與人身安全風險。製造商可申請條件式核准，但需提出在美國製造或擴產的具體計畫、投資安排與定期更新。摘要也指出，美國製造設備通常成本更高，因為現有製造規模與效率不足。至於這些變化如何具體影響 FOSS，摘錄尚未充分呈現。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">software freedom</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://sfconservancy.org/static/img/conservancy-logo.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>What the FCC router ban means for FOSS</h1>
+<p>by Denver Gingerich on April 2, 2026</p>
+<p>Last week, the Federal Communications Commission in the United States (the FCC) <a href="https://docs.fcc.gov/public/attachments/DOC-420034A1.pdf" target="_blank" rel="noreferrer">banned the sale of all new models of home routers not made in the U.S.</a>, which is ... <em>all of them</em>. The stated reason for this is that routers &quot;pose an unacceptable risk to the national security of the U.S. or the safety and security of U.S. persons.&quot; A router manufacturer can apply for a &quot;Conditional Approval&quot; exemption to try and convince U.S. government bodies that their router should be allowed into the U.S., but this requires &quot;A detailed, time-bound plan to establish or expand manufacturing in the United States&quot; and &quot;A description of committed and planned capital expenditures, financing, or other investments dedicated to U.S.-based manufacturing and assembly&quot;, and &quot;an update on the status of their onshoring plan once a quarter&quot; <a href="https://www.fcc.gov/sites/default/files/Guidance-for-Conditional-Approvals-Submissions0326.pdf" target="_blank" rel="noreferrer">among other impractical asks</a>. Devices built in the U.S. generally cost at least twice as much as devices built in Asia (see the <a href="https://shop.puri.sm/shop/librem-5/" target="_blank" rel="noreferrer">Librem 5</a> (<a href="https://shop.puri.sm/shop/librem-5-usa/" target="_blank" rel="noreferrer">USA</a>) for example) because U.S. manufacturing facilities are not ready with the scale and efficiency required to enable competitive pricing. The reason we chose to build the OpenWrt One in Asia is that it makes sure the device is as feasible as possible for people around the world to purchase. We expect it will take decades before the U.S. is ready to produce competitively-priced devices - user fr...</p>
+<p>And, in case you were hoping to <a href="https://sfconservancy.org/activities/openwrt-one.html" target="_blank" rel="noreferrer">buy an OpenWrt One</a>, don&#x27;t worry: the One has already received <a href="https://one.openwrt.org/hardware/certification/FCC%C2%A0ID%2C2BLLI-HW24%2CDTS%2C%C2%A0Grant.pdf" target="_blank" rel="noreferrer">FCC</a> <a href="https://one.openwrt.org/hardware/certification/FCC%C2%A0ID%2C2BLLI-HW24%2CNII%2C%C2%A0Grant.pdf" target="_blank" rel="noreferrer">approval</a> so there is no change to its availability in the U.S. Naturally, we are concerned about the effect this has on any new hardware that SFC might develop, but this decision by the FCC does not create any near-term problems for us, or for FOSS generally.</p>
+<p>We do applaud the FCC for recognizing how important home routers are to people&#x27;s security. While the rulemaking is misguided, it&#x27;s absolutely correct that the proprietary router manufacturers be accountable in relation to the hardware and software that individuals bring into their homes and their lives. We believe that manufacturers of routers that are primarily FOSS are in a much better position to evaluate the security of their devices, and so we analyzed the rulemaking taking into specific account its software aspects.</p>
+<p>While the FCC decision focuses mainly on hardware, there are also some requirements for software. In particular, the FCC has hinted that <a href="https://docs.fcc.gov/public/attachments/DA-26-286A1.pdf" target="_blank" rel="noreferrer">it may restrict updates to existing hardware</a>, in particular that existing routers &quot;may continue to receive software and firmware updates that mitigate harm to U.S. consumers at least until March 1, 2027&quot;.</p>
+<p>Since software updates to already-FCC-approved devices do not require a new FCC approval, it appears the FCC is trying to move beyond its usual authorization procedures to restrict what manufacturers are allowed to push to existing routers. However, the FCC notably does not restrict software changes made by owners of routers in the U.S. In particular, there is no indication that updates people make to their own routers, using software they have sourced themselves, would run afoul of any past or present FCC rule.</p>
+<p>As a result, we do not believe that this new FCC decision affects whether and how people can run OpenWrt or other user-selected firmware updates on routers they have already purchased. Not only is this an important right in relation to our ownership and control of our own devices, it also ensures that people can keep their routers secure for far longer than the manufacturer may choose to provide security updates, by allowing them to install up-to-date community software that supports routers for 10, 15, or even more years after their initial release date, as OpenWrt does for many devices.</p>
+<p>We have reached out to the FCC for clarity on this topic, and look forward to updating this post with their reply.</p>
+<p>[[permalink]](https://sfconservancy.org/blog/2026/apr/02/fcc-router-ban/)</p>
+<p>Tags: <a href="https://sfconservancy.org/blog/?tag=conservancy" target="_blank" rel="noreferrer">conservancy</a>, <a href="https://sfconservancy.org/blog/?tag=gpl" target="_blank" rel="noreferrer">GPL</a>, <a href="https://sfconservancy.org/blog/?tag=security" target="_blank" rel="noreferrer">security</a>, <a href="https://sfconservancy.org/blog/?tag=licensing" target="_blank" rel="noreferrer">licensing</a>, <a href="https://sfconservancy.org/blog/?tag=FreedomforEveryone" target="_blank" rel="noreferrer">software freedom for everyone</a>, <a href="https://sfconservancy.org/blog/?tag=inclusion" target="_blank" rel="noreferrer">inclusion</a></p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-f8dd7e586f6631b6.html">
@@ -580,7 +590,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-2c991ac990f44139.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：What the FCC router ban means for FOSS</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：denver@sfconservancy.org (Denver Gingerich)</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：What the FCC router ban means for FOSS（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：denver@sfconservancy.org (Denver Gingerich)（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-21T23:53:03+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

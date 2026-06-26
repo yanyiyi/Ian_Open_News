@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,34 @@
       <p class="lede">Domyn 與 AISquared 的案例被用來說明 Ai2 開放發布成果如何協助 AI 實驗室服務受監管產業。重點不只是模型能力，而是客戶在採用 AI 時會要求透明度、資料與模型來源、授權清楚，以及可控性，這些都直接關係到信任與合規。</p>
       <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">compliance</span><span class="tag-chip">開源 AI</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://www.datocms-assets.com/64837/1781798035-domyn-and-aisquared-case-study-blog-draft-google-docs-image-1.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>How Domyn and AISquared built on Ai2&#x27;s open releases | Ai2</h1>
+<h2>How Domyn and AISquared built on Ai2&#x27;s open releases</h2>
+<p>Companies in regulated industries like financial services, healthcare, academia, and the public sector often face a procurement problem with AI: many models ship without the data provenance, risk documentation, or input data protections that compliance, legal, and security teams need to approve high-impact deployments.</p>
+<p>Two AI labs building for regulated industries, Domyn and AISquared (both of which are unaffiliated with Ai2), have developed models that draw directly on Ai2&#x27;s open releases. Based in Milan, Domyn focuses on AI sovereignty – full ownership and control of the models and data they deploy – for financial services, advanced manufacturing, and other regulated sectors. Headquartered in Washington, D.C., AISquared serves the federal government and U.S. enterprise customers in those same industries.</p>
+<p>Both chose Olmo because it’s available with the full model flow, including the training data, code, and architectural blueprints—delivering the high level of transparency and customization needed for Domyn and AISquared’s client bases.</p>
+<h3><strong>Why AISquared chose Olmo</strong></h3>
+<p>Earlier this year, AISquared released <a href="https://aisquared.ai/blog/introducing-bolt-model-family/" target="_blank" rel="noreferrer">Bolt</a>, a family of open-weight small language models designed for enterprise workflows like retrieval-augmented generation (RAG), document processing, and model routing. Bolt Instruct, the family&#x27;s instruction-following sub-family, is fine-tuned from Olmo 2, Olmo 3, and Olmo 3.1 across three sizes—1B, 7B, and 32B.</p>
+<p>For Jacob Renn, AISquared&#x27;s Co-Founder and Chief Data Scientist, choosing Olmo as the base for Bolt came down to Ai2’s philosophy of openness.</p>
+<p>&quot;Because Olmo is fully open, we had complete visibility into its architecture and training data, allowing us a higher level of trust compared to less transparent open-weight models,” says Renn. Other foundation models AISquared tested relied on less-supported architectures or arcane methods, and the resulting fine-tunes &quot;were less efficient, more difficult to deploy and work with, or required much more complex and costly training schemas which still resulted in worse performance,” says Renn.</p>
+<p>“Olmo&#x27;s transparency and permissive licensing made it an easy choice among the set of U.S.-originated models,&quot; adds Renn. “Furthermore, its license ensured that we could adapt Olmo as needed and license it to our customers.”</p>
+<p>On top of Olmo, the AISquared team customized Bolt Instruct to produce machine-readable structured outputs, reduce hallucination rates in RAG, detect personally identifiable information (PII) and jailbreak attempts, and route requests across other models. Inside UNIFI, AISquared&#x27;s enterprise platform, Bolt Instruct now plays two roles: a guardrails layer that blocks disallowed content before it reaches downstream systems and a router that directs each request to the model best suited to handle it.</p>
+<p>According to Renn, migrating to Bolt cut AISquared&#x27;s own infrastructure hosting costs by roughly 50%, with customers seeing similar reductions in costs.</p>
+<h3><strong>How Domyn used Dolma and Dolci</strong></h3>
+<p>In May, Domyn released <a href="https://www.domyn.com/news/introducing-domyn-small-an-open-european-reasoning-llm-built-for-ai-ownership" target="_blank" rel="noreferrer">Domyn Small</a>, a 10B-parameter open-weight reasoning model built in part on Ai2&#x27;s open Dolma and Dolci datasets. Because Dolma and Dolci ship with documented sources and permissive licenses, Domyn could publish Domyn Small&#x27;s recipe in a form regulated organizations could trace from end to end.</p>
+<p>&quot;The auditability claim is only defensible if we can document what went into a model’s training data, not just what came out of training,&quot; says Martin Cimmino, AI Engineering Manager at Domyn. &quot;Any person can go look at exactly what the model saw.”</p>
+<p>To develop Domyn Small, Domyn started from Italia 10B – a foundation model it trained from scratch – and layered a multi-stage post-training pipeline on top. Italia 10B gave Domyn a strong initial foundation, but the model had been trained for general use rather than reasoning, and its context window was too short for the long documents Domyn&#x27;s customers typically work with. Extending it called for another round of training on high-quality, longer-form data.</p>
+<p>Dolma fit the bill. The source of its data – and how it was cleaned and filtered – is public, so Domyn could calibrate it against the rest of the company’s internal data mix &quot;rather than flying blind on opaque web crawls,&quot; says Cimmino. In addition, Dolma’s open license and clear provenance helped &quot;clear the procurement-side review we have to pass for downstream commercial deployment,” adds Cimmino.</p>
+<p>After Dolma, the next step was teaching Domyn Small to give clear, accurate responses rather than vague or obviously wrong ones. To do this, Domyn sourced Dolci, Ai2’s dataset containing around 260K response pairs built for exactly this kind of tuning. We released Dolci last year alongside Olmo 3.</p>
+<p>On GPQA-Diamond, a graduate-level science reasoning benchmark, Dolci helped Domyn Small gain 10.1 points—the biggest single jump in the model&#x27;s post-training pipeline.</p>
+<p>&quot;The empirical payoff was real,&quot; says Cimmino.</p>
+<h3><strong>What Ai2&#x27;s openness makes possible</strong></h3>
+<p>For AI labs serving regulated customers, the bar isn&#x27;t just high capability—it&#x27;s auditability and control. The EU AI Act raises that bar higher, requiring providers of general-purpose AI models to publish detailed summaries of their training data. In the U.S., federal customers carry their own constraints around provenance and licensing.</p>
+<p>What changes the picture is the kind of upstream openness Ai2 builds into its datasets and other research artifacts.</p>
+<p>&quot;Ai2&#x27;s published documentation feeds straight into our traceability and AI Act compliance artifacts,&quot; says Cimmino. &quot;The commitment to releasing the full stack is genuinely unusual at the scale Ai2 operates. Ai2&#x27;s work anchors a credible alternative to closed proprietary pipelines for labs like ours that are building under sovereignty and public-interest constraints.&quot;</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-1a1c2ef30d132c50.html">
@@ -580,7 +603,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-fc7b6566f8257ec3.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：How Domyn and AISquared built on Ai2&#x27;s open releases</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：How Domyn and AISquared built on Ai2&#x27;s open releases（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-23T04:03:45+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

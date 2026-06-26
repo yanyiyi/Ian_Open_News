@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,95 @@
       <p class="lede">從標題只能判斷，文章可能介紹以本機 AI 模型協助整理 OpenClaw 儲存庫，並強調執行成本接近免費；具體工作流程、評估結果及成本計算方式尚不明。</p>
       <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://huggingface.co/blog/assets/local-models-pr-triage/thumbnail.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>We got local models to triage the OpenClaw repo for FREE!*</h1>
+<h2>a]:hidden&quot;&gt;</h2>
+<p>We got local models to triage the OpenClaw repo for FREE!*</p>
+<p><a href="https://huggingface.co/blog/local-models-pr-triage#categorizing-issues-and-prs" target="_blank" rel="noreferrer">Categorizing issues and PRs</a> <a href="https://huggingface.co/blog/local-models-pr-triage#processing-incoming-prs-and-issues" target="_blank" rel="noreferrer">Processing incoming PRs and issues</a> <a href="https://huggingface.co/blog/local-models-pr-triage#can-local-models-triage-prs" target="_blank" rel="noreferrer">Can local models triage PRs?</a> <a href="https://huggingface.co/blog/local-models-pr-triage#tracking-and-validating-real-time-performance-using-openclaw" target="_blank" rel="noreferrer">Tracking and validating real-time performance using OpenClaw</a> <a href="https://huggingface.co/blog/local-models-pr-triage#conclusion" target="_blank" rel="noreferrer">Conclusion</a> <a href="https://huggingface.co/blog/local-models-pr-triage#footnotes" target="_blank" rel="noreferrer">Footnotes</a> **Free as in beer, excluding the cost of electricity, and assuming you already own the hardware*</p>
+<p>June 2026 will go down as the moment that people realized closed models can be taken away. With the removal of Anthropic&#x27;s latest flagship model Claude Fable 5 fresh in memory, one can see why it is more important than ever to own your AI stack and be able to run models locally, especially if you are building your business on top of AI.</p>
+<p>In that light, we wanted to share how we use local models like Gemma and Qwen in an agent harness, to run classification tasks [[1]](https://huggingface.co/blog/local-models-pr-triage#note-1) . This approach is different from using a model like BERT for classification. A local model in an agent harness like Pi can be used in tandem with structured outputs, to assign labels. We chose this approach because we already had local models and the harness on hand, and have conviction that similar setups will increase in popularity as local models improve in capability. [[2]](https://huggingface.co/blog/local-models-pr-triage#note-2)</p>
+<p>Our starting point was open source contributions in the OpenClaw repo. OpenClaw gets hundreds of issues and PRs every day, which need to be triaged, prioritized and routed to maintainers. I, Onur, am working to make local models work well with OpenClaw. Being a maintainer of this specific vertical, I need to react quickly to any P0 issues.</p>
+<p>With SOTA closed models like GPT-5, Opus, or Sonnet, this is a pretty straightforward task. But I happen to sit on 128 GB of unified memory, namely an NVIDIA GB10. So I took on the task:</p>
+<blockquote>Can I build a real-time notification system that filters and notifies me for only the issues that I am responsible for... with local open-weight models?</blockquote>
+<p>If I set up my OpenClaw main agent running on a $200/mo ChatGPT Pro plan to trigger a job on every new issue or PR, that would use up my quota. I might instead set it to run every 2 hours, or 6 hours. This would batch issues over longer periods, so we would be trading real-time notifications for delayed processing.</p>
+<p>If I were to run this on a local model on the hardware I already have up and running, I would not only have near-instantaneous notifications, I would also be able to do it for free (or rather, for the cost of electricity).</p>
+<h2>Categorizing issues and PRs</h2>
+<p>We came up with a finite set of labels representing the categories of issues we need to triage, and then use a local model to classify each issue into one of those categories, like <code>local_models</code>, <code>self_hosted_inference</code>, <code>acp</code>, <code>agent_runtime</code>, <code>codex</code>, <code>ui_tui</code> and so on. [[3]](https://huggingface.co/blog/local-models-pr-triage#note-3)</p>
+<p>But how do we classify pull requests? A simple single request to a Chat Completions endpoint with a tool JSON schema, with the topics as an enum?</p>
+<p>Kind of. But this is 2026, not 2023, and we have AGENTS. We can do better!</p>
+<p>For the local model choices, we tested <code>gemma-4-26b-a4b</code> and <code>qwen3.6-35b-a3b</code>. With performance optimizations, both can generate hundreds of tokens per second locally.</p>
+<p>We use an agent harness to drive the classification run. For this, we bundle <a href="https://pi.dev" target="_blank" rel="noreferrer">pi</a> as a harness that can call local model endpoints.</p>
+<p>The agent by default receives the PR title, body and a truncated excerpt of the PR diff in the first prompt. Then, it can choose to use the <code>bash</code> tool to perform read-only operations on the OpenClaw repo (in case it needs to look at the codebase), or the <code>final_json</code> tool to submit the final classification result.</p>
+<p>You wouldn&#x27;t want to give full bash access to a local model running in this high-throughput setting, because a prompt-injected issue or PR could otherwise steer the model into doing something unrelated to classification.</p>
+<p>For that reason, we use <a href="https://github.com/osolmaz/localpager/tree/main/reposhell" target="_blank" rel="noreferrer">reposhell</a> instead of <code>bash</code>: a restricted <code>bash</code>-like shell that only allows read-only operations (<code>ls</code>, <code>find</code>, <code>cat</code>, <code>grep</code>, etc.) on the OpenClaw repo. The model thinks it is using <code>bash</code>, but any operation that is not allowed is rejected:</p>
+<p>Here is a concrete example where this mattered. In one <a href="https://huggingface.co/datasets/dutifuldev/openclaw-classification-dataset/blob/main/session-examples/README.md" target="_blank" rel="noreferrer">saved session example</a>, <code>qwen3.6-35b-a3b</code> was classifying <a href="https://github.com/openclaw/openclaw/pull/84621" target="_blank" rel="noreferrer">openclaw/openclaw#84621</a>, titled <code>Fix Kimi tool-call rewriting stop reason handling</code>. The thinking block shows the model initially considering <code>coding_agent_integrations</code> because the changed path <code>extensions/kimi-coding</code> made it look plausible. The model used reposhell to inspect the local repo with simple read-only commands like <code>ls extensions</code>, <code>ls extensions/kimi-coding</code>, and <code>cat extensions/kimi-coding/package.json</code>. That package metadata showed the extension was actually <code>@openclaw/kimi-provider</code>, an OpenClaw Kimi provider plugin. So the model corrected the final labels to <code>inference_api</code> and <code>tool_calling</code>, and explicitly excluded <code>coding_agent_integrations</code>.</p>
+<p>We have mentioned earlier that we bundle a specific <code>pi</code> configuration that can only perform read-only operations and return classification output. We call it <a href="https://github.com/osolmaz/localpager/tree/main/localpager-agent" target="_blank" rel="noreferrer">localpager-agent</a>, named after <code>localpager</code>, the main project here. Each PR and issue generates a prompt, which is then passed to the CLI like below, alongside other args:</p>
+<h2>Processing incoming PRs and issues</h2>
+<p>So then what orchestrates everything in between the incoming PR/issue and the final notification on Discord?</p>
+<p>The orchestration around this is very simple; only the classification step involves an LLM:</p>
+<ul>
+<li>We use <a href="http://github.com/openclaw/gitcrawl" target="_blank" rel="noreferrer">openclaw/gitcrawl</a> to act as a local mirror for the repo. Whenever there is a new PR or issue, each item is normalized into the same shape and written into localpager&#x27;s own SQLite database. If the item is new, localpager creates a classification job for it.</li>
+<li>A worker then claims jobs from that queue. It builds a GitHub context object containing the issue or PR title, body, labels, author, state, and optionally comments, changed files, and selected diff excerpts. That means the local model does not need to browse GitHub or open the URL itself most of the time. It is handed all the relevant context.</li>
+<li>The context object is rendered into a prompt and passed to <code>localpager-agent</code> as described in the previous section. The agent can think and use reposhell, but must eventually output a classification result in the defined schema.</li>
+<li>The output is stored back in localpager SQLite database, and relayed to Discord based on the notification policy configured by the user (i.e. notify me for these topics, but not these other ones).</li>
+</ul>
+<p>Below is a figure showing the overall architecture of localpager:</p>
+<p>The architecture is semi-agentic. Labeling is done agentically, while sending a notification is handled by deterministic rules. This is to make the notification pipeline faster by removing the need for inference for the most straightforward parts of the task. Local inference is free but each task has a resource contention cost: GPU bandwidth should be reserved for tasks where inference is absolutely needed. This also reduces chance of errors from notification.</p>
+<h2>Can local models triage PRs?</h2>
+<p>Let&#x27;s be frank: the first local versions of this system were noisy. The first model tested - <code>gemma-4-e4b-it</code> was useful for getting the end-to-end local pipeline working, but it also had a tendency to put too many unrelated labels on a PR or issue. False positive labels make the Discord feed noisy and don&#x27;t focus my attention on the right issues. That pushed us toward testing larger local models, including <code>gemma-4-26b-a4b</code> and <code>qwen3.6-35b-a3b</code>, on the 330-row evaluation set below.</p>
+<p>For early prompt work, we also used <code>DeepSeek-V4-Flash</code> through the antirez DS4 implementation [[4]](https://huggingface.co/blog/local-models-pr-triage#note-4) to create the earlier dataset labels. That setup used the DS4 server over CUDA. We eventually gave up on DS4 as the labeler because it was not labeling consistently across runs. We also did not consider it as the main <code>localpager-agent</code> model because it was too big to get enough throughput on our hardware: the DS4 server gave us around 14 tokens per second, with maximum concurrency of 1.</p>
+<p>To test model performance, we selected and generated labels for 330 GitHub issues and PRs. Each item was labelled five times (3x GPT-5.5 and 2x Opus 4.8) with the models needing to be in agreement to be accepted. This process involved hand adjudicating, improving label definitions and highlighting internal product design choices for the models. This gave us a set of stable, reproducible labels to compare our smaller models against.</p>
+<p>We did not need to do prompt optimization for <code>gemma-4-26b-a4b</code> or <code>qwen3.6-35b-a3b</code> before getting useful results on this evaluation set. Using the same routing prompt, Gemma had higher recall and lower wall-clock time per row, while Qwen had higher precision, higher exact match, and fewer false positives. We also ran <code>DeepSeek-V4-Flash</code> on the same set as a reference. It had the fewest false positives, but the model size and throughput make it impractical for executing these tasks in real time on the NVIDIA GB10. Since each row can have multiple labels, false positives and false negatives are total label counts across all rows. The Qwen results below are after retrying structured-output failures where the model ran out of output tokens before calling <code>final_json</code>. For Gemma and Qwen, repeated-run metrics report mean ± sample standard deviation across three runs. <code>DeepSeek-V4-Flash</code> was run once as a reference.</p>
+<p>The throughput and wall-clock numbers here are not definitive maximum performance numbers for these models on this hardware. They are the settings we used at the time with the optimizations we had available. For example, in a separate probe, <code>gemma-4-26b-a4b</code> also supported concurrency 32 and reached over 700 aggregate output tokens per second.</p>
+<p>For the Gemma benchmark, we served <code>gemma-4-26b-a4b</code> with vLLM using the optimizations we found available for this setup. A big part of that is the NVFP4 quantization: on GB10-class Blackwell hardware, it is not just a smaller model file, but a hardware-friendly format that can use the NVIDIA/vLLM execution path more directly than a portable GGUF quantization like Q4_K_M. In practice, that means less memory traffic and more room for batching. We also enabled prefix caching, FP8 KV cache, the CUTLASS MoE backend, and language-model-only mode. The full 330-row run finished in about 7.5 minutes at concurrency 16.</p>
+<h2>Tracking and validating real-time performance using OpenClaw</h2>
+<p>We have mentioned earlier that instead of running a job with a local model for every new issue or PR, we can run a batch job with a SOTA cloud model, like GPT-5.5 running in OpenClaw, every n hours (e.g. every 2 hours) to achieve the same end. [[5]](https://huggingface.co/blog/local-models-pr-triage#note-5)</p>
+<p>In that case, we would need a ChatGPT Pro plan. Since the model is SOTA, we can still expect it to perform reasonably well, despite batching 2 hours of issues/PRs together.</p>
+<p>Because we want to see how well the local classifier performs against GPT-5.5, we run both simultaneously, and let GPT-5.5 be the judge of false positives and negatives, every 2 hours.</p>
+<p>To be safe, we run the OpenClaw job in a sandbox, with only access to the <a href="https://github.com/osolmaz/onurclaw" target="_blank" rel="noreferrer">public repo</a> we report results to. In our case, we let the OpenClaw job update a machine-readable file, then a simple script reads the Codex-assigned labels and computes the false positive/negative status. Example output:</p>
+<blockquote>False negatives</blockquote>
+<blockquote>Issue #88499 openai-responses provider: 404 on previous_response_id when store=false (default)</blockquote>
+<blockquote>inventory area: OpenAI-compatible/proxy; notifier topics: agent_runtime, api_surface, sessions; notification: none</blockquote>
+<blockquote>False positives</blockquote>
+<blockquote>PR #88275 fix(models-config): allow self-hosted providers without apiKey in models.json (#88267)</blockquote>
+<blockquote>notifier interest: i0; topics: self_hosted_inference, local_model_providers, config; notification: sent</blockquote>
+<blockquote>PR #88266 refactor: extract model catalog core package</blockquote>
+<blockquote>notifier interest: i1; topics: config, api_surface, local_model_providers; notification: sent</blockquote>
+<blockquote>PR #88247 feat: add hosted model providers</blockquote>
+<blockquote>notifier interest: i0; topics: local_model_providers, model_serving, docs, api_surface; notification: sent</blockquote>
+<p>The instructions on how to classify, edit the machine-readable file, get the false positives and false negatives using a script are present in an <a href="https://github.com/osolmaz/onurclaw/blob/main/.agents/skills/openclaw-onur-inventory/SKILL.md" target="_blank" rel="noreferrer">agent skill</a> which is referenced in an <a href="https://docs.openclaw.ai/automation/cron-jobs" target="_blank" rel="noreferrer">OpenClaw cron job</a> that runs every 2 hours. The OpenClaw agent then ingests any new issues or PRs, adds them to the JSON file with appropriate labels, runs the scripts and reports back in the same Discord channel. This way, we can observe the local model&#x27;s performance every few hours, and get notified of the misses.</p>
+<h2>Conclusion</h2>
+<p>We think that the issue/PR triage task is a specific case of a broader set of tasks which we call &quot;high throughput triage&quot;. This post explored the idea of using a local model to filter out information in real time in only one domain, that is, open source contributions. The ability of medium-sized local models like <code>gemma-4-26b-a4b</code> and <code>qwen3.6-35b-a3b</code> to zero-shot classify with good accuracy without any need for fine-tuning makes them a good first choice for quick prototyping, before one moves on to more cost-efficient traditional classifier models.</p>
+<p>However, the same approach can be applied to other domains as well:</p>
+<ul>
+<li>News categorization in journalism</li>
+<li>Filtering for posts of interest in social media and forums like X or Reddit</li>
+<li>Triaging customer support tickets</li>
+<li>Triaging content moderation appeals</li>
+<li>Filtering potential outreach while doing sales</li>
+<li>Filtering for certain topics on arXiv while doing research</li>
+</ul>
+<p>The list can be extended, but we think that the idea should be clear.</p>
+<p>Besides triaging, we have also explored how classification can be performed with agent harnesses running fast local models in a secure manner. A good naming for the approach would be <em>agentic classification</em>: the model is not fed the entire body of information upfront, but can search for more context before returning structured data. While we cannot exactly call this a novel approach, we hope for this blog post to be a good reference for the specific <a href="https://pi.dev" target="_blank" rel="noreferrer">Pi</a>+a restricted shell+<code>final_json</code> recipe.</p>
+<h2>Footnotes</h2>
+<ul>
+<li>For the use case in this post, we have discovered that breaking down a PR/Issue in a way that means the product surface is understood and labelled correctly is a hard problem. <a href="https://huggingface.co/blog/local-models-pr-triage#note-1-ref" target="_blank" rel="noreferrer">back</a></li>
+<li>Although in our testing we didn&#x27;t---it would be quite reasonable for a model to conclude a next-step to gather info, use an external classifier. The agentic approach and the traditional approach are not mutually exclusive. <a href="https://huggingface.co/blog/local-models-pr-triage#note-2-ref" target="_blank" rel="noreferrer">back</a></li>
+<li>See full list of topics and other configuration <a href="https://github.com/osolmaz/localpager/blob/main/examples/profiles/openclaw-routing-topics.json" target="_blank" rel="noreferrer">here</a>. <a href="https://huggingface.co/blog/local-models-pr-triage#note-3-ref" target="_blank" rel="noreferrer">back</a></li>
+<li>We used <code>DeepSeek-V4-Flash-IQ2XXS-w2Q2K-AProjQ8-SExpQ8-OutQ8-chat-v2.gguf</code> from <a href="https://huggingface.co/antirez/deepseek-v4-gguf" target="_blank" rel="noreferrer">antirez/deepseek-v4-gguf</a>. <a href="https://huggingface.co/blog/local-models-pr-triage#note-4-ref" target="_blank" rel="noreferrer">back</a></li>
+<li>While we are aware that using an LLM as a judge negates the &quot;free&quot; aspect, our specific implementation does this for research purposes. In practice, a bigger and more expensive model can be used in tandem during a trial period for calibration, after which the system would transition fully to the smaller one. In recent runs, this audit loop used roughly 40k total GPT-5.5 tokens per 2-hour check, mostly cached context, costing about 2-3 cents per run at API pricing, or roughly $9/month at 12 runs per day. This was a single batch audit across all new items, not one judge call per item; doing it per item would likely be several times more expensive. <a href="https://huggingface.co/blog/local-models-pr-triage#note-5-ref" target="_blank" rel="noreferrer">back</a></li>
+</ul>
+<h2>Datasets mentioned in this article 1</h2>
+<h4>dutifuldev/openclaw-classification-dataset</h4>
+<h2>Deploying Hugging Face Models with BentoML: DeepFloyd IF in Action</h2>
+<h2>Introducing BERTopic Integration with the Hugging Face Hub</h2>
+<h3>Community</h3>
+<p>· <a href="https://huggingface.co/join?next=%2Fblog%2Flocal-models-pr-triage" target="_blank" rel="noreferrer">Sign up</a> or <a href="https://huggingface.co/login?next=%2Fblog%2Flocal-models-pr-triage" target="_blank" rel="noreferrer">log in</a> to comment</p>
+<h2>Datasets mentioned in this article 1</h2>
+<h4>dutifuldev/openclaw-classification-dataset</h4></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-d25a7e8c39d0ffcb.html">
@@ -580,7 +664,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-92b0c81dcb3dd047.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：We got local models to triage the OpenClaw repo for FREE!*</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：We got local models to triage the OpenClaw repo for FREE!*（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Onur Solmaz（json-ld）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-23T11:24:56+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

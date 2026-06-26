@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,44 @@
       <p class="lede">文章開頭回顧 Redis 專案授權轉變後，前貢獻者轉向合作發展競爭性分叉 Valkey。可保守判斷，全文應是在 Valkey 發展兩年之際，檢視這場分叉的背景、後續走向，以及它對開源資料庫生態與授權策略的意義。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     </article>
-
+    <figure class="article-hero"><img src="http://redmonk.com/sogrady/files/2026/04/01_commit_velocity-1024x809.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Two Years of Valkey</h1>
+<h4><a href="https://redmonk.com/sogrady" target="_blank" rel="noreferrer">tecosystems</a></h4>
+<p>By <a href="https://redmonk.com/sogrady/author/sogrady/" target="_blank" rel="noreferrer">Stephen O&#x27;Grady</a> | <a href="https://twitter.com/sogrady" target="_blank" rel="noreferrer">@sogrady</a> | April 6, 2026</p>
+<p>Share via Twitter Share via Facebook Share via Linkedin Share via Reddit</p>
+<p>Two years ago last month, a group of former contributors to the Redis project announced their intention to collaborate instead on a competitive fork. Triggered by the decision to shift Redis away from the permissive open source BSD license to source available alternatives – the Redis Source Available License (RSALv2) and Server Side Public License (SSPLv1) – the new fork, Valkey, <a href="https://redmonk.com/sogrady/2024/07/16/post-valkey-world/" target="_blank" rel="noreferrer">attracted attention</a> without recent precedent. A lot has happened since, including the return to <a href="https://antirez.com/news/144" target="_blank" rel="noreferrer">the project</a> of its original author and the decision by Redis a little over a year after the relicensing to <a href="https://www.infoq.com/news/2025/05/redis-agpl-license/" target="_blank" rel="noreferrer">return to an open source license</a>, albeit the copyleft AGPL rather than the more permissive, original BSD. Given the two year anniversary, it’s worth taking stock of the two projects via their commit metrics. This is only one facet of the project’s health, obviously, and does not reflect usage, but as forks typically enter a decline phase shortly after their inception, comparing the two projects contributions should be a useful exercise.</p>
+<p>First up, we’ll compare the non-merge commit velocity.</p>
+<p>Unsurprisingly, Valkey’s velocity surges in the wake of the original fork. That peak is not maintained, but it is notable that with the exception of two months last year, Valkey has sustained a slightly greater commit velocity than Redis.</p>
+<p>Next, here are the Active Contributors over time.</p>
+<p>As a federated, multi-party project versus the generally single entity Redis, Valkey inevitably shows a larger number of active contributors. Notably, however, the delta at any given point does not tend to be massive – typically in the single digits.</p>
+<p>As a complement to active individual contributors, here is the organizational diversity as inferred from domains (and in the case of GitHub, where possible user profiles were used to assign company).</p>
+<p>Given the project structures, approaches and governance, this chart plays out as expected, with Valkey demonstrating a marked advantage in the number of distinct organizations contributing to the two projects.</p>
+<p>Breaking that down in more detail, here are the top organizations by domain (and with a subset, GitHub profile employment information providing inferred employment).</p>
+<p>Long the bane of analysts trying to accurately assign contributions to corporate employers, the quite understandable decision of individual developers to contribute code using their own personal identity rather than corporate credentials is clearly on display here with Gmail addresses representing the largest body of committers for both projects. Also of note, as could be predicted by the previous chart, Valkey features a longer list of substantial committers than Redis, who dominates its project and has a longer, thinner tail of external contributors.</p>
+<p>While the chart above looks at organizational project contributions as measured by commits, here is the organizational breakdown by actual contributors.</p>
+<p>Amazon dominates this chart for Valkey with 30 measured contributors, but Aiven, Alibaba, ByteDance and Google all have at least three different Valkey contributors while Percona checks in with two. Redis’ chart reads like strategic upstream contributions from large users of the project. And as a side note, est.tech (Ericsson)’s two contributors have an outsized impact per the chart above.</p>
+<p>Lastly, here are the top individual contributors to each project.</p>
+<p>The most notable takeaway here is that antirez, AKA Salvatore Sanfilippo, the original author of the Redis project, appears to have had no issues stepping back in as a key contributor to the project he founded.</p>
+<p>As noted above, the limitations of commit data do not allow any conclusions to be drawn about market traction and directional shifts in usage patterns. But the available evidence does suggest that two years in, Valkey is not behaving like most forks and declining in interest, commits and project traction. Instead, it seems to have found a level of sustainable development velocity that shows no signs of stagnation, one enabled by a relatively diverse set of project backers. It remains, therefore, a project RedMonk is tracking with interest.</p>
+<p><strong>Disclosure</strong>: Amazon, Google and Percona are RedMonk customers. Aiven, Alibaba, ByteDance, Ericsson and Redis are not current customers.</p>
+<h2>About</h2>
+<p>Hi, I&#x27;m Stephen O&#x27;Grady. I live in Maine, but <a href="http://www.tripit.com/people/sogrady?us=bb&amp;um=bb&amp;un=bb" target="_blank" rel="noreferrer">travel</a> a lot. I helped found RedMonk in 2002, and I was born and raised a Red Sox fan. My job is to help companies understand developers better, and to help developers, period. There&#x27;s more bio stuff <a href="http://sogrady.org" target="_blank" rel="noreferrer">here</a>. Everything you read here was written by me, not a machine. For better and for worse. <a href="https://twitter.com/sogrady" target="_blank" rel="noreferrer">Follow @sogrady</a></p>
+<h3>The Book</h3>
+<h3>Archives</h3>
+<h3>Search</h3>
+<h3>Recent Posts</h3>
+<ul>
+<li><a href="https://redmonk.com/sogrady/2026/06/23/kiro-ai-ide-market/" target="_blank" rel="noreferrer">Kiro and the AI IDE Market</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/11/open-source-spectrum/" target="_blank" rel="noreferrer">The Open Source Maturity Spectrum</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/10/paas-unbundling/" target="_blank" rel="noreferrer">The Unbundling and Bundling of the PaaS Market</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/04/bun-two-lessons/" target="_blank" rel="noreferrer">What Bun Can Tell Us About AI, Open Source and Anthropic</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/02/g7-open-weights/" target="_blank" rel="noreferrer">The G7 on Open Source vs Open Weights</a></li>
+</ul>
+<h3>Categories</h3>
+<h3>Archives</h3></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-777caddebc71ea53.html">
@@ -580,7 +613,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-f556b5e97a179683.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Two Years of Valkey</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Stephen O&#x27;Grady</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Two Years of Valkey（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Stephen O&#x27;Grady（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-23T04:18:59+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

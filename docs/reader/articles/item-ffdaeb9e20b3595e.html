@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,34 @@
       <p class="lede">OlmoEarth v1.1 是一組更有效率的遙測模型，目標是在維持相近效能的同時，把運算成本最多降低 3 倍。這會讓大規模衛星製圖更快、更便宜，適合作為開放 AI 在地理與遙測應用上的更新觀察。</p>
       <div class="tag-chip-list"><span class="tag-chip">開源</span><span class="tag-chip">開源 AI</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://www.datocms-assets.com/64837/1778774123-olmoearth-v11-blog-copy-google-docs-image-1.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>OlmoEarth v1.1: A more efficient family of models | Ai2</h1>
+<h2>OlmoEarth v1.1: A more efficient family of models</h2>
+<p>We released OlmoEarth (v1) in November 2025. Since then, partners have applied it across a wide range of tasks, from tracking mangrove change to classifying drivers of forest loss to producing country-scale crop-type maps in days, scaling deployments to national, continental, and global areas. Every release moves us closer to our mission: bringing state-of-the-art AI to organizations and communities working to protect people and our planet.</p>
+<p>When <a href="https://olmoearth.allenai.org/" target="_blank" rel="noreferrer">OlmoEarth</a> processes satellite imagery to make predictions across tens to hundreds of thousands of square kilometers, efficiency shapes what’s possible. Over the full lifecycle of running OlmoEarth – data export, preprocessing, inference, and post-processing – compute is by far the highest cost. A more efficient model means we can support more partners on the OlmoEarth Platform, and that anyone running OlmoEarth on their own can leverage this technology faster and at lower expense.</p>
+<p>That’s why we built <a href="https://huggingface.co/collections/allenai/olmoearth" target="_blank" rel="noreferrer">OlmoEarth v1.1</a>: a new family of models that cuts compute costs by up to <strong>3x</strong> while maintaining OlmoEarth v1&#x27;s performance on a mix of research benchmarks and tasks we’ve constructed with partners.</p>
+<h3>Increasing efficiency by decreasing sequence lengths</h3>
+<p>The OlmoEarth models are transformer-based models, one of the dominant architectures in machine learning today.  To process remote sensing data, we first convert it into a sequence of <em>tokens</em> the model can ingest.</p>
+<p>Two important levers control efficiency in transformer-based models: <strong>model size</strong> (this is why we release a family of models, so users can pick the size that fits their compute budget) and <strong>token sequence length</strong>. Compute costs scale quadratically with the token sequence length, so even small reductions can meaningfully cut the cost of running the model.</p>
+<h3>Designing the token</h3>
+<p>This raises an important question for transformer-based remote sensing models: <strong>what should a token represent</strong>?</p>
+<p>Take Sentinel-2 imagery, a common modality we process. A Sentinel-2 input will be some tensor with a height and width (H, W representing the latitudinal and longitudinal pixels), a temporal dimension T, and 12 Sentinel-2 channels ([H, W, T, D=12]).</p>
+<p>Currently, we split the data into <em>resolution-based patches.</em> Concretely, this means that we will pick some spatial patch size p, and split our overall Sentinel-2 image into patches of size p x p:</p>
+<p>For each patch, we create a token <em>per timestep per resolution</em>. So a Sentinel-2 input with 2 timesteps yields 6 tokens per patch (2 timesteps x 3 resolutions, 10m, 20m, and 60m).</p>
+<p>In total, a[H, W, T, D=12] Sentinel-2 input will yield H/p x W/p x T x 3 tokens.</p>
+<p>Using a unique token per resolution is a common technique when processing Sentinel-2 data—<a href="https://arxiv.org/abs/2502.09356" target="_blank" rel="noreferrer">Galileo</a> and <a href="https://arxiv.org/abs/2207.08051" target="_blank" rel="noreferrer">SatMAE</a> both take this approach, and SatMAE shows significantly better results when doing it. However, it is not universal: <a href="https://arxiv.org/abs/2311.00566" target="_blank" rel="noreferrer">CROMA</a> is a model that only uses a single token for all bands, regardless of resolution. Because token counts compound multiplicatively, collapsing resolutions into a single token produces <strong>three times fewer tokens</strong>and material savings across pretraining, fine-tuning, and inference.</p>
+<p>Naively combining the tokens in this way leads to significant performance drops, including a 10 ppt drop on m-eurosat kNN (a common benchmark task for remote sensing models). We hypothesize that separating Sentinel-2 bands into different tokens makes it easier for OlmoEarth to model important cross-band relationships.</p>
+<p>Merging tokens <strong>without</strong> impacting performance required us to modify our pre-training regimen. We describe those changes in detail in our paper.</p>
+<h3>For developers</h3>
+<p>The result is a model family that does more with less. At every size, OlmoEarth v1.1 runs up to three times cheaper than OlmoEarth v1, making frequent, planet-scale map refreshes more affordable for every team running OlmoEarth. If you&#x27;re using a model from the original OlmoEarth family, try OlmoEarth v1.1. It provides similar performance to OlmoEarth v1 while requiring one third of the compute, though we have seen some regressions (see our technical report for more details). If it works for your task, you should see a significant speedup during fine-tuning and inference.</p>
+<h3>For researchers</h3>
+<p>Pretrained remote sensing models have many degrees of freedom, which makes them hard to study. When performance shifts, is it the architecture, the dataset, or the pre-training algorithm?</p>
+<p>We train OlmoEarth v1.1 on the same dataset as OlmoEarth v1, so any differences between the two isolate the effect of methodological changes. We hope this advances understanding of scientific principles when pretraining models for remote sensing.</p>
+<h3>Get started</h3>
+<p>Check out the OlmoEarth v1.1 <a href="https://huggingface.co/collections/allenai/olmoearth" target="_blank" rel="noreferrer">weights</a> and <a href="https://github.com/allenai/olmoearth_pretrain" target="_blank" rel="noreferrer">training code</a>, including the weights for our Base, Tiny, and Nano models.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-3d54bd9ae38f0f26.html">
@@ -580,7 +603,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-ffdaeb9e20b3595e.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：OlmoEarth v1.1: A more efficient family of models</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：OlmoEarth v1.1: A more efficient family of models（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-23T04:03:49+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

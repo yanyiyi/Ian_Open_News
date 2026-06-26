@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -558,13 +558,28 @@
       <div class="section-kicker">全文</div>
       <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>What are git worktrees, and why should I use them?</h1>
-<p>Git worktrees have been around since 2015, but it wasn’t until recently they became popular. Learn what they are, how to use them, and why you might. It seems like the latest hotness in git these days is the concept of worktrees. Which… is kind of funny because they’ve been around since 2015. But, nevertheless, they are cool, and you might be wondering why you’d use them, how they differ from branches, and why they are suddenly so popular.</p>
+<p>Git worktrees have been around since 2015, but it wasn’t until recently they became popular. Learn what they are, how to use them, and why you might.</p>
+<p>It seems like the latest hotness in git these days is the concept of worktrees. Which… is kind of funny because they’ve been around since 2015.</p>
+<p>But, nevertheless, they are cool, and you might be wondering why you’d use them, how they differ from branches, and why they are suddenly so popular.</p>
 <h2>Context switching with branches and stashing</h2>
-<p>Let’s say you lived in a worktree-less world, and were working on a ticket, and suddenly an urgent bug came to you and you had to switch contexts. First, you might stash your work: Then you’d switch to your main branch and update: Then you’d fix everything, commit, and push the branch: Then after merging a pull request, you might return back to your computer and pull main and remove the bug branch: And then you could go back to the feature you were working on: The mental overhead of switching around, reloading files, reinstalling <code>node_modules</code> based on whatever changed, and so on, is a lot. The context switching burden is heavy. Now, this is a basic example, but sometimes developers would work around this kind of chaos with doing some more complicated <code>git stash</code> commands, or even multiple clones of the same repo (I’m guilty of that one).</p>
+<p>Let’s say you lived in a worktree-less world, and were working on a ticket, and suddenly an urgent bug came to you and you had to switch contexts.</p>
+<p>First, you might stash your work:</p>
+<p>Then you’d switch to your main branch and update:</p>
+<p>Then you’d fix everything, commit, and push the branch:</p>
+<p>Then after merging a pull request, you might return back to your computer and pull main and remove the bug branch:</p>
+<p>And then you could go back to the feature you were working on:</p>
+<p>The mental overhead of switching around, reloading files, reinstalling <code>node_modules</code> based on whatever changed, and so on, is a lot. The context switching burden is heavy.</p>
+<p>Now, this is a basic example, but sometimes developers would work around this kind of chaos with doing some more complicated <code>git stash</code> commands, or even multiple clones of the same repo (I’m guilty of that one).</p>
 <h2>Context switching with worktrees</h2>
-<p>With worktrees, you never leave your branch and you never stash, and your editor context for your original feature stays untouched. This instantly creates a sibling folder called <code>hotfix-workspace</code>, and bases it on main, and checks out a new branch called <code>hotfix-bug</code>. Now you can open that folder in a new editor window (or <code>cd</code> into it) and fix the bug. Your original editor window stays exactly as you left it. You merge the pull request online just like before, and once it’s merged, you can simply delete the temporary folder. This is so much smoother! Worktrees can go beyond the git command line, too. For example, <a href="https://code.visualstudio.com/docs/sourcecontrol/branches-worktrees#_working-with-git-worktrees" target="_blank" rel="noreferrer">VS Code has full worktree support built in</a>. You have options! And no matter where you work, worktrees give you zero risk of stash conflicts, there’s no editor disruption, and you can truly work in parallel.</p>
+<p>With worktrees, you never leave your branch and you never stash, and your editor context for your original feature stays untouched.</p>
+<p>This instantly creates a sibling folder called <code>hotfix-workspace</code>, and bases it on main, and checks out a new branch called <code>hotfix-bug</code>.</p>
+<p>Now you can open that folder in a new editor window (or <code>cd</code> into it) and fix the bug. Your original editor window stays exactly as you left it.</p>
+<p>You merge the pull request online just like before, and once it’s merged, you can simply delete the temporary folder.</p>
+<p>This is so much smoother! Worktrees can go beyond the git command line, too. For example, <a href="https://code.visualstudio.com/docs/sourcecontrol/branches-worktrees#_working-with-git-worktrees" target="_blank" rel="noreferrer">VS Code has full worktree support built in</a>. You have options! And no matter where you work, worktrees give you zero risk of stash conflicts, there’s no editor disruption, and you can truly work in parallel.</p>
 <h2>So… why now?</h2>
-<p>For a really long time, worktrees were relatively unknown. Most developers had never heard of them, because either Git GUIs didn’t support them (or treated them as second-class citizens), or because they just usually followed the known pattern of feature branch, then work, then PR, then merge, then repeat. Now, our work as developers has changed. AI has made us work in parallel more than we ever have before in the history of software development. Developers run so many sessions in parallel, and “code review culture” is growing beyond “code writing culture.” Agents and humans can do more in parallel with worktrees. It’s the default mode for the <a href="https://github.com/features/ai/github-app?utm_source=blog-git-worktree&amp;utm_medium=blog&amp;utm_campaign=github-copilot-app-ga-2026" target="_blank" rel="noreferrer">GitHub Copilot app</a>, and for many other modern tools.</p>
+<p>For a really long time, worktrees were relatively unknown. Most developers had never heard of them, because either Git GUIs didn’t support them (or treated them as second-class citizens), or because they just usually followed the known pattern of feature branch, then work, then PR, then merge, then repeat.</p>
+<p>Now, our work as developers has changed. AI has made us work in parallel more than we ever have before in the history of software development. Developers run so many sessions in parallel, and “code review culture” is growing beyond “code writing culture.”</p>
+<p>Agents and humans can do more in parallel with worktrees. It’s the default mode for the <a href="https://github.com/features/ai/github-app?utm_source=blog-git-worktree&amp;utm_medium=blog&amp;utm_campaign=github-copilot-app-ga-2026" target="_blank" rel="noreferrer">GitHub Copilot app</a>, and for many other modern tools.</p>
 <h2>What’s the catch?</h2>
 <p>Worktrees do solve a whole lot of issues, but there’s definitely some things to watch out for.</p>
 <ul>
@@ -574,9 +589,11 @@
 <li>One branch limits: Git prevents you from checking out the exact same branch in two different worktrees at the same time to prevent data corruption.</li>
 </ul>
 <h2>How do I use worktrees in the GitHub Copilot app?</h2>
-<p>Great question! What’s awesome is they “just work” out of the box. When you open the app, there’s a dropdown that asks you where you want to run your new session on the home screen. The default is a new worktree. Then, once you kick off a new session, you can click the session name at the top of the app, and you’ll see the (fun!) generated name of your worktree, as well as the path where it’s located, the project that worktree is for, and details about the changes that you’ve made.</p>
+<p>Great question! What’s awesome is they “just work” out of the box. When you open the app, there’s a dropdown that asks you where you want to run your new session on the home screen. The default is a new worktree.</p>
+<p>Then, once you kick off a new session, you can click the session name at the top of the app, and you’ll see the (fun!) generated name of your worktree, as well as the path where it’s located, the project that worktree is for, and details about the changes that you’ve made.</p>
 <h2>Should I use worktrees?</h2>
-<p>I will give you the most senior developer answer I can: It depends! You might prefer working in one way or another. You might not do as much work in parallel and like the mental model of branches and stashing. You might only do worktrees from now on. You might want to do both! The world’s your oyster, and you can try them all in the <a href="https://github.com/features/ai/github-app?utm_source=blog-git-worktree&amp;utm_medium=blog&amp;utm_campaign=github-copilot-app-ga-2026" target="_blank" rel="noreferrer">GitHub Copilot app</a> today.</p>
+<p>I will give you the most senior developer answer I can: It depends! You might prefer working in one way or another. You might not do as much work in parallel and like the mental model of branches and stashing. You might only do worktrees from now on. You might want to do both!</p>
+<p>The world’s your oyster, and you can try them all in the <a href="https://github.com/features/ai/github-app?utm_source=blog-git-worktree&amp;utm_medium=blog&amp;utm_campaign=github-copilot-app-ga-2026" target="_blank" rel="noreferrer">GitHub Copilot app</a> today.</p>
 <h2>Tags</h2>
 <ul>
 <li><a href="https://github.blog/tag/git/" target="_blank" rel="noreferrer">Git</a></li>

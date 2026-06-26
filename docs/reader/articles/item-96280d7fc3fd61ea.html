@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -566,7 +566,9 @@
 <h2>3. 你們後來是使用哪種方式做上傳呢？</h2>
 <p>原先是使用 server side (2) 的方式，但在處理 MQ 上傳後的 notify 花了不少時間，而且上傳到 S3 也沒這麼快，所以後來改用 client side 的方式做上傳功能，運作上也比原先的方式順暢。</p>
 <h2>4. 為什麼不用 medium 的方式處理 blur？</h2>
-<p>因為 medium 檔案比 BlurHash 的字串大很多，而且要多發一次 request，成本比 BlurHash 高出不少，所以我們認為用 BlurHash 會是比較好的。 當然也是要感謝 gslin 大大，他在 4/26 (日) 簡單介紹了 BlurHash。小編下午看到這篇文章，馬上丟去 slack 問我們的設計師大大，看她覺得這效果如何？她過沒多久回覺得不錯，小編就在星期日的下午開始處理 server side 的實作。隔天星期一有了初步的成果，然後給我們的安卓五星上將看，星期二就完成 Android 實作並上線了！ 也是因為 CDN 那塊後來把原先的 lambda 改用自己寫的 server 處理，所以實作 BlurHash 才能這麼快。lambda 這塊也是血淚史，下略 10000 字，之後有機會再跟大家分享。歡迎大家對這塊有興趣的也來交流一下喔！</p>
+<p>因為 medium 檔案比 BlurHash 的字串大很多，而且要多發一次 request，成本比 BlurHash 高出不少，所以我們認為用 BlurHash 會是比較好的。</p>
+<p>當然也是要感謝 gslin 大大，他在 4/26 (日) 簡單介紹了 BlurHash。小編下午看到這篇文章，馬上丟去 slack 問我們的設計師大大，看她覺得這效果如何？她過沒多久回覺得不錯，小編就在星期日的下午開始處理 server side 的實作。隔天星期一有了初步的成果，然後給我們的安卓五星上將看，星期二就完成 Android 實作並上線了！</p>
+<p>也是因為 CDN 那塊後來把原先的 lambda 改用自己寫的 server 處理，所以實作 BlurHash 才能這麼快。lambda 這塊也是血淚史，下略 10000 字，之後有機會再跟大家分享。歡迎大家對這塊有興趣的也來交流一下喔！</p>
 <h2>影片</h2>
 <ul>
 <li><a href="https://techblog.funliday.com/tags/blurhash/" target="_blank" rel="noreferrer">blurhash</a></li>

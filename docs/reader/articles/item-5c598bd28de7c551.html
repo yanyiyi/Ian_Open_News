@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -558,7 +558,15 @@
       <div class="section-kicker">全文</div>
       <h2>原始主文</h2>
       <div class="article-text article-markdown"><h1>AMQP reconnect storm</h1>
-<p>Landscape Server 26.04.0.1 on Ubuntu 26.04 with RabbitMQ 4.0.5 enters an AMQP reconnect storm during update_security_db.sh/process-usns. process-usns inherits BatchScript _setup_amqp=True and loads canonical/txlongpoll/specs/amqp0-8.xml via txAMQP 0.8.2. strace shows: sendto(…, “AMQP\1\1\10\0”, 8, …) recvfrom(…, “AMQP\3\1\0\0”, 8, …) RabbitMQ logs: {bad_version,{1,1,8,0}} AMQFactory has initialDelay = 0.01, causing rapid reconnects and multi-GB logs. Fresh install using manual install process with an app and db server.</p></div>
+<p>Landscape Server 26.04.0.1 on Ubuntu 26.04 with RabbitMQ 4.0.5 enters an AMQP reconnect storm during update_security_db.sh/process-usns.</p>
+<p>process-usns inherits BatchScript _setup_amqp=True and loads canonical/txlongpoll/specs/amqp0-8.xml via txAMQP 0.8.2.</p>
+<p>strace shows:</p>
+<p>sendto(…, “AMQP\1\1\10\0”, 8, …)</p>
+<p>recvfrom(…, “AMQP\3\1\0\0”, 8, …)</p>
+<p>RabbitMQ logs:</p>
+<p>{bad_version,{1,1,8,0}}</p>
+<p>AMQFactory has initialDelay = 0.01, causing rapid reconnects and multi-GB logs.</p>
+<p>Fresh install using manual install process with an app and db server.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-e9453fadadef3f10.html">

@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,59 @@
       <p class="lede">摘要顯示文章討論雲原生系統愈來愈複雜後，可觀測性工具雖然更容易部署，卻也讓團隊收集過多遙測資料。它可能會聚焦在如何設計更有選擇性、更可持續、影響更高的 observability pipeline，而不是盲目收集所有訊號。</p>
       <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://www.cncf.io/wp-content/uploads/2026/06/Blog-Default-22.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Telemetry that matters: Designing sustainable, high-impact observability pipelines</h1>
+<p>Posted on June 22, 2026 by Diana Todea - DevRel Engineer at VictoriaMetrics and Cloud Native Days Romania community organizer, Laura Luttmer - Principal Product Manager at Bindplane (Dynatrace), Antonio Jimenez Martinez - Tech Lead Software Engineer at Cisco ThousandEyes</p>
+<p>As system architectures grow increasingly complex, the cloud-native community faces a subtle but pressing challenge: we are drowning in our own telemetry data. It is easier than ever to instrument an application and collect signals, but are we actually gaining real insights, or are we just piling up data?</p>
+<p>At the recent <a href="https://events.linuxfoundation.org/observability-summit-north-america/" target="_blank" rel="noreferrer">Observability Summit North America</a> in Minneapolis, a <a href="https://observabilitysummitna26.sched.com/event/2HJVN/panel-telemetry-that-matters-diana-todea-victoriametrics-antonio-jimenez-martinez-cisco-thousandeyes-laura-luttmer-dynatrace" target="_blank" rel="noreferrer">panel</a> of practitioners gathered to dissect this exact problem. This post summarizes the key strategies, shifts, and takeaways discussed during the panel to help engineering teams focus on the telemetry that truly matters.</p>
+<h3>The core problem: Over-collection and “green” observability</h3>
+<p>Historically, the baseline strategy for observability was simple: instrument everything and filter it out later. However, industry experience routinely shows that <a href="https://horovits.medium.com/expensive-metrics-why-your-monitoring-data-and-bill-get-out-of-hand-" target="_blank" rel="noreferrer">around 50% of</a><strong>collected metrics are never queried or acted upon</strong>. This unchecked data collection does more than just bloat storage bills; it introduces steep engineering overhead, increases alert noise, and heightens cognitive load during active incidents.</p>
+<p>A critical but frequently overlooked angle of this issue is <strong>green observability</strong>. Every metric stored, indexed, and processed consumes real compute resources, disk storage, and energy. Reducing telemetry waste isn’t just an infrastructure cost optimization strategy, it directly minimizes the carbon and environmental footprint of our cloud-native platforms.</p>
+<p>To build sustainable and highly reliable infrastructure, observability must be treated as a day-zero system design requirement. Teams need to intentionally define what a healthy system looks like and map out exactly which signals are needed to detect structural drift before pushing code to production.</p>
+<h3>Navigating an incident: From siloed signals to an observability mesh</h3>
+<p>When a production incident triggers, the goal isn’t to look at everything; it’s to find the data required to quickly assess user impact and localize the root cause. Modern open-standards frameworks like <a href="https://opentelemetry.io/" target="_blank" rel="noreferrer">OpenTelemetry</a> organize these data points into core <a href="https://opentelemetry.io/docs/concepts/signals/" target="_blank" rel="noreferrer">signals</a>:</p>
+<ul>
+<li><strong>Traces (and Spans):</strong> Map the journey of a transaction across distributed services, pointing directly to latency spikes, failures, or broken downstream dependencies.</li>
+<li><strong>Metrics:</strong> Track performance over time (such as CPU consumption or request rates) to flag an anomaly and indicate the scale of impact.</li>
+<li><strong>Logs:</strong> Provide timestamped text records to answer precisely what occurred during a failure event.</li>
+<li><strong>Profiles:</strong> Deliver code-level visibility into resource allocation (like memory and CPU execution hotspots), explaining <em>why</em> a particular service is acting slowly or expensively.</li>
+</ul>
+<p>Rather than treating these elements as isolated diagnostic categories, the community is shifting toward an <a href="https://medium.com/@dianatodea/observability-is-a-mesh-not-a-braid-c3ac3ca9a305" target="_blank" rel="noreferrer">observability mesh</a>. In this interconnected web, metrics point directly to traces, traces embed relevant logs, and logs tie back into resource profiles. During an active incident, this cross-signal connection drastically reduces context-switching friction. For initial identification, teams can rely on a solid foundational bedrock like <strong>RED metrics</strong> (Rate, Errors, Duration) to immediately isolate the malfunctioning service before digging deeper into the mesh.</p>
+<h3>Balancing the scales: Zero-code vs. manual instrumentation</h3>
+<p>How do you cleanly generate and process this data? An open ecosystem relies on standardized layers: semantic conventions for unified labels, entry-point APIs, SDK implementations, and open protocols like <a href="https://opentelemetry.io/docs/specs/otel/protocol/" target="_blank" rel="noreferrer">OTLP</a> to ship data to a backend. But choosing how to instrument your applications requires evaluating trade-offs between automatic and manual approaches:</p>
+<h4>Zero-code instrumentation</h4>
+<p><a href="https://opentelemetry.io/docs/zero-code/" target="_blank" rel="noreferrer">Zero-code (or automatic) instrumentation</a> allows you to configure language-specific SDKs or utilize platform operators to collect telemetry without ever updating your application’s source code. This is ideal for fast initial rollouts or when managing inaccessible third-party software. Advanced options, such as <a href="https://opentelemetry.io/docs/zero-code/obi/" target="_blank" rel="noreferrer">OpenTelemetry eBPF instrumentation</a> (OBI), deliver excellent request, database, and queue visibility while unlocking the ability to correlate network data with application context. However, zero-code options cannot instrument internal business logic. Furthermore, because it hooks in automatically, it runs the risk of generating massive, unmanageable data volumes if left unconfigured.</p>
+<h4>Manual instrumentation</h4>
+<p>Manual instrumentation gives engineers complete control, allowing them to model tracing precision directly around their unique business logic and high-value custom domains. This focus makes it easier to design traces, logs, and metrics together so they tell a coherent story about causality. On the downside, manual instrumentation is time-consuming, introduces long-term maintenance overhead to the codebase, and creates uneven telemetry coverage if development teams lack strict discipline across different programming languages. There is also a distinct risk of over-instrumenting code, which introduces noisy low-value details that slow down active debugging.</p>
+<p>Many teams attempt to launch fully manual frameworks from day one, but often stall out and lose executive backing due to slow progress and runaway costs. A practical route is to <strong>start with zero-code auto-instrumentation first</strong> to instantly establish a telemetry baseline, then look at the data flowing through your pipelines and fine-tune it by progressively layering in manual instrumentation where deep context is needed.</p>
+<h3>Day 2: Optimization strategies in the pipeline</h3>
+<p>Once telemetry collection is widely deployed, optimization should happen directly within your data pipelines. This allows platform teams to adapt quickly to data explosions without forcing application teams to constantly rewrite and redeploy code.</p>
+<p>Several practical reduction techniques can be leveraged within an open data collector pipeline:</p>
+<ul>
+<li><strong>Smart Sampling:</strong> Move away from pure random sampling, which can accidentally drop critical error signals. Implement tail-based or pattern-based sampling to ensure you drop boring, successful requests while capturing 100% of anomalies or failures.</li>
+<li><strong>Managing High Cardinality:</strong> Avoid attaching highly unique attributes like user_id or request_id directly to system metrics, which can instantly trigger a dimensional explosion that breaks backend query engines. Instead, use transform processors to mask unique IDs (e.g., transforming specific URL parameters into a generic $ placeholder), drop unneeded attributes, or truncate fine-grained IPs into broader subnets.</li>
+<li><strong>Cardinality Limiters:</strong> Implement pipeline processors that actively monitor incoming attribute values. If a specific label passes a configured uniqueness threshold, the pipeline automatically skips that attribute to prevent metric performance degradation.</li>
+<li><strong>Log Deduplication:</strong> Use processors that identify identical log lines emitted within a small time window, collapsing them into a single record accompanied by an accurate iteration count.</li>
+<li><strong>Infrastructure Enrichment:</strong> Minimize individual agent overhead by decoupling per-service metadata collection. Instead, standardize your semantic conventions and inject common infrastructure or container orchestrator labels once centrally within the collection pipeline.</li>
+</ul>
+<h3>Tracing the probabilistic frontier: Agentic and AI-driven flows</h3>
+<p>The panel concluded by addressing a massive architectural paradigm shift: observing Agentic and LLM-driven flows.</p>
+<p>Traditional microservices operate on deterministic logic, we look for deterministic  success criteria, explicit network errors, and reproducible failure states. AI systems break these assumptions. They operate in probabilistic environments where the exact same prompt can yield wildly different results, errors are frequently qualitative rather than technical, and “success” is based on the quality of the response.</p>
+<p>Consequently, our definition of telemetry must adapt. While standard latency and error rates still matter, observability must expand to look closely at semantic prompt/response patterns and evaluate <strong>decision quality</strong> rather than just system uptime. Tracing must trace a complex path from user prompt to LLM model, down to iterative tool and agents calls, onto legacy backend microservices, and back up to a final evaluation loop.</p>
+<p>Ultimately, this moves our core question away from <em>“Is the application fast?”</em> and toward <em>“Is our system producing cost-effective, reliable, and correct outcomes?”</em></p>
+<h3>Key panel takeaways</h3>
+<ul>
+<li><strong>Correlate Network and Application Data:</strong> Incidents don’t cleanly stop at the software layer. Leveraging open tools (like eBPF-driven instrumentation) to seamlessly link core application performance with the actual network transit paths between your user and your cluster is critical for rapid isolation.</li>
+<li><strong>Keep an Eye on Emerging Architectural Standards:</strong> The community is actively building solutions to alleviate data scaling pain points. Keep an eye on incoming paradigms like <strong>retroactive sampling</strong>, which allows systems to make a centralized sampling decision first and then pull back the deep, granular trace telemetry on demand.</li>
+<li><strong>Optimize Extensibility in the Pipeline:</strong> Avoid hardcoding filter rules inside individual services. Rely on scalable collection components to shape, deduplicate, route, and manage your telemetry volume dynamically. Regularly audit your architecture by asking one healthy question: <em>“If this specific data stream stopped flowing tomorrow, what would we actually lose?”</em></li>
+</ul>
+<h2>The latest from our blog</h2>
+<h3>Building a Cluster-Aware AI Agent with Kubernetes, Argo CD, and GitOps</h3>
+<h3>From Awareness to Engineered Accessibility in Open Source</h3>
+<h3>Agent Auth: A lawyer’s day in court</h3></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-27ca76e70b345284.html">
@@ -580,7 +628,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-5de166abbc9d1411.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Telemetry that matters: Designing sustainable, high-impact observability pipelines</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Diana Todea - DevRel Engineer at VictoriaMetrics and Cloud Native Days Romania community organizer, Laura Luttmer - Principal Product Manager at Bindplane (Dyna...</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Telemetry that matters: Designing sustainable, high-impact observability pipelines（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Diana Todea - DevRel Engineer at VictoriaMetrics and Cloud Native Days Romania community organizer, Laura Luttmer - Principal Product Manager at Bindplane (Dyna...（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-23T03:37:33+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

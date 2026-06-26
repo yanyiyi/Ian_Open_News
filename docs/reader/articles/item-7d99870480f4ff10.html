@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,67 @@
       <p class="lede">這篇文章討論 AGPLv3 第 7 條第 4 段，並以當前與 Affero GPL 相關的情境說明這個條款想解決的問題。作者指出，雖然這看似是艱深的授權細節，但它會影響使用者，特別是在 badgeware 出現後，軟體可能允許再散布卻夾帶難以移除的廣告或額外限制。文章也回到 GPLv2 時期的授權矛盾問題，說明這類限制如何威脅使用者自由。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">software freedom</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://sfconservancy.org/static/img/conservancy-logo.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>AGPLv3§7¶4 Empowers Users to Thwart Badgeware</h1>
+<p>by Bradley M. Kühn on April 16, 2026</p>
+<p>This article discusses a current-headlines situation regarding Affero General Public License, version 3, Section 7, paragraph 4 ( AGPLv3§7¶4 .). I begin however with an explanation of the problem that clause sought to solve and how the clause works. This may seem an estoric license issue, but in fact this issue regularly impacts users today — particularly with the advent of “badgeware” (software that allows redistribution but includes annoying advertising that cannot be removed). Hopefully, this explanation helps readers understand the importance of the issue and gain vigilance when reviewing potential “further restrictions” placed on their copylefted software.</p>
+<h4>The Self-Contradictory License Problem under GPLv2</h4>
+<p>I began my work in copyleft licensing and policy in the late 1990s. In those days, there was a growing problem regarding usage of the GNU General Public License, version 2 ( GPLv2 ) that threatened the software freedom and rights of users. It&#x27;s a nefarious licensing slight-of-hand that works as follows:</p>
+<p>The vendor seems to offer the software under a copyleft license. There&#x27;s a copy of GPLv2 in the top-level directory of the source code in a file called <code>GPLv2</code>. All seems in order, and folks excitedly engage in their right to copy, modify, and install modified versions of the software. Maybe a few even think of a viable business idea that would include (usually permissible) commercial redistribution of the software for profit.</p>
+<p>Unfortunately, someone notices a file called <code>LICENSE</code> in the top-level directory that says: Copyright (©) 1999, Sneaky Company, Inc. This software is licensed under GPLv2, except that commercial modification and redistribution is **strictly prohibited**. They&#x27;ve sadly discovered a self-contradictory license. Unfortunately, under GPLv2, these users are basically stuck; they have to go with the strictest possible interpretation given the self-contradiction. In essence, the licensor giveth, but the licensor immediately taketh away. In those days, these users couldn&#x27;t start their business; they&#x27;d have to find or write another codebase.</p>
+<p>I was tangentially involved with the drafting of GPLv3 . On my list of issues to raise with the drafters was this very issue. By the time of GPLv3 drafting (circa 2006), this problem was rampant. Users were quite confused when they saw these self-contradictory licenses.</p>
+<p>The solution was not obvious. Both GPLv2 and the earliest drafts GPLv3-family of licenses (which includes GPLv3, AGPLv3 , and LGPLv3 ) already had this clause: You may not impose any further restrictions on the recipients&#x27; exercise of the rights granted herein (quoting the GPLv2 version; the GPLv3/AGPLv3 version varies slightly).</p>
+<p>The problem: this only prevented <em>downstream</em> licensors from imposing further restrictions. If a sole entity is the original author, copyright holder and initial licensor of the work — and if they hold those powers exclusively — typically that entity may issue a self-contradictory (or even <em>completely incoherent</em>) license. In that case, downstream licensees are awash with legal uncertainty. So, that “may not impose” clause just does not solve this particular problem.</p>
+<h4>A Novel Solution</h4>
+<p>A new clause was needed. Later drafts of the GPLv3 (which is almost textually identically to AGPLv3 — only §13 differ between the two licenses) included a fascinating solution in §7¶4: If the Program as you received it, or any part of it, contains a notice stating that it is governed by this License along with a term that is a further restriction, you may remove that term.</p>
+<p>Copyleft is indeed most inventive when it empowers the downstream user (who, of course, is often just the next entity in a long distribution chain of (both commercial and noncommercial) software sharing). AGPLv3§7¶4 is an innovative and very necessary clause that liberates users who face the situation described at the start of this article. Had our excited new business seen this … Copyright (©) 2008, Sneaky Company, Inc. This software is licensed under AGPLv3, except that commercial modification and redistribution is **strictly prohibited**. … they could simply toss away the additional restriction like so … Copyright (©) 2008, Sneaky Company, Inc. This software is licensed under AGPLv3 , except that commercial modification and redistribution is **strictly prohibited**. … and copy, modify, redistribute, redistribute modified versions and/or install modified versions of the software freely under AGPLv3&#x27;s pure terms.</p>
+<h4>The Only Drawback</h4>
+<p>There remains one drawback to this solution: it demands courage from the user that strikes the “Further Restriction”. In theory, all is well and safe. In practice, the types of companies that pursue tactics like self-contradictory licenses and “gotcha” further restrictions are also the most predatory, unfriendly, litigious, and aggressive businesses. One who exercises their clear and correct rights under AGPLv3 will certainly face public condemnation, and possibly frivolous litigation.</p>
+<p>For years, the Neo4j case was the primary exemplar of this phenomenon. SFC [followed the case closely](https://sfconservancy.org/blog/2022/mar/30/neo4j-v-purethink-open-source-affero-gpl/), I served as an [expert witness for the Defendant](https://sfconservancy.org/news/2023/feb/09/kuhn-neo4j-purethink-expert-report/), and SFC [filed an amicus brief](https://sfconservancy.org/news/2025/jan/13/neo4j-amicus/) on the appeal. The lower court decision was highly problematic, and the case concluded with a voluntary dismissal (and as such has not been heard by any Appeals court). Thus, while the lower court decision does not create bad precedent, it also does not offer any good precedent for those corageous users who exercise this particular right.</p>
+<h4>Ascensio&#x27;s Onlyoffice Self-Contradictory License</h4>
+<p>*(Full disclosure: SFC runs a self-hosted Nextcloud instance — but other than being fans of their work and satisfied users — we have no formal relationship with Nextcloud (or IONOS). We also certainly have no relationship whatsoever with Onlyoffice or Ascensio System SIA.)*</p>
+<p>A few weeks ago, yet another saga in the history of AGPLv3§7¶4 began. Ascensio System SIA published Onlyoffice with the sneakiest “Further Restriction” that I&#x27;ve ever seen. Ascensio&#x27;s further restriction states: Pursuant to Section 7(b) of the License you must retain the original Product logo when distributing the program. Pursuant to Section 7(e) we decline to grant you any rights under trademark law for use of our trademarks.</p>
+<p>This restriction is particularly nefarious because it is dressed in the trappings of explicitly permissible requirements in AGPLv3§7.</p>
+<h4>The Rest of AGPLv3§7</h4>
+<p>In addition to our beloved AGPLv3§7¶4, the rest of AGPLv3§7 includes some provisions designed for cross- FOSS -license compatibility. During the GPLv3 drafting process, a survey was conducted of all popular FOSS licenses. In the spirit of making sure no terms of GPLv3 inadvertently contradict a requirement in one of those licenses, AGPLv3§7(a-f) were devised for maximal cross-FOSS-license compatibility.</p>
+<p>For example, the 3-Clause-BSD license&#x27;s third clause states:</p>
+<ol>
+<li>Neither the name of the copyright holder nor the names of its</li>
+</ol>
+<p>contributors may be used to endorse or promote products derived from this software without specific prior written permission AGPLv3§7(d-e) ensure that clause can never be construed to be a further restriction.</p>
+<h4>The Onlyoffice Nasty Trick</h4>
+<p>Now, get ready for Onlyoffice&#x27;s trick, which takes three moves: First, Ascensio (who purports (unconfirmed) to be sole licensor of Onlyoffice), licenses Onlyoffice under AGPLv3. Second, Ascensio — pursuant to AGPLv3§7(e) — adds a <em>valid</em> additional term that declines to grant trademark rights. Third, Ascensio adds “badgeware” features to Onlyoffice — so that its trademarked logos are strewn throughout many locations in the UI. Fourth, Ascensio <strong>incorrectly</strong> claims that AGPLv3§7(b) requires redistributors to preserve those very same trademark logos in all redistributions.</p>
+<p>The trick is “too clever by half”. Ascensio have indeed created a self-contradictory license, since the users are prohibited from displaying the trademarked logo, yet the users are also forbidden to remove the code that displays that trademark logo.</p>
+<h4>The Actual AGPLv3§7(b)</h4>
+<p>We thought through this problem already years ago during AGPLv3&#x27;s drafting. In fact, I recall much discussion to verify there were no strange interactions between 7(b) and 7(e) — and there are not. AGPLv3§7(b,e) states (including relevant definitions from earlier sections):</p>
+<blockquote>An interactive user interface displays “Appropriate Legal Notices”</blockquote>
+<blockquote>to the extent that it includes a convenient and prominently visible</blockquote>
+<blockquote>feature that (1) displays an appropriate copyright notice, and (2)</blockquote>
+<blockquote>tells the user that there is no warranty for the work (except to the</blockquote>
+<blockquote>extent that warranties are provided), that licensees may convey the</blockquote>
+<blockquote>work under this License, and how to view a copy of this License. If</blockquote>
+<blockquote>the interface presents a list of user commands or options, such as a</blockquote>
+<blockquote>menu, a prominent item in the list meets this criterion. …</blockquote>
+<blockquote>Notwithstanding any other provision of this License, for material you</blockquote>
+<blockquote>add to a covered work, you may (if authorized by the copyright holders of</blockquote>
+<blockquote>that material) supplement the terms of this License with terms:…</blockquote>
+<blockquote>[7]b) Requiring preservation of specified reasonable legal notices or</blockquote>
+<blockquote>author attributions in that material or in the Appropriate Legal</blockquote>
+<blockquote>Notices displayed by works containing it; or …</blockquote>
+<blockquote>[7]e) Declining to grant rights under trademark law for use of some</blockquote>
+<blockquote>trade names, trademarks, or service marks;</blockquote>
+<p>Nota bene: there is a very short list of things that a licensor can <em>require</em> downstream licensees preserve. Logos, advertising, and similar are not on the list. Badgeware is <em>not a reasonable legal notice</em>.</p>
+<h4>Euro-Office</h4>
+<p>Nextcloud has partnered with IONOS to fork Onlyoffice to create <a href="https://github.com/Euro-Office" target="_blank" rel="noreferrer">Euro-Office</a>. To my knowledge, this codebase complies completely with the valid AGPLv3§7(e) requirement: Ascensio&#x27;s trademarks have been scrubbed from the sources. However, since what Ascensio purports as a license term supplement pursant to AGPLv3§7(b) is <em>actually</em> a backdoor Further Restriction, Nextcloud and IONOS are completely within their rights (pursuant to AGPLv3§7¶4) to remove that further restriction.</p>
+<p>As expected, Ascensio published [an unfair, inaccurate, aggressive, and community-unfriendly response](https://www.onlyoffice.com/blog/2026/03/onlyoffice-flags-license-violations-in-euro-office-project-by-nextcloud-and-ionos). I predicted long ago that adjudication of AGPLv3§7¶4 would require nerves of steel. This unwarranted denigration of an upstanding member of commercial FOSS community — Nextcloud — demands condemnation and Nextcloud deserves our thanks for confronting this bully.</p>
+<p>As I did in the Neo4j case, I&#x27;ve told Nextcloud that I&#x27;m available as an expert witness if they end up in litigation with Ascensio. I hope, however, that Ascensio will realize their error, remove the further restriction themselves, and embrace the value of AGPLv3. Pure AGPLv3 was designed to faciliate web service business models. Our community would quickly and gladly embrace Onlyoffice, help its upstream development, and welcome them to the FOSS community. ∎</p>
+<p><strong>About the author</strong>: *Bradley M. Kühn is a lifelong FOSS activist and has focused his career on FOSS licensing generally, and copyleft licensing in particular. Kühn [invented the Affero clause](https://ebb.org/bkuhn/blog/2007/11/21/stet-and-agplv3) in the original AGPLv1, and co-drafted AGPLv3§13.*</p>
+<p>Bradley is not a lawyer, SFC is not a law firm, and this article is not legal advice.</p>
+<p>[[permalink]](https://sfconservancy.org/blog/2026/apr/16/badgeware-onlyoffice-nextcloud-affero-gpl/)</p>
+<p>Tags: <a href="https://sfconservancy.org/blog/?tag=conservancy" target="_blank" rel="noreferrer">conservancy</a>, <a href="https://sfconservancy.org/blog/?tag=gpl" target="_blank" rel="noreferrer">GPL</a></p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-4725b67b2719cc39.html">
@@ -580,7 +636,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-7d99870480f4ff10.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：AGPLv3§7¶4 Empowers Users to Thwart Badgeware</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：bkuhn@sfconservancy.org (Bradley M. Kühn)</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：AGPLv3§7¶4 Empowers Users to Thwart Badgeware（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：bkuhn@sfconservancy.org (Bradley M. Kühn)（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-21T23:52:25+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

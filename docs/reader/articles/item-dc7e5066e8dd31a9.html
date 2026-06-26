@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>法國 Ayrault 通函：行政機關善用自由軟體的政策指引 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-26 01:30</span></div>
+      <h1><a class="article-title-link" href="https://www.april.org/circulaire-ayrault-sur-le-bon-usage-des-logiciels-libres-dans-ladministration-francaise" target="_blank" rel="noreferrer" title="開啟原始連結">法國 Ayrault 通函：行政機關善用自由軟體的政策指引</a></h1>
+      <p class="lede">這份法國行政通函要求各部會依附件指引推動行政機關善用自由軟體。文件先說明自由軟體給予使用、修改與散布的自由，並指出法國行政體系已有長期使用經驗，累積了成本、彈性與議價能力等正面成果。附件進一步說明，網際網路標準與軟體商品化使許多基礎軟體變得可替換，行政需求應將自由軟體與其他方案平等納入考量。它也整理自由軟體的授權基礎、社群開發模式，以及跨部會共同制定使用方向的政策背景。</p>
+
+    </article>
+
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Circulaire Ayrault sur le bon usage des logiciels libres dans l&#x27;administration française | April</h1>
+<h2>User login</h2>
+<ul>
+<li><a href="https://www.april.org/user/password" target="_blank" rel="noreferrer">Request new password</a></li>
+<li><a href="https://www.april.org/presentation-de-l-association-april" target="_blank" rel="noreferrer">L&#x27;association</a></li>
+<li><a href="https://www.april.org/ressources" target="_blank" rel="noreferrer">Ressources</a></li>
+<li><a href="https://www.april.org/nos-positions" target="_blank" rel="noreferrer">Nos positions</a></li>
+<li><a href="https://www.april.org/activites-de-lapril" target="_blank" rel="noreferrer">Activités</a></li>
+<li><a href="https://www.april.org/themes" target="_blank" rel="noreferrer">Thèmes</a></li>
+<li><a href="http://wiki.april.org" target="_blank" rel="noreferrer">Wiki</a></li>
+<li><a href="https://enventelibre.org/fr/43-april" target="_blank" rel="noreferrer">Boutique</a></li>
+<li><a href="https://www.april.org/nous-aider" target="_blank" rel="noreferrer">Nous aider</a></li>
+</ul>
+<h2>Circulaire Ayrault sur le bon usage des logiciels libres dans l&#x27;administration française</h2>
+<ul>
+<li><a href="https://www.april.org/themes/le-logiciel-libre" target="_blank" rel="noreferrer">Le Logiciel Libre</a></li>
+<li><a href="https://www.april.org/themes/institutions" target="_blank" rel="noreferrer">Institutions</a></li>
+<li><a href="https://www.april.org/type-de-publication/note" target="_blank" rel="noreferrer">Note</a></li>
+</ul>
+<h2>Page 1</h2>
+<p>Liberté · Égalité · Fraternité</p>
+<p>Mesdames et Messieurs les ministres</p>
+<p><strong>Objet</strong> : Orientations pour l&#x27;usage des logiciels libres dans l’administration</p>
+<p>Les logiciels libres sont des logiciels dont le modèle de propriété intellectuelle est conçu pour donner à l’utilisateur une grande liberté d’utilisation, de modification et de diffusion. Ils couvrent un domaine d’emploi très large, à la fois dans les entreprises privées et dans les administrations. On peut citer notamment le développement d’applications, les bases de données, les systèmes d’exploitation des serveurs, les suites bureautiques et la messagerie.</p>
+<p>Au sein de l&#x27;administration, on constate une longue pratique de leur usage qui a permis le développement de compétences et la capitalisation de nombreuses expériences positives. Celles-ci ont notamment démontré les atouts du logiciel libre (moindre coût, souplesse d’utilisation, levier de discussion avec les éditeurs).</p>
+<p>Après plusieurs années au cours desquelles la question de l’usage du logiciel libre a pu faire l’objet de nombreuses discussions, il est désormais possible de retenir une série d’orientations et de recommandations sur le bon usage du logiciel libre. C’est l’objet du document joint en annexe, préparé avec les directeurs des systèmes d’information de vos ministères, dans le cadre d’un travail animé par la direction interministérielle des systèmes d’information et de communication. Je vous demande de mettre en œuvre, au sein de vos services, les orientations définies dans le document joint.</p>
+<p>Hôtel de Matignon - 57. rue de Varenne - 75007 Paris - Tél. 01 42 75 80 00</p>
+<h2>Page 2</h2>
+<p>Liberté • Égalité • Fraternité</p>
+<p>SECRÉTARIAT GÉNÉRAL DU GOUVERNEMENT</p>
+<p>DIRECTION INTERMINISTÉRIELLE DES SYSTÈMES</p>
+<p>D&#x27;INFORMATION ET DE COMMUNICATION</p>
+<h2>Page 3</h2>
+<h2>Page 4</h2>
+<p>Une longue pratique de l&#x27;usage du logiciel libre a permis le développement de compétences et la capitalisation de nombreuses expériences positives dans l’administration. Un meilleur partage de ces savoirs et la définition d&#x27;orientations communes permettrait de franchir une nouvelle étape, pour gagner en efficacité opérationnelle et économique.</p>
+<p>Dans le cadre des travaux interministériels lancés par la DISIC, un groupe de travail, piloté par la DSI du ministère de la culture et de la communication, a été chargé de définir les orientations nécessaires a l’usage du logiciel libre dans les ministères.</p>
+<p>Ce document présente, après des rappels sur le contexte d’émergence du logiciel libre et sur le modèle de propriété intellectuelle associé, les orientations issues des premiers travaux, précisant notamment les environnements dans lesquels son usage est approprié, décrivant les actions communes lancées et les instances de travail créées.</p>
+<p><strong>Statut du document</strong> : *Ce document est basé sur les travaux du groupe interministériel d’experts. Il a été revu en CTSIC du 21juin 2012 pour validation, diffusion et mise en œuvre effective.*</p>
+<h2>Page 5</h2>
+<p>2.ORIGINES ET FONDEMENTS DU LOGICIEL LIBRE</p>
+<p>2.1. Contexte de développement de la position du logiciel libre</p>
+<p>Le logiciel libre a conquis une grande part des infrastructures techniques et prend une place de plus en plus importante dans tous les systèmes d&#x27;information jusqu‘aux terminaux. Les standards Internet ont créé un contexte commun sur lequel de plus en plus de productions logicielles se sont appuyées, devenant interchangeables. De nombreux logiciels sont maintenant des « utilités » avec une valeur d&#x27;innovation limitée, et les clients acceptent de moins en moins de payer un prix élevé pour des produits jugés communs et rentabilisés, et d&#x27;être liés a un fournisseur. Désormais, pour répondre aux besoins métiers, le logiciel libre doit être considéré a égalité avec les autres solutions C&#x27;est dans cette évolution que s&#x27;inscrit l‘usage du logiciel libre dans l&#x27;administration.</p>
+<p>2.2. Le modèle du logiciel libre</p>
+<p>Le logiciel libre est un modèle de propriété intellectuelle prenant différentes formes, dont les principes sont de :</p>
+<ul>
+<li>garantir la <strong>liberté d&#x27;exécuter le programme</strong>, pour tous les usages ;</li>
+<li>garantir la <strong>liberté d&#x27;étudier le fonctionnement du programme et de l&#x27;adapter</strong> a ses besoins ;</li>
+<li>garantir la <strong>liberté de redistribuer de copies du programme</strong>;</li>
+<li>permettre <strong>d‘améliorer le programme et de distribuer ces améliorations au public</strong>, pour en faire profiter toute la communauté ;</li>
+</ul>
+<p>Tout ceci implique bien sur que le code source doit être librement accessible. Cette vision très ouverte, a permis la mise en place de groupe d’intérêts sur certains logiciels libres, ou encore « souches», et a amené a développer un modèle de développement en communautés dont les plus connues de nos jours sont GNU/Linux, Apache, Mozilla (Firefox, Thunderbird), Document Fondation (LibreOffice). Ces principes donnent certaines caractéristiques au logiciel libre :</p>
+<ul>
+<li>comme tout modèle de propriété intellectuelle, il tend à s&#x27;auto-entretenir</li>
+</ul>
+<p>Le logiciel libre le plus diffuse l‘est selon le mode dit &lt;&lt; copyleft » de la licence GNU GPL. Dans son principe il empêche celui qui utilise le code de s’approprier l&#x27;effort de la communauté sans rien lui reverser des améliorations ou des corrections. La contribution a l&#x27;effort collectif devient un principe et permet de maintenir la dynamique de développement.</p>
+<ul>
+<li>l&#x27;évolution d’un logiciel libre est orientée par le besoin utilisateur</li>
+</ul>
+<p>Une communauté n&#x27;a pas intérêt a développer une fonction qui n&#x27;est utile qu&#x27;a très peu d‘utilisateurs au sein d’un logiciel libre. Alors que le changement de version régulier chez l’éditeur est difficilement maîtrisable pour l&#x27;utilisateur, la stabilité est une qualité pour un logiciel libre. La règle est donc la mise en commun des besoins et la priorisation des évolutions.</p>
+<ul>
+<li>le modèle garantit que la communauté puisse conserver le contrôle</li>
+</ul>
+<p>Dans certaines communautés libres, des acteurs du logiciel propriétaire sont très actifs. L’intérêt propre de leur société peut les amener a orienter les développements en s&#x27;éloignant de l&#x27;intérêt de la communauté. Le modèle libre permet alors a une partie de celle-ci de faire ce que l&#x27;on nomme un « fork », c&#x27;est-à-dire repartir du code source du moment dans une autre direction de développement.</p>
+<h2>Page 6</h2>
+<ul>
+<li>le modèle permet de créer l&#x27;émulation nécessaire à la créativité</li>
+</ul>
+<p>Que cela soit au travers de &quot;fork&quot; ou en s&#x27;appuyant sur l&#x27;ensemble des logiciels libres existants, ceux qui sont sûrs d&#x27;avoir une bonne idée peuvent toujours se lancer avec un faible investissement et réunir une communauté autour de cette idée. C&#x27;est ainsi que de nombreuses souches se créent eu permanence, seules survivant celles qui sont suffisamment pertinentes pour être portées par un grand nombre de développeurs et d&#x27;utilisateurs.</p>
+<p>Contrairement aux idées reçues, <strong>le recours à des logiciels libres ne signifie en rien qu’il n’y a aucune obligation à respecter pour les utilisateurs. Un logiciel libre n’est pas libre de droit</strong> puisqu’il a un créateur. Les initiateurs du logiciel libre, réalistes, se sont insérés dans le monde du droit en formulant dans des licences les droits et obligations s&#x27;appliquant. Plusieurs grands types de licences ont été définis dont les principales sont la Gnu General Public Licence (GPL), la Berkeley Software Distribution (BSD) et la licence Apache. Il en existe aussi une en droit français, la licence CEA CNRS INRIA Logiciel Libre (CECILL). Les caractéristiques juridiques (effet ou non héréditaire, multilicensing, droit applicable, garanties) varient en fonction de leur auteur, mais ces licences sont toutes des objets de droit positif et fort, reconnu en justice.</p>
+<p>Lorsqu&#x27;on télécharge une licence de logiciel libre, on se retrouve dans le cadre d’un contrat d&#x27;adhésion, c&#x27;est-à-dire dans la même situation qu’en cas d’achat d’un logiciel propriétaire. Les clauses de la licence sont imposées par l&#x27;auteur et ne sont pas négociables. Au final, soit le licencié accepte la licence et peut faire ce qui y est mentionné, soit il ne peut pas bénéficier de toutes les libertés inhérentes au logiciel libre (modification et distribution).</p>
+<p>C&#x27;est un des points importants et pourtant souvent négligés du logiciel libre: <strong>il convient de connaître les obligations associées a un logiciel libre en particulier dans le cadre d&#x27;une utilisation dans un système d&#x27;information professionnel.</strong></p>
+<p>2.3. Le libre, un modèle de service</p>
+<p>Si les droits sur le logiciel libre ne sont associés à aucune compensation financière, cela ne veut pas dire qu&#x27;il n&#x27;en coûte rien de mettre en œuvre et d’utiliser du logiciel libre, en particulier dans le domaine professionnel.</p>
+<p>En effet, comme pour tout logiciel, il est nécessaire de l&#x27;intégrer dans son système d&#x27;information et de <strong>s&#x27;assurer de son maintien en conditions opérationnelles (support, maintenance) ainsi que de le faire évoluer en fonction des besoins.</strong> Ces tâches doivent être couvertes soit par de la charge interne soit en faisant appel a des sociétés de service, dont certaines spécialisées s’affichent comme &quot;Sociétés de Services de Logiciel Libre&quot; (SSLL).</p>
+<p>On remplace donc un modèle &quot;coût de licence/coût de maintenance&quot; sur licences, par un modèle &quot;coût de service&quot; à façon qui peut être adapté aux besoins réels de l&#x27;entité utilisatrice. <strong>Sur des infrastructures critiques il conviendra d&#x27;avoir un support fort et réactif</strong>, en général externalisé, dans d&#x27;autres contextes le support au travers de la communauté pourra suffire.</p>
+<p>Quoi qu&#x27;il en soit, les coûts dans le modèle de service du logiciel libre sont peu sensibles à la volumétrie d&#x27;usage (nombre de serveurs installés, nombres d&#x27;utilisateurs simultanés...). Il se prête donc bien à une mutualisation et favorise une concentration des usages en interministériel. A cet avantage essentiel, s&#x27;ajoutent les avantages d&#x27;indépendance vis a vis des acteurs externes. En effet une remise en concurrence régulière des sociétés de services, pouvant toutes intervenir sur les souches libres, permet de rester dans les prix du marché.</p>
+<p>Il est important à ce sujet de relever que le Conseil d’État a validé ce principe de libre concurrence, dans un modèle de service autour des souches libres, dans l&#x27;arrêt n°350431 du 30 septembre 2011. <strong>L’administration peut choisir unilatéralement une solution libre,</strong> étant entendu que son utilisation est possible par tous les acteurs et que ceux-ci peuvent donc fournir sans entrave extérieure une offre de service adaptée.</p>
+<h2>Page 7</h2>
+<ol>
+<li>LE LIBRE, UN CHOIX RAISONNÉ</li>
+</ol>
+<p>Le logiciel libre a été porté à l&#x27;origine par une philosophie d&#x27;ouverture et par des «pionniers militants» qui ont rendu les utilisateurs plus institutionnels, qu&#x27;ils soient publics ou privés, méfiants par rapport à cette approche.</p>
+<p>Aujourd&#x27;hui le choix du logiciel libre dans l&#x27;administration n&#x27;est pas un engagement idéologique, mais le fruit d&#x27;un choix raisonné. Les motivations sont multiples, mais on retiendra principalement :</p>
+<ul>
+<li>la contrainte de plus en plus forte sur les moyens d&#x27;investissement et de fonctionnement des SI, concomitante avec une forte augmentation de la demande ;</li>
+<li>la valorisation des compétences et de l&#x27;expertise professionnelle des équipes informatiques, qui ne sont pas de simples acheteurs de solutions.</li>
+</ul>
+<p>En fonction des cas d&#x27;usage, les avantages suivants peuvent être apportés par le logiciel libre, dans le contexte public :</p>
+<ul>
+<li>le logiciel libre n&#x27;est pas gratuit mais souvent <strong>moins cher</strong>, et surtout son coût est modulable en fonction de la criticité des systèmes ;</li>
+<li>le logiciel libre est piloté par les besoins, <strong>minimisant les évolutions superflues</strong> ;</li>
+<li>le logiciel libre permet de gérer les versions selon son contexte, et même de se fixer sur une version en assurant son <strong>support à long terme</strong> ;</li>
+<li>le logiciel libre facilite <strong>les expérimentations et l&#x27;adaptation</strong> au volume d&#x27;usage, l&#x27;absence de droit d&#x27;usage permettant de varier fortement sans contrainte ;</li>
+<li>le logiciel libre facilite la <strong>mutualisation entre acteurs publics</strong> que cela soit dès l&#x27;expression de besoins ou en capitalisant sur des souches existantes ;</li>
+<li>le logiciel libre apporte une <strong>transparence accrue</strong> dans la définition et l&#x27;animation de politique de sécurité des systèmes d&#x27;information, avec une exigence et un coût adaptable par le choix du niveau de</li>
+<li>le logiciel libre permet une <strong>réelle mise en concurrence</strong>, par l&#x27;achat de services auprès de sociétés mises sur un pied d&#x27;égalité par la publication des sources.</li>
+</ul>
+<p>Appliqué au contexte de la commande publique, le recours au logiciel libre offre l&#x27;opportunité de favoriser le principe de mise en concurrence et d&#x27;ouverture à la commande publique dans l&#x27;achat de logiciels et de services. Le juge a bien précisé qu&#x27;un pouvoir adjudicateur pouvait, sans remettre en cause les principes de l&#x27;achat public, organiser une mise en concurrence fondée sur une solution libre choisie unilatéralement par l&#x27;administration (Arrêt du Conseil d&#x27;Etat n°350431 du 30 septembre 2011).</p>
+<p>3.2. Limites/points d&#x27;attention</p>
+<p>Le logiciel libre a aussi ses limites et doit faire l&#x27;objet de quelques points d&#x27;attention :</p>
+<ul>
+<li>le logiciel libre est <strong>lié à une communauté :</strong> il convient donc de connaître et de suivre cette communauté pour s&#x27;assurer de la pérennité et du sérieux de la solution ;</li>
+<li>les licences libres n&#x27;emportent pas une absence de droit de la propriété intellectuelle, mais <strong>une autre forme de droit</strong>, qu&#x27;il faut gérer, en particulier dans le développement ;</li>
+<li>pour le simple utilisateur final, l&#x27;effet de marque et de marketing vaut aussi dans le logiciel, et le logiciel libre n&#x27;ayant pas de prix est parfois jugé sans valeur ;</li>
+</ul>
+<h2>Page 8</h2>
+<ul>
+<li>la possibilité de contribuer au développement du logiciel par l&#x27;accès au code source ne doit pas donner la <strong>tentation de multiplier les ajouts de code spécifique</strong>, au risque de perdre le lien avec la souche communautaire et d‘avoir à supporter une solution isolée sur le long terme. Une démarche d‘analyse de la valeur de l&#x27;écart au « standard » s’impose avec rigueur ;</li>
+<li>la participation à la dynamique du libre est liée à la contribution, l&#x27;utilisateur, surtout professionnel, ne peut se limiter à profiter du système ; il doit <strong>entretenir le modèle par réinjection d&#x27;une part de ses gains</strong> sous une forme ou une autre ;</li>
+<li>certains éditeurs jouent à la marge du modèle du logiciel libre, en gérant une version dite « entreprise » ou « premium » sous licence classique propriétaire et une version dite « communautaire » sous licence libre, mais qui est en général en retard sur l&#x27;autre version. C‘est le modèle dit du « Freemium ». <strong>Ces souches, portées par un éditeur plus que par une communauté, doivent être utilisées avec prudence</strong> car elles risquent toujours de rebasculer dans un mode propriétaire.</li>
+</ul>
+<p>3.3. Les différents contextes d&#x27;usage</p>
+<p>Quand on décide de développer un système d&#x27;information, le choix d&#x27;utiliser du logiciel libre, voire de développer selon le modèle libre, doit être analysé selon des critères prenant en compte le cadre d&#x27;utilisation, le nombre d&#x27;acteurs concernés, la complexité du système et l&#x27;implication nécessaire.</p>
+<p>3.3.1 Les cadres favorables au modèle libre</p>
+<p>3.3.1.1. Un logiciel libre existant et internationalement reconnu</p>
+<p>Certains logiciels libres sont tenus par une communauté déjà très forte avec de nombreux utilisateurs (JBoss, Firefox...). Dans certains cas le logiciel libre devient incontournable comme par exemple pour le serveur web Apache qui est utilisé par près de 60% du parc installé (fin 2011).</p>
+<p>Dans ce cas, <strong>la réduction des coûts est directe, et le produit est immédiatement utilisable</strong> et souvent suffisamment supporté au travers de la communauté. Il reste cependant possible de se mettre en lien avec la communauté de développement pour remonter le cas échéant les rapports de dysfonctionnement et contribuer à l&#x27;amélioration du logiciel.</p>
+<p>Des exemples de ce contexte sont omniprésents et conduisent au déploiement de plus en plus important dans le secteur public comme privé de grandes souches libres : Linux, Apache, Firefox, Thunderbird, JBoss, OpenSSL, Eclipse...</p>
+<p>Dans le cas des logiciels pour les utilisateurs finals, il conviendra toutefois d&#x27;assurer une <strong>conduite du changement</strong> pour préparer l&#x27;introduction d&#x27;un nouveau logiciel, surtout s&#x27;il vient remplacer une solution largement utilisée. Ceci doit être intégré au calcul économique.</p>
+<p>3.3.1.2. Un déploiement de logiciel sur une grande infrastructure</p>
+<p>Dans certains grands systèmes ou pour certaines applications destinées aux utilisateurs, il est nécessaire d&#x27;acheter un grand nombre de licences. Des milliers de licences de base de données ou de systèmes d&#x27;exploitation peuvent entraîner des coûts substantiels.</p>
+<p>Il peut dès lors être rentable de supporter directement voire d‘améliorer une souche libre existante et de participer à la maintenance de cette souche. Cet investissement peut être ensuite utile pour tout autre acteur public.</p>
+<p>Un exemple d&#x27;usage des logiciels libres dans un système d’information critique d’une direction ministérielle a permis de diviser par 10 les coûts de fonctionnement des applicatifs. Cette réduction nette des coûts a été obtenue en mettant en place un marché de maintenance dans des conditions très strictes (délais de 48h de résolution...) sur plus de 100 souches logicielles.</p>
+<p>Quand il s&#x27;agit de postes utilisateurs, le déploiement de nouvelles briques ou de mises à jours peut se faire de manière homogène sur l&#x27;ensemble du parc, sans coût particulier (pas de rachats de licences, pas d’achat de licence évolutive), ce qui facilite le maintien de l&#x27;homogénéité du parc et induit une baisse des coûts de support utilisateurs et une augmentation de la qualité.</p>
+<h2>Page 9</h2>
+<p>3.3.1.3. Un logiciel utilisé dans un contexte virtualisé ou à forte variation de charge</p>
+<p>Dans une logique comparable, <strong>le déploiement dans un contexte virtualisé simplifie la création de serveurs logiques et l&#x27;adaptation de leur nombre ou de la puissance processeur accordée</strong>. La gestion et le paiement des licences propriétaires peuvent être soit un frein à cette adaptabilité, soit un générateur de complexité et de coût qui n&#x27;est pas optimisé. En effet les licences propriétaires ont des coûts liés à la puissance physique maximale utilisée.</p>
+<p>A contrario, le coût de support, interne ou externe, du logiciel libre n&#x27;est pas modifié par l&#x27;intensité de l&#x27;usage et dépend de l&#x27;exigence en qualité de service. Il est donc lié a la criticité de l&#x27;usage. Dans la plupart des cas, comme le démontre le marche de support interministériel récemment notifié, il sera très inférieur au coût de licences couvrant le déploiement en pointe de charge.</p>
+<p>3.3.1.4. Un logiciel utilisé dans le contexte du développement agile</p>
+<p>Le <strong>développement agile</strong> est par définition «opportuniste» et ajoute des fonctions au fur et à mesure de la définition des besoins en rapport avec les utilisateurs. Ce mode de développement permet aussi de procéder, d&#x27;une manière limitée, par «essais/erreurs». Il est donc difficile d&#x27;avoir une vision précise d&#x27;entrée sur les bases logicielles qui sont utiles et qui devront être intégrées.</p>
+<p>L&#x27;usage du logiciel libre permet de «piocher» au fur et à mesure du développement dans les souches disponibles, dans un cadre technologique propre à chaque entité, en fonction de leur adéquation, sans question de droit d&#x27;usage dans la phase de développement ni dans la phase d&#x27;exploitation.</p>
+<p>3.3.1.5. Face à des situations de faible concurrence</p>
+<p>Certains produits d&#x27;éditeur ont de moins en moins d&#x27;alternatives commerciales crédibles, le leader du marché ayant éliminé la concurrence. Le logiciel libre apporte alors des possibilités alternatives.</p>
+<p>Certaines souches ont un niveau fonctionnel élevé et peuvent <strong>remplacer des logiciels propriétaires avec un coût limité</strong> au support assuré de manière forfaitaire et aussi mutualisé que possible. Les systèmes Linux ont ainsi clairement montré leur intérêt.</p>
+<p>D&#x27;autres ont un contour fonctionnel un peu moins riche que le logiciel d&#x27;éditeur et ont vocation à <strong>être sélectionnées lorsque les fonctions complexes spécifiques aux solutions propriétaires ne sont pas absolument nécessaires</strong>. C&#x27;est par exemple le cas dans le domaine des bases de données où PostgreSQL constitue une alternative souvent pertinente et à développer.</p>
+<p>Il est à remarquer que les éditeurs de solutions progicielles (grands PGI, ...) favorisent généralement l&#x27;utilisation de composants d&#x27;architectures propriétaires (OS, SGBD) en ne garantissant la compatibilité qu&#x27;avec ceux-ci. Même si certaines solutions libres, et en particulier Linux, rentrent dans les matrices de compatibilité supportées, <strong>une attention particulière doit être portée à ce point au moment du choix d&#x27;une solution progicielle</strong> qui peut par cette voie limiter les choix technologiques et induire des surcoûts cachés.</p>
+<p>Les ministères financiers ont démontré l&#x27;intérêt de l&#x27;utilisation du logiciel libre dans ce contexte, dans le cadre de la reprise d&#x27;une application en Cobol. L&#x27;usage d&#x27;OpenCobol leur a permis de réduire le coût d&#x27;un facteur supérieur à 10.</p>
+<p>3.3.1.6. Un même besoin à traiter par de nombreux acteurs publics</p>
+<p>Des besoins liés au métier ou à la réglementation sont communs à de nombreux acteurs publics. Dans ce contexte, il est particulièrement contre-productif que chaque acteur conduise ses développements spécifiques de son côté, et en paye la totalité au lieu de partager la charge du développement. Que cela soit pour développer un système de gestion d&#x27;aide au niveau local ou une plate-forme de dématérialisation des marchés publics, il est aisé de voir qu&#x27;une association des acteurs facilitée par le modèle libre sera profitable à chacun.</p>
+<p>Certaines collectivités territoriales ont compris ce point et ont mis en place des associations ayant pour objet de <strong>fédérer leurs développements</strong> selon le modèle libre comme l&#x27;ADULLACT.</p>
+<p>On constate d&#x27;ailleurs une augmentation remarquable de la qualité technique des développements réalisés en vue de publication sous licences libres comparativement aux développements spécifiques réalisés précédemment. C&#x27;est aussi un effet positif de l&#x27;ouverture du contenu du développement à l&#x27;externe.</p>
+<h2>Page 10</h2>
+<p>3.3.1.7. Un déploiement dans des contextes multiples d&#x27;acteurs publics ou privés</p>
+<p>Certaines fonctions de l&#x27;État appellent des applications ou des systèmes d&#x27;interfaçage utilisables par des acteurs très nombreux, ne serait-ce que les différents types de collectivités territoriales. Par exemple la comptabilité publique induit des échanges de relevés comptables formatés avec les ordonnateurs locaux. Ces fonctions doivent pouvoir être intégrées aux systèmes de ces partenaires et donc être utilisées parfois par les éditeurs.</p>
+<p>Avoir des licences d&#x27;utilisation ouvertes sur des populations aussi larges, et qui permettent une intégration large, revient presque à avoir une licence libératoire, ce qui dans le modèle propriétaire est en général très cher, car contraire a sa logique. Qui plus est dans ce contexte il n&#x27;est pas facile à l&#x27;État de payer tout ou partie pour tous les acteurs publics. Dans le modèle libre il ne s&#x27;agit que de la licence normale qui de toute façon ne nécessite aucun contrô1e de la diffusion. La <strong>simplicité de gestion, la réduction des coûts et la commodité de réutilisation</strong> sont évidentes.</p>
+<p>Des exemples de contextes éligibles sont donnés par les systèmes développés par l&#x27;État en lien avec de nombreux partenaires, comme par exemple Xemelios de la DGFiP, pour le traitement des fichiers de dématérialisation de la chaîne comptable et financière.</p>
+<p>3.3.2 Les contextes défavorables au modèle libre</p>
+<p>3.3.2.1. Petit nombre d&#x27;acteurs concernés par la mise en œuvre</p>
+<p>Le développement selon le modèle libre nécessite pour être utile de mettre en place une communauté de contributeurs qui échangent et mutualisent leurs efforts. Si les entités concernées ou devant maîtriser le développement d&#x27;un logiciel sont peu nombreuses et mal identifiées, il est moins utile d&#x27;en libérer le développement. Il convient cependant d&#x27;être prudent et il peut être utile de garder la possibilité de le faire si un besoin émerge par la suite.</p>
+<p>3.3.2.2. Système complet et complexe (non modulaire)</p>
+<p>Le principe de mutualisation qui sous-tend le modèle libre va de pair avec une approche modulaire dans le développement et la conception des systèmes d&#x27;information. Les briques et modules, plus facilement abordables par de nouveaux entrants, plus facilement réutilisables dans de nombreux systèmes, plus légers à maintenir, sont plus éligibles au modèle libre.</p>
+<p>A contrario, les systèmes complets et complexes sont parfois si difficiles a gérer qu&#x27;ils requièrent un professionnel dédié, c&#x27;est à dire un éditeur... C&#x27;est notamment le cas des systèmes de gestion tels les PGI généralistes.</p>
+<p>Il convient toutefois de souligner que les principes d&#x27;urbanisation et de bonne gestion de l&#x27;évolution des systèmes d&#x27;information incitent à limiter l&#x27;usage de systèmes monolithiques pour favoriser la modularité qui correspond au modèle libre.</p>
+<h2>Page 11</h2>
+<ol>
+<li>L&#x27;ACTION INTERMINISTÉRIELLE SUR LE LOGICIEL LIBRE</li>
+</ol>
+<p>Pour faciliter le recours à des solutions «logiciel libre» dans les choix des administrations, et ainsi le positionner au même niveau que les autres offres, tout en dégageant le maximum d&#x27;efficacité économique et de qualité, l&#x27;État doit agir de façon concertée et coordonnée, selon les modalités détaillées ci-après.</p>
+<p>4.1. Instaurer une convergence effective sur des souches de logiciels libres</p>
+<p>Le principe fondateur du logiciel libre est la mise en commun des efforts. La concentration des acteurs sur certaines souches est un gage d&#x27;efficacité. Ainsi les efforts de développement d&#x27;expertise, les coûts de corrections de «bugs», parfois à la charge de l&#x27;utilisateur, voire d&#x27;évolution, sont mutualisés.</p>
+<p>Un <strong>cadre de convergence des souches</strong> à privilégier dans le développement des systèmes d&#x27;information de l&#x27;État, <strong>défini en 2012</strong>, est désormais maintenu en concertation interministérielle. Il touche en priorité les systèmes les plus déployés, sur les serveurs comme sur les postes bureautiques.</p>
+<p>Ce cadre ne fait pas obstacle à l&#x27;innovation par essai de nouvelles souches, qui pourront aider à son évolution. Il ne rend pas non plus obligatoire l&#x27;évolution adaptative des applications existantes non conformes. En revanche, il définit des versions de référence à privilégier et indique les solutions à abandonner, avec des réserves éventuelles pour des contextes d&#x27;usage particuliers.</p>
+<p>Ce cadre est aussi une composante indispensable à la convergence progressive des contextes d&#x27;exploitation et à la mutualisation de certains moyens. À ce titre il doit être intégré dans tous les cadres technologiques des ministères et pris en compte à l&#x27;occasion de nouveaux développements et de refontes majeures.</p>
+<p><strong>Chaque ministère doit participer au maintien à jour de ce cadre et à son renforcement progressif. En particulier il déclarera régulièrement l&#x27;usage fait des souches du cadre et les usages hors du cadre, pour permettre le suivi de sa prise en compte et la gestion de son évolution.</strong></p>
+<p>Le cadre de convergence est publié et remis a jour à un rythme trimestriel, en lien avec les marchés de support interministériels, sur l&#x27;outil collaboratif de l&#x27;équipe «noyau» (cf. organisation).</p>
+<p>4.2. Activer un réseau d&#x27;expertise sur les souches de convergence</p>
+<p>L&#x27;efficacité de la mise en commun autour du logiciel libre vient aussi du partage d&#x27;expertise et de la montée en compétence sur les souches. Chaque ministère peut difficilement être compétent sur l&#x27;ensemble des souches, mais chacun a des compétences. <strong>La constitution d&#x27;un réseau d&#x27;experts permet de faire profiter l&#x27;ensemble des administrations des expertises ponctuelles nécessaires.</strong></p>
+<p>Les porteurs de ce type d&#x27;expertise sont naturellement volontaires pour le partage et sont valorisés par l&#x27;usage de leur compétence. Le plus difficile est d&#x27;organiser la mise en relation et d&#x27;assurer l&#x27;acceptation par la hiérarchie de la charge induite, même limitée, de participation à l&#x27;effort interministériel.</p>
+<p>Il convient de constituer des réseaux portés par une mise en relation physique événementielle, indispensable à la création d&#x27;un échange riche et suivi, et par une mise en relation électronique en travail collaboratif. Plusieurs outils sont mis en place a cette fin :</p>
+<ul>
+<li>les <strong>groupes de travail thématiques,</strong> avec rencontre régulière sur les sujets bureautiques (MimO), socle serveur (MimOS), exploitation bureautique (MimOG) et base de données (MimDB) ;</li>
+<li>la <strong>«journée logiciel libre»</strong> favorisant l&#x27;ouverture à de nouveaux acteurs, et permettant d&#x27;ouvrir de nouveaux sujets ou de diffuser largement des retours d&#x27;expérience ;</li>
+</ul>
+<h2>Page 12</h2>
+<p>Usage du logiciel libre dans l&#x27;administration — version finale</p>
+<ul>
+<li>les <strong>listes de diffusion</strong>, par groupes thématiques ou sur des thèmes définis, permettant de faire appel dans l&#x27;instant au réseau sur des questions précises ;</li>
+<li>les <strong>sites collaboratifs</strong> des groupes thématiques pour le partage de ressource (CD de distribution ou valise pédagogique LibreOffice...).</li>
+</ul>
+<p>Chaque ministère s&#x27;implique dans la démarche commune.</p>
+<p>Les réseaux d&#x27;expertise, et en priorité les groupes thématiques quand ils existent, sont le creuset de définition et d&#x27;évolution du socle de convergence sur leur périmètre de compétence. La liste proposée au cadre de convergence est publiée sur l&#x27;outil collaboratif du groupe.</p>
+<p>4.3. Améliorer le support des logiciels libres dans un contexte économique contrôlé</p>
+<p>Le logiciel libre permet d&#x27;adapter sa politique de maintenance en fonction de l&#x27;étendue et de la criticité des systèmes. Une grande partie de l&#x27;usage du logiciel libre s&#x27;est fait sans support particulier, en profitant du support apporté par les communautés. Même si ce moyen reste toujours valable, il est nécessaire, pour un certain nombre d&#x27;usages, d&#x27;avoir un support réactif avec des engagements de résultat.</p>
+<p>Le logiciel libre permet d&#x27;avoir des engagements de support supérieurs aux logiciels propriétaires, car le code est à disposition pour correction en interne ou par un prestataire choisi, alors que les éditeurs ont des processus de support normalisés qui ne s&#x27;adaptent que partiellement aux besoins du client. Le problème des grands logiciels propriétaires est renforcé par la distance des centres de développement et la complexité des processus de publication de version à l&#x27;échelle mondiale. En outre, la politique contractuelle des éditeurs prive généralement le client de la possibilité de négocier le niveau de service standard de l&#x27;éditeur, niveau de service par ailleurs très protecteur pour ce dernier.</p>
+<p>Les ministères financiers ont démontré la faisabilité et l&#x27;efficacité économique de mise en place d&#x27;un marché de support par un prestataire de type société de service. <strong>Au niveau interministériel, un marché a été passé sous l&#x27;égide du SAE et sous la direction du ministère de l&#x27;intérieur pour couvrir les besoins des autres ministères</strong>. Il prévoit des mécanismes de réduction des coûts quand plusieurs acteurs demandent du support pour une même souche (plus précisément pour les mêmes versions d&#x27;une souche). Ce marché est donc une incitation supplémentaire à la mise en œuvre du cadre de convergence.</p>
+<p>4.4. Contribuer de manière concertée sur des souches choisies</p>
+<p>Au travers du marché de support interministériel et du cadre de convergence, l&#x27;État concentre désormais son action sur un ensemble de souches et contribuera à leur amélioration en reversant des correctifs aux communautés. Toutefois, pour respecter la logique de la dynamique du libre, il est nécessaire que l&#x27;administration contribue aussi directement sur l&#x27;enrichissement fonctionnel de certaines souches, en particulier sur celles avec lesquelles il fait le plus d&#x27;économies. En réinjectant une faible part de la dépense évitée, les ministères pourraient avoir une action significative d&#x27;amélioration de l&#x27;offre au profit de tous.</p>
+<p><strong>Une règle simple à appliquer serait de réinjecter systématiquement de 5 à 10% des coûts de licences évités. Cela permet de contribuer de manière utile dans tous les cas, de ne pas mettre en risque le gain économique d&#x27;usage du libre, sans pour autant faire systématiquement une étude poussée de gain complet.</strong></p>
+<p>Cette contribution peut prendre de nombreuses formes :</p>
+<ul>
+<li>dans les marchés utilisant des logiciels libres, veiller à rendre possible la reprise des éventuelles évolutions de souches par la communauté, facilitant ainsi leur suivi par la communauté et évitant une maintenance spécifique ;</li>
+</ul>
+<h2>Page 13</h2>
+<ul>
+<li>envisager le financement de conventions de recherche pour ajout de fonctions évoluées pouvant faire</li>
+</ul>
+<p>l&#x27;objet de travaux universitaires (par exemple un correcteur grammatical polyglotte pour une suite bureautique) ;</p>
+<ul>
+<li>étudier le financement par des fonds sur l&#x27;accessibilité pour l&#x27;amélioration de logiciel sur les postes de</li>
+<li>mettre en place un marché d&#x27;expertise et d&#x27;évolution de souches, qui au travers d&#x27;un prestataire verse</li>
+<li>et bien sûr favoriser l&#x27;implication à titre professionnel d&#x27;agents, souvent passionnés à titre personnel,</li>
+</ul>
+<p>dans certaines communautés. Cette implication peut porter sur le code, mais aussi sur des domaines moins techniques comme la traduction, la documentation…</p>
+<p><strong>Dans la foulée du marché de support interministériel, le MI et le SAE mettent en place un marché</strong> d&#x27;expertise et d&#x27;évolution de souches qui pourra être la base de contributions concertées et partagées interministérielles.<strong>Cette action aura d&#x27;autant plus de poids qu&#x27;un grand nombre de ministères</strong> s&#x27;associeront. L‘existence d&#x27;un deuxième marché permettra en outre de limiter l&#x27;effet négatif de la concentration des achats qui ne favorise pas la montée en puissance de multiples grands acteurs du logiciel libre.</p>
+<p>4.5. Suivre les grandes communautés</p>
+<p>De même que les éditeurs logiciels maintiennent des contacts réguliers avec tous les ministères pour actualiser la connaissance de leurs produits, permettre d&#x27;en anticiper les changements voire recueillir les besoins, il est indispensable d&#x27;avoir des liens avec les grandes communautés comme la Mozilla Fondation, la Document Fondation. Celles-ci n&#x27;ayant toutefois pas une approche commerciale, la logique est inversée. C&#x27;est l&#x27;administration qui doit se mettre en rapport régulier avec eux.</p>
+<p>A l&#x27;égard de ces communautés, il est important pour être entendus de parler d&#x27;une seule voix. Cette voix unifiée a plus de poids dans la masse d&#x27;utilisateurs existants de par le monde.</p>
+<p>Ces contacts réguliers permettent d&#x27;assurer la prise en compte de besoins qui ne sont pas encore couverts, que cela soit fonctionnellement ou dans les processus de gestion des souches. En particulier, il est essentiel que toutes les souches intègrent la logique de version à maintenance longue qui corresponde au mode de gestion de nos infrastructures. Ces contacts permettent aussi d&#x27;avoir une information précise sur les évolutions à attendre, les besoins des communautés, qui pourraient éventuellement être couverts par des actions interministérielles.</p>
+<p>Certains ministères ont des contacts privilégiés avec certaines communautés, ils sont alors porteurs des échanges, en cohérence avec l&#x27;équipe « noyau », et peuvent organiser des rencontres, en tant que de besoin, avec les groupes interministériels.</p>
+<p>4.6. Déployer des alternatives crédibles et opérationnelles aux grandes solutions éditeurs</p>
+<p>Il s&#x27;agit de veiller, dans le cadre du développement des systèmes d&#x27;information de l&#x27;État, à assurer le contrôle des coûts de fonctionnement et le maintien de la performance dans le temps. A cette fin, l&#x27;État doit favoriser la mise en concurrence même dans les domaines dominés par des acteurs internationalement reconnus. Une des solutions consiste à profiter des alternatives crédibles apportées par le logiciel libre. Dans cet esprit les travaux sur LibreOffice ou PostgreSQL sont essentiels. Ils sont respectivement portés par les groupes thématiques MimO et MimDB. Ils visent spécifiquement à renforcer la mutualisation sur tous les aspects de mise en œuvre de ces logiciels (technologique, accompagnement, retour d&#x27;expérience, formations...). Des référents experts sont aussi désignés. Le groupe « noyau » (cf. organisation) veille, en coordination particulière avec le SAE, à définir les actions ciblées sur certaines souches pour en favoriser spécifiquement l&#x27;adoption dans un contexte de mutation de l&#x27;offre commerciale vers l&#x27;offre libre. La prochaine opération pourrait porter sur les couches de virtualisation.</p>
+<h2>Page 14</h2>
+<p>4.7. Tracer l&#x27;usage et ses effets</p>
+<p>Pour renforcer l&#x27;approche logiciel libre, il faut aussi en suivre l&#x27;évolution et le déploiement effectif tant dans les centres serveurs qu&#x27;au niveau bureautique. Une analyse annuelle des volumes et de la valeur de cet usage, ainsi que de son évolution, sera désormais réalisée et publiée.</p>
+<p>4.8. Développer la culture d&#x27;usage des licences libres dans les développements de SI publics</p>
+<p>L&#x27;État doit veiller à ce que ses développements soient utilisables par l&#x27;ensemb1e des acteurs impliqués dans ses systèmes d&#x27;information. Les nombreux statuts des entités publiques et l&#x27;implication éventuelle d&#x27;utilisateurs finals comme les professionnels ou les éditeurs de solutions professionnelles rendent complexe la gestion de propriété des codes.</p>
+<p>Sur les développements spécifiques, l&#x27;État doit préserver sa capacité à libérer les codes selon son intérêt propre indépendamment du prestataire de développement. L&#x27;Etat doit donc faire usage, ou préparer l‘usage, des licences libres, permissives ou non selon les contextes, et veiller à faire prévaloir cette liberté vis-à-vis de ses prestataires dans tout contexte pouvant amener a réutilisation, sauf si un surcoût explicite est induit. Un réseau d&#x27;expertise est mis en place entre juristes/acheteurs impliqués dans la rédaction des cahiers des clauses administratives. D&#x27;une manière générale, il est mis en place des formations particulières, rapides pour les chefs de projets et les développeurs, et plus étoffées pour les juristes et acheteurs pour apporter une réelle maîtrise du sujet dans les ministères et les DSI.</p>
+<p>Par ailleurs, le CCAG TIC sera réexaminé pour définir une option portant la possibilité de libération par l&#x27;administration, qui n&#x27;existe pas à ce jour. I1 doit aussi être enrichi de clauses de responsabilité et obligations des prestataires qui utilisent ou enrichissent du code libre.</p>
+<p>La gestion des licences doit par ailleurs être une des composantes de la gouvernance des SI explicite de chaque ministère.</p>
+<h2>Page 15</h2>
+<ol>
+<li>Points d&#x27;appui à l&#x27;action interministérielle sur le logiciel libre</li>
+</ol>
+<p>5.1. Les instances « logiciel libre » interministérielles</p>
+<p>Pour travailler en interministériel, tout en s&#x27;appuyant sur la dynamique plus large de la sphère publique, deux niveaux d&#x27;instances ont été créés de manière pérenne :</p>
+<p>• une équipe dite « noyau », strictement interministérielle, qui concentre les propositions de décisions, de validation des choix à soumettre en CTSIC/CSIC et pilote les actions découlant de décisions de gouvernance interministérielles (marchés, évolution du catalogue des souches, mise en œuvre de directives…), • des groupes thématiques de mutualisation, ouverts aux structures publiques, qui réunissent les experts d&#x27;un domaine, favorisent l&#x27;échange et la montée en compétence, et proposent des orientations. Quatre groupes sont identifiés :</p>
+<ul>
+<li>mimO : mutualisation interministérielle pour une bureautique ouverte ;</li>
+<li>mimOG : mutualisation interministérielle pour OCS et GLPI ;</li>
+<li>mimBD : mutualisation interministérielle pour les bases de données ;</li>
+<li>mimOS : mutualisation interministérielle pour le système d&#x27;exploitation et couches basses</li>
+</ul>
+<p>d&#x27;exploitation.</p>
+<p>Les missions, l&#x27;organisation et les moyens de ces équipes sont développés en annexe.</p>
+<p>5.2. Leviers complémentaires</p>
+<p>Afin d&#x27;appuyer la démarche, des actions complémentaires doivent être engagées, en interministériel ou à l&#x27;initiative de chaque ministère :</p>
+<p>• intégration du cadre de convergence sur les souches communes dans tous les cadres technologiques des ministères ; • examen de l&#x27;alternative libre systématique lors des nouveaux développements et des refontes majeures d&#x27;application, et a ce titre un point sera fait sur les choix dans chaque projet examiné dans le cadre des articles 7 et 8 (le choix des bases de données sera un point d&#x27;attention particulier) ; • participation fortement conseillée au groupe « noyau » pour l&#x27;ensemble des ministères, afin de renforcer la dynamique ; • définition explicite par chaque ministère des consignes d&#x27;implication des experts à l&#x27;effort de mutualisation dans les réseaux d&#x27;expertise ; • sous pilotage du SAE, étude d&#x27;opportunité d&#x27;une révision du CCAG TIC pour la mise en place d&#x27;une option de développement avec possibilité de libération du code, ainsi que la définition des obligations des prestataires dans l&#x27;usage des logiciels libres ; • association systématique à tout format préconisé (notamment dans le référentiel général d&#x27;interopérabilité), d&#x27;une implémentation de référence en logiciel libre. Les formats seront alors de fait suffisamment ouverts ; • diffusion des bonnes pratiques, notamment dans le contexte bureautique, afin que l&#x27;usage des logiciels libres ne soit pas obéré.</p>
+<h2>Page 16</h2>
+<ol>
+<li>ANNEXE : Organisation des instances « logiciel libre » interministrérielles</li>
+</ol>
+<p>L&#x27;équipe « noyau » est l&#x27;instance de pilotage, de définition des orientations et des choix au niveau interministériel. À ce titre elle n&#x27;accueille que des représentants des ministères, avec au moins un représentant désigné, ainsi qu&#x27;un membre de l&#x27;ANSSI et du SAE. Le représentant de chaque structure est chargé de porter la position de son ministère, ou a défaut d&#x27;assurer le lien avec les instances décisionnelles de son ministère, et en retour de s&#x27;assurer de la mise en application des principes d’action retenus.</p>
+<p>• définir et améliorer le cadre de convergence des souches de logiciel libre ;</p>
+<p>• suivre les groupes thématiques de mutualisation, pour s&#x27;assurer de la prise en compte et de la diffusion des travaux, et pour valider les orientations proposées ;</p>
+<p>• mettre en œuvre des pilotes sur des thèmes fixés par la DISIC ;</p>
+<p>• piloter les marchés interministériels sur le logiciel libre (support, expertise, évolution…) en coordination avec les ministères porteurs et le SAE ;</p>
+<p>• piloter les opérations de contribution hors marchés ;</p>
+<p>• suivre les relations et organisations de contacts avec les grandes communautés ;</p>
+<p>• choisir et suivre les opérations de déploiement d&#x27;alternatives libres ;</p>
+<p>• assurer la veille économique sur l&#x27;usage du logiciel libre et le suivi des indicateurs associés en coordination avec le SAE ;</p>
+<p>• définir des opérations de communication et de formation sur le logiciel libre en interministériel ;</p>
+<p>• améliorer les pratiques d&#x27;usage et de contractualisation autour du logiciel libre ;</p>
+<p>• échanger sur l&#x27;activité dans les ministères et sur les besoins naissant, pour favoriser la mutualisation. A ce titre recenser les souches créées dans certains ministères et pouvant être réutilisées par d‘autres (ex : Xemelios, OCS…) ;</p>
+<p>• assurer la cohérence de la conduite du projet « Usage du logiciel libre » avec les autres projets DISIC ;</p>
+<p>• faire le rapport d&#x27;activité à la DISIC.</p>
+<p>Pour l&#x27;ensemble de ses missions, ses moyens sont limités au strict nécessaire dans une logique mutualisée :</p>
+<p>• réunions physiques trimestrielles dans une salle d&#x27;un ministère ;</p>
+<p>• listes de diffusions pour chaque groupe constitué y compris l&#x27;équipe « noyau », opérées par le MCC ;</p>
+<p>• site collaboratif au sein du site DISIC, opéré par le MEDDE.</p>
+<p>Par ailleurs pour enrichir le débat, permettre à de nouveaux entrants de découvrir les instances, organiser un échange d&#x27;expérience et tester de nouveaux sujets de travail, des « journées du logiciel libre » sont organisées deux fois par an. Elles sont l&#x27;occasion de séquences de courtes présentations de retour d&#x27;expérience et de débat sur l&#x27;usage des logiciels libres dans l&#x27;administration. Elles sont réservées a des agents du service public, et ne font pas l’objet de communication pour y garder une parole libre sur les difficultés rencontrées.</p>
+<h2>Page 17</h2>
+<p>Les membres de l&#x27;équipe &quot;noyau&quot; ne peuvent de fait que consacrer un temps limité et discontinu a cette activité. Pour maintenir une motivation durable, une qualité de la production et une continuité des travaux il est nécessaire de compter, au sein de la DISIC ou dans un ministère, sur une personne dédiée, a très grande proportion de son temps de travail, à l&#x27;animation et à la formalisation des travaux de l&#x27;équipe &quot;noyau&quot;. Elle pourra aussi assurer le lien formel avec les groupes thématiques de mutualisation. Il serait utile à terme que les ministères définissent et fassent connaître à l’équipe noyau une enveloppe pour contribution sur certaines souches.</p>
+<p>6.2. Les groupes thématiques de mutualisation</p>
+<p>Les groupes thématiques de mutualisation réunissent les experts d&#x27;un domaine pour favoriser le partage d&#x27;expérience, la montée en compétence, la constitution de réseaux d&#x27;échange et d&#x27;assistance, et la proposition d&#x27;orientations et de choix techniques. À ce titre ils gèrent par subsidiarité l&#x27;activité autour des souches de leur domaine.</p>
+<p>Quatre groupes sont identifiés :</p>
+<p>• mimO : mutualisation interministérielle pour une bureautique ouverte ;</p>
+<p>• mimOG : mutualisation interministérielle pour OCS et GLPI ;</p>
+<p>• mimBD : mutualisation interministérielle pour les bases de données ;</p>
+<p>• mimOS : mutualisation interministérielle pour le système d’exploitation et couches basses d&#x27;exploitation.</p>
+<p>Ils accueillent les représentants de l&#x27;administration d’État, d&#x27;organismes publics, de collectivités territoriales .... Tous les participants sont des agents publics.</p>
+<p>6.2.1 Missions générales des groupes</p>
+<p>• élaborer les préconisations pour le socle de convergence ;</p>
+<p>• identifier les sources de mutualisation possibles ;</p>
+<p>• collecter les retours d’expériences ;</p>
+<p>• collecter et diffuser l’information (espaces de discussion et de dépôt de documents) ;</p>
+<p>• jouer le rôle d’interface entre les communautés et les administrations, et organiser des rencontres ;</p>
+<p>• assurer une veille technologique ;</p>
+<p>• suivre les travaux des autres chantiers de la DISIC (poste/environnement de travail, TCI pour la partie exploitation…) ;</p>
+<p>• animer les espaces collaboratifs ;</p>
+<p>• faire le rapport d&#x27;activité régulier a l&#x27;équipe « noyau ».</p>
+<p>Le représentant de la DISIC garantit la connexion entre les chantiers. Les membres participants à d&#x27;autres chantiers font des points sur l&#x27;état d’avancement de la réflexion sur ces chantiers.</p>
+<p>6.2.2 Spécificités des groupes</p>
+<p>• ensemble des logiciels applicatifs sur le poste bureautique.</p>
+<p>• gérer la distribution de la suite bureautique et des extensions jugées utiles, et outils associés (correcteurs…) ;</p>
+<p>• produire des paquets d’installation, des documentations, des valises pédagogiques…</p>
+<h2>Page 18</h2>
+<p>Usage du logiciel libre dans l&#x27;administration - version finale</p>
+<p>À terme cela s&#x27;entendra aussi sur le socle bureautique libre. Les tâches opérationnelles seront portées par certains ministères.</p>
+<p>Une liste de sujets à étudier sur 2012 est retenue :</p>
+<ul>
+<li>évolutions Mozilla Firefox (avec Android aussi) et Thunderbird ;</li>
+<li>usages bureautiques sur les agents mobiles (lire les messages et les documents bureautiques sur les téléphones cellulaires, les tablettes...) ;</li>
+<li>compétition LO/OOo ;</li>
+<li>usage de Trustedbird ;</li>
+<li>choix Firefox face à Chrome ;</li>
+<li>Grammalecte ou autre correcteur grammatical, relation avec son concepteur et étude de participation à son développement ;</li>
+<li>évolution de Lightning ;</li>
+<li>maintenance du correcteur terminologique ;</li>
+<li>mise en place d&#x27;une plate-forme d&#x27;échanges pour conversion des documents en formats libres (cf initiative Europe).</li>
+<li>ensemble des logiciels utiles à la gestion et au support du parc bureautique.</li>
+<li>produire des paquets d&#x27;installation, des documentations, des valises pédagogiques pour OCS et GLPI...</li>
+</ul>
+<p>Une liste de sujets à étudier sur 2012 est retenue :</p>
+<ul>
+<li>gestion fine des versions (et distributions) OCS et GLPI et de leurs extensions pour définition d&#x27;un cadre de convergence ;</li>
+<li>FusionInvetory vs OCS (choix à faire et lutte à modérer...) ;</li>
+<li>souche VNC à retenir ;</li>
+<li>outils de génération des paquets de télédistribution.</li>
+<li>ensemble des logiciels de base de données.</li>
+<li>favoriser la migration des bases propriétaires vers des bases libres, et en particulier PostgreSQL.</li>
+</ul>
+<p>Une liste de sujets à étudier sur 2012 est retenue :</p>
+<ul>
+<li>collecte de retours d&#x27;expérience en termes de migration ;</li>
+<li>croisement des politiques concernant les bases de données libres et propriétaires ;</li>
+<li>préconisations d&#x27;usage ;</li>
+<li>préconisations de migration ;</li>
+<li>l&#x27;avenir de MySQL: MariaDB, SkySQL... ;</li>
+<li>les souches NoSQL.</li>
+</ul>
+<h2>Page 19</h2>
+<ul>
+<li>ensemble des logiciels des couches basses des serveurs, en particulier les systèmes d&#x27;exploitation et les outils de virtualisation, ainsi que l&#x27;ensemble des outils utiles à l&#x27;exploitation des serveurs.</li>
+</ul>
+<p>Une liste de sujets a étudier sur 2012 a été mise en avant :</p>
+<ul>
+<li>cartographie de l&#x27;existant système et visualisation ;</li>
+<li>distribution Linux à privilégier.</li>
+</ul>
+<p>Pour l&#x27;ensemble de leurs missions, les moyens sont limités au strict nécessaire dans une logique mutualisée :</p>
+<ul>
+<li>réunions physiques trimestrielles dans une salle d&#x27;un ministère ;</li>
+<li>listes de diffusions thématiques, opérées par le MCC ;</li>
+<li>site collaboratif au sein du site DISIC ou du MEDDE, opéré par le MEDDE ;</li>
+<li>site de distribution de paquets, opérés par un des membres du groupe.</li>
+<li><a href="https://www.april.org/print/circulaire-ayrault-sur-le-bon-usage-des-logiciels-libres-dans-ladministration-francaise" target="_blank" rel="noreferrer">Printer-friendly version</a></li>
+</ul>
+<h2>Nous soutenir</h2>
+<p>Inscrivez-vous aujourd&#x27;hui à l&#x27;infolettre pour découvrir les enjeux du logiciel libre, des outils et des moyens d&#x27;actions. Prenez le contrôle de vos libertés informatiques. Suivez nos actions en cours et à venir.</p>
+<ul>
+<li><a href="https://www.april.org/presse" target="_blank" rel="noreferrer">Espace presse</a></li>
+<li><a href="https://www.april.org/nous-contacter" target="_blank" rel="noreferrer">Contact</a></li>
+<li>[[ English ]](http://www.april.org/en/)</li>
+</ul>
+<h2>Libre à vous !</h2>
+<h3><a href="https://libreavous.org" target="_blank" rel="noreferrer">Libre à vous !</a></h3>
+<p>chaque mardi de 15h30 à 17h</p>
+<p><a href="https://libreavous.org/rss" target="_blank" rel="noreferrer">S&#x27;abonner au podcast</a> Membres <a href="https://www.april.org/trombinoscope.php" target="_blank" rel="noreferrer">Trombinoscope</a> <a href="https://www.april.org/adherents-personnes-morales" target="_blank" rel="noreferrer">Personnes morales</a> <a href="http://planete.april.org" target="_blank" rel="noreferrer">Blogs d&#x27;adhérents</a> Activités <a href="https://www.april.org/event" target="_blank" rel="noreferrer">Agenda</a> <a href="https://chapril.org" target="_blank" rel="noreferrer">Chapril / Chatons</a> <a href="https://www.april.org/conferences-donnees-par-lassociation" target="_blank" rel="noreferrer">Conférences</a> <a href="https://www.april.org/libre-a-vous" target="_blank" rel="noreferrer">Émission de radio</a> <a href="https://www.april.org/groupes-de-travail" target="_blank" rel="noreferrer">Groupes de travail</a> <a href="https://listes.april.org/wws" target="_blank" rel="noreferrer">Listes de discussion</a> <a href="https://www.april.org/rapports-moraux-de-lapril" target="_blank" rel="noreferrer">Rapports d&#x27;activité</a> <a href="https://www.april.org/revue-de-presse" target="_blank" rel="noreferrer">Revue de presse</a> <a href="https://www.april.org/revues-hebdomadaires-april" target="_blank" rel="noreferrer">Revue hebdo April</a> <a href="http://wiki.april.org" target="_blank" rel="noreferrer">Wiki</a> <a href="https://www.april.org/reglement-interieur#Code_de_conduite" target="_blank" rel="noreferrer">Code de conduite</a> <a href="https://www.april.org/salon-irc-de-lapril" target="_blank" rel="noreferrer">Salon IRC</a> Documents <a href="https://www.april.org/aide" target="_blank" rel="noreferrer">Aide</a> <a href="https://www.april.org/articles/bibliographie.html" target="_blank" rel="noreferrer">Bibliographie</a> <a href="https://www.april.org/sensibilisation" target="_blank" rel="noreferrer">Sensibilisation</a> <a href="https://www.april.org/documents-de-communication" target="_blank" rel="noreferrer">Communication</a> <a href="https://www.april.org/multimedia" target="_blank" rel="noreferrer">Multimédia</a> <a href="https://photos.april.org/" target="_blank" rel="noreferrer">Galerie photos</a> <a href="https://www.april.org/lexique-0" target="_blank" rel="noreferrer">Lexique</a> <a href="http://www.april.org/videos" target="_blank" rel="noreferrer">Vidéos, transcriptions</a> <a href="https://www.april.org/theses" target="_blank" rel="noreferrer">Thèses</a> Suivre notre actualité <a href="http://www.april.org/association/rester-informe.html" target="_blank" rel="noreferrer">Tous les moyens de rester informé⋅e</a> [Lettre d&#x27;information](http://www.april.org/fr/lettre-d-informat...</p>
+<ul>
+<li><a href="https://www.april.org/fr/suivre-lapril-les-plateformes-de-micro-blogging" target="_blank" rel="noreferrer">Pour en savoir plus sur le microblog</a></li>
+<li><a href="http://www.april.org/fr/aide-flux-rss" target="_blank" rel="noreferrer">Aide flux RSS</a></li>
+</ul></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-c41b75e14cb0534a.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">3. The Internet Infrastructure Has Never Been Open</span>
+</a>
+
+<a class="article-sequence-link" href="item-ad25d9bfae4bfdfe.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">日本 PLATEAU：以開放 3D 城市模型推動數位雙生</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-dc7e5066e8dd31a9.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Circulaire Ayrault sur le bon usage des logiciels libres dans l&#x27;administration française | April</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：查證來源（RSS）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-25T17:43:58+00:00</li><li>審稿備註：2026-06-25T17:43:58+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-dc7e5066e8dd31a9";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

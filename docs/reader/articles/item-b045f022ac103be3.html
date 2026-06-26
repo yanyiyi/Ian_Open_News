@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-25T17:31:57+00:00</p>
+            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,77 @@
       <p class="lede">摘要只提供開頭：文章從 Anthropic 收購 Bun 團隊 Oven 談起，介紹 Bun 作為快速、開源的 JavaScript runtime，以及它相對於 Node.js、Deno 等工具鏈的位置。可保守判斷，文章應該會借這起收購討論 AI 公司、開源基礎設施與開發者生態之間的關係。</p>
       <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
     </article>
-
+    <figure class="article-hero"><img src="http://redmonk.com/sogrady/files/2026/06/wm_eco_chart1_bun_downloads-1024x809.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>What Bun Can Tell Us About AI, Open Source and Anthropic</h1>
+<h4><a href="https://redmonk.com/sogrady" target="_blank" rel="noreferrer">tecosystems</a></h4>
+<p>By <a href="https://redmonk.com/sogrady/author/sogrady/" target="_blank" rel="noreferrer">Stephen O&#x27;Grady</a> | <a href="https://twitter.com/sogrady" target="_blank" rel="noreferrer">@sogrady</a> | June 4, 2026</p>
+<p>Share via Twitter Share via Facebook Share via Linkedin Share via Reddit</p>
+<p>In early December last year, Anthropic acquired Oven, the makers of Bun, a small, fast, open source JavaScript runtime. It’s also a package manager, bundler and test runner but it’s had the most success as a fast runtime built on Safari’s JavaScriptCore rather than Chrome’s V8 like Deno and Node.js. Built as a drop-in replacement for Node focused on speed and written in Zig (later to be rewritten in Rust) and first released in 2022, it found a natural audience in AI with companies like Cursor, Lovable, Windsurf and, of course, Anthropic. It also made inroads into speed-focused production systems at companies like Figma, The New York Times and Slack. Infrastructure players like CircleCI and GitHub, meanwhile, both added support late last year.</p>
+<p>In addition to being an important specialty runtime for enterprises, then, it was load bearing infrastructure for AI companies large and small.</p>
+<p>Load bearing or no, its commercial prospects at the time of the acquisition – like so much of the open source the industry relies on, unfortunately – were less than clear. This Q&amp;A from Jarred Sumner’s acquisition <a href="https://bun.com/blog/bun-joins-anthropic" target="_blank" rel="noreferrer">announcement</a> was blunt:</p>
+<blockquote>Q: Is the same team still working on Bun full-time?</blockquote>
+<blockquote>A: Yes. And now we get access to the resources of the world’s premier AI Lab instead of a small VC-backed startup making $0 in revenue.</blockquote>
+<p>On the whole, the acquisition was fairly straightforward for both parties. Bun receives an immediate capital return and a viable, long term path for support, while Anthropic gains direct control of a project strategic to their offerings. By going the inorganic acquisition route, it spent money to save time in a market with plenty of the former but precious little of the latter. Curious about how the project has fared post-acquisition, we’ve evaluated some of its metrics.</p>
+<p>The high level takeaway is that the acquisition does not appear to have slowed the project. The below chart drawn from npm is merely a subset of Bun installs, and doesn’t reflect those installed directly, via Homebrew, binary or otherwise. Even the subset we’re able to access here tells a clear story however.</p>
+<p>It is necessary to caveat the above and similar charts by observing that it’s difficult to precisely tease apart Bun’s success from that of projects that leverage it like Claude Code. Still, growing 16X from 445K/month to 7.3M in less than 30 months is impressive for a runtime in a field full of them. And if the runtime growth sounds impressive, the TypeScript type definitions for it are even more impressive – bun-types (the first party native definition) grew at 53X while its TypeScript wrapper jumped 234X.</p>
+<p>Bun is growing, in other words. It may even be growing faster post-acquisition. But the question is: how sustainable is that growth? To answer it, it’s necessary to look under the hood at how the project is being built, by whom and how that’s changed over time. There are many different conclusions to be drawn from the resulting datasets, but there are two particularly worth highlighting.</p>
+<h2>AI and Bun</h2>
+<p>As has been discussed elsewhere, the most obvious takeaway in looking at Bun’s commit data is the glaring transition from primarily human to primarily AI contributions. This is certainly no secret; a month ago, Sumner <a href="https://x.com/jarredsumner/status/2054525268296118363" target="_blank" rel="noreferrer">said</a> on Twitter:</p>
+<p>“<em>We haven’t been typing code ourselves for many months now. Even pre-acquisition this was pretty much accurate</em>.”</p>
+<p>The commits chart confirms this.</p>
+<p>As early as last August, over half of the project commits at a given time were authored by a bot. Post-acquisition, it’s rarely less than that, and has peaked north of 80%.</p>
+<p>Here are the total commits per month, AI vs human.</p>
+<p>The trend line here is unambiguous: in approximately 12 months, Bun has transitioned from a project maintained by humans to one primarily authored by machines. To break that out in a little more detail, here are the commits per contributor: AI, but splitting up internal and external contributors.</p>
+<p>We’ll get to the secondary trend there momentarily, but again, the conclusion is unavoidable. Just as Bun is core AI infrastructure, AI is now the core contributor to Bun.</p>
+<p>This raises a host of questions that for the most part can’t be answered yet. How maintainable will the project be over the long term? What if any tech debt and learned helplessness is being accrued by the Bun team by relying so heavily on AI? Will AI continue to increase its percentage of code committed at the expense of humans, or will a natural equilibrium evolve over time?</p>
+<p>It’s been barely a year of AI contributions, and half that as employees of one of the most visible and important AI companies on the planet. We won’t and can’t know the answers to these questions for some time, because the sample is insufficient.</p>
+<p>But it seems clear that when looking at how core infrastructure products might be impacted by rising AI contributions, Bun will be an important datapoint to monitor.</p>
+<h2>Open Source and Bun</h2>
+<p>Arguably more interesting than “project includes more and more code written by machines” is what the acquisition means for Bun as an open source project. Bun was and is MIT licensed, and the acquisition announcement made four related promises around the project:</p>
+<blockquote>Bun stays open-source &amp; MIT-licensed</blockquote>
+<blockquote>Bun continues to be extremely actively maintained</blockquote>
+<blockquote>The same team still works on Bun</blockquote>
+<blockquote>Bun is still built in public on GitHub</blockquote>
+<p>Three of those promises have undeniably been kept. Bun remains open source and MIT licensed. It is actively maintained, and built on GitHub. The team, on the other hand, appears to have gone its separate ways.</p>
+<p>First, let’s look at a macro picture of the number of human contributors to the project, total, in the wake of the rising AI contributions.</p>
+<p>That number is roughly half of what it was. The number of external contributors, for its part, has dropped off significantly.</p>
+<p>Just as the number of human developers big picture has declined, so too has the number of external developers.</p>
+<p>To put that in context, however, while their numbers appeared to be more robust, the actual code contributions from external contributors has always been relatively modest – even acknowledging the problematic nature of measuring actual contributions by commits.</p>
+<p>After dipping immediately post-acquisition, internal commits have climbed back into the same rough number they occupied prior. External commits, however, have not. Their contributions have significantly declined. This is unsurprising. Contributing to a project maintained by a small, independent startup is a different matter than one maintained by a large, well capitalized AI juggernaut.</p>
+<p>Getting back to the original promise of keeping the team together, we can see the above metrics manifested in a detailed list of the original committers.</p>
+<p>Of ~7 identifiable pre-acquisition Oven employees, at least 4 have clearly departed or at least stopped contributing. Another active committer went from 745 pre-acquisition commits to 1 post-acquisition. There are many potential reasons for this mini diaspora, and they may have little if anything to do with the project, AI, the acquisition or any of the above. The motivation, interest – or permission – to work on a large open source project can change for a variety of reasons.</p>
+<p>But it is certainly not the same team that originally built Bun. Humans left, AI has moved in – whether that replacement cycle was deliberate and intentional, or not.</p>
+<h2>The Net</h2>
+<p>The fact that the number of human contributors to Bun is down while the number of machine contributions up would be less interesting if it wasn’t a relatively high profile open source infrastructure project. It’s unclear how Anthropic will navigate its stewardship of the project moving forward, or whether in fact they care about their role as project steward. Bun is an opportunity to ask questions of Anthropic: how does it value open source? What are its intentions for the project?</p>
+<p>Consider the case of another open project out of Anthropic, MCP. First launched in November of 2024, consensus within three months was that it was a clear industry standard – which is an absurd, <a href="https://bsky.app/profile/sogrady.org/post/3lposd6ur4s2k" target="_blank" rel="noreferrer">unprecedented</a> timeframe. It was difficult, even shocking, to be told by competitive vendors that they were effectively granting this status to MCP the January after a November release.</p>
+<p>In spite of this early and unprecedented success, it took another ten months for it to be donated to a neutral foundation. For the unfamiliar, this is a necessary step for standardized technologies that will be jointly developed by otherwise fierce competitors. Few if any commercial organizations will contribute to a project solely owned by a third party because it’s tantamount to subsidizing their development with your labor.</p>
+<p>To be fair, this timeframe is not totally unreasonable. Kubernetes likewise took thirteen months from initial release to donation. But Kubernetes was also one amongst multiple competitive container orchestration projects, and very far from an obvious industry standard at the time. The delay and ultimate donation, then, was appropriate and strategic. MCP was a much more obvious candidate for standardization, however, earlier even than Docker, the most rapidly adopted technology we’d seen up until MCP. But it still took over a year for an obvious open source standard to be permitted to ascend.</p>
+<p>Which begs the question: where is Anthropic, and its counterparts like OpenAI, on the corporate open source maturity curve? Startups understand open source code as consumers because they are built on it. They generally understand contributions, governance and the like because they have to. But as a rule, startups focused on moving as quickly as possible are far less familiar with how open source works on a corporate or enterprise level.</p>
+<p>Not that Anthropic stands out in this regard. Microsoft spent decades verbally assaulting open source. Google’s early years were marked by publishing open papers about software without releasing the code behind them. And AWS’ reputation amongst open source communities was arguably worse than Microsoft’s until relatively recently when it learned to more peacefully coexist and contribute back.</p>
+<p>These vendors and those that preceded them have had to learn about open source on a macro, rather than micro-scale. About license choices, the role of foundations and how to run open source projects that encourage rather than discourage external contributions – as well as the benefits of same.</p>
+<p>An argument that could be made is that Anthropic won’t have to learn these lessons because it doesn’t need to standardize Bun. Certainly any flow of would be external contributions to the project from competitors is arguably now coming from AI. Why bother amortizing development costs across competitors and giving up control of a project to a foundation when the project’s owner has a bunch of software genies in a bottle that it can release at any time?</p>
+<p>That assumes, of course, that the primary value resulting from the standardization of a project is code contributions. Which is a fundamental misunderstanding of the purpose of standardization. External code contributions are not the primary incentive to donate a project to a foundation: preventing needless and unproductive market fragmentation is. As is reassuring potential users. Enterprises, for one, do not embrace software from a foundation because it’s written more quickly. They do so because they prefer their key infrastructure not be controlled by a single vendor.</p>
+<p>In any event, those curious about whether and how well Anthropic understands open source would be well served by watching their stewardship of Bun and how it evolves over time. The project, to its credit, is growing apace even as it’s hosted at a non-neutral single party. But assuming it’s a priority, and that Anthropic has ambitions for Bun to be more than a project that just undergirds Claude Code and its offerings, that growth is likely to be challenged by questions about stewardship and long term project futures. If that growth, meanwhile, is not a priority, and Anthropic has no intentions for the project to be more than just a piece of internal infrastructure, it will have negatively impacted its open source reputation as a poor steward of a popular project. Does Anthropic and their highly capable software creation machine, then, take on the world alone? Or do they trade some control for wider, swifter adoption?</p>
+<p>How that question is answered, and whether Anthropic carries forward Bun’s wider mission or abandons its external users and turns inward, will tell us much about how quickly Anthropic is moving along the open source learning curve, and how much it has learned from the companies that have gone before it.</p>
+<p><strong>Disclosure</strong>: AWS, CircleCI, Docker, GitHub, Google, Microsoft and Salesforce (Slack) are RedMonk customers. Anthropic, Cursor, Figma, Lovable, OpenAI, The New York Times and Windsurf are not currently customers.</p>
+<h2>About</h2>
+<p>Hi, I&#x27;m Stephen O&#x27;Grady. I live in Maine, but <a href="http://www.tripit.com/people/sogrady?us=bb&amp;um=bb&amp;un=bb" target="_blank" rel="noreferrer">travel</a> a lot. I helped found RedMonk in 2002, and I was born and raised a Red Sox fan. My job is to help companies understand developers better, and to help developers, period. There&#x27;s more bio stuff <a href="http://sogrady.org" target="_blank" rel="noreferrer">here</a>. Everything you read here was written by me, not a machine. For better and for worse. <a href="https://twitter.com/sogrady" target="_blank" rel="noreferrer">Follow @sogrady</a></p>
+<h3>The Book</h3>
+<h3>Archives</h3>
+<h3>Search</h3>
+<h3>Recent Posts</h3>
+<ul>
+<li><a href="https://redmonk.com/sogrady/2026/06/23/kiro-ai-ide-market/" target="_blank" rel="noreferrer">Kiro and the AI IDE Market</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/11/open-source-spectrum/" target="_blank" rel="noreferrer">The Open Source Maturity Spectrum</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/10/paas-unbundling/" target="_blank" rel="noreferrer">The Unbundling and Bundling of the PaaS Market</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/04/bun-two-lessons/" target="_blank" rel="noreferrer">What Bun Can Tell Us About AI, Open Source and Anthropic</a></li>
+<li><a href="https://redmonk.com/sogrady/2026/06/02/g7-open-weights/" target="_blank" rel="noreferrer">The G7 on Open Source vs Open Weights</a></li>
+</ul>
+<h3>Categories</h3>
+<h3>Archives</h3></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-e9b9e2125bf046a2.html">
@@ -580,7 +646,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-b045f022ac103be3.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：What Bun Can Tell Us About AI, Open Source and Anthropic</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Stephen O&#x27;Grady</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：What Bun Can Tell Us About AI, Open Source and Anthropic（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Stephen O&#x27;Grady（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-23T04:18:31+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
