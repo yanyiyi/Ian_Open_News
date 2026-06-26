@@ -64,6 +64,9 @@ MATERIAL_LINKS = DATABASE / "material-links.jsonl"
 ARTICLES = DATABASE / "articles.jsonl"
 EDITOR_SESSIONS = ROOT / ".cache" / "editor-sessions.jsonl"
 EDITOR_STATUS = ROOT / ".cache" / "editor-status.json"
+DECISION_DIVERGENCES = DATABASE / "decision-divergences.jsonl"
+INSIGHT_REPORTS = DATABASE / "insight-reports.jsonl"
+CACHE_DIR = ROOT / ".cache"
 PDF_SPLIT_STATUS = ROOT / ".cache" / "pdf-split-status.json"
 TRANSLATE_STATUS = ROOT / ".cache" / "translate-status.json"
 PDF_UPLOADS = ROOT / ".cache" / "uploads"
@@ -332,14 +335,17 @@ NEWSLETTER_FUNCTIONAL_LINK_RE = re.compile(
 NEWSLETTER_ARTICLE_LINK_RE = re.compile(
     r"/("
     r"20\d{2}|news|blog|post|article|articles|publication|publications|press|press-releases|"
-    r"research|report|reports|brief|paper|papers|study|studies|abs|pdf"
-    r")\b|\.pdf(?:$|[?#])|arxiv\.org/(?:abs|pdf)/",
+    r"research|report|reports|brief|paper|papers|study|studies|abs|pdf|"
+    r"chapter|chapters|books|book"
+    r")\b|\.pdf(?:$|[?#])|arxiv\.org/(?:abs|pdf)/|doi\.org/",
     re.I,
 )
 NEWSLETTER_ARTICLE_TITLE_RE = re.compile(
     r"\b(report|research|paper|study|brief|statement|news|article|launch|announc|governance|policy|"
-    r"funding|security|open source|digital public infrastructure|commons|AI|DPI)\b",
-    re.I,
+    r"funding|security|open source|digital public infrastructure|commons|AI|DPI)\b"
+    r"|^\d+[\.\)]\s+\S"  # numbered chapter: "3. The Internet..." or "10) Something"
+    r"|^(Introduction|Conclusion|Preface|Foreword|Afterword|Epilogue)[:\s]",
+    re.I | re.MULTILINE,
 )
 NOISY_TAG_VALUES = {
     "",
@@ -955,6 +961,325 @@ def local_time_label(dt: datetime | None = None) -> str:
 
 def data_commit_message(dt: datetime | None = None) -> str:
     return f"閱讀資料庫自訂紀錄 {local_time_label(dt)} 的更新"
+
+
+# ------------------------------------------------------------------ #
+# 決策分歧洞察（/insights）
+# ------------------------------------------------------------------ #
+
+def _divergence_id() -> str:
+    import secrets
+    return "div-" + secrets.token_hex(4)
+
+
+def _report_id() -> str:
+    import secrets
+    return "rpt-" + secrets.token_hex(4)
+
+
+def _ai_suggestion_from_item(item: dict) -> dict | None:
+    """從 item 萃取 AI 建議；優先用 editorial_triage，次用 triage；兩者皆無回 None。"""
+    et = item.get("editorial_triage")
+    if isinstance(et, dict) and et.get("recommendation"):
+        return {
+            "source": "editorial_triage",
+            "recommendation": et.get("recommendation", ""),
+            "content_kind": et.get("content_kind", ""),
+            "confidence": et.get("confidence", ""),
+        }
+    triage = item.get("triage")
+    if isinstance(triage, dict) and triage.get("recommendation"):
+        return {
+            "source": "triage",
+            "recommendation": triage.get("recommendation", ""),
+            "content_kind": "",
+            "confidence": "",
+        }
+    return None
+
+
+def _user_action_from_item(item: dict) -> str:
+    decision = item.get("local_decision")
+    if isinstance(decision, dict):
+        return decision.get("action", "")
+    return ""
+
+
+def _is_collect_action(action: str) -> bool:
+    return action in {"accepted-for-editing", "direct-pr-small-news", "want-to-read", "accepted-current-reading"}
+
+
+def _is_reject_action(action: str) -> bool:
+    return action in {"rejected"}
+
+
+def _detect_divergence_type(ai_rec: str, user_action: str) -> str | None:
+    """回傳分歧類型字串，或 None 表示沒有分歧。"""
+    if ai_rec in {"suggest-skip", "suggest-reject"} and _is_collect_action(user_action):
+        return "under-collected"
+    if ai_rec in {"suggest-collect", "suggest-keep"} and _is_reject_action(user_action):
+        return "over-rejected"
+    return None
+
+
+def scan_existing_divergences() -> int:
+    """掃描 items.jsonl 與 rejected-items.jsonl，把尚未記錄的分歧寫入 decision-divergences.jsonl。回傳新增筆數。"""
+    items = load_jsonl(ITEMS) + load_jsonl(REJECTED_ITEMS)
+    existing = load_jsonl(DECISION_DIVERGENCES)
+    existing_item_ids: set[str] = set()
+    for div in existing:
+        for iid in (div.get("item_ids") or []):
+            existing_item_ids.add(iid)
+
+    added = 0
+    # 收集 over-rejected cluster 候選（按 track+source_group+tags 分組）
+    over_rejected_candidates: dict[str, list[dict]] = {}
+
+    for item in items:
+        item_id = item.get("id", "")
+        if item_id in existing_item_ids:
+            continue
+        ai_sug = _ai_suggestion_from_item(item)
+        if ai_sug is None:
+            continue
+        user_action = _user_action_from_item(item)
+        if not user_action:
+            continue
+        div_type = _detect_divergence_type(ai_sug["recommendation"], user_action)
+        if div_type is None:
+            continue
+
+        if div_type == "under-collected":
+            record = {
+                "id": _divergence_id(),
+                "divergence_type": "under-collected",
+                "item_ids": [item_id],
+                "item_titles": [item.get("title", "（無標題）")],
+                "track": item.get("track", ""),
+                "logged_at": now_iso(),
+                "ai_suggestion": ai_sug,
+                "user_action": user_action,
+                "cluster_size": 1,
+                "user_explanation": "",
+                "dismissed": False,
+                "included_in_analysis_at": None,
+            }
+            append_jsonl(DECISION_DIVERGENCES, record)
+            added += 1
+        elif div_type == "over-rejected":
+            # 收集後再 cluster
+            confidence = ai_sug.get("confidence", "")
+            tags_key = ",".join(sorted((item.get("tags") or [])[:3]))
+            source_group = ""
+            ref = item.get("reference") or {}
+            if isinstance(ref, dict):
+                source_group = ref.get("source_group", "")
+            cluster_key = f"{item.get('track','')}__{source_group}__{tags_key}"
+            over_rejected_candidates.setdefault(cluster_key, []).append({
+                "item_id": item_id,
+                "title": item.get("title", "（無標題）"),
+                "track": item.get("track", ""),
+                "ai_suggestion": ai_sug,
+                "user_action": user_action,
+                "confidence": confidence,
+                "source_group": source_group,
+            })
+
+    # 寫入 over-rejected cluster（≥3 筆才算）
+    for cluster_key, candidates in over_rejected_candidates.items():
+        if len(candidates) < 3:
+            continue
+        # 去掉已有的
+        fresh = [c for c in candidates if c["item_id"] not in existing_item_ids]
+        if len(fresh) < 3:
+            continue
+        first = fresh[0]
+        tags_label = cluster_key.split("__")[2].replace(",", " / ")
+        source_group = first.get("source_group", "")
+        cluster_title = f"Cluster：{source_group or tags_label or first['track']}"
+        record = {
+            "id": _divergence_id(),
+            "divergence_type": "over-rejected",
+            "item_ids": [c["item_id"] for c in fresh],
+            "item_titles": [c["title"] for c in fresh],
+            "track": first["track"],
+            "logged_at": now_iso(),
+            "ai_suggestion": first["ai_suggestion"],
+            "user_action": "rejected",
+            "cluster_size": len(fresh),
+            "cluster_label": cluster_title,
+            "user_explanation": "",
+            "dismissed": False,
+            "included_in_analysis_at": None,
+        }
+        append_jsonl(DECISION_DIVERGENCES, record)
+        added += 1
+
+    return added
+
+
+def detect_and_log_divergence(item: dict) -> None:
+    """在 accept/reject 後呼叫，若有新分歧即寫入（單筆 under-collected 或累積 over-rejected）。"""
+    item_id = item.get("id", "")
+    if not item_id:
+        return
+    existing = load_jsonl(DECISION_DIVERGENCES)
+    existing_ids: set[str] = set()
+    for div in existing:
+        for iid in (div.get("item_ids") or []):
+            existing_ids.add(iid)
+    if item_id in existing_ids:
+        return
+
+    ai_sug = _ai_suggestion_from_item(item)
+    if ai_sug is None:
+        return
+    user_action = _user_action_from_item(item)
+    if not user_action:
+        return
+    div_type = _detect_divergence_type(ai_sug["recommendation"], user_action)
+    if div_type != "under-collected":
+        return  # over-rejected 由 scan_existing_divergences 批次處理
+
+    record = {
+        "id": _divergence_id(),
+        "divergence_type": "under-collected",
+        "item_ids": [item_id],
+        "item_titles": [item.get("title", "（無標題）")],
+        "track": item.get("track", ""),
+        "logged_at": now_iso(),
+        "ai_suggestion": ai_sug,
+        "user_action": user_action,
+        "cluster_size": 1,
+        "user_explanation": "",
+        "dismissed": False,
+        "included_in_analysis_at": None,
+    }
+    append_jsonl(DECISION_DIVERGENCES, record)
+
+
+def _patch_divergence(div_id: str, **kwargs: object) -> bool:
+    """更新 decision-divergences.jsonl 中指定 id 的欄位。"""
+    records = load_jsonl(DECISION_DIVERGENCES)
+    found = False
+    updated = []
+    for rec in records:
+        if rec.get("id") == div_id:
+            rec = dict(rec)
+            rec.update(kwargs)
+            found = True
+        updated.append(rec)
+    if found:
+        write_jsonl(DECISION_DIVERGENCES, updated)
+    return found
+
+
+def _patch_report(rpt_id: str, **kwargs: object) -> bool:
+    """更新 insight-reports.jsonl 中指定 id 的欄位。"""
+    records = load_jsonl(INSIGHT_REPORTS)
+    found = False
+    updated = []
+    for rec in records:
+        if rec.get("id") == rpt_id:
+            rec = dict(rec)
+            rec.update(kwargs)
+            found = True
+        updated.append(rec)
+    if found:
+        write_jsonl(INSIGHT_REPORTS, updated)
+    return found
+
+
+def _build_analysis_prompt(divergences: list[dict]) -> str:
+    lines = ["你是台灣數位人文與開放科技媒體 Ian Open News 的 AI 建議顧問。",
+             "以下是使用者最近做出的、和系統建議相反的決策，請分析並給出條列式的洞察報告。",
+             "",
+             "## 分歧清單",
+             ""]
+    for i, div in enumerate(divergences, 1):
+        titles = "、".join(div.get("item_titles") or ["（未知）"])
+        ai_rec = (div.get("ai_suggestion") or {}).get("recommendation", "未知")
+        user_act = div.get("user_action", "未知")
+        exp = div.get("user_explanation", "")
+        dt = div.get("divergence_type", "")
+        lines.append(f"{i}. [{dt}] 《{titles}》")
+        lines.append(f"   AI 建議：{ai_rec} → 使用者選擇：{user_act}")
+        if exp:
+            lines.append(f"   使用者說明：{exp}")
+        lines.append("")
+    lines += [
+        "## 請回傳（繁體中文，條列式）",
+        "",
+        "### 我沒掌握到的決策模式",
+        "（每條附具體例子，說明你為何推薦那樣但使用者不這樣選）",
+        "",
+        "### over-rejected 分析",
+        "（這些 AI 強推但使用者拒收的項目，有什麼共通特徵？下次應改為『先問使用者』而非直接推薦？）",
+        "",
+        "### 使用者偏好關鍵字",
+        "（從使用者說明透露出的偏好，列 3-6 個關鍵詞）",
+        "",
+        "### 建議系統調整",
+        "（具體說：遇到 X 情境時，AI 建議邏輯應調整為 Y）",
+    ]
+    return "\n".join(lines)
+
+
+def _insights_nav_badge() -> str:
+    divs = load_jsonl(DECISION_DIVERGENCES)
+    pending = [d for d in divs if not d.get("dismissed") and not d.get("included_in_analysis_at")]
+    count = len(pending)
+    if count == 0:
+        return ""
+    cls = " style='background:#e53e3e'" if count >= 10 else ""
+    return f" <span style='display:inline-block;background:#6450dc;color:#fff;border-radius:9px;padding:0 6px;font-size:0.75em;line-height:1.5;vertical-align:middle'{cls}>{count}</span>"
+
+
+def _run_claude_analysis(divergences: list[dict], mode: str) -> dict:
+    """非同步呼叫 claude CLI，結果存 .cache/ 並回傳 report record dict。"""
+    import subprocess
+    import time
+
+    prompt = _build_analysis_prompt(divergences)
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    report_file = CACHE_DIR / f"divergence-analysis-{timestamp}.txt"
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+    try:
+        result = subprocess.run(
+            ["claude", "-p", prompt, "--output-format", "text"],
+            capture_output=True, text=True, timeout=120
+        )
+        report_text = result.stdout or result.stderr or "（claude CLI 無輸出）"
+    except FileNotFoundError:
+        report_text = "（找不到 claude CLI，請確認已安裝 Claude Code）"
+    except subprocess.TimeoutExpired:
+        report_text = "（分析逾時，請稍後重試）"
+
+    report_file.write_text(report_text, encoding="utf-8")
+    summary = "\n".join(report_text.splitlines()[:2])
+
+    div_ids = [d.get("id", "") for d in divergences]
+    rpt = {
+        "id": _report_id(),
+        "generated_at": now_iso(),
+        "mode": mode,
+        "divergence_ids": div_ids,
+        "report_file": str(report_file.relative_to(ROOT)),
+        "report_summary": summary,
+        "implementation_status": "pending",
+        "implemented_at": None,
+        "implementation_notes": "",
+        "report_text": report_text,
+    }
+    append_jsonl(INSIGHT_REPORTS, rpt)
+
+    # 標記這批分歧已納入分析
+    ts = now_iso()
+    for div_id in div_ids:
+        _patch_divergence(div_id, included_in_analysis_at=ts)
+
+    return rpt
 
 
 def online_reader_commit_message(dt: datetime | None = None) -> str:
@@ -5847,6 +6172,8 @@ def page(title: str, body: str) -> bytes:
     .nl-cand-host {{ flex: 0 0 auto; color: var(--muted, #64748b); font-size: 12px; }}
     .nl-skip {{ margin-top: 6px; }}
     .nl-skip ul {{ margin: 6px 0 0; padding-left: 18px; color: var(--muted, #64748b); font-size: 13px; }}
+    .nl-cand--skip {{ background: var(--surface-2, #f8fafc); opacity: 0.85; }}
+    .nl-cand--skip .nl-cand-title {{ font-weight: 500; }}
     .pdf-relation-grid, .pdf-split-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }}
     .pdf-relation-card {{ border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--panel); }}
     .pdf-relation-actions form, .pdf-cli-confirm-form {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }}
@@ -5931,6 +6258,7 @@ def page(title: str, body: str) -> bytes:
         <div class="nav-menu-links">
           <a href="/keywords">{icon_span("filter", "F")}關鍵字</a>
           <a href="/sources">{icon_span("source", "S")}RSS 來源</a>
+          <a href="/insights">{icon_span("note", "I")}決策洞察{_insights_nav_badge()}</a>
         </div>
       </details>
     </nav>
@@ -8524,6 +8852,11 @@ class Handler(BaseHTTPRequestHandler):
             if requested and clean_text(status.get("session_id")) != requested:
                 status = {"state": "idle", "session_id": requested}
             self.send_json(status)
+        elif parsed.path == "/insights":
+            self.show_insights(query)
+        elif parsed.path == "/insights/init-scan":
+            added = scan_existing_divergences()
+            self.redirect(f"/insights?scanned={added}")
         elif parsed.path == "/api/pdf-split-status":
             self.send_json(load_json(PDF_SPLIT_STATUS))
         elif parsed.path == "/api/translate-status":
@@ -8640,6 +8973,16 @@ class Handler(BaseHTTPRequestHandler):
             self.save_article(self.read_form())
         elif parsed.path == "/articles/refresh-factcheck":
             self.refresh_article_factcheck(self.read_form())
+        elif parsed.path == "/insights/explain":
+            self.save_divergence_explanation(self.read_form())
+        elif parsed.path == "/insights/dismiss":
+            self.dismiss_divergence(self.read_form())
+        elif parsed.path == "/insights/generate-report":
+            self.generate_divergence_report(self.read_form(), mode="full")
+        elif parsed.path == "/insights/generate-sample":
+            self.generate_divergence_report(self.read_form(), mode="sample-5")
+        elif parsed.path == "/insights/mark-implemented":
+            self.mark_report_implemented(self.read_form())
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
 
@@ -9963,6 +10306,198 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             self.send_json({"ok": True, "id": record["id"], "claims": len((record.get("factcheck") or {}).get("claims") or [])})
         else:
             self.redirect(f"/articles/edit?id={quote(record['id'])}")
+
+    # ------------------------------------------------------------------ #
+    # 決策洞察面板 /insights
+    # ------------------------------------------------------------------ #
+
+    def show_insights(self, query: dict[str, list[str]]) -> None:
+        scanned_msg = ""
+        if query.get("scanned"):
+            n = (query.get("scanned") or ["0"])[0]
+            scanned_msg = f'<p class="success-banner">掃描完成，新增 {h(n)} 筆分歧記錄。</p>'
+
+        divs = load_jsonl(DECISION_DIVERGENCES)
+        pending_b = [d for d in divs if d.get("divergence_type") == "over-rejected" and not d.get("dismissed")]
+        pending_a = [d for d in divs if d.get("divergence_type") == "under-collected" and not d.get("dismissed")]
+        explained = [d for d in divs if d.get("user_explanation") and not d.get("dismissed")]
+        pending_b.sort(key=lambda d: d.get("cluster_size", 1), reverse=True)
+        pending_a.sort(key=lambda d: (d.get("ai_suggestion") or {}).get("confidence", ""), reverse=True)
+
+        reports = load_jsonl(INSIGHT_REPORTS)
+        reports.sort(key=lambda r: r.get("generated_at", ""), reverse=True)
+
+        total_pending = len([d for d in divs if not d.get("dismissed") and not d.get("included_in_analysis_at")])
+
+        def div_card(div: dict) -> str:
+            div_id = h(div.get("id", ""))
+            dt = div.get("divergence_type", "")
+            dt_label = "AI 超推卻拒收" if dt == "over-rejected" else "AI 說不收你卻收"
+            dt_class = "badge-red" if dt == "over-rejected" else "badge-blue"
+            cluster = div.get("cluster_size", 1)
+            cluster_badge = f" × {cluster} 筆" if cluster > 1 else ""
+            ai_rec = (div.get("ai_suggestion") or {}).get("recommendation", "")
+            confidence = (div.get("ai_suggestion") or {}).get("confidence", "")
+            user_act = div.get("user_action", "")
+            titles = div.get("item_titles") or []
+            title_html = "；".join(h(t) for t in titles[:3])
+            if len(titles) > 3:
+                title_html += f"…等 {len(titles)} 筆"
+            cluster_label = h(div.get("cluster_label", ""))
+            expl = h(div.get("user_explanation", ""))
+            conf_label = f'<span class="muted">信心度：{h(confidence)}</span>' if confidence else ""
+            return f"""
+<div class="div-card">
+  <div class="div-card-header">
+    <span class="badge {dt_class}">{h(dt_label)}{cluster_badge}</span>
+    {conf_label}
+  </div>
+  <div class="div-card-body">
+    {f'<strong>{cluster_label}</strong><br>' if cluster_label else ''}
+    <span class="div-titles">《{title_html}》</span><br>
+    <span class="muted">AI: {h(ai_rec)} → 你: {h(user_act)}</span>
+  </div>
+  <form class="div-explain-form" method="post" action="/insights/explain">
+    <input type="hidden" name="id" value="{div_id}">
+    <input type="text" name="explanation" value="{expl}" placeholder="你的想法（為何這樣選）" class="div-explain-input">
+    <button type="submit" class="button small">存</button>
+  </form>
+  <form method="post" action="/insights/dismiss" style="display:inline">
+    <input type="hidden" name="id" value="{div_id}">
+    <button type="submit" class="button small secondary">略過</button>
+  </form>
+</div>"""
+
+        def report_row(rpt: dict) -> str:
+            rpt_id = h(rpt.get("id", ""))
+            gen_at = rpt.get("generated_at", "")[:10]
+            mode_label = {"full": "完整分析", "sample-5": "隨機 5 筆"}.get(rpt.get("mode", ""), rpt.get("mode", ""))
+            status = rpt.get("implementation_status", "pending")
+            status_label = {"pending": "待實作", "implemented": "✓ 已實作", "skipped": "略過"}.get(status, status)
+            summary = h((rpt.get("report_summary") or "")[:120])
+            notes_val = h(rpt.get("implementation_notes", ""))
+            impl_btn = ""
+            if status == "pending":
+                impl_btn = f'''<form method="post" action="/insights/mark-implemented" style="display:inline">
+  <input type="hidden" name="id" value="{rpt_id}">
+  <input type="text" name="notes" value="" placeholder="備註（拿去做了什麼）" style="font-size:0.85em;width:200px">
+  <button type="submit" class="button small">標記已實作</button>
+</form>'''
+            report_text = h(rpt.get("report_text", ""))
+            return f"""
+<details class="report-row">
+  <summary>
+    <strong>{gen_at}</strong> {h(mode_label)}
+    <span class="badge {'badge-green' if status=='implemented' else 'badge-gray'}">{h(status_label)}</span>
+    <span class="muted" style="font-size:0.85em">{summary}</span>
+  </summary>
+  <pre class="report-pre">{report_text}</pre>
+  {impl_btn}
+  {f'<p class="muted">實作備註：{notes_val}</p>' if notes_val else ''}
+</details>"""
+
+        section_b = ""
+        if pending_b:
+            section_b = f"""
+<section>
+  <h2>類型 B：AI 超推但你拒收（{len(pending_b)} 筆 cluster）</h2>
+  {''.join(div_card(d) for d in pending_b)}
+</section>"""
+
+        section_a = ""
+        if pending_a:
+            section_a = f"""
+<section>
+  <h2>類型 A：AI 說不收你卻收下（{len(pending_a)} 筆）</h2>
+  {''.join(div_card(d) for d in pending_a)}
+</section>"""
+
+        explained_section = ""
+        if explained:
+            explained_section = f"""
+<details>
+  <summary>已填說明（{len(explained)} 筆）</summary>
+  {''.join(div_card(d) for d in explained)}
+</details>"""
+
+        reports_section = ""
+        if reports:
+            reports_section = f"""
+<section>
+  <h2>報告管理</h2>
+  {''.join(report_row(r) for r in reports[:20])}
+</section>"""
+
+        action_bar = f"""
+<div class="action-bar">
+  <a class="button" href="/insights/init-scan">掃描現有資料</a>
+  <form method="post" action="/insights/generate-sample" style="display:inline">
+    <button type="submit" class="button secondary">隨機抓 5 筆分析</button>
+  </form>
+  <form method="post" action="/insights/generate-report" style="display:inline">
+    <button type="submit" class="button secondary">產出完整報告（{total_pending} 筆待分析）</button>
+  </form>
+</div>"""
+
+        css = """<style>
+.div-card{border:1px solid #ddd;border-radius:8px;padding:12px 16px;margin-bottom:12px;background:#fafafa}
+.div-card-header{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.div-card-body{margin-bottom:8px;line-height:1.6}
+.div-titles{font-weight:500}
+.div-explain-form{display:flex;gap:6px;align-items:center;margin-bottom:4px}
+.div-explain-input{flex:1;padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:0.9em}
+.badge{display:inline-block;border-radius:9px;padding:1px 8px;font-size:0.8em;font-weight:600}
+.badge-red{background:#fed7d7;color:#c53030}
+.badge-blue{background:#bee3f8;color:#2b6cb0}
+.badge-green{background:#c6f6d5;color:#276749}
+.badge-gray{background:#e2e8f0;color:#4a5568}
+.action-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.report-row{border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;margin-bottom:8px}
+.report-pre{background:#f7f7f7;padding:12px;border-radius:4px;white-space:pre-wrap;font-size:0.85em;max-height:400px;overflow-y:auto}
+.success-banner{background:#c6f6d5;color:#276749;padding:8px 12px;border-radius:6px;margin-bottom:16px}
+</style>"""
+
+        body = f"""
+{css}
+<h1>決策洞察面板</h1>
+{scanned_msg}
+{action_bar}
+{section_b}
+{section_a}
+{explained_section}
+{reports_section}
+"""
+        self.send_html("決策洞察", body)
+
+    def save_divergence_explanation(self, data: dict[str, list[str]]) -> None:
+        div_id = form_value(data, "id")
+        explanation = form_value(data, "explanation")
+        _patch_divergence(div_id, user_explanation=explanation)
+        self.redirect("/insights")
+
+    def dismiss_divergence(self, data: dict[str, list[str]]) -> None:
+        div_id = form_value(data, "id")
+        _patch_divergence(div_id, dismissed=True)
+        self.redirect("/insights")
+
+    def generate_divergence_report(self, data: dict[str, list[str]], mode: str = "full") -> None:
+        divs = load_jsonl(DECISION_DIVERGENCES)
+        candidates = [d for d in divs if not d.get("dismissed")]
+        if mode == "sample-5":
+            import random
+            random.shuffle(candidates)
+            candidates = candidates[:5]
+        if not candidates:
+            self.redirect("/insights?error=no-divergences")
+            return
+        rpt = _run_claude_analysis(candidates, mode)
+        self.redirect(f"/insights?report={rpt['id']}")
+
+    def mark_report_implemented(self, data: dict[str, list[str]]) -> None:
+        rpt_id = form_value(data, "id")
+        notes = form_value(data, "notes")
+        _patch_report(rpt_id, implementation_status="implemented", implemented_at=now_iso(), implementation_notes=notes)
+        self.redirect("/insights")
 
     def show_article_editor(self, query: dict[str, list[str]]) -> None:
         article_id = clean_text((query.get("id") or [""])[0])
@@ -12160,13 +12695,31 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             )
             nl_skip_block = ""
             if newsletter_skipped:
-                nl_skip_rows = "".join(
-                    f'<li>{h(clean_text(s.get("title")) or clean_text(s.get("url")))} <span class="muted">— {h(clean_text(s.get("reason"), 60))}</span></li>'
-                    for s in newsletter_skipped[:40]
-                )
+                # 「不像獨立文章」→ 給 unchecked checkbox，讓使用者手動勾選
+                # 真正功能性的（subscribe / unsubscribe / social）→ 只列文字，不給 checkbox
+                SELECTABLE_SKIP_REASONS = {"不像獨立文章"}
+                nl_skip_selectable = [s for s in newsletter_skipped[:40] if s.get("reason") in SELECTABLE_SKIP_REASONS]
+                nl_skip_info = [s for s in newsletter_skipped[:40] if s.get("reason") not in SELECTABLE_SKIP_REASONS]
+                skip_parts = []
+                if nl_skip_selectable:
+                    selectable_rows = "".join(
+                        f'<label class="nl-cand nl-cand--skip">'
+                        f'<input type="checkbox" name="url" value="{h(clean_text(s.get("url")))}">'
+                        f'<span class="nl-cand-title">{h(clean_text(s.get("title")) or clean_text(s.get("url")))}</span>'
+                        f'<span class="nl-cand-host muted">— {h(s.get("reason", ""))}</span></label>'
+                        for s in nl_skip_selectable
+                    )
+                    skip_parts.append(f'<p class="help">系統未自動選，但你可以手動勾選：</p>{selectable_rows}')
+                if nl_skip_info:
+                    info_rows = "".join(
+                        f'<li>{h(clean_text(s.get("title")) or clean_text(s.get("url")))} <span class="muted">— {h(clean_text(s.get("reason"), 60))}</span></li>'
+                        for s in nl_skip_info
+                    )
+                    skip_parts.append(f'<ul>{info_rows}</ul>')
                 nl_skip_block = (
-                    f'<details class="nl-skip"><summary>系統判斷略過 {len(newsletter_skipped)} 個（功能性或非文章連結）</summary>'
-                    f'<ul>{nl_skip_rows}</ul></details>'
+                    f'<details class="nl-skip"><summary>系統判斷略過 {len(newsletter_skipped)} 個</summary>'
+                    + "".join(skip_parts)
+                    + "</details>"
                 )
             derived_actions.append(
                 f"""
@@ -12666,6 +13219,7 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
                 updated_items.append(updated_item)
                 active_ids.add(str(updated_item.get("id")))
             events.append(review_event(updated_item, event_status, note))
+            detect_and_log_divergence(updated_item)
             changed += 1
 
         if changed:
