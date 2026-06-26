@@ -69,7 +69,7 @@ INSIGHT_REPORTS = DATABASE / "insight-reports.jsonl"
 SYSTEM_CHANGE_PROPOSALS = DATABASE / "system-change-proposals.jsonl"
 TASTE_PROFILE = DATABASE / "taste-profile.json"
 CACHE_DIR = ROOT / ".cache"
-INSIGHT_APPLY_STATUS = ROOT / ".cache" / "insight-apply-status.json"
+INSIGHT_STATUS = ROOT / ".cache" / "insight-status.json"
 PDF_SPLIT_STATUS = ROOT / ".cache" / "pdf-split-status.json"
 TRANSLATE_STATUS = ROOT / ".cache" / "translate-status.json"
 PDF_UPLOADS = ROOT / ".cache" / "uploads"
@@ -1176,35 +1176,107 @@ def _insights_nav_badge() -> str:
     return f" <span style='display:inline-block;background:#6450dc;color:#fff;border-radius:9px;padding:0 6px;font-size:0.75em;line-height:1.5;vertical-align:middle'{cls}>{count}</span>"
 
 
-def _run_claude_analysis(divergences: list[dict], mode: str) -> dict:
-    """非同步呼叫 claude CLI，結果存 .cache/ 並回傳 report record dict。"""
+def insight_status(state: str, message: str, **extra: object) -> None:
+    """寫入 /insights 的進度狀態檔，供右下角狀態列輪詢。"""
+    write_status_json(INSIGHT_STATUS, {
+        "state": state, "message": message, "updated_at": now_iso(), **extra,
+    })
+
+
+def _insight_cli_run(engine: str, prompt: str, status_label: str, timeout: int = 600,
+                     allow_write: bool = False) -> tuple[str, str]:
+    """呼叫指定 CLI，邊跑邊更新狀態列的「已等待 N 秒」。回傳 (text, error)。
+    allow_write=False 用唯讀沙箱（分析）；True 允許寫檔（目前僅 codex 支援沙箱寫）。"""
     import subprocess
+    import threading as _th
+
+    cli = editor_cli_path("agy" if engine == "gemini" else engine)
+    if not cli:
+        return "", f"找不到 {engine} CLI（未安裝或不在 PATH）"
+
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    if engine == "codex":
+        out_path = CACHE_DIR / "insight-codex-out.txt"
+        sandbox = "workspace-write" if allow_write else "read-only"
+        cmd = [cli, "-a", "never", "exec", "--ephemeral", "--cd", str(ROOT),
+               "--sandbox", sandbox, "--color", "never",
+               "--output-last-message", str(out_path), "-"]
+        stdin_data = prompt
+    elif engine == "claude":
+        cmd = [cli, "-p", prompt, "--output-format", "json"]
+        stdin_data = None
+    else:  # gemini → agy
+        cmd = [cli, "--print", prompt]
+        stdin_data = None
+
+    started = now_iso()
+    proc = subprocess.Popen(cmd, cwd=ROOT, stdin=subprocess.PIPE if stdin_data else None,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    done = {"flag": False}
+
+    def ticker() -> None:
+        n = 0
+        while not done["flag"]:
+            insight_status("running", f"{status_label}…（已等待 {n} 秒）", started_at=started, engine=engine)
+            n += 2
+            _wait_event(2)
+
+    t = _th.Thread(target=ticker, daemon=True)
+    t.start()
+    try:
+        stdout, stderr = proc.communicate(input=stdin_data, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        done["flag"] = True
+        return "", "CLI 執行逾時"
+    finally:
+        done["flag"] = True
+
+    if proc.returncode != 0:
+        return "", (stderr or stdout or f"exit {proc.returncode}")[-2000:]
+
+    if engine == "codex":
+        out_path = CACHE_DIR / "insight-codex-out.txt"
+        text = out_path.read_text(encoding="utf-8") if out_path.exists() else stdout
+        return text.strip(), ""
+    if engine == "claude":
+        try:
+            payload = json.loads(stdout)
+        except json.JSONDecodeError:
+            return stdout.strip(), ""
+        if payload.get("is_error"):
+            return "", str(payload.get("result", "claude error"))
+        return str(payload.get("result") or "").strip(), ""
+    return stdout.strip(), ""
+
+
+def _wait_event(seconds: float) -> None:
+    import time
+    time.sleep(seconds)
+
+
+def run_analysis_job(divergences: list[dict], mode: str, engine: str = "claude") -> dict:
+    """背景執行：請 CLI 分析分歧，邊跑邊更新狀態列，寫入報告。回傳 report dict。"""
     import time
 
+    div_ids = [d.get("id", "") for d in divergences]
+    insight_status("running", f"正在整理 {len(divergences)} 筆分歧資料…", engine=engine)
     prompt = _build_analysis_prompt(divergences)
+
+    report_text, err = _insight_cli_run(engine, prompt, f"正在請 {engine} 分析你的決策模式", timeout=300)
+    if err and not report_text:
+        report_text = f"（{engine} 分析失敗：{err}）"
+
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     report_file = CACHE_DIR / f"divergence-analysis-{timestamp}.txt"
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-    try:
-        result = subprocess.run(
-            ["claude", "-p", prompt, "--output-format", "text"],
-            capture_output=True, text=True, timeout=120
-        )
-        report_text = result.stdout or result.stderr or "（claude CLI 無輸出）"
-    except FileNotFoundError:
-        report_text = "（找不到 claude CLI，請確認已安裝 Claude Code）"
-    except subprocess.TimeoutExpired:
-        report_text = "（分析逾時，請稍後重試）"
-
     report_file.write_text(report_text, encoding="utf-8")
     summary = "\n".join(report_text.splitlines()[:2])
 
-    div_ids = [d.get("id", "") for d in divergences]
     rpt = {
         "id": _report_id(),
         "generated_at": now_iso(),
         "mode": mode,
+        "engine": engine,
         "divergence_ids": div_ids,
         "report_file": str(report_file.relative_to(ROOT)),
         "report_summary": summary,
@@ -1215,11 +1287,14 @@ def _run_claude_analysis(divergences: list[dict], mode: str) -> dict:
     }
     append_jsonl(INSIGHT_REPORTS, rpt)
 
-    # 標記這批分歧已納入分析
     ts = now_iso()
     for div_id in div_ids:
         _patch_divergence(div_id, included_in_analysis_at=ts)
 
+    if err and not report_text.strip().strip("（）"):
+        insight_status("failed", f"分析失敗：{err}", report_id=rpt["id"])
+    else:
+        insight_status("done", f"分析完成（{engine}）。", report_id=rpt["id"], redirect="/insights")
     return rpt
 
 
@@ -1328,93 +1403,223 @@ def _patch_proposal(prop_id: str, **kwargs: object) -> bool:
     return found
 
 
+# 套用時可被結構化 patch 直接編輯的資料庫檔（其餘需改程式的進提案）
+APPLY_EDITABLE_FILES = [TASTE_PROFILE, TRIAGE_KEYWORDS, SOURCES]
+
+
 def _build_apply_prompt(report: dict) -> str:
     report_text = report.get("report_text", "")
     rpt_id = report.get("id", "")
+    taste = load_taste_profile()
+    keywords = load_json(TRIAGE_KEYWORDS)
+    # 給 CLI 精簡的來源清單（名稱/track/狀態/頻率），方便它指名要調整哪個 RSS
+    sources_brief = [
+        {"id": s.get("id", ""), "name": s.get("name", ""), "track": s.get("track", ""),
+         "status": s.get("status", ""), "fetch_frequency": s.get("fetch_frequency", "")}
+        for s in load_jsonl(SOURCES)
+    ]
+    context = {
+        "taste_profile": taste,
+        "triage_keywords": {t: {"keep_keywords": (m or {}).get("keep_keywords", []),
+                                "skip_keywords": (m or {}).get("skip_keywords", [])}
+                            for t, m in (keywords.get("tracks") or {}).items()},
+        "sources": sources_brief,
+    }
     return (
-        "你是 Ian Open News 本機系統的設定維護助理。以下是一份「決策分歧分析報告」，"
-        "請依報告中的建議，更新使用者的個人品味設定檔，並把無法用設定表達的改動列為後續提案。\n\n"
-        f"## 品味設定檔位置\n`{TASTE_PROFILE.relative_to(ROOT)}`（JSON）。"
-        "請直接編輯它：可更新 global.emphasize / global.de_emphasize、各 track 的 priority_themes / avoid_themes，"
-        f"並在 learned_signals 陣列 append 新學到的偏好（每筆含 signal、source_report=\"{rpt_id}\"、added_at）。"
-        "保持原本 JSON 結構與既有內容，只增修必要欄位。\n\n"
-        "## 規則\n"
-        "1. 只動 taste-profile.json，不要改其他程式檔。\n"
-        f"2. 凡是「無法用品味設定表達、需要改程式本體」的建議（例如改計分公式、改 triage 流程、新增欄位），"
-        f"不要動程式，改成在你回覆的最後用這個固定標題段落條列：\n\n## {CODE_PROPOSAL_HEADING}\n- <一句話描述要改什麼、為什麼、大概動哪個檔>\n\n"
-        "3. 回覆開頭簡述你對 taste-profile.json 做了哪些更新。\n\n"
+        "你是 Ian Open News 本機系統的設定維護助理。下面有一份「決策分歧分析報告」與目前的設定狀態。\n"
+        "請判斷該如何調整系統設定，讓系統下次更貼近使用者的實際取捨，特別是減少誤刪。\n\n"
+        "你可以直接調整的「結構化設定」（請用回傳 JSON 表達，不要自己改檔）：\n"
+        "1. taste_profile：個人品味（偏好/避開主題、強調/淡化、學到的訊號）。\n"
+        "2. triage_keywords：每條 track 的全域保留關鍵字 keep 與排除關鍵字 skip。\n"
+        "3. sources：單一 RSS 來源的 status / fetch_frequency / track / notes 調整。\n\n"
+        f"凡是上述三者都表達不了、真的要改程式邏輯（計分公式、流程、新欄位）的，放進 code_proposals。\n\n"
+        "## 只回傳這個 JSON（不要多餘文字、不要 markdown 圍欄）\n"
+        "{\n"
+        '  "summary": "一句話說明你做了哪些調整與理由",\n'
+        '  "taste_profile": {"global": {"emphasize_add": [], "emphasize_remove": [], "de_emphasize_add": [], "de_emphasize_remove": []},\n'
+        '                     "tracks": {"<track>": {"priority_add": [], "priority_remove": [], "avoid_add": [], "avoid_remove": []}},\n'
+        '                     "learned_signals_add": ["..."]},\n'
+        '  "triage_keywords": {"<track>": {"keep_add": [], "keep_remove": [], "skip_add": [], "skip_remove": []}},\n'
+        '  "sources": [{"match": "<來源 id 或名稱關鍵字>", "set": {"status": "paused", "fetch_frequency": "daily", "notes": "..."}}],\n'
+        '  "code_proposals": [{"title": "...", "target_area": "scripts/xxx.py", "rationale": "..."}]\n'
+        "}\n"
+        "空的欄位給空陣列即可。track 名稱請用既有的（open-tech-open-industry / digital-humanities-local-knowledge）。\n\n"
+        f"## 報告 id\n{rpt_id}\n\n"
+        "## 目前設定狀態（JSON）\n"
+        f"{json.dumps(context, ensure_ascii=False, indent=2)}\n\n"
         "## 分析報告全文\n\n"
         f"{report_text}\n"
     )
 
 
-def _run_apply_cli(report: dict, engine: str) -> None:
-    """背景執行：用指定 CLI 依報告更新品味檔，擷取程式提案，更新狀態檔。"""
+def _extract_json_object(text: str) -> dict | None:
+    """從 CLI 文字輸出中盡量取出第一個 JSON 物件。"""
+    text = text.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```[a-zA-Z]*\n?", "", text)
+        text = re.sub(r"\n?```$", "", text).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(text[start:end + 1])
+        except json.JSONDecodeError:
+            return None
+    return None
+
+
+def _apply_list_patch(current: list, add: list, remove: list) -> list:
+    """add 不重複地接在後面，remove 從清單移除。回傳新清單。"""
+    result = list(current)
+    remove_set = {str(x) for x in (remove or [])}
+    result = [x for x in result if str(x) not in remove_set]
+    for x in (add or []):
+        if x not in result:
+            result.append(x)
+    return result
+
+
+def apply_structured_patch(patch: dict, source_report: str) -> dict:
+    """把 CLI 回傳的結構化 patch 套用到 taste-profile / triage-keywords / sources。
+    回傳套用摘要 dict。"""
+    changes: dict[str, object] = {"taste": False, "keywords": 0, "sources": 0, "proposals": 0}
+
+    # 1. taste-profile
+    tp = patch.get("taste_profile") or {}
+    if tp:
+        profile = load_taste_profile()
+        g = profile.setdefault("global", {})
+        gp = tp.get("global") or {}
+        g["emphasize"] = _apply_list_patch(g.get("emphasize", []), gp.get("emphasize_add"), gp.get("emphasize_remove"))
+        g["de_emphasize"] = _apply_list_patch(g.get("de_emphasize", []), gp.get("de_emphasize_add"), gp.get("de_emphasize_remove"))
+        for track, tmeta in (tp.get("tracks") or {}).items():
+            tracks = profile.setdefault("tracks", {})
+            tinfo = tracks.setdefault(track, {})
+            tinfo["priority_themes"] = _apply_list_patch(tinfo.get("priority_themes", []), tmeta.get("priority_add"), tmeta.get("priority_remove"))
+            tinfo["avoid_themes"] = _apply_list_patch(tinfo.get("avoid_themes", []), tmeta.get("avoid_add"), tmeta.get("avoid_remove"))
+        for sig in (tp.get("learned_signals_add") or []):
+            if sig:
+                profile.setdefault("learned_signals", []).append(
+                    {"signal": sig, "source_report": source_report, "added_at": now_iso()})
+        profile["updated_at"] = now_iso()
+        write_json(TASTE_PROFILE, profile)
+        changes["taste"] = True
+
+    # 2. triage-keywords
+    kw_patch = patch.get("triage_keywords") or {}
+    if kw_patch:
+        keywords = load_json(TRIAGE_KEYWORDS)
+        tracks = keywords.setdefault("tracks", {})
+        touched = 0
+        for track, kp in kw_patch.items():
+            meta = tracks.get(track)
+            if not isinstance(meta, dict):
+                continue
+            new_keep = _apply_list_patch(meta.get("keep_keywords", []), kp.get("keep_add"), kp.get("keep_remove"))
+            new_skip = _apply_list_patch(meta.get("skip_keywords", []), kp.get("skip_add"), kp.get("skip_remove"))
+            if new_keep != meta.get("keep_keywords", []) or new_skip != meta.get("skip_keywords", []):
+                meta["keep_keywords"] = new_keep
+                meta["skip_keywords"] = new_skip
+                touched += 1
+        if touched:
+            write_json(TRIAGE_KEYWORDS, keywords)
+        changes["keywords"] = touched
+
+    # 3. sources（白名單欄位）
+    src_patches = patch.get("sources") or []
+    if src_patches:
+        sources = load_jsonl(SOURCES)
+        allowed = {"status", "fetch_frequency", "track", "notes"}
+        touched = 0
+        for sp in src_patches:
+            match = str(sp.get("match", "")).strip()
+            sets = {k: v for k, v in (sp.get("set") or {}).items() if k in allowed}
+            if not match or not sets:
+                continue
+            for s in sources:
+                if s.get("id") == match or (match and match in str(s.get("name", ""))):
+                    s.update(sets)
+                    touched += 1
+                    break
+        if touched:
+            write_jsonl(SOURCES, sources)
+        changes["sources"] = touched
+
+    # 4. code_proposals
+    for prop in (patch.get("code_proposals") or []):
+        if not prop.get("title"):
+            continue
+        append_jsonl(SYSTEM_CHANGE_PROPOSALS, {
+            "id": _proposal_id(),
+            "proposed_at": now_iso(),
+            "source_report": source_report,
+            "title": str(prop.get("title", ""))[:200],
+            "rationale": str(prop.get("rationale", "")),
+            "target_area": str(prop.get("target_area", "")),
+            "status": "pending",
+            "notes": "",
+        })
+        changes["proposals"] = int(changes["proposals"]) + 1
+
+    return changes
+
+
+def run_apply_job(report: dict, engine: str) -> None:
+    """背景執行：請 CLI 產生結構化 patch、套用、算 diff、更新報告與狀態列。"""
     import subprocess
-    import time
 
     rpt_id = report.get("id", "")
-    cli = editor_cli_path(engine)
-
-    def status(state: str, message: str, **extra: object) -> None:
-        write_status_json(INSIGHT_APPLY_STATUS, {
-            "state": state, "report_id": rpt_id, "engine": engine,
-            "message": message, "updated_at": now_iso(), **extra,
-        })
-
-    if not cli:
-        status("failed", f"找不到 {engine} CLI（未安裝或不在 PATH）。")
-        return
-
-    status("running", f"正在用 {engine} 依報告更新品味檔…")
+    insight_status("running", f"正在請 {engine} 研究報告並產生設定調整…", engine=engine, report_id=rpt_id)
     prompt = _build_apply_prompt(report)
 
-    # 記下執行前的 taste-profile 內容以便算 diff
-    before = TASTE_PROFILE.read_text(encoding="utf-8") if TASTE_PROFILE.exists() else ""
-    try:
-        result = subprocess.run(
-            [cli, "-p", prompt] if engine in {"claude", "codex"} else [cli, "-p", prompt],
-            cwd=ROOT, capture_output=True, text=True, timeout=600,
-        )
-        output = result.stdout or result.stderr or "（CLI 無輸出）"
-    except FileNotFoundError:
-        status("failed", f"找不到 {engine} CLI。")
-        return
-    except subprocess.TimeoutExpired:
-        status("failed", "CLI 執行逾時。")
+    raw, err = _insight_cli_run(engine, prompt, f"正在請 {engine} 研究報告並產生設定調整", timeout=600)
+    if err and not raw:
+        insight_status("failed", f"{engine} 執行失敗：{err}", report_id=rpt_id)
         return
 
-    # 擷取程式提案
-    proposals = extract_code_proposals(output, rpt_id)
-    for prop in proposals:
-        append_jsonl(SYSTEM_CHANGE_PROPOSALS, prop)
+    patch = _extract_json_object(raw)
+    if patch is None:
+        # 無法解析成 JSON：把整段輸出當建議顯示，不動任何檔
+        _record_apply_run(rpt_id, engine, raw, "", {}, note="CLI 未回傳可解析的 JSON，未自動套用，請參考下方輸出手動處理。")
+        insight_status("done", f"{engine} 已回覆，但格式無法自動套用，請看輸出手動處理。", report_id=rpt_id, redirect="/insights")
+        return
 
-    # 算 taste-profile diff
-    after = TASTE_PROFILE.read_text(encoding="utf-8") if TASTE_PROFILE.exists() else ""
+    insight_status("running", "正在套用設定調整並計算 diff…", engine=engine, report_id=rpt_id)
+    changes = apply_structured_patch(patch, rpt_id)
+
+    # 算被編輯檔的合併 diff
+    labels = [str(p.relative_to(ROOT)) for p in APPLY_EDITABLE_FILES]
     try:
-        diff_result = subprocess.run(
-            ["git", "diff", "--", str(TASTE_PROFILE.relative_to(ROOT))],
-            cwd=ROOT, capture_output=True, text=True, timeout=20,
-        )
+        diff_result = subprocess.run(["git", "diff", "--", *labels], cwd=ROOT, capture_output=True, text=True, timeout=20)
         diff_text = diff_result.stdout.strip()
     except Exception:
         diff_text = ""
-    if not diff_text and before != after:
-        diff_text = "（品味檔有變更，但無法取得 git diff）"
 
-    # 把這次執行記回 report
+    summary = str(patch.get("summary", "")).strip()
+    _record_apply_run(rpt_id, engine, raw, diff_text, changes, summary=summary)
+
+    msg = (f"{engine} 完成：品味{'有改' if changes['taste'] else '未改'}、"
+           f"關鍵字 {changes['keywords']} 條 track、來源 {changes['sources']} 個、提案 {changes['proposals']} 筆。")
+    insight_status("done", msg, report_id=rpt_id, redirect="/insights")
+
+
+def _record_apply_run(rpt_id: str, engine: str, output: str, diff_text: str, changes: dict, summary: str = "", note: str = "") -> None:
     reports = load_jsonl(INSIGHT_REPORTS)
     for rec in reports:
         if rec.get("id") == rpt_id:
             runs = rec.get("apply_runs") or []
-            runs.append({"engine": engine, "ran_at": now_iso(), "output": output, "taste_diff": diff_text, "proposals_added": len(proposals)})
+            runs.append({
+                "engine": engine, "ran_at": now_iso(), "output": output,
+                "diff": diff_text, "changes": changes, "summary": summary, "note": note,
+            })
             rec["apply_runs"] = runs
             rec["implementation_status"] = "attempted"
             break
     write_jsonl(INSIGHT_REPORTS, reports)
-
-    status("done", f"{engine} 執行完成：品味檔{'有更新' if diff_text else '未變更'}、新增 {len(proposals)} 筆程式提案。",
-           proposals_added=len(proposals), taste_changed=bool(diff_text))
 
 
 def online_reader_commit_message(dt: datetime | None = None) -> str:
@@ -9056,8 +9261,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(status)
         elif parsed.path == "/insights":
             self.show_insights(query)
-        elif parsed.path == "/api/insight-apply-status":
-            self.send_json(load_json(INSIGHT_APPLY_STATUS))
+        elif parsed.path == "/api/insight-status":
+            self.send_json(load_json(INSIGHT_STATUS))
         elif parsed.path == "/api/pdf-split-status":
             self.send_json(load_json(PDF_SPLIT_STATUS))
         elif parsed.path == "/api/translate-status":
@@ -10588,7 +10793,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             available = engines.get(engine)
             disabled = "" if available else " disabled"
             suffix = "" if available else "（未安裝）"
-            return f'''<form method="post" action="/insights/apply-report" data-apply-form style="display:inline">
+            return f'''<form method="post" action="/insights/apply-report" data-insight-job="用 {label} 依報告調整系統設定" style="display:inline">
   <input type="hidden" name="id" value="{rpt_id}">
   <input type="hidden" name="engine" value="{engine}">
   <button type="submit" class="button small"{disabled}>用 {label} 實作{suffix}</button>
@@ -10613,13 +10818,20 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 
             runs_html = ""
             for run in (rpt.get("apply_runs") or []):
-                diff = h(run.get("taste_diff", "") or "（品味檔未變更）")
+                diff = h(run.get("diff", "") or "（設定檔未變更）")
                 out = h(run.get("output", ""))
+                ch = run.get("changes") or {}
+                summary = h(run.get("summary", ""))
+                note = h(run.get("note", ""))
+                change_line = (f"品味{'有改' if ch.get('taste') else '未改'}、"
+                               f"關鍵字 {ch.get('keywords',0)} 條 track、來源 {ch.get('sources',0)} 個、提案 {ch.get('proposals',0)} 筆") if ch else ""
                 runs_html += f"""
 <div class="apply-run">
-  <div class="muted">{h(run.get('engine',''))} · {h((run.get('ran_at','') or '')[:16])} · 新增提案 {run.get('proposals_added',0)} 筆</div>
-  <details><summary>品味檔 diff</summary><pre class="report-pre">{diff}</pre></details>
-  <details><summary>CLI 完整輸出（不能自動改的請手動處理）</summary><pre class="report-pre">{out}</pre></details>
+  <div class="muted">{h(run.get('engine',''))} · {h((run.get('ran_at','') or '')[:16])}{(' · ' + change_line) if change_line else ''}</div>
+  {f'<div>{summary}</div>' if summary else ''}
+  {f'<div class="error-banner" style="margin:6px 0">{note}</div>' if note else ''}
+  <details><summary>設定檔 diff（taste-profile / triage-keywords / sources）</summary><pre class="report-pre">{diff}</pre></details>
+  <details><summary>CLI 原始輸出</summary><pre class="report-pre">{out}</pre></details>
 </div>"""
 
             impl_form = f'''<form method="post" action="/insights/mark-implemented" style="display:inline">
@@ -10683,7 +10895,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   <form method="post" action="/insights/sample-into-cue" style="display:inline">
     <button type="submit" class="button secondary">隨機抓 5 筆進待填</button>
   </form>
-  <form method="post" action="/insights/generate-report" style="display:inline">
+  <form method="post" action="/insights/generate-report" data-insight-job="分析已填說明的分歧" style="display:inline">
     <button type="submit" class="button"{analyze_disabled}>分析已填說明的 {explained_count} 筆</button>
   </form>
 </div>"""
@@ -10756,11 +10968,60 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 </style>"""
 
         apply_poll_js = """<script>
-document.querySelectorAll('[data-apply-form] button:not([disabled])').forEach(function(btn){
-  btn.addEventListener('click', function(){
-    btn.textContent = '執行中…請稍候（最長數分鐘），完成後重整';
+(function(){
+  var cw = document.getElementById('command-window');
+  var ct = document.getElementById('command-title');
+  var cs = document.getElementById('command-status');
+  var co = document.getElementById('command-output');
+  var cl = document.getElementById('command-loading');
+  if(!cw) return;
+  function openWin(label){
+    if(ct) ct.textContent = label || '決策洞察';
+    if(cs) cs.textContent = '已送出，正在啟動…';
+    if(co){ co.hidden = true; co.textContent=''; }
+    if(cl) cl.hidden = false;
+    cw.classList.add('is-visible');
+    cw.setAttribute('aria-hidden','false');
+  }
+  var polling = null;
+  function startPoll(){
+    if(polling) clearInterval(polling);
+    polling = setInterval(async function(){
+      try{
+        var r = await fetch('/api/insight-status', {headers:{'X-Requested-With':'local-web-fetch'}});
+        if(!r.ok) return;
+        var p = await r.json();
+        if(p && p.message && cs) cs.textContent = p.message;
+        if(p && (p.state==='done' || p.state==='failed')){
+          clearInterval(polling); polling=null;
+          if(cl) cl.hidden = true;
+          if(p.state==='done'){
+            if(cs) cs.textContent = '✓ ' + (p.message||'完成');
+            setTimeout(function(){ window.location = p.redirect || '/insights'; }, 1200);
+          } else {
+            if(cs) cs.textContent = '✗ ' + (p.message||'失敗');
+          }
+        }
+      }catch(e){}
+    }, 1200);
+  }
+  document.querySelectorAll('form[data-insight-job]').forEach(function(form){
+    form.addEventListener('submit', async function(ev){
+      var btn = form.querySelector('button');
+      if(btn && btn.disabled){ ev.preventDefault(); return; }
+      ev.preventDefault();
+      openWin(form.getAttribute('data-insight-job'));
+      startPoll();
+      try{
+        var body = new URLSearchParams(new FormData(form));
+        body.set('format','json');
+        await fetch(form.action, {method:'POST',
+          headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','X-Requested-With':'local-web-fetch'},
+          body: body});
+      }catch(e){ if(cs) cs.textContent = '✗ 送出失敗：' + e; }
+    });
   });
-});
+})();
 </script>"""
 
         body = f"""
@@ -10795,25 +11056,39 @@ document.querySelectorAll('[data-apply-form] button:not([disabled])').forEach(fu
         self.redirect(f"/insights?sampled={added}")
 
     def generate_divergence_report(self, data: dict[str, list[str]], mode: str = "explained") -> None:
+        engine = form_value(data, "engine") or "claude"
         divs = load_jsonl(DECISION_DIVERGENCES)
         # 只分析「已填說明、未略過」的
         candidates = [d for d in divs if not d.get("dismissed") and d.get("user_explanation")]
         if not candidates:
-            self.redirect("/insights?error=no-explained")
+            if self.is_async_request():
+                self.send_json({"ok": False, "error": "沒有已填說明的分歧可分析"}, HTTPStatus.BAD_REQUEST)
+            else:
+                self.redirect("/insights?error=no-explained")
             return
-        rpt = _run_claude_analysis(candidates, mode)
-        self.redirect(f"/insights?report={rpt['id']}")
+        insight_status("running", f"已送出，準備用 {engine} 分析 {len(candidates)} 筆…", engine=engine)
+        threading.Thread(target=run_analysis_job, args=(candidates, mode, engine), daemon=True).start()
+        if self.is_async_request():
+            self.send_json({"ok": True, "message": "分析已開始", "status_url": "/api/insight-status"})
+        else:
+            self.redirect("/insights")
 
     def apply_report_with_cli(self, data: dict[str, list[str]]) -> None:
         rpt_id = form_value(data, "id")
         engine = form_value(data, "engine") or "claude"
         report = next((r for r in load_jsonl(INSIGHT_REPORTS) if r.get("id") == rpt_id), None)
         if not report:
-            self.redirect("/insights?error=no-report")
+            if self.is_async_request():
+                self.send_json({"ok": False, "error": "找不到報告"}, HTTPStatus.NOT_FOUND)
+            else:
+                self.redirect("/insights?error=no-report")
             return
-        # 背景執行，避免 HTTP 卡住；前端輪詢 /api/insight-apply-status
-        threading.Thread(target=_run_apply_cli, args=(report, engine), daemon=True).start()
-        self.redirect("/insights")
+        insight_status("running", f"已送出，準備用 {engine} 研究報告…", engine=engine, report_id=rpt_id)
+        threading.Thread(target=run_apply_job, args=(report, engine), daemon=True).start()
+        if self.is_async_request():
+            self.send_json({"ok": True, "message": "實作已開始", "status_url": "/api/insight-status"})
+        else:
+            self.redirect("/insights")
 
     def mark_report_implemented(self, data: dict[str, list[str]]) -> None:
         rpt_id = form_value(data, "id")
