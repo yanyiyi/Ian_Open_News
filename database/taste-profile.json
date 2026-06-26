@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-06-26T15:15:31+00:00",
+  "updated_at": "2026-06-26T15:36:25+00:00",
   "global": {
     "taiwan_context_required": true,
     "emphasize": [
@@ -166,6 +166,18 @@
       "signal": "使用者明示某議題是 beat、關鍵字或長期追蹤時，系統應把該主題提升為下次保留或詢問訊號，而非維持一般 skip 判斷。",
       "source_report": "rpt-7665f69d",
       "added_at": "2026-06-26T15:15:31+00:00"
+    }
+  ],
+  "personal_beats": [
+    {
+      "beat": "很明顯關注 AI Code 時代的觀點！",
+      "source_div": "div-14127607",
+      "added_at": "2026-06-26T15:36:07+00:00"
+    },
+    {
+      "beat": "很明顯關注 AI Code 時代的開源該怎治理觀點！",
+      "source_div": "div-14127607",
+      "added_at": "2026-06-26T15:36:25+00:00"
     }
   ]
 }
