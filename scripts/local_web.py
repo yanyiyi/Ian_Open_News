@@ -11007,18 +11007,35 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   }
   document.querySelectorAll('form[data-insight-job]').forEach(function(form){
     form.addEventListener('submit', async function(ev){
-      var btn = form.querySelector('button');
-      if(btn && btn.disabled){ ev.preventDefault(); return; }
       ev.preventDefault();
-      openWin(form.getAttribute('data-insight-job'));
+      var btn = form.querySelector('button');
+      if(btn && btn.dataset.running === '1') return;  // 防連點
+      var label = form.getAttribute('data-insight-job');
+      var origText = btn ? btn.textContent : '';
+      if(btn){ btn.dataset.running = '1'; btn.disabled = true; btn.textContent = '執行中…（看右下角進度）'; }
+      openWin(label);
       startPoll();
+      var restore = function(){ if(btn){ btn.dataset.running=''; btn.disabled=false; btn.textContent=origText; } };
       try{
         var body = new URLSearchParams(new FormData(form));
         body.set('format','json');
-        await fetch(form.action, {method:'POST',
+        var resp = await fetch(form.action, {method:'POST',
           headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','X-Requested-With':'local-web-fetch'},
           body: body});
-      }catch(e){ if(cs) cs.textContent = '✗ 送出失敗：' + e; }
+        var data = await resp.json().catch(function(){ return {}; });
+        if(data && data.ok === false){
+          if(cl) cl.hidden = true;
+          if(cs) cs.textContent = '✗ ' + (data.error || '無法啟動');
+          if(polling){ clearInterval(polling); polling=null; }
+          restore();
+        }
+        // 成功時不還原按鈕：startPoll 會在 done 後自動重整整頁
+      }catch(e){
+        if(cl) cl.hidden = true;
+        if(cs) cs.textContent = '✗ 送出失敗：' + e;
+        if(polling){ clearInterval(polling); polling=null; }
+        restore();
+      }
     });
   });
 })();
