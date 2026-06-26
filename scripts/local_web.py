@@ -1131,6 +1131,17 @@ def _patch_report(rpt_id: str, **kwargs: object) -> bool:
     return found
 
 
+def _has_pending_proposals_for_divergence(div_id: str, reports: list[dict], proposals: list[dict]) -> bool:
+    """一筆 divergence 是否有尚未結案（pending/evaluating）的關聯提案。"""
+    rpt_ids = {r["id"] for r in reports if div_id in r.get("divergence_ids", [])}
+    if not rpt_ids:
+        return False
+    return any(
+        p.get("status") in ("pending", "evaluating")
+        for p in proposals if p.get("source_report") in rpt_ids
+    )
+
+
 def _build_analysis_prompt(divergences: list[dict]) -> str:
     lines = ["你是台灣數位人文與開放科技媒體 Ian Open News 的 AI 建議顧問。",
              "以下是使用者最近做出的、和系統建議相反的決策，請分析並給出條列式的洞察報告。",
@@ -9477,6 +9488,12 @@ class Handler(BaseHTTPRequestHandler):
             self.proposal_add(self.read_form())
         elif parsed.path == "/insights/proposal-status":
             self.proposal_status(self.read_form())
+        elif parsed.path == "/insights/close-analyzed":
+            self.close_analyzed_divergence(self.read_form())
+        elif parsed.path == "/insights/close-all-resolved":
+            self.close_all_resolved_divergences(self.read_form())
+        elif parsed.path == "/insights/save-taste-profile":
+            self.save_taste_profile_edit(self.read_form())
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
 
@@ -10815,22 +10832,44 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 banner = f'<p class="success-banner">已抽 {h(n)} 筆分歧進待填清單。</p>'
         elif query.get("error") == "no-explained":
             banner = '<p class="error-banner">沒有「已填說明」的分歧可分析。先在卡片裡填想法再按分析。</p>'
+        elif query.get("saved") == "taste":
+            banner = '<p class="success-banner">品味檔已儲存。</p>'
 
         divs = load_jsonl(DECISION_DIVERGENCES)
-        # 待填（未填說明、未略過）
-        unfilled = [d for d in divs if not d.get("dismissed") and not d.get("user_explanation")]
+        reports = load_jsonl(INSIGHT_REPORTS)
+        reports.sort(key=lambda r: r.get("generated_at", ""), reverse=True)
+        proposals = load_jsonl(SYSTEM_CHANGE_PROPOSALS)
+
+        # 分三類：待填 / 已分析(等待提案) / 已分析(可結案)
+        active = [d for d in divs if not d.get("dismissed")]
+        analyzed = [d for d in active if d.get("included_in_analysis_at")]
+        analyzed_waiting = [d for d in analyzed if _has_pending_proposals_for_divergence(d["id"], reports, proposals)]
+        analyzed_ready   = [d for d in analyzed if not _has_pending_proposals_for_divergence(d["id"], reports, proposals)]
+
+        unfilled = [d for d in active if not d.get("user_explanation") and not d.get("included_in_analysis_at")]
         pending_b = [d for d in unfilled if d.get("divergence_type") == "over-rejected"]
         pending_a = [d for d in unfilled if d.get("divergence_type") == "under-collected"]
-        explained = [d for d in divs if d.get("user_explanation") and not d.get("dismissed")]
+        explained = [d for d in active if d.get("user_explanation") and not d.get("included_in_analysis_at")]
         pending_b.sort(key=lambda d: d.get("cluster_size", 1), reverse=True)
         pending_a.sort(key=lambda d: (d.get("ai_suggestion") or {}).get("confidence", ""), reverse=True)
 
-        reports = load_jsonl(INSIGHT_REPORTS)
-        reports.sort(key=lambda r: r.get("generated_at", ""), reverse=True)
-
         explained_count = len(explained)
         engines = editor_engine_status()
-        proposals = load_jsonl(SYSTEM_CHANGE_PROPOSALS)
+
+        def _div_title_links(div: dict) -> str:
+            item_ids = div.get("item_ids") or []
+            item_titles = div.get("item_titles") or []
+            parts = []
+            for i, title in enumerate(item_titles[:3]):
+                iid = item_ids[i] if i < len(item_ids) else ""
+                if iid:
+                    parts.append(f'<a href="/items/view?id={quote(iid)}" class="item-link" target="_blank">{h(title)} ↗</a>')
+                else:
+                    parts.append(h(title))
+            joined = "；".join(parts)
+            if len(item_titles) > 3:
+                joined += f"…等 {len(item_titles)} 筆"
+            return joined
 
         def div_card(div: dict) -> str:
             div_id = h(div.get("id", ""))
@@ -10842,10 +10881,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             ai_rec = (div.get("ai_suggestion") or {}).get("recommendation", "")
             confidence = (div.get("ai_suggestion") or {}).get("confidence", "")
             user_act = div.get("user_action", "")
-            titles = div.get("item_titles") or []
-            title_html = "；".join(h(t) for t in titles[:3])
-            if len(titles) > 3:
-                title_html += f"…等 {len(titles)} 筆"
+            title_links = _div_title_links(div)
             cluster_label = h(div.get("cluster_label", ""))
             expl = h(div.get("user_explanation", ""))
             conf_label = f'<span class="muted">信心度：{h(confidence)}</span>' if confidence else ""
@@ -10857,7 +10893,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   </div>
   <div class="div-card-body">
     {f'<strong>{cluster_label}</strong><br>' if cluster_label else ''}
-    <span class="div-titles">《{title_html}》</span><br>
+    <span class="div-titles">《{title_links}》</span><br>
     <span class="muted">AI: {h(ai_rec)} → 你: {h(user_act)}</span>
   </div>
   <form class="div-explain-form" method="post" action="/insights/explain">
@@ -10869,6 +10905,43 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <input type="hidden" name="id" value="{div_id}">
     <button type="submit" class="button small secondary">略過</button>
   </form>
+</div>"""
+
+        def div_analyzed_card(div: dict, state: str) -> str:
+            """已分析分歧的卡片 — state: 'waiting'（等待提案）or 'ready'（可結案）。"""
+            div_id = h(div.get("id", ""))
+            dt = div.get("divergence_type", "")
+            dt_label = "AI 超推卻拒收" if dt == "over-rejected" else "AI 說不收你卻收"
+            dt_class = "badge-red" if dt == "over-rejected" else "badge-blue"
+            title_links = _div_title_links(div)
+            ai_rec = (div.get("ai_suggestion") or {}).get("recommendation", "")
+            user_act = div.get("user_action", "")
+            analyzed_at = (div.get("included_in_analysis_at") or "")[:10]
+            expl = h(div.get("user_explanation", ""))
+            if state == "waiting":
+                # 計算等待幾個提案
+                rpt_ids = {r["id"] for r in reports if div.get("id") in r.get("divergence_ids", [])}
+                pending_count = sum(1 for p in proposals if p.get("source_report") in rpt_ids and p.get("status") in ("pending", "evaluating"))
+                action_html = f'<span class="muted">等待 {pending_count} 個提案結案後可結案</span>'
+                card_class = "div-card div-analyzed-waiting"
+            else:
+                action_html = f'''<form method="post" action="/insights/close-analyzed" style="display:inline">
+  <input type="hidden" name="id" value="{div_id}">
+  <button type="submit" class="button small">結案</button>
+</form>'''
+                card_class = "div-card div-analyzed-ready"
+            return f"""
+<div class="{card_class}">
+  <div class="div-card-header">
+    <span class="badge {dt_class}">{h(dt_label)}</span>
+    <span class="badge badge-gray">已分析 {analyzed_at}</span>
+  </div>
+  <div class="div-card-body">
+    <span class="div-titles">《{title_links}》</span><br>
+    <span class="muted">AI: {h(ai_rec)} → 你: {h(user_act)}</span>
+    {f'<br><span class="muted">你的理由：{expl}</span>' if expl else ''}
+  </div>
+  {action_html}
 </div>"""
 
         def cli_button(rpt_id: str, engine: str, label: str) -> str:
@@ -10942,7 +11015,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 </details>"""
 
         empty_hint = ""
-        if not pending_b and not pending_a:
+        if not pending_b and not pending_a and not explained:
             empty_hint = '<p class="muted">待填清單是空的。按「隨機抓 5 筆進待填」抽幾筆來填，或在收件/分流時系統會自動累積。</p>'
 
         section_b = ""
@@ -10969,6 +11042,17 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   {''.join(div_card(d) for d in explained)}
 </details>"""
 
+        analyzed_section = ""
+        if analyzed_waiting or analyzed_ready:
+            waiting_html = ''.join(div_analyzed_card(d, "waiting") for d in analyzed_waiting)
+            ready_html = ''.join(div_analyzed_card(d, "ready") for d in analyzed_ready)
+            analyzed_section = f"""
+<details>
+  <summary>已分析（{len(analyzed_waiting) + len(analyzed_ready)} 筆）{f' — {len(analyzed_ready)} 筆可結案' if analyzed_ready else ''}</summary>
+  {ready_html}
+  {waiting_html}
+</details>"""
+
         reports_section = ""
         if reports:
             reports_section = f"""
@@ -10978,6 +11062,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 </section>"""
 
         analyze_disabled = "" if explained_count else " disabled"
+        batch_close_disabled = "" if analyzed_ready else " disabled"
         action_bar = f"""
 <div class="action-bar">
   <form method="post" action="/insights/sample-into-cue" style="display:inline">
@@ -10986,15 +11071,29 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   <form method="post" action="/insights/generate-report" data-insight-job="分析已填說明的分歧" style="display:inline">
     <button type="submit" class="button"{analyze_disabled}>分析已填說明的 {explained_count} 筆</button>
   </form>
+  <form method="post" action="/insights/close-all-resolved" style="display:inline">
+    <button type="submit" class="button secondary"{batch_close_disabled}>批次結案（{len(analyzed_ready)} 筆可結案）</button>
+  </form>
 </div>"""
 
-        # 品味摘要卡
+        # 品味工具箱 sidebar
         taste_lines = taste_profile_summary_lines()
-        taste_html = "".join(f"<li>{h(line)}</li>" for line in taste_lines) or "<li class='muted'>尚未設定品味，跑一次分析並用 CLI 實作後會開始累積。</li>"
-        taste_card = f"""
-<section class="taste-card">
-  <h2>目前品味檔（系統現在認識的你）</h2>
-  <ul>{taste_html}</ul>
+        taste_ul = "".join(f"<li>{h(line)}</li>" for line in taste_lines) or "<li class='muted'>尚未設定，分析並用 CLI 實作後會開始累積。</li>"
+        taste_json_str = h(json.dumps(load_taste_profile(), ensure_ascii=False, indent=2))
+        taste_sidebar = f"""
+<section class="workspace-sidebar-section">
+  <h2>目前品味（已內化進 AI 分析）</h2>
+  <ul class="taste-sidebar-list">{taste_ul}</ul>
+</section>
+<section class="workspace-sidebar-section">
+  <h2>直接編輯 taste-profile.json</h2>
+  <form method="post" action="/insights/save-taste-profile">
+    <textarea name="content" class="taste-edit-area" rows="20" spellcheck="false">{taste_json_str}</textarea>
+    <div style="margin-top:6px">
+      <button type="submit" class="button small">儲存</button>
+      <span class="muted taste-save-hint" style="font-size:0.82em;margin-left:8px"></span>
+    </div>
+  </form>
 </section>"""
 
         # 程式調整提案區
@@ -11068,8 +11167,12 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 .div-card-header{display:flex;gap:8px;align-items:center;margin-bottom:6px}
 .div-card-body{margin-bottom:8px;line-height:1.6}
 .div-titles{font-weight:500}
+.item-link{color:inherit;text-decoration:underline dotted}
+.item-link:hover{text-decoration:underline}
 .div-explain-form{display:flex;gap:6px;align-items:center;margin-bottom:4px}
 .div-explain-input{flex:1;padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:0.9em}
+.div-analyzed-waiting{background:#f7f7f7;opacity:0.75;border-color:#e0e0e0}
+.div-analyzed-ready{background:#f0faf4;border-color:#b2dfcc}
 .badge{display:inline-block;border-radius:9px;padding:1px 8px;font-size:0.8em;font-weight:600}
 .badge-red{background:#fed7d7;color:#c53030}
 .badge-blue{background:#bee3f8;color:#2b6cb0}
@@ -11080,8 +11183,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 .report-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .report-pre{background:#1e1e2e;color:#e8e8f0;padding:12px;border-radius:4px;white-space:pre-wrap;font-size:0.85em;max-height:420px;overflow-y:auto;line-height:1.55}
 .apply-run{border-left:3px solid #6450dc;padding-left:10px;margin:10px 0}
-.taste-card{background:#f4f2ff;border:1px solid #d7dcf0;border-radius:8px;padding:12px 16px;margin-bottom:20px}
-.taste-card ul{margin:6px 0 0;padding-left:20px;line-height:1.7}
+.taste-sidebar-list{margin:6px 0 0;padding-left:20px;line-height:1.7;font-size:0.88em}
+.taste-edit-area{width:100%;font-family:monospace;font-size:0.82em;border:1px solid #ccc;border-radius:4px;padding:8px;resize:vertical;background:#fafafa}
 .prop-row{border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;flex-direction:column;gap:4px}
 .prop-done{opacity:0.5}
 .prop-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
@@ -11186,18 +11289,27 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 })();
 </script>"""
 
+        sidebar_toggle = workspace_sidebar_toggle("insights-workspace", "insights-sidebar", "insights-taste", "品味工具箱")
         body = f"""
 {css}
 <h1>決策洞察面板</h1>
 {banner}
-{taste_card}
-{action_bar}
-{empty_hint}
-{section_b}
-{section_a}
-{explained_section}
-{reports_section}
-{proposals_section}
+<div class="workspace-toolbar">{sidebar_toggle}</div>
+<div class="workspace-layout" id="insights-workspace">
+  <section class="workspace-main">
+    {action_bar}
+    {empty_hint}
+    {section_b}
+    {section_a}
+    {explained_section}
+    {analyzed_section}
+    {reports_section}
+    {proposals_section}
+  </section>
+  <aside class="workspace-sidebar" id="insights-sidebar">
+    {taste_sidebar}
+  </aside>
+</div>
 {apply_poll_js}
 """
         self.send_html("決策洞察", body)
@@ -11280,6 +11392,37 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         status = form_value(data, "status") or "pending"
         _patch_proposal(prop_id, status=status)
         self.redirect("/insights")
+
+    def close_analyzed_divergence(self, data: dict[str, list[str]]) -> None:
+        div_id = form_value(data, "id")
+        _patch_divergence(div_id, dismissed=True)
+        self.redirect("/insights")
+
+    def close_all_resolved_divergences(self, _data: dict[str, list[str]]) -> None:
+        divs = load_jsonl(DECISION_DIVERGENCES)
+        reports = load_jsonl(INSIGHT_REPORTS)
+        proposals = load_jsonl(SYSTEM_CHANGE_PROPOSALS)
+        for div in divs:
+            if div.get("dismissed") or not div.get("included_in_analysis_at"):
+                continue
+            if not _has_pending_proposals_for_divergence(div["id"], reports, proposals):
+                _patch_divergence(div["id"], dismissed=True)
+        self.redirect("/insights")
+
+    def save_taste_profile_edit(self, data: dict[str, list[str]]) -> None:
+        raw = form_value(data, "content") or ""
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            self.send_html(
+                "品味檔格式錯誤",
+                f'<h1>JSON 格式錯誤</h1><p>{h(str(exc))}</p>'
+                f'<p><a class="button" href="/insights">回洞察面板</a></p>',
+                HTTPStatus.BAD_REQUEST,
+            )
+            return
+        TASTE_PROFILE.write_text(json.dumps(parsed, ensure_ascii=False, indent=2), encoding="utf-8")
+        self.redirect("/insights?saved=taste")
 
     def show_article_editor(self, query: dict[str, list[str]]) -> None:
         article_id = clean_text((query.get("id") or [""])[0])
