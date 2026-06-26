@@ -225,6 +225,9 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
         if reason:
             rejected_reasons[reason] += 1
 
+    taste = load_taste_profile()
+    personal_beats = [b.get("beat") or b.get("signal", "") for b in (taste.get("personal_beats") or [])]
+    personal_beats = [b for b in personal_beats if b]
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "keyword_config_version": keyword_config.get("version", 1),
@@ -235,7 +238,8 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
         "rejected_reasons": rejected_reasons,
         "prior_count": len(prior_records),
         "rejected_count": len(rejected_records),
-        "taste_profile": load_taste_profile(),
+        "taste_profile": taste,
+        "personal_beats": personal_beats,
     }
 
 
@@ -306,6 +310,8 @@ def recommendation_label(recommendation: str) -> str:
         return "建議人工看過"
     if recommendation == "suggest-skip":
         return "建議不要看"
+    if recommendation == "suggest-ask":
+        return "命中個人 beat，請確認"
     return "未判斷"
 
 
@@ -418,6 +424,15 @@ def evaluate_editorial_triage(
     if taste_score >= 2 and recommendation == "suggest-skip" and deletion_score < 3:
         recommendation = "suggest-review"
         taste_signals.append("因符合個人品味，從建議略過上修為建議人工看過")
+
+    # personal-beat 保護層：命中使用者明示的個人 beat 主題時，輸出 suggest-ask 而非 skip。
+    # 只在 deletion_score < 4 且尚為 suggest-skip 時觸發，避免和明確 spam 衝突。
+    if recommendation == "suggest-skip" and deletion_score < 4:
+        personal_beats = context.get("personal_beats") or []
+        beat_hits = [b for b in personal_beats if b and normalized(b) and normalized(b) in normalized(text)]
+        if beat_hits:
+            recommendation = "suggest-ask"
+            taste_signals.append("命中個人 beat 主題：" + "、".join(beat_hits[:4]) + "；請確認是否值得追蹤")
 
     confidence_points = 0
     confidence_points += 2 if abs(keyword_score) >= 3 else 1 if abs(keyword_score) >= 1 else 0

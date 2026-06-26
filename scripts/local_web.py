@@ -1115,6 +1115,26 @@ def _patch_divergence(div_id: str, **kwargs: object) -> bool:
     return found
 
 
+_BEAT_RE = re.compile(
+    r"beat|關注|追蹤|長期追|會關心|我關心|追的|持續關注|想追|想要追|這是我的|我的關鍵|我追的",
+    re.IGNORECASE,
+)
+
+
+def _maybe_add_personal_beat(div_id: str, explanation: str) -> None:
+    """若說明包含 beat/追蹤類詞語，把說明萃取成個人 beat 加進 taste-profile.json。"""
+    if not explanation or not _BEAT_RE.search(explanation):
+        return
+    beat_text = explanation.strip()
+    profile = load_taste_profile()
+    beats = profile.setdefault("personal_beats", [])
+    if any(b.get("beat") == beat_text for b in beats):
+        return
+    beats.append({"beat": beat_text, "source_div": div_id, "added_at": now_iso()})
+    profile["updated_at"] = now_iso()
+    write_json(TASTE_PROFILE, profile)
+
+
 def _patch_report(rpt_id: str, **kwargs: object) -> bool:
     """更新 insight-reports.jsonl 中指定 id 的欄位。"""
     records = load_jsonl(INSIGHT_REPORTS)
@@ -1447,20 +1467,46 @@ def _format_cases_block(cases: list[dict]) -> str:
 
 
 def build_proposal_prompt(prop: dict) -> str:
-    cases_block = _format_cases_block(prop.get("source_divergences") or [])
-    return (
-        "你正在 Ian Open News 專案。請依下面這個來自「決策分歧分析」的改進建議，實作對應的程式修改。\n\n"
-        "## 要實作的建議\n"
-        f"- 標題：{prop.get('title','')}\n"
-        f"- 理由：{prop.get('rationale','') or '（無）'}\n"
-        f"- 大概要動：{prop.get('target_area','') or '（自行判斷）'}\n\n"
-        f"{cases_block}\n"
-        f"{INSIGHT_REPO_CONTEXT}\n"
-        "## 請這樣做\n"
-        "1. 先讀相關檔案，對照上面的實際案例，提出最小、可回退的改動方案。\n"
-        "2. 實作後說明改了什麼、附上 diff，並說明上面那些案例下次會如何被正確處理。\n"
-        "3. 確保 `python3 scripts/validate_database.py` 通過，並避免影響既有 triage 行為的其他案例。\n"
-    )
+    """生成可貼進 Codex / Claude Code 的提案 prompt。格式：卡片摘要 + 案例 + 背景 + 指示。"""
+    cases = prop.get("source_divergences") or []
+    title = prop.get("title", "")
+    target = prop.get("target_area", "") or "（待確認）"
+    rationale = prop.get("rationale", "") or "（無說明）"
+    engine = prop.get("source_engine", "") or "手動"
+    at = (prop.get("proposed_at", "") or "")[:16]
+    rpt_id = prop.get("source_report", "") or ""
+
+    lines = [
+        f"提案：{title}",
+        f"目標：{target}",
+        f"紀錄：{engine} · {at} · 來源報告 {rpt_id}",
+        f"理由：{rationale}",
+        "",
+    ]
+    if cases:
+        lines.append(f"對應的 {len(cases)} 筆分歧案例")
+        lines.append("")
+        for i, c in enumerate(cases, 1):
+            t = "；".join(c.get("titles") or []) or "（無標題）"
+            conf = f"（信心度 {c['confidence']}）" if c.get("confidence") else ""
+            lines.append(f"案例 {i}：《{t}》")
+            lines.append(f"AI: {c.get('ai','')} → 你: {c.get('user_action','')}{conf}")
+            if c.get("explanation"):
+                lines.append(f"你的理由：{c['explanation']}")
+            lines.append("")
+    lines += [
+        "---",
+        "【Ian Open News 專案背景】",
+        "- 收件 triage：scripts/editorial_triage.py，evaluate_editorial_triage() 算四個分數，決定 suggest-collect/review/skip。",
+        "- 全域關鍵字：database/triage-keywords.json；品味設定：database/taste-profile.json。",
+        "- 正本是 database/*.jsonl（一筆一行）。",
+        "",
+        "【實作指示】",
+        "1. 先讀相關檔案，對照上面的案例，提出最小、可回退的改動方案。",
+        "2. 實作後說明改了什麼、附 diff，並說明上面案例下次會如何被正確處理。",
+        "3. 確保 `python3 scripts/validate_database.py` 通過，避免影響既有 triage 行為。",
+    ]
+    return "\n".join(lines)
 
 
 def build_report_prompt(rpt: dict) -> str:
@@ -3097,6 +3143,8 @@ def editorial_recommendation_label(recommendation: str) -> str:
         return "建議人工看過"
     if recommendation == "suggest-skip":
         return "建議不要看"
+    if recommendation == "suggest-ask":
+        return "命中個人 beat，請確認"
     return "尚未初篩"
 
 
@@ -10842,8 +10890,9 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         reports.sort(key=lambda r: r.get("generated_at", ""), reverse=True)
         proposals = load_jsonl(SYSTEM_CHANGE_PROPOSALS)
 
-        # 分三類：待填 / 已分析(等待提案) / 已分析(可結案)
+        # 分四類：待填 / 已分析(等待提案) / 已分析(可結案) / 已結案
         active = [d for d in divs if not d.get("dismissed")]
+        closed_divs = [d for d in divs if d.get("dismissed")]
         analyzed = [d for d in active if d.get("included_in_analysis_at")]
         analyzed_waiting = [d for d in analyzed if _has_pending_proposals_for_divergence(d["id"], reports, proposals)]
         analyzed_ready   = [d for d in analyzed if not _has_pending_proposals_for_divergence(d["id"], reports, proposals)]
@@ -10891,7 +10940,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                            if state == "explained" else
                            '<span class="badge badge-gray">待填寫</span>')
             return f"""
-<div class="div-card" data-filter-group="cue" data-div-type="{h(dt)}" data-div-state="{h(state)}">
+<div class="div-card" data-filter-group="cue" data-div-type="{h(dt)}" data-div-state="{h(state)}" data-card-id="{div_id}">
   <div class="div-card-header">
     <span class="badge {dt_class}">{h(dt_label)}{cluster_badge}</span>
     {state_badge}
@@ -10902,12 +10951,13 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <span class="div-titles">《{title_links}》</span><br>
     <span class="muted">AI: {h(ai_rec)} → 你: {h(user_act)}</span>
   </div>
-  <form class="div-explain-form" method="post" action="/insights/explain">
+  <form class="div-explain-form" method="post" action="/insights/explain" data-ajax-explain>
     <input type="hidden" name="id" value="{div_id}">
     <input type="text" name="explanation" value="{expl}" placeholder="你的想法（為何這樣選）" class="div-explain-input">
     <button type="submit" class="button small">存</button>
+    <span class="explain-ok" hidden>✓ 已存</span>
   </form>
-  <form method="post" action="/insights/dismiss" style="display:inline">
+  <form method="post" action="/insights/dismiss" style="display:inline" data-ajax-dismiss>
     <input type="hidden" name="id" value="{div_id}">
     <button type="submit" class="button small secondary">略過</button>
   </form>
@@ -10931,7 +10981,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 action_html = f'<span class="muted">等待 {pending_count} 個提案結案後可結案</span>'
                 card_class = "div-card div-analyzed-waiting"
             else:
-                action_html = f'''<form method="post" action="/insights/close-analyzed" style="display:inline">
+                action_html = f'''<form method="post" action="/insights/close-analyzed" style="display:inline" data-ajax-dismiss>
   <input type="hidden" name="id" value="{div_id}">
   <button type="submit" class="button small">結案</button>
 </form>'''
@@ -10940,7 +10990,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                            if state == "ready" else
                            '<span class="badge badge-gray">等待提案</span>')
             return f"""
-<div class="{card_class}" data-filter-group="cue" data-div-type="{h(dt)}" data-div-state="analyzed">
+<div class="{card_class}" data-filter-group="cue" data-div-type="{h(dt)}" data-div-state="analyzed" data-card-id="{div_id}">
   <div class="div-card-header">
     <span class="badge {dt_class}">{h(dt_label)}</span>
     {state_badge}
@@ -11027,28 +11077,50 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         analyze_disabled = "" if explained_count else " disabled"
         batch_close_disabled = "" if analyzed_ready else " disabled"
 
-        # 待釐清案例：所有 cue 卡片合成一個 section
+        def closed_card(div: dict) -> str:
+            div_id = h(div.get("id", ""))
+            dt = div.get("divergence_type", "")
+            dt_class = "badge-red" if dt == "over-rejected" else "badge-blue"
+            dt_label = "AI 超推卻拒收" if dt == "over-rejected" else "AI 說不收你卻收"
+            title_links = _div_title_links(div)
+            expl = h(div.get("user_explanation", ""))
+            return f"""
+<div class="div-card div-closed" data-filter-group="cue" data-div-type="{h(dt)}" data-div-state="closed" data-card-id="{div_id}" hidden>
+  <div class="div-card-header">
+    <span class="badge {dt_class}">{dt_label}</span>
+    <span class="badge badge-green">✓ 已結案</span>
+  </div>
+  <div class="div-card-body">
+    <span class="div-titles muted">《{title_links}》</span>
+    {f'<br><span class="muted">你的理由：{expl}</span>' if expl else ''}
+  </div>
+</div>"""
+
+        # 待釐清案例：所有 cue 卡片合成一個 section（含已結案，預設隱藏）
         all_cue_cards = (
             ''.join(div_card(d, "unfilled") for d in pending_b)
             + ''.join(div_card(d, "unfilled") for d in pending_a)
             + ''.join(div_card(d, "explained") for d in explained)
             + ''.join(div_analyzed_card(d, "ready") for d in analyzed_ready)
             + ''.join(div_analyzed_card(d, "waiting") for d in analyzed_waiting)
+            + ''.join(closed_card(d) for d in closed_divs[:30])
         )
-        total_cue = len(pending_b) + len(pending_a) + len(explained) + len(analyzed_waiting) + len(analyzed_ready)
-        cue_empty = '<p class="muted">待填清單是空的。在右側按「隨機抓 5 筆進待填」抽幾筆來填，或在收件/分流時系統會自動累積。</p>' if not total_cue else ""
+        total_active = len(pending_b) + len(pending_a) + len(explained) + len(analyzed_waiting) + len(analyzed_ready)
+        total_closed = len(closed_divs)
+        cue_empty = '<p class="muted">待填清單是空的。在右側按「隨機抓 5 筆進待填」抽幾筆來填，或在收件/分流時系統會自動累積。</p>' if not total_active else ""
         cue_section = f"""
 <section>
   <div class="section-header" data-filter-section="cue">
     <div class="section-header-left">
-      <h2>待釐清案例 <span class="badge badge-gray">{total_cue} 筆</span></h2>
+      <h2>待釐清案例 <span class="badge badge-gray">{total_active} 筆</span></h2>
       <p class="section-sub">AI 建議與你的收錄決策不一致，填上理由後可送分析。</p>
     </div>
     <div class="section-filters">
-      <button class="filter-pill is-active" data-filter-group="cue" data-filter-attr="divState" data-filter-val="all">全部</button>
+      <button class="filter-pill is-active" data-filter-group="cue" data-filter-attr="divState" data-filter-val="active">進行中</button>
       <button class="filter-pill" data-filter-group="cue" data-filter-attr="divState" data-filter-val="unfilled">待填</button>
       <button class="filter-pill" data-filter-group="cue" data-filter-attr="divState" data-filter-val="explained">已填說明</button>
       <button class="filter-pill" data-filter-group="cue" data-filter-attr="divState" data-filter-val="analyzed">已分析</button>
+      <button class="filter-pill" data-filter-group="cue" data-filter-attr="divState" data-filter-val="closed">已結案（{total_closed}）</button>
       <button class="filter-pill" data-filter-group="cue" data-filter-attr="divType" data-filter-val="over-rejected">AI 超推</button>
       <button class="filter-pill" data-filter-group="cue" data-filter-attr="divType" data-filter-val="under-collected">AI 低估</button>
     </div>
@@ -11080,25 +11152,43 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         # sidebar
         taste_lines = taste_profile_summary_lines()
         taste_ul = "".join(f"<li>{h(line)}</li>" for line in taste_lines) or "<li class='muted'>尚未設定，分析並用 CLI 實作後會開始累積。</li>"
+        analyze_hint = "" if explained_count else '<p class="section-sub" style="margin:4px 0 0">先在卡片填上「你的想法」再分析</p>'
+        batch_hint = "" if analyzed_ready else '<p class="section-sub" style="margin:4px 0 0">尚無可結案項目</p>'
         taste_sidebar = f"""
 <section class="workspace-sidebar-section">
   <h2>操作</h2>
   <div class="sidebar-actions">
-    <form method="post" action="/insights/sample-into-cue">
+    <form method="post" action="/insights/sample-into-cue" data-ajax-sample>
       <button type="submit" class="button secondary" style="width:100%">隨機抓 5 筆進待填</button>
     </form>
-    <form method="post" action="/insights/generate-report" data-insight-job="分析已填說明的分歧">
-      <button type="submit" class="button" style="width:100%"{analyze_disabled}>分析已填說明的 {explained_count} 筆</button>
-    </form>
-    <form method="post" action="/insights/close-all-resolved">
-      <button type="submit" class="button secondary" style="width:100%"{batch_close_disabled}>批次結案（{len(analyzed_ready)} 筆可結案）</button>
-    </form>
+    <span id="sample-result" class="muted" style="font-size:0.85em;display:none"></span>
+    <div>
+      <form method="post" action="/insights/generate-report" data-insight-job="分析已填說明的分歧">
+        <button type="submit" class="button" style="width:100%"{analyze_disabled}>分析已填說明的 {explained_count} 筆</button>
+      </form>
+      {analyze_hint}
+    </div>
+    <div>
+      <form method="post" action="/insights/close-all-resolved" data-ajax-batch-close>
+        <button type="submit" class="button secondary" style="width:100%"{batch_close_disabled}>批次結案（{len(analyzed_ready)} 筆可結案）</button>
+      </form>
+      {batch_hint}
+    </div>
   </div>
 </section>
 <section class="workspace-sidebar-section">
   <h2>品味設定</h2>
   <ul class="taste-sidebar-list">{taste_ul}</ul>
   <a href="/insights/edit-taste-profile" class="button secondary small" style="margin-top:8px;display:inline-block;width:100%;text-align:center">編輯品味檔 →</a>
+</section>
+<section class="workspace-sidebar-section">
+  <h2>手動新增提案</h2>
+  <form method="post" action="/insights/proposal-add" class="prop-add-form" style="flex-direction:column">
+    <input type="text" name="title" placeholder="提案標題（要改什麼）" required style="width:100%">
+    <input type="text" name="target_area" placeholder="大概動哪個檔" style="width:100%">
+    <input type="text" name="rationale" placeholder="理由" style="width:100%">
+    <button type="submit" class="button small" style="align-self:flex-start">新增</button>
+  </form>
 </section>"""
 
         # 程式調整提案區
@@ -11170,14 +11260,6 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     </div>
   </div>
   {prop_rows or '<p class="muted">目前沒有程式提案。</p>'}
-  <details style="margin-top:10px"><summary>手動新增一筆提案</summary>
-    <form method="post" action="/insights/proposal-add" class="prop-add-form">
-      <input type="text" name="title" placeholder="提案標題（要改什麼）" required>
-      <input type="text" name="target_area" placeholder="大概動哪個檔">
-      <input type="text" name="rationale" placeholder="理由">
-      <button type="submit" class="button small">新增</button>
-    </form>
-  </details>
 </section>"""
 
         css = """<style>
@@ -11191,6 +11273,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 .div-explain-input{flex:1;padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:0.9em}
 .div-analyzed-waiting{background:#f7f7f7;opacity:0.75;border-color:#e0e0e0}
 .div-analyzed-ready{background:#f0faf4;border-color:#b2dfcc}
+.div-closed{background:#f8f8f8;opacity:0.6;border-color:#e8e8e8}
+.explain-ok{color:#276749;font-size:0.85em;margin-left:4px}
 .badge{display:inline-block;border-radius:9px;padding:1px 8px;font-size:0.8em;font-weight:600}
 .badge-red{background:#fed7d7;color:#c53030}
 .badge-blue{background:#bee3f8;color:#2b6cb0}
@@ -11220,7 +11304,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 
         apply_poll_js = """<script>
 (function(){
-  // filter-pill 客戶端篩選
+  // filter-pill 客戶端篩選（僅篩 data-filterable 元素，不篩 pill 本身）
   document.querySelectorAll('.filter-pill').forEach(function(pill){
     pill.addEventListener('click', function(){
       var filterGroup = pill.dataset.filterGroup;
@@ -11230,9 +11314,82 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
           .forEach(function(p){ p.classList.toggle('is-active', p===pill); });
       var camel = filterAttr.replace(/-([a-z])/g, function(_,c){ return c.toUpperCase(); });
       document.querySelectorAll('[data-filter-group="'+filterGroup+'"]').forEach(function(el){
-        if(filterVal==='all') el.hidden=false;
+        if(el.closest('.section-header')) return;  // 跳過 pill 本身
+        if(filterVal==='active') el.hidden = (el.dataset[camel] === 'closed');
+        else if(filterVal==='all') el.hidden=false;
         else el.hidden = (el.dataset[camel] !== filterVal);
       });
+    });
+  });
+
+  // AJAX 動畫：dismiss / close-analyzed / save-explanation / batch-close / sample
+  function animateOut(el, then){
+    if(!el) return;
+    el.style.transition='opacity .3s,max-height .4s,margin .3s,padding .3s';
+    el.style.maxHeight=el.scrollHeight+'px';
+    requestAnimationFrame(function(){
+      el.style.opacity='0'; el.style.maxHeight='0';
+      el.style.marginBottom='0'; el.style.paddingTop='0'; el.style.paddingBottom='0';
+    });
+    setTimeout(function(){ el.remove(); if(then) then(); }, 420);
+  }
+  function fetchForm(form, opts){
+    var btn = form.querySelector('button[type=submit]');
+    if(btn && btn.dataset.running==='1') return;
+    if(btn){ btn.dataset.running='1'; btn.disabled=true; }
+    var body = new URLSearchParams(new FormData(form));
+    fetch(form.action, {method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'local-web-fetch'},
+      body: body})
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(btn){ btn.dataset.running=''; btn.disabled=false; }
+      if(opts && opts.onOk && data && data.ok) opts.onOk(data);
+    })
+    .catch(function(){ if(btn){ btn.dataset.running=''; btn.disabled=false; } });
+  }
+  document.querySelectorAll('form[data-ajax-dismiss]').forEach(function(form){
+    form.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var card = form.closest('[data-card-id]');
+      fetchForm(form, {onOk: function(){ animateOut(card); }});
+    });
+  });
+  document.querySelectorAll('form[data-ajax-explain]').forEach(function(form){
+    form.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var ok = form.querySelector('.explain-ok');
+      fetchForm(form, {onOk: function(){
+        var badge = form.closest('[data-card-id]').querySelector('.badge-gray,.badge-blue');
+        if(badge){ badge.className='badge badge-blue'; badge.textContent='已填說明'; }
+        if(ok){ ok.hidden=false; setTimeout(function(){ ok.hidden=true; }, 2000); }
+        var card = form.closest('[data-card-id]');
+        if(card) card.dataset.divState='explained';
+      }});
+    });
+  });
+  document.querySelectorAll('form[data-ajax-sample]').forEach(function(form){
+    form.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var result = document.getElementById('sample-result');
+      fetchForm(form, {onOk: function(data){
+        if(result){
+          result.style.display='inline';
+          result.textContent='已新增 '+data.added+' 筆，重新整理可看到';
+        }
+        setTimeout(function(){ window.location.reload(); }, 1200);
+      }});
+    });
+  });
+  document.querySelectorAll('form[data-ajax-batch-close]').forEach(function(form){
+    form.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      fetchForm(form, {onOk: function(data){
+        (data.closed_ids||[]).forEach(function(cid){
+          var card = document.querySelector('[data-card-id="'+cid+'"]');
+          animateOut(card);
+        });
+      }});
     });
   });
 
@@ -11382,16 +11539,26 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         div_id = form_value(data, "id")
         explanation = form_value(data, "explanation")
         _patch_divergence(div_id, user_explanation=explanation)
-        self.redirect("/insights")
+        _maybe_add_personal_beat(div_id, explanation)
+        if self.is_async_request():
+            self.send_json({"ok": True, "div_id": div_id})
+        else:
+            self.redirect("/insights")
 
     def dismiss_divergence(self, data: dict[str, list[str]]) -> None:
         div_id = form_value(data, "id")
         _patch_divergence(div_id, dismissed=True)
-        self.redirect("/insights")
+        if self.is_async_request():
+            self.send_json({"ok": True, "div_id": div_id})
+        else:
+            self.redirect("/insights")
 
     def sample_into_cue(self, data: dict[str, list[str]]) -> None:
         added = sample_divergences_into_cue(5)
-        self.redirect(f"/insights?sampled={added}")
+        if self.is_async_request():
+            self.send_json({"ok": True, "added": added})
+        else:
+            self.redirect(f"/insights?sampled={added}")
 
     def generate_divergence_report(self, data: dict[str, list[str]], mode: str = "explained") -> None:
         engine = form_value(data, "engine") or "claude"
@@ -11460,18 +11627,26 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     def close_analyzed_divergence(self, data: dict[str, list[str]]) -> None:
         div_id = form_value(data, "id")
         _patch_divergence(div_id, dismissed=True)
-        self.redirect("/insights")
+        if self.is_async_request():
+            self.send_json({"ok": True, "div_id": div_id})
+        else:
+            self.redirect("/insights")
 
     def close_all_resolved_divergences(self, _data: dict[str, list[str]]) -> None:
         divs = load_jsonl(DECISION_DIVERGENCES)
         reports = load_jsonl(INSIGHT_REPORTS)
         proposals = load_jsonl(SYSTEM_CHANGE_PROPOSALS)
+        closed_ids = []
         for div in divs:
             if div.get("dismissed") or not div.get("included_in_analysis_at"):
                 continue
             if not _has_pending_proposals_for_divergence(div["id"], reports, proposals):
                 _patch_divergence(div["id"], dismissed=True)
-        self.redirect("/insights")
+                closed_ids.append(div["id"])
+        if self.is_async_request():
+            self.send_json({"ok": True, "closed_ids": closed_ids})
+        else:
+            self.redirect("/insights")
 
     def save_taste_profile_edit(self, data: dict[str, list[str]]) -> None:
         raw = form_value(data, "content") or ""
