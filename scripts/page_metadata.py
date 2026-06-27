@@ -642,6 +642,7 @@ def response_access_issue(
     headers: object,
     status_code: int,
     article_chars: int = 0,
+    final_url: str = "",
 ) -> tuple[str, str]:
     lower = clean_text(html_text, 4000).casefold()
     header_lookup = {}
@@ -653,8 +654,14 @@ def response_access_issue(
         return "cloudflare-challenge", "網站回 Cloudflare challenge，需要用瀏覽器、cookie 或手動方式補全文。"
     if "just a moment" in lower and "enable javascript and cookies to continue" in lower:
         return "cloudflare-challenge", "網站要求 JavaScript 與 cookies，這次無法由本機直接抓全文。"
+    if urlparse(final_url).netloc.casefold() == "books.openbookpublishers.com" and status_code in {202, 405} and article_chars < 500:
+        return "openbook-fulltext-blocked", "Open Book Publishers 的 HTML 全文頁拒絕本機抓取，需要用瀏覽器或手動貼文補全文。"
     if status_code in {401, 402, 403} and re.search(r"\b(sign in|log in|login|subscribe|subscription|register)\b", lower):
         return "login-or-subscription", "網站看起來需要登入或訂閱才能讀完整內容。"
+    if status_code in {401, 402, 403} and article_chars < 500:
+        return "http-access-denied", f"網站回 HTTP {status_code}，本機無法直接抓全文；需要用瀏覽器、cookie 或手動貼文補全文。"
+    if status_code == 429:
+        return "rate-limited", "網站回 HTTP 429，暫時限制本機抓取；稍後再試或手動補全文。"
     if article_chars < 500 and re.search(
         r"(sign in|log in|login|subscribe to continue|subscription required|register for free|continue reading|"
         r"create an account|登入|訂閱|註冊|會員)",
@@ -732,7 +739,7 @@ def metadata_from_response(
     article_text, article_method = extract_article_text(html_text)
     article_markdown, article_markdown_method = extract_article_markdown(html_text, final_url=final_url, title=title)
     article_chars = max(len(article_text), len(article_markdown))
-    issue, issue_note = response_access_issue(html_text, response_headers, status_code, article_chars)
+    issue, issue_note = response_access_issue(html_text, response_headers, status_code, article_chars, final_url=final_url)
     # books.openbookpublishers.com 用 bot UA 回 202 空頁，改由呼叫端用 browser UA 重試，不在此標 blocked。
     if not language:
         language = infer_language_from_text(article_text or article_markdown or "\n".join([title, description, excerpt]))
@@ -792,7 +799,7 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
     try:
         final_url, content_type, raw, response_headers, status_code = fetch_with_headers(url, default_headers)
     except urllib.error.HTTPError as exc:
-        if exc.code not in {403, 406}:
+        if exc.code not in {401, 403, 406}:
             raw = exc.read(max_bytes)
             metadata = metadata_from_response(
                 url,

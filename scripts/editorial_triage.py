@@ -85,6 +85,18 @@ LOW_VALUE_CUES = [
     "名額",
 ]
 
+# 已知商業／顧問來源：這些來源常觸發語氣負分，但常含可萃取的政策/治理/開源社會責任概念。
+# 命中時不直接否決，先查前段是否有可萃取概念（見 evaluate_editorial_triage 商業萃取層）。
+COMMERCIAL_SOURCE_HINTS = [
+    "mckinsey", "麥肯錫", "deloitte", "勤業眾信", "pwc", "資誠", "kpmg", "安侯",
+    "ernst", "安永", "accenture", "埃森哲", "gartner", "forrester", "bcg", "bain",
+    "google", "microsoft", "amazon", "aws", "ibm", "oracle", "salesforce",
+    "nvidia", "meta", "openai", "anthropic",
+]
+
+# 跨篇關聯：與庫中 researching/drafting 稿件共用幾個 tag 才算可互為佐證
+XREF_TAG_THRESHOLD = 2
+
 ENGLISH_TITLE_HINTS = {
     "open source": "開源",
     "open data": "開放資料",
@@ -228,6 +240,26 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
     taste = load_taste_profile()
     personal_beats = [b.get("beat") or b.get("signal", "") for b in (taste.get("personal_beats") or [])]
     personal_beats = [b for b in personal_beats if b]
+
+    # tracked_beats：長期追蹤線（每條含關鍵字清單），命中時強制 suggest-ask 監測
+    tracked_beats = []
+    for tb in (taste.get("tracked_beats") or []):
+        name = clean_text(tb.get("beat"))
+        kws = [normalized(k) for k in (tb.get("keywords") or []) if normalized(k)]
+        if name and kws:
+            tracked_beats.append({"beat": name, "keywords": kws})
+
+    # 進行中稿件（researching/drafting）：供跨篇關聯掃描，找可互為佐證的稿件
+    active_research = []
+    for r in records:
+        if clean_text(r.get("status")) in {"researching", "drafting"}:
+            active_research.append({
+                "id": clean_text(r.get("id")),
+                "title": clean_text(r.get("editorial_title") or r.get("title"), 120),
+                "tags": {normalized(t) for t in tags_for(r) if normalized(t)},
+            })
+    active_research = active_research[:50]
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "keyword_config_version": keyword_config.get("version", 1),
@@ -240,6 +272,8 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
         "rejected_count": len(rejected_records),
         "taste_profile": taste,
         "personal_beats": personal_beats,
+        "tracked_beats": tracked_beats,
+        "active_research": active_research,
     }
 
 
@@ -443,6 +477,64 @@ def evaluate_editorial_triage(
         if mech_hits:
             recommendation = "suggest-ask"
             taste_signals.append("命中底層機制關鍵字：" + "、".join(mech_hits[:4]) + "；表層主題偏移但機制吻合，建議先確認再決定")
+
+    norm_text = normalized(text)
+
+    # keep 正訊號保護層：triage 已命中 keep 關鍵字（正訊號）卻被歷史/負分/共現的 skip 詞壓成 skip 時，
+    # 不整篇否決，改 suggest-ask 讓使用者決定。純 spam 不會命中 keep，故即使同時有 skip 詞也安全。
+    # 這是提案#3「正訊號不應被語氣/歷史/共現負分壓過」的核心。
+    if recommendation == "suggest-skip" and matched_keywords:
+        recommendation = "suggest-ask"
+        extra = ("（雖同時命中排除詞「" + "、".join(skip_keywords[:3]) + "」）") if skip_keywords else ""
+        taste_signals.append("命中收錄關鍵字「" + "、".join(matched_keywords[:4])
+                             + "」屬正訊號" + extra + "，雖被其他負分壓低，建議先確認再決定")
+
+    # tracked-beat 監測層：命中使用者長期追蹤線（taste_profile.tracked_beats 的關鍵字）時，
+    # 即使單篇品質普通也強制把 suggest-skip 升為 suggest-ask，附追蹤線脈絡；命中明確 spam 排除詞則不動。
+    if recommendation == "suggest-skip" and not skip_keywords:
+        beat_hit_names = []
+        for tb in (context.get("tracked_beats") or []):
+            if any(kw in norm_text for kw in tb.get("keywords", [])):
+                beat_hit_names.append(tb.get("beat", ""))
+        if beat_hit_names:
+            recommendation = "suggest-ask"
+            taste_signals.append("屬於追蹤線「" + "、".join([b for b in beat_hit_names if b][:3])
+                                 + "」：品質普通但符合長期監測，建議先確認")
+
+    # 商業來源前段萃取層：已知商業/顧問來源即使被歷史或語氣壓成 skip，
+    # 若摘要前段（前 200 字）含可萃取概念（keep / mechanism / 偏好主題詞），改 suggest-ask，
+    # 標「前段有 X 概念可萃取」而不因來源整篇否決；命中明確 spam 排除詞則不動。
+    if recommendation == "suggest-skip" and not skip_keywords:
+        commercial_hay = normalized(source) + " " + normalized(record.get("title")) + " " + normalized(record.get("author"))
+        if any(cs in commercial_hay for cs in COMMERCIAL_SOURCE_HINTS):
+            early = normalized(clean_text(record.get("summary"))[:200] + " " + clean_text(record.get("title")))
+            track_cfg = (keyword_config.get("tracks") or {}).get(track, {})
+            track_taste = ((context.get("taste_profile") or {}).get("tracks") or {}).get(track) or {}
+            concept_pool = ((track_cfg.get("keep_keywords") or [])
+                            + (track_cfg.get("mechanism_keywords") or [])
+                            + (track_taste.get("priority_themes") or []))
+            concept_hits = [k for k in concept_pool if normalized(k) and normalized(k) in early]
+            if concept_hits:
+                recommendation = "suggest-ask"
+                taste_signals.append("商業來源但前段有可萃取概念：" + "、".join(dict.fromkeys(concept_hits[:4]))
+                                     + "；先確認再決定，不因來源語氣整篇否決")
+
+    # 跨篇關聯層：與庫中 researching/drafting 稿件共用 >= XREF_TAG_THRESHOLD 個 tag 時，
+    # 標注可互為佐證，並把保留優先度提升一級（suggest-skip → suggest-review）。
+    cur_tags = {normalized(t) for t in tags if normalized(t)}
+    if cur_tags:
+        cur_id = clean_text(record.get("id"))
+        xrefs = []
+        for it in (context.get("active_research") or []):
+            if it.get("id") and it.get("id") == cur_id:
+                continue
+            if len(cur_tags & (it.get("tags") or set())) >= XREF_TAG_THRESHOLD:
+                xrefs.append(it)
+        if xrefs:
+            names = "；".join(f"《{x.get('title','')}》({x.get('id','')})" for x in xrefs[:3])
+            taste_signals.append("可與進行中稿件互為佐證：" + names)
+            if recommendation == "suggest-skip" and not skip_keywords:
+                recommendation = "suggest-review"
 
     confidence_points = 0
     confidence_points += 2 if abs(keyword_score) >= 3 else 1 if abs(keyword_score) >= 1 else 0

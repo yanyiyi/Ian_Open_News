@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-06-27T06:54:14+00:00",
+  "updated_at": "2026-06-27T09:00:00+00:00",
   "global": {
     "taiwan_context_required": true,
     "emphasize": [
@@ -28,7 +28,10 @@
       "比較政策視角",
       "社群永續",
       "公共 AI 服務",
-      "跨族群數位人權應用"
+      "跨族群數位人權應用",
+      "AI 勞動衝擊",
+      "大企業開源社會責任",
+      "歐盟數位研究法規"
     ],
     "de_emphasize": [
       "樂觀敘事",
@@ -78,7 +81,12 @@
         "開源vs開放權重定義之爭",
         "比較治理（含敵對國家AI政策）",
         "跨域資料轉用（民間資料→軍事/監控）",
-        "國際AI治理論壇文件"
+        "國際AI治理論壇文件",
+        "AI 勞動衝擊與基本權利",
+        "大企業開源社會責任示範",
+        "歐盟 AI Act 及周邊法規文件",
+        "AI 使用限制與問責",
+        "政府 AI 使用管制"
       ],
       "avoid_themes": [
         "純產品發表"
@@ -101,7 +109,9 @@
         "性別人權突破",
         "LGBTQ+ 制度性鬆動",
         "資訊環境與媒體識讀",
-        "AI 生成內容真偽辨識"
+        "AI 生成內容真偽辨識",
+        "鐵道基礎建設與文化追蹤",
+        "交通文化史"
       ],
       "avoid_themes": []
     }
@@ -246,6 +256,36 @@
       "signal": "G7、OECD、AI Summit等國際論壇的open source/open weights定義之爭文件，即使措辭生硬、無具體新聞事件，仍為核心高品質素材，應提升分數。",
       "source_report": "manual-2026-06-27",
       "added_at": "2026-06-27T00:00:00+00:00"
+    },
+    {
+      "signal": "Beat 系列監測模式：使用者已在 personal_beats 明示追蹤的長期序列（如鐵道、UAP/FOIA 演進、OKFN 系列），即使單篇資訊密度低，應標注『屬於 X 追蹤線，品質普通但符合監測需求』並改 suggest-ask，不進入一般品質評分競爭。",
+      "source_report": "rpt-07ec1b21",
+      "added_at": "2026-06-27T08:37:34+00:00"
+    },
+    {
+      "signal": "組織系列追蹤：使用者曾在 personal_beats 或 learned_signals 明示追蹤的組織（至少含 OKFN/Open Knowledge Foundation），其任何產出預設 suggest-ask，不參與一般品質過濾。",
+      "source_report": "rpt-07ec1b21",
+      "added_at": "2026-06-27T08:37:34+00:00"
+    },
+    {
+      "signal": "跨篇關聯提升：triage 評估新稿件時，若主題關鍵字與 database/items.jsonl 中近期 status 為 researching 或 drafting 的 items 有重疊，應標注『可與 [item-id] 互為佐證』並提升保留優先度，不孤立評估單篇。",
+      "source_report": "rpt-07ec1b21",
+      "added_at": "2026-06-27T08:37:34+00:00"
+    },
+    {
+      "signal": "機制萃取順序修正：對 McKinsey、Google 等商業色彩來源，應先完成摘要前段機制萃取（判斷是否含勞動政策數字、治理框架、開源社會責任陳述），確認無可萃取概念後才套用語氣負分；不可讓語氣過濾先於機制識別發動。（與既有 learned_signal『商業稿件文章立場≠材料價值』的差異在於強調過濾順序，而非僅要求不因結尾否決。）",
+      "source_report": "rpt-07ec1b21",
+      "added_at": "2026-06-27T08:37:34+00:00"
+    },
+    {
+      "signal": "大企業開源公益行動不等於純產品發表：若稿件主角是大型科技公司將模型、工具或資料集開源且有明確社會或公益影響陳述，應識別為『大企業開源社會責任示範案例』並保留，不觸發 skip 主題『純產品發表』。",
+      "source_report": "rpt-07ec1b21",
+      "added_at": "2026-06-27T08:37:34+00:00"
+    },
+    {
+      "signal": "AI 問責正訊號被地理負訊號壓制的修正：含 AI accountability、government AI regulation、AI access control、AI 使用限制等詞的稿件，即使事件發生地非台灣，地理距離不應構成降分理由；比較政策框架與他國管制示範本身即具新聞價值，應維持正訊號權重。",
+      "source_report": "rpt-07ec1b21",
+      "added_at": "2026-06-27T08:37:34+00:00"
     }
   ],
   "personal_beats": [
@@ -283,6 +323,102 @@
       "beat": "鐵道議題小追蹤，人文關懷中、藝術關懷中。",
       "source_div": "div-9694dda0",
       "added_at": "2026-06-27T06:54:14+00:00"
+    },
+    {
+      "beat": "鐵道想追下",
+      "source_div": "div-1db0d841",
+      "added_at": "2026-06-27T08:17:16+00:00"
+    },
+    {
+      "beat": "歐盟的法案關注",
+      "source_div": "div-d6bde726",
+      "added_at": "2026-06-27T08:17:27+00:00"
+    }
+  ],
+  "tracked_beats": [
+    {
+      "beat": "鐵道",
+      "keywords": [
+        "鐵道",
+        "鐵路",
+        "railway",
+        "台鐵",
+        "臺鐵",
+        "高鐵",
+        "集集線",
+        "支線",
+        "車站",
+        "通車",
+        "信號系統"
+      ]
+    },
+    {
+      "beat": "UAP／政府解密與資訊公開",
+      "keywords": [
+        "UAP",
+        "UFO",
+        "幽浮",
+        "不明飛行",
+        "五角大廈",
+        "Pentagon",
+        "解密",
+        "declassify",
+        "情報機構",
+        "alien"
+      ]
+    },
+    {
+      "beat": "OKFN／開放知識社群",
+      "keywords": [
+        "OKFN",
+        "open knowledge",
+        "open knowledge foundation",
+        "開放知識基金會"
+      ]
+    },
+    {
+      "beat": "AI Code 時代開源治理",
+      "keywords": [
+        "AI code",
+        "code assistant",
+        "程式助理",
+        "copilot",
+        "AI 程式",
+        "程式碼助理"
+      ]
+    },
+    {
+      "beat": "數位韌性",
+      "keywords": [
+        "數位韌性",
+        "digital resilience",
+        "LoRa",
+        "mesh",
+        "離網",
+        "off-grid",
+        "應急通訊"
+      ]
+    },
+    {
+      "beat": "開源 vs 開放權重",
+      "keywords": [
+        "open weights",
+        "開放權重",
+        "open source definition",
+        "開源定義"
+      ]
+    },
+    {
+      "beat": "AI 問責與監管",
+      "keywords": [
+        "AI 問責",
+        "accountability",
+        "AI 監管",
+        "AI 控制",
+        "trust and accountability",
+        "deepfake",
+        "深偽"
+      ]
     }
   ]
 }

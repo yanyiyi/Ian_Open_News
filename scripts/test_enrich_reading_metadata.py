@@ -62,6 +62,40 @@ class ReadingMetadataRulesTest(unittest.TestCase):
             page_metadata.BROWSER_FALLBACK_USER_AGENT,
         )
 
+    def test_fetch_page_metadata_marks_repeated_401_as_manual_fulltext(self) -> None:
+        first = urllib.error.HTTPError(
+            "https://example.com/article",
+            401,
+            "HTTP Forbidden",
+            {"content-type": "text/html; charset=utf-8"},
+            io.BytesIO(b""),
+        )
+        second = urllib.error.HTTPError(
+            "https://example.com/article",
+            401,
+            "HTTP Forbidden",
+            {"content-type": "text/html; charset=utf-8"},
+            io.BytesIO(b""),
+        )
+        with patch.object(
+            page_metadata.urllib.request,
+            "urlopen",
+            side_effect=[first, second],
+        ) as urlopen:
+            metadata = page_metadata.fetch_page_metadata("https://example.com/article")
+        first.close()
+        second.close()
+
+        self.assertEqual(metadata["access_issue"], "http-access-denied")
+        self.assertEqual(metadata["needs_fulltext"], "true")
+        self.assertEqual(metadata["fulltext_status"], "needs-manual")
+        self.assertEqual(urlopen.call_count, 2)
+        retry_request = urlopen.call_args_list[1].args[0]
+        self.assertEqual(
+            retry_request.get_header("User-agent"),
+            page_metadata.BROWSER_FALLBACK_USER_AGENT,
+        )
+
     def test_fetch_page_metadata_extracts_site_name_and_published_date(self) -> None:
         class FakeResponse:
             headers = {"content-type": "text/html; charset=utf-8"}
