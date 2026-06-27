@@ -36,6 +36,7 @@ from page_metadata import (
     enrich_item_metadata,
     fetch_page_metadata,
     infer_language_from_text,
+    published_date_from_url,
     text_to_markdown,
     unwrap_google_alert_url,
 )
@@ -813,6 +814,117 @@ def infer_manual_item_track(
     return suggested, reason, choices
 
 
+def manual_item_published_date(metadata: dict, url: str) -> tuple[str, str, str]:
+    """Return date, source, confidence without inventing dates from capture time."""
+    metadata = metadata if isinstance(metadata, dict) else {}
+    published = clean_text(metadata.get("published_at"), 40)
+    source = clean_text(metadata.get("published_at_source"), 80)
+    if published:
+        confidence = "medium" if source.casefold() == "url path" else "high"
+        return published, source or "metadata", confidence
+    url_date = published_date_from_url(url)
+    if url_date:
+        return url_date, "URL path", "medium"
+    return "", "", ""
+
+
+CONTEXT_SKIP_PATTERNS = (
+    "accept cookies",
+    "cookie policy",
+    "sign up",
+    "subscribe",
+    "all rights reserved",
+    "newsletter",
+)
+
+
+def context_excerpt(value: object, limit: int = 520) -> str:
+    text = clean_text(value, 2400)
+    if not text:
+        return ""
+    text = re.sub(r"!\[[^\]]*\]\([^)]+\)", " ", text)
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    text = re.sub(r"(?m)^\s{0,3}#{1,6}\s*", "", text)
+    chunks = []
+    for chunk in re.split(r"\n{2,}", text):
+        chunk = clean_text(chunk.strip(" -*>\t"), 900)
+        if len(chunk) < 32:
+            continue
+        lower = chunk.casefold()
+        if any(pattern in lower for pattern in CONTEXT_SKIP_PATTERNS):
+            continue
+        chunks.append(chunk)
+    if not chunks:
+        chunks = [clean_text(text, 900)]
+    sentences = re.split(r"(?<=[。！？.!?])\s+", chunks[0])
+    excerpt = " ".join(sentence.strip() for sentence in sentences[:2] if sentence.strip())
+    return clean_text(excerpt or chunks[0], limit)
+
+
+def manual_item_summary(record: dict, metadata: dict) -> str:
+    metadata = metadata if isinstance(metadata, dict) else {}
+    candidates = [
+        record.get("summary"),
+        metadata.get("description"),
+        metadata.get("excerpt"),
+        metadata.get("og_description"),
+        metadata.get("twitter_description"),
+    ]
+    for candidate in candidates:
+        excerpt = context_excerpt(candidate)
+        if excerpt and not looks_like_triage_placeholder(excerpt):
+            return excerpt
+    for candidate in [metadata.get("article_markdown"), metadata.get("article_text")]:
+        excerpt = context_excerpt(candidate)
+        if excerpt and not looks_like_triage_placeholder(excerpt):
+            return excerpt
+    title = clean_text(record.get("title"), 300)
+    source_name = clean_text(record.get("source_name"), 120)
+    if title and source_name:
+        return clean_text(f"{source_name} 這篇提到：{title}", 520)
+    if title:
+        return clean_text(f"標題線索：{title}", 520)
+    return ""
+
+
+def manual_item_notes(record: dict) -> str:
+    review = record.get("review") if isinstance(record.get("review"), dict) else {}
+    existing = clean_text(review.get("notes"), 1000)
+    if existing:
+        return existing
+    triage = record.get("triage") if isinstance(record.get("triage"), dict) else {}
+    editorial = record.get("editorial_triage") if isinstance(record.get("editorial_triage"), dict) else {}
+    lines: list[str] = []
+
+    summary_reason = workflow_display_text(editorial.get("summary_reason"), 240)
+    if summary_reason:
+        lines.append(f"初步值得追：{summary_reason}")
+    content_kind = clean_text(editorial.get("content_kind_label"), 80)
+    if content_kind:
+        lines.append(f"可能形式：{content_kind}")
+    matched = [
+        clean_text(keyword, 60)
+        for keyword in [*(triage.get("matched_keywords") or []), *(triage.get("mechanism_keywords") or [])]
+        if clean_text(keyword)
+    ]
+    if matched:
+        lines.append("命中線索：" + "、".join(matched[:5]))
+    view_reasons = [
+        workflow_display_text(reason, 220)
+        for reason in editorial.get("view_reasons") or []
+        if workflow_display_text(reason, 220)
+    ]
+    for reason in view_reasons[:2]:
+        if reason not in lines:
+            lines.append(f"判斷理由：{reason}")
+    next_step = workflow_display_text(editorial.get("next_step_hint"), 180)
+    if next_step:
+        lines.append(f"下一步：{next_step}")
+    if not lines and clean_text(record.get("title")):
+        lines.append(f"先收著觀察：{clean_text(record.get('title'), 220)}")
+    return clean_text("\n".join(lines), 1000)
+
+
 def apply_manual_item_autofill(
     record: dict,
     metadata: dict,
@@ -827,7 +939,7 @@ def apply_manual_item_autofill(
     metadata = dict(metadata) if isinstance(metadata, dict) else {}
     reference = dict(updated.get("reference") if isinstance(updated.get("reference"), dict) else {})
     reference.setdefault("created_by", "local_web")
-    reference["created_from"] = "manual-url"
+    reference.setdefault("created_from", "manual-url")
     if metadata_error:
         reference["metadata_fetch_error"] = clean_text(metadata_error, 500)
     updated["reference"] = reference
@@ -838,9 +950,13 @@ def apply_manual_item_autofill(
     if page_title and (not title or title == url):
         updated["title"] = page_title
     if not clean_text(updated.get("summary")):
-        updated["summary"] = clean_text(metadata.get("description") or metadata.get("excerpt"), 1200)
-    if not clean_text(updated.get("published_at")) and metadata.get("published_at"):
-        updated["published_at"] = clean_text(metadata.get("published_at"), 40)
+        updated["summary"] = manual_item_summary(updated, metadata)
+    published_at, published_at_source, published_at_confidence = manual_item_published_date(metadata, url)
+    if not clean_text(updated.get("published_at")) and published_at:
+        updated["published_at"] = published_at
+    if published_at_source:
+        reference["published_at_source"] = published_at_source
+        reference["published_at_confidence"] = published_at_confidence
     if metadata.get("image_url") and not clean_text(updated.get("image_url")):
         updated["image_url"] = clean_text(metadata.get("image_url"))
     source_name = clean_text(updated.get("source_name"), 160)
@@ -852,6 +968,12 @@ def apply_manual_item_autofill(
 
     updated["triage"] = evaluate_triage(updated, keyword_config)
     updated["editorial_triage"] = evaluate_editorial_triage(updated, keyword_config, editorial_context)
+    review = dict(updated.get("review") if isinstance(updated.get("review"), dict) else default_review())
+    if not clean_text(review.get("notes")):
+        note = manual_item_notes(updated)
+        if note:
+            review["notes"] = note
+    updated["review"] = review
     if add_tags and not item_tags(updated):
         suggested_tags = suggested_item_tags(updated, existing_items, limit=8)
         if suggested_tags:
@@ -927,6 +1049,7 @@ def build_url_preview(url: str, track: str, title: str = "") -> dict:
     description = clean_text(metadata.get("description") or feed_info.get("description") or metadata.get("excerpt"), 900)
     canonical = clean_text(metadata.get("canonical_url"))
     site_url = clean_text(feed_info.get("site_url") or canonical or final_url)
+    published_at, published_at_source, published_at_confidence = manual_item_published_date(metadata, final_url or url)
     keyword_config = load_json(TRIAGE_KEYWORDS) or {"version": 1, "tracks": {}}
     existing_items = load_jsonl(ITEMS)
     editorial_context = build_editorial_context([*existing_items, *load_jsonl(REJECTED_ITEMS)], keyword_config)
@@ -935,7 +1058,7 @@ def build_url_preview(url: str, track: str, title: str = "") -> dict:
         "url": url,
         "source_name": metadata_source_name(metadata, final_url),
         "author": clean_text(metadata.get("original_author"), 240),
-        "published_at": clean_text(metadata.get("published_at"), 40),
+        "published_at": published_at,
         "summary": description,
         "tags": [],
         "origin": "manual-web",
@@ -972,7 +1095,9 @@ def build_url_preview(url: str, track: str, title: str = "") -> dict:
         "source_name": metadata_source_name(metadata, final_url),
         "site_name": clean_text(metadata.get("site_name"), 160),
         "author": clean_text(metadata.get("original_author"), 240),
-        "published_at": clean_text(metadata.get("published_at"), 40),
+        "published_at": clean_text(preview_record.get("published_at") or published_at, 40),
+        "published_at_source": published_at_source,
+        "published_at_confidence": published_at_confidence,
         "original_language": clean_text(metadata.get("original_language"), 80),
         "is_feed": bool(feed_info),
         "feed_title": clean_text(feed_info.get("feed_title"), 220),
@@ -988,6 +1113,8 @@ def build_url_preview(url: str, track: str, title: str = "") -> dict:
             for choice in track_choices
             if choice["track"] in TRACK_META
         ],
+        "suggested_summary": clean_text(preview_record.get("summary"), 900),
+        "suggested_notes": clean_text((preview_record.get("review") or {}).get("notes"), 1000),
         "suggested_tags": item_tags(preview_record)[:8],
         "triage": preview_record.get("triage") or {},
         "editorial_triage": preview_record.get("editorial_triage") or {},
@@ -2832,6 +2959,23 @@ def tag_key(tag: object) -> str:
     return clean_text(tag, 120).casefold()
 
 
+@lru_cache(maxsize=1)
+def taxonomy_alias_labels() -> dict[str, str]:
+    labels: dict[str, str] = {}
+    for group, aliases in TAG_SYNONYM_GROUPS:
+        formal = clean_text(group, 80)
+        for alias in [formal, *aliases]:
+            key = tag_key(alias)
+            if key:
+                labels.setdefault(key, formal)
+    return labels
+
+
+@lru_cache(maxsize=1)
+def taxonomy_formal_tag_keys() -> set[str]:
+    return {tag_key(group) for group, _aliases in TAG_SYNONYM_GROUPS if tag_key(group)}
+
+
 def tag_group_key(tag: object) -> str:
     key = re.sub(r"[\s/_-]+", "", tag_key(tag))
     if not key:
@@ -2888,6 +3032,20 @@ def taxonomy_primary_tags() -> list[str]:
     return [aliases[0] for _label, aliases in TAG_SYNONYM_GROUPS if aliases]
 
 
+def taxonomy_alias_options() -> list[dict[str, str]]:
+    options: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for group, aliases in TAG_SYNONYM_GROUPS:
+        label = clean_text(group, 80)
+        for alias in [label, *aliases]:
+            key = tag_key(alias)
+            if not key or key in seen:
+                continue
+            options.append({"alias": clean_text(alias, 80), "label": label})
+            seen.add(key)
+    return options
+
+
 def tag_href(tag: object) -> str:
     return href_with_query("/tags", [("tag", clean_text(tag, 120))])
 
@@ -2910,7 +3068,13 @@ def configured_keep_keyword_labels() -> dict[str, str]:
 
 def canonical_tag_label(tag: object) -> str:
     text = clean_text(tag, 80)
-    return configured_keep_keyword_labels().get(tag_key(text), text)
+    key = tag_key(text)
+    return taxonomy_alias_labels().get(key) or configured_keep_keyword_labels().get(key, text)
+
+
+def is_known_tag_label(tag: object) -> bool:
+    key = tag_key(tag)
+    return key in taxonomy_formal_tag_keys() or key in configured_keep_keyword_labels()
 
 
 def item_tags(item: dict) -> list[str]:
@@ -3018,8 +3182,7 @@ def normalized_item_tags(item: dict, limit: int | None = None) -> list[str]:
     for keyword in triage.get("matched_keywords") or []:
         append_item_tag(tags, seen, item, keyword)
     for tag in item_tags(item):
-        key = tag_key(tag)
-        if key not in configured_keep_keyword_labels() and not manual_tags:
+        if not is_known_tag_label(tag) and not manual_tags:
             continue
         append_item_tag(tags, seen, item, tag)
     return tags[:limit] if limit is not None else tags
@@ -3142,32 +3305,54 @@ def tag_counts_for(records: list[dict], *, track: str = "", source_id: str = "")
             if (
                 not is_noisy_tag(tag)
                 and not is_source_like_tag(tag, record)
-                and (key in configured_keep_keyword_labels() or item_has_manual_tags(record))
+                and (is_known_tag_label(tag) or item_has_manual_tags(record))
             ):
                 counts[tag] += 1
     return counts
 
 
+def tag_search_keys(tag: object) -> list[str]:
+    text = clean_text(tag, 80)
+    canonical = canonical_tag_label(text)
+    canonical_key = tag_key(canonical)
+    keys: list[str] = []
+    seen: set[str] = set()
+    for key, label in taxonomy_alias_labels().items():
+        if tag_key(label) == canonical_key and key not in seen:
+            keys.append(key)
+            seen.add(key)
+    direct_key = tag_key(text)
+    if direct_key and direct_key not in seen:
+        keys.append(direct_key)
+        seen.add(direct_key)
+    return keys
+
+
 def tag_matches_haystack(tag: object, haystack: str) -> bool:
-    key = tag_key(tag)
-    if not key:
-        return False
-    if key in configured_keep_keyword_labels():
-        return key in haystack
-    if re.fullmatch(r"[a-z0-9][a-z0-9 &./+-]{0,2}", key):
-        return False
-    return key in haystack
+    for key in tag_search_keys(tag):
+        if key in configured_keep_keyword_labels():
+            if key in haystack:
+                return True
+            continue
+        if re.fullmatch(r"[a-z0-9][a-z0-9 &./+-]{0,2}", key):
+            continue
+        if key in haystack:
+            return True
+    return False
 
 
 def suggested_item_tags(item: dict, records: list[dict], limit: int = TAG_SUGGESTION_LIMIT) -> list[str]:
-    current_keys = {tag_key(tag) for tag in normalized_item_tags(item)}
+    current_keys = {tag_key(tag) for tag in item_tags(item)}
     suggestions: list[str] = []
     seen: set[str] = set(current_keys)
     haystack = item_tag_text_haystack(item)
     triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
 
-    for keyword in triage.get("matched_keywords") or []:
+    for keyword in [*(triage.get("matched_keywords") or []), *(triage.get("mechanism_keywords") or [])]:
         append_item_tag(suggestions, seen, item, keyword)
+    for tag in taxonomy_primary_tags():
+        if tag_matches_haystack(tag, haystack):
+            append_item_tag(suggestions, seen, item, tag)
     for beat in taxonomy_beats(clean_text(item.get("track"))):
         if tag_matches_haystack(beat, haystack):
             append_item_tag(suggestions, seen, item, beat)
@@ -4401,6 +4586,14 @@ FULLTEXT_SIGNAL_RE = re.compile(
 
 def item_has_fulltext_signal(item: dict) -> bool:
     metadata = item_reading_metadata(item)
+    if clean_text(metadata.get("needs_fulltext")).casefold() in {"1", "true", "yes"}:
+        return True
+    if clean_text(metadata.get("preferred_fulltext_url") or metadata.get("fulltext_source_url")):
+        return True
+    if clean_text(metadata.get("access_issue")):
+        return True
+    if clean_text(metadata.get("fulltext_status")) in {"blocked", "needs-manual"}:
+        return True
     haystack = "\n".join(
         [
             clean_text(item.get("title"), 800),
@@ -7845,6 +8038,12 @@ def page(title: str, body: str) -> bytes:
     .filter(Boolean);
 
   const tagKeyClient = (value) => String(value || "").trim().toLocaleLowerCase();
+  const tagAliasOptions = {json.dumps(taxonomy_alias_options(), ensure_ascii=False).replace("<", "\\u003c")};
+  const tagAliasMap = new Map(tagAliasOptions.map((option) => [tagKeyClient(option.alias), option.label]));
+  const canonicalTagClient = (value) => {{
+    const text = String(value || "").trim().replace(/\\s+/g, " ");
+    return tagAliasMap.get(tagKeyClient(text)) || text;
+  }};
   const tagIconHTML = `{action_icon("tag")}`;
 
   const setupTagPicker = (form) => {{
@@ -7865,7 +8064,7 @@ def page(title: str, body: str) -> bytes:
     let autosaveTimer = 0;
     const allOptions = [];
     const addOption = (tag) => {{
-      const label = splitTagInput(tag)[0] || "";
+      const label = canonicalTagClient(splitTagInput(tag)[0] || "");
       if (!label) return;
       const key = tagKeyClient(label);
       if (!key || allOptions.some((option) => tagKeyClient(option) === key)) return;
@@ -7934,10 +8133,11 @@ def page(title: str, body: str) -> bytes:
     const addTag = (value) => {{
       let changed = false;
       splitTagInput(value).forEach((tag) => {{
-        const key = tagKeyClient(tag);
+        const label = canonicalTagClient(tag);
+        const key = tagKeyClient(label);
         if (!key || selected.some((existing) => tagKeyClient(existing) === key)) return;
-        selected.push(tag);
-        addOption(tag);
+        selected.push(label);
+        addOption(label);
         changed = true;
       }});
       if (changed) renderSelected();
@@ -7958,13 +8158,25 @@ def page(title: str, body: str) -> bytes:
       const query = input.value.trim();
       const queryKey = tagKeyClient(query);
       const keys = selectedKeys();
-      const matches = allOptions
-        .filter((tag) => !keys.has(tagKeyClient(tag)))
+      const matches = [];
+      const seenMatches = new Set();
+      const pushMatch = (tag, label = tag, create = false) => {{
+        const key = tagKeyClient(tag);
+        if (!key || keys.has(key) || seenMatches.has(key)) return;
+        matches.push({{tag, label, create}});
+        seenMatches.add(key);
+      }};
+      allOptions
         .filter((tag) => !queryKey || tagKeyClient(tag).includes(queryKey))
-        .slice(0, 8)
-        .map((tag) => ({{tag, label: tag, create: false}}));
-      if (queryKey && !keys.has(queryKey) && !allOptions.some((tag) => tagKeyClient(tag) === queryKey)) {{
-        matches.unshift({{tag: query, label: `新增「${{query}}」`, create: true}});
+        .forEach((tag) => pushMatch(tag));
+      if (queryKey) {{
+        tagAliasOptions
+          .filter((option) => tagKeyClient(option.alias).includes(queryKey) || tagKeyClient(option.label).includes(queryKey))
+          .forEach((option) => pushMatch(option.label));
+      }}
+      const canonicalQuery = canonicalTagClient(query);
+      if (queryKey && !keys.has(tagKeyClient(canonicalQuery)) && !allOptions.some((tag) => tagKeyClient(tag) === tagKeyClient(canonicalQuery))) {{
+        matches.unshift({{tag: canonicalQuery, label: `新增「${{canonicalQuery}}」`, create: true}});
       }}
       return matches.slice(0, 8);
     }};
@@ -8282,21 +8494,42 @@ def page(title: str, body: str) -> bytes:
     const status = form.querySelector("[data-preview-status]");
     const title = payload.feed_title || payload.title || payload.source_name || payload.final_url || payload.url;
     const description = payload.description || payload.excerpt || "";
+    const suggestedSummary = payload.suggested_summary || description;
+    const suggestedNotes = payload.suggested_notes || "";
     if (status) {{
       const parts = [];
       if (payload.is_feed) parts.push(`${{payload.feed_type || "RSS"}}，${{payload.entry_count || 0}} 則`);
       if (payload.final_url && payload.final_url !== payload.url) parts.push("已帶入跳轉後網址");
       if (kind === "item" && payload.suggested_track_label) parts.push(`主線：${{payload.suggested_track_label}}`);
+      if (kind === "item" && payload.published_at) parts.push(`日期：${{payload.published_at}}`);
+      if (kind === "item" && suggestedSummary) parts.push("摘要已建議");
+      if (kind === "item" && suggestedNotes) parts.push("備註已建議");
       if (kind === "item" && payload.suggested_tags?.length) parts.push(`標籤：${{payload.suggested_tags.length}} 個`);
       status.textContent = parts.length ? `抓到了：${{parts.join("；")}}。` : "已抓到頁面資訊。";
     }}
     if (result) {{
+      const dateSource = payload.published_at
+        ? `<p class="help">發布日期：${{escapeHTML(payload.published_at)}}${{payload.published_at_source ? `（${{escapeHTML(payload.published_at_source)}}）` : ""}}</p>`
+        : "";
+      const tagHTML = (payload.suggested_tags || [])
+        .map((tag) => `<span class="badge badge--neutral">${{escapeHTML(tag)}}</span>`)
+        .join("");
+      const itemHints = kind === "item"
+        ? `<div>
+            <strong>準備帶入</strong>
+            ${{dateSource}}
+            ${{suggestedSummary ? `<p>${{escapeHTML(suggestedSummary)}}</p>` : ""}}
+            ${{tagHTML ? `<p>${{tagHTML}}</p>` : ""}}
+            ${{suggestedNotes ? `<p class="help">${{escapeHTML(suggestedNotes)}}</p>` : ""}}
+          </div>`
+        : "";
       result.innerHTML = `
         <div>
           <h3>${{escapeHTML(title)}}</h3>
           <p class="help break-anywhere">${{escapeHTML(payload.final_url || payload.url || "")}}</p>
           ${{description ? `<p>${{escapeHTML(description)}}</p>` : ""}}
         </div>
+        ${{itemHints}}
         <div>
           <strong>RSS 建議</strong>
           ${{feedSuggestionHTML(payload.feed_suggestions || [])}}
@@ -8318,7 +8551,8 @@ def page(title: str, body: str) -> bytes:
       }}
       setIfEmpty(form.querySelector("[data-preview-title]"), payload.title || payload.feed_title);
       setIfEmpty(form.querySelector("[data-preview-source-name]"), payload.source_name);
-      setIfEmpty(form.querySelector("[data-preview-summary]"), description);
+      setIfEmpty(form.querySelector("[data-preview-summary]"), suggestedSummary);
+      setIfEmpty(form.querySelector("[data-preview-notes]"), suggestedNotes);
       setIfEmpty(form.querySelector("[data-preview-published-at]"), payload.published_at);
       setValue(form.querySelector("[data-preview-author]"), payload.author);
       setValue(form.querySelector("[data-preview-image-url]"), payload.image_url);
@@ -10314,6 +10548,8 @@ class Handler(BaseHTTPRequestHandler):
         instructions = form_value(data, "instructions")
         writing_style = form_value(data, "writing_style")
         rerun_of = form_value(data, "rerun_of")
+        viewpoint_ids = form_value(data, "viewpoint_ids")
+        vp_explicit = form_value(data, "vp_explicit") == "1"
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
 
         ids = [x for x in re.split(r"[\s,]+", items_raw) if x]
@@ -10350,6 +10586,8 @@ class Handler(BaseHTTPRequestHandler):
             command += ["--writing-style", writing_style]
         if rerun_of:
             command += ["--rerun-of", rerun_of]
+        if vp_explicit:
+            command += ["--viewpoint-ids", viewpoint_ids, "--vp-explicit"]
         try:
             result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800)
             ok = result.returncode == 0
@@ -10556,15 +10794,23 @@ class Handler(BaseHTTPRequestHandler):
             f'<p data-toolbox-hint="{h(k)}" class="editor-hint"{"" if k == toolbox_default_task else " hidden"}>{h(v)}</p>'
             for k, v in EDITOR_TASK_HINTS.items()
         )
-        # C6：列出本 session 材料（可取消勾選排除），並提供搜尋加入新材料
+        # C6：列出本 session 材料（可取消勾選排除、↑↓ 重排、搜尋加入新材料）。
+        # 材料順序＝撰稿時段落取材順序，所以提供上下排列。
+        move_btns = (
+            '<span class="toolbox-move">'
+            '<button type="button" class="button button-small quiet" data-move-row="up" aria-label="上移">↑</button>'
+            '<button type="button" class="button button-small quiet" data-move-row="down" aria-label="下移">↓</button>'
+            '</span>'
+        )
         session_item_ids = [clean_text(i) for i in (session.get("item_ids") or []) if clean_text(i)]
         session_titles = session.get("item_titles") or []
         toolbox_mat_rows = ""
         for idx, mid in enumerate(session_item_ids):
             title = clean_text(session_titles[idx]) if idx < len(session_titles) else mid
             toolbox_mat_rows += (
-                f'<label class="toolbox-mat"><input type="checkbox" class="toolbox-mat-box" value="{h(mid)}" checked>'
-                f'<span>{h(title)}</span></label>'
+                f'<div class="toolbox-mat">{move_btns}'
+                f'<label><input type="checkbox" class="toolbox-mat-box" value="{h(mid)}" checked> <span>{h(title)}</span></label>'
+                "</div>"
             )
         if not toolbox_mat_rows:
             toolbox_mat_rows = '<p class="muted">這個 session 沒有記錄材料；用下方搜尋加入。</p>'
@@ -10575,6 +10821,27 @@ class Handler(BaseHTTPRequestHandler):
             if is_skill_candidate(r) and clean_text(r.get("id")) not in _seen_session_ids
         ]
         toolbox_mat_pool_json = json.dumps(toolbox_mat_pool[:400], ensure_ascii=False).replace("<", "\\u003c")
+        # 觀點順序（可 ↑↓ 重排、勾選）＝撰稿時觀點段落順序。列出與本組材料相關的觀點。
+        _all_vps = load_jsonl(VIEWPOINTS)
+        _suggested_vp = clean_text(session.get("suggested_viewpoint_id"))
+        relevant_vps = []
+        for vp in _all_vps:
+            rel = {clean_text(x) for x in (vp.get("related_item_ids") or [])}
+            if (rel & _seen_session_ids) or clean_text(vp.get("id")) == _suggested_vp:
+                relevant_vps.append(vp)
+        toolbox_vp_rows = ""
+        for vp in relevant_vps:
+            vid = clean_text(vp.get("id"))
+            vtitle = clean_text(vp.get("title")) or vid
+            vbody = clean_text(vp.get("body"), 240)
+            toolbox_vp_rows += (
+                f'<div class="toolbox-mat">{move_btns}'
+                f'<label><input type="checkbox" class="toolbox-vp-box" value="{h(vid)}" checked> '
+                f'<span title="{h(vbody)}">{h(vtitle)}</span></label>'
+                "</div>"
+            )
+        if not toolbox_vp_rows:
+            toolbox_vp_rows = '<p class="muted">這組材料目前沒有相關觀點。可在下方「可加入觀點庫」先建立。</p>'
         toolbox_panel = f"""
 <details class="card editor-session-toolbox" open>
   <summary><h2>工具箱</h2><span class="help-dot" title="用同一組材料改跑其他寫法、其他任務，或換另一個 AI。可取消勾選排除材料、搜尋加入新材料。">?</span></summary>
@@ -10600,10 +10867,14 @@ class Handler(BaseHTTPRequestHandler):
     <label class="editor-label">撰文風格 <a class="editor-style-link" href="/writing-styles" target="_blank">（管理 / 看風格檔）</a>
       <select name="writing_style" class="editor-select">{writing_style_options_html(clean_text(session.get("writing_style")))}</select>
     </label>
-    <div class="editor-label">材料（取消勾選＝這次不用；搜尋可加入新材料）</div>
+    <div class="editor-label">材料（取消勾選＝這次不用；↑↓ 排順序＝撰稿取材順序；搜尋可加入）</div>
     <div class="toolbox-materials" id="toolbox-materials">{toolbox_mat_rows}</div>
     <div class="article-search-row"><input type="search" id="toolbox-mat-search" placeholder="搜尋可用材料標題加入這次"></div>
     <div class="toolbox-mat-results" id="toolbox-mat-results"></div>
+    <div class="editor-label">觀點（取消勾選＝這次不帶；↑↓ 排順序＝撰稿時觀點段落順序）</div>
+    <input type="hidden" name="vp_explicit" value="1">
+    <input type="hidden" name="viewpoint_ids" value="">
+    <div class="toolbox-materials" id="toolbox-viewpoints">{toolbox_vp_rows}</div>
     <label class="editor-label">這次額外指示
       <textarea name="instructions" rows="2" placeholder="例如：換成較短的彙報式，或改用另一個觀點切入"></textarea>
     </label>
@@ -10615,18 +10886,36 @@ class Handler(BaseHTTPRequestHandler):
   var form = document.querySelector('[data-toolbox-form]');
   if (!form) return;
   var itemsHidden = form.querySelector('input[name=items]');
+  var vpHidden = form.querySelector('input[name=viewpoint_ids]');
   var matWrap = document.getElementById('toolbox-materials');
-  function syncItems() {{
-    var ids = Array.prototype.slice.call(matWrap.querySelectorAll('.toolbox-mat-box'))
+  var vpWrap = document.getElementById('toolbox-viewpoints');
+  function collect(wrap, boxClass) {{
+    return Array.prototype.slice.call(wrap.querySelectorAll('.' + boxClass))
       .filter(function(b) {{ return b.checked; }}).map(function(b) {{ return b.value; }});
-    itemsHidden.value = ids.join(',');
   }}
+  function syncItems() {{ if (matWrap && itemsHidden) itemsHidden.value = collect(matWrap, 'toolbox-mat-box').join(','); }}
+  function syncViewpoints() {{ if (vpWrap && vpHidden) vpHidden.value = collect(vpWrap, 'toolbox-vp-box').join(','); }}
   if (matWrap) {{ matWrap.addEventListener('change', syncItems); syncItems(); }}
+  if (vpWrap) {{ vpWrap.addEventListener('change', syncViewpoints); syncViewpoints(); }}
+  // ↑↓ 重排：移動該列在容器內的位置，再重新同步順序
+  form.addEventListener('click', function(e) {{
+    var mv = e.target.closest('[data-move-row]'); if (!mv) return;
+    e.preventDefault();
+    var row = mv.closest('.toolbox-mat'); if (!row) return;
+    var wrap = row.parentNode;
+    if (mv.getAttribute('data-move-row') === 'up') {{
+      if (row.previousElementSibling) wrap.insertBefore(row, row.previousElementSibling);
+    }} else if (row.nextElementSibling) {{
+      wrap.insertBefore(row.nextElementSibling, row);
+    }}
+    if (wrap === matWrap) syncItems(); else if (wrap === vpWrap) syncViewpoints();
+  }});
   var taskSel = form.querySelector('[data-toolbox-task]');
   if (taskSel) taskSel.addEventListener('change', function() {{
     form.querySelectorAll('[data-toolbox-hint]').forEach(function(p) {{ p.hidden = p.getAttribute('data-toolbox-hint') !== taskSel.value; }});
   }});
   function esc(s) {{ return (s || '').replace(/[&<>\"]/g, function(c) {{ return {{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}}[c]; }}); }}
+  var moveBtns = '<span class="toolbox-move"><button type="button" class="button button-small quiet" data-move-row="up" aria-label="上移">↑</button><button type="button" class="button button-small quiet" data-move-row="down" aria-label="下移">↓</button></span>';
   var pool = {toolbox_mat_pool_json};
   var search = document.getElementById('toolbox-mat-search');
   var results = document.getElementById('toolbox-mat-results');
@@ -10643,9 +10932,9 @@ class Handler(BaseHTTPRequestHandler):
     var btn = e.target.closest('[data-add-mat]'); if (!btn) return;
     var id = btn.getAttribute('data-add-mat');
     var m = pool.filter(function(x) {{ return x.id === id; }})[0]; if (!m) return;
-    var label = document.createElement('label'); label.className = 'toolbox-mat';
-    label.innerHTML = '<input type="checkbox" class="toolbox-mat-box" value="' + esc(id) + '" checked> <span>' + esc(m.title) + '</span>';
-    matWrap.appendChild(label); syncItems(); search.value = ''; results.innerHTML = '';
+    var row = document.createElement('div'); row.className = 'toolbox-mat';
+    row.innerHTML = moveBtns + '<label><input type="checkbox" class="toolbox-mat-box" value="' + esc(id) + '" checked> <span>' + esc(m.title) + '</span></label>';
+    matWrap.appendChild(row); syncItems(); search.value = ''; results.innerHTML = '';
   }});
 }})();
 </script>
@@ -10786,8 +11075,11 @@ class Handler(BaseHTTPRequestHandler):
   .editor-instruction-trail li {{ margin:8px 0; }}
   .editor-instruction-trail p {{ margin:4px 0 0; }}
   .toolbox-materials {{ display:grid; gap:4px; max-height:32vh; overflow:auto; margin:4px 0 8px; padding-right:2px; }}
-  .toolbox-mat {{ display:flex; gap:8px; align-items:baseline; font-size:13px; padding:5px 8px; border:1px solid var(--border,#e2e8f0); border-radius:8px; background:#fff; }}
+  .toolbox-mat {{ display:flex; gap:8px; align-items:center; font-size:13px; padding:4px 8px; border:1px solid var(--border,#e2e8f0); border-radius:8px; background:#fff; }}
+  .toolbox-mat label {{ display:flex; gap:6px; align-items:baseline; min-width:0; flex:1 1 auto; cursor:pointer; margin:0; font-weight:400; }}
   .toolbox-mat span {{ min-width:0; word-break:break-word; }}
+  .toolbox-move {{ display:inline-flex; gap:2px; flex:0 0 auto; }}
+  .toolbox-move button {{ margin:0; padding:2px 7px; min-width:0; line-height:1.1; }}
   .toolbox-mat-results {{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }}
   .editor-toolbox-grid {{ display:flex; flex-direction:column; gap:0; }}
   .editor-vp-candidates {{ display:flex; flex-direction:column; gap:8px; margin:8px 0; }}
@@ -14491,13 +14783,25 @@ if (document.readyState === "loading") {{
             )
         fulltext_panel = ""
         if item_has_fulltext_signal(item) and not is_rss_candidate:
+            suggested_fulltext_url = clean_text(
+                article_meta.get("fulltext_source_url")
+                or article_meta.get("preferred_fulltext_url")
+                or item.get("url")
+            )
+            fulltext_issue = clean_text(article_meta.get("fulltext_note") or article_meta.get("access_issue_note"), 500)
+            fulltext_issue_html = (
+                f'<div class="notice">這篇需要補全文：{h(fulltext_issue)}</div>'
+                if fulltext_issue
+                else ""
+            )
             fulltext_panel = f"""
   <details class="card">
     <summary><h2>補全文 <span class="help-dot" title="這篇材料出現「全文 / full text」線索時，從這裡補上你已找到的完整來源。">?</span></h2></summary>
+    {fulltext_issue_html}
     <form method="post" action="/items/fulltext-link">
       <input type="hidden" name="id" value="{h(item_id)}">
       <label>貼全文連結</label>
-      <input name="url" type="url" placeholder="https://..." required>
+      <input name="url" type="url" value="{h(suggested_fulltext_url)}" placeholder="https://..." required>
       <button type="submit" class="button button-small">抓取這個全文連結</button>
     </form>
     <form method="post" action="/items/fulltext-text">
@@ -17100,7 +17404,7 @@ if (document.readyState === "loading") {{
   {tag_controls}
   <p class="help">和單篇頁同一套：輸入別名（OS、open source、OD…）會對到正式標籤；下方依分面有建議。</p>
   <label>備註 / 為什麼值得追</label>
-  <textarea name="notes"></textarea>
+  <textarea name="notes" data-preview-notes></textarea>
   <p class="help">寫給未來的自己看：這則資料可能放進哪個議題、有哪些疑問。</p>
   <button type="submit">把這頁存進待整理</button>
   <p class="help">送出後會寫進 database/items.jsonl，狀態是 inbox，還不會自動發布。</p>

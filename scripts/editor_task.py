@@ -233,10 +233,17 @@ def personal_note_text(record: dict[str, Any]) -> str:
     return clean_text(notes)
 
 
-def gather_viewpoints(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """觀點語料 = database/viewpoints.jsonl（使用者寫的優先）+ 所選材料的 personal_notes。"""
+def gather_viewpoints(records: list[dict[str, Any]], ordered_ids: list[str] | None = None) -> list[dict[str, Any]]:
+    """觀點語料 = database/viewpoints.jsonl（使用者寫的優先）+ 所選材料的 personal_notes。
+    ordered_ids 非 None 時，只採用這些觀點並照其順序（編輯台再跑工具箱可 ↑↓ 排序、勾選）；
+    None 則用全部（向後相容）。personal_notes 一律附在後面。"""
     out: list[dict[str, Any]] = []
-    for vp in load_jsonl(VIEWPOINTS):
+    vp_by_id = {clean_text(vp.get("id")): vp for vp in load_jsonl(VIEWPOINTS)}
+    if ordered_ids is not None:
+        source_vps = [vp_by_id[i] for i in ordered_ids if i in vp_by_id]
+    else:
+        source_vps = list(vp_by_id.values())
+    for vp in source_vps:
         body = clean_text(vp.get("body"), 1200)
         if not body:
             continue
@@ -752,6 +759,8 @@ def main() -> None:
     parser.add_argument("--instructions", default="")
     parser.add_argument("--writing-style", default="", help="knowledge/writing-styles 下的風格檔名（不含 .md）")
     parser.add_argument("--rerun-of", default="", help="這次是從哪個 session 用同組材料再跑的")
+    parser.add_argument("--viewpoint-ids", default="", help="逗號分隔、已排序的觀點 id（撰稿段落順序依此）")
+    parser.add_argument("--vp-explicit", action="store_true", help="有帶這個就用 --viewpoint-ids 指定的觀點集合（空＝不帶觀點），否則用全部")
     parser.add_argument("--session-id", default="")
     parser.add_argument("--timeout", type=int, default=1500)
     parser.add_argument("--dry-run", action="store_true")
@@ -771,8 +780,13 @@ def main() -> None:
             materials = [newsletter_material_block(r) for r in records]
         else:
             materials = [material_block(r) for r in records]
+        ordered_vp_ids = (
+            [s for s in (p.strip() for p in args.viewpoint_ids.split(",")) if s]
+            if args.vp_explicit
+            else None
+        )
         viewpoints = (
-            gather_viewpoints(records)
+            gather_viewpoints(records, ordered_vp_ids)
             if args.task_type in {"theme-check", "compose-thematic", "compose-digest", "newsletter-extract"}
             else []
         )
@@ -825,6 +839,7 @@ def main() -> None:
             "instructions": args.instructions,
             "writing_style": args.writing_style,
             "rerun_of": args.rerun_of,
+            "viewpoint_ids": (ordered_vp_ids or []) if args.vp_explicit else [],
             "item_ids": [clean_text(r.get("id")) for r in records],
             "item_titles": [record_title(r) for r in records],
             "used_translation": [m["id"] for m in materials if m["body_kind"] == "translated_full"],

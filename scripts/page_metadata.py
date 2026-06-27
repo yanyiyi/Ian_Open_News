@@ -343,8 +343,8 @@ def normalize_published_date(value: object) -> str:
 def published_date_from_url(url: str) -> str:
     path = urlparse(url).path
     for pattern in [
-        r"(?:^|/)(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:/|$|[-_])",
-        r"(?:^|/)(\d{4})(\d{2})(\d{2})(?:/|$|[-_])",
+        r"(?:^|[/-])(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:/|$|[-_])",
+        r"(?:^|[/-])(\d{4})(\d{2})(\d{2})(?:/|$|[-_])",
     ]:
         match = re.search(pattern, path)
         if not match:
@@ -592,34 +592,102 @@ def extract_article_text(html_text: str, limit: int = 30000) -> tuple[str, str]:
     return clean_text("\n\n".join(paragraphs), limit), "all-paragraphs"
 
 
-def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) -> dict[str, str]:
-    url = unwrap_google_alert_url(url)
+def arxiv_html_url(source_url: str, final_url: str, html_text: str) -> str:
+    parsed = urlparse(final_url or source_url)
+    if parsed.netloc.casefold() != "arxiv.org":
+        return ""
+    if parsed.path.startswith("/html/"):
+        return ""
+    match = re.match(r"^/abs/(?P<paper_id>[^/?#]+)", parsed.path)
+    if not match:
+        return ""
+    paper_id = clean_text(match.group("paper_id"), 80)
+    og_url = first_meta(html_text, "og:url")
+    og_match = re.search(r"arxiv\.org/abs/(?P<paper_id>\d{4}\.\d{4,5}(?:v\d+)?)", og_url)
+    if og_match:
+        paper_id = og_match.group("paper_id")
+    if re.fullmatch(r"\d{4}\.\d{4,5}(?:v\d+)?", paper_id):
+        return f"https://arxiv.org/html/{paper_id}"
+    return ""
 
-    def fetch_with_headers(headers: dict[str, str]) -> tuple[str, str, bytes]:
-        request = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return (
-                response.geturl(),
-                response.headers.get("content-type", ""),
-                response.read(max_bytes),
-            )
 
-    default_headers = {
-        "User-Agent": DEFAULT_USER_AGENT,
-        "Accept": PAGE_ACCEPT_HEADER,
-    }
-    try:
-        final_url, content_type, raw = fetch_with_headers(default_headers)
-    except urllib.error.HTTPError as exc:
-        if exc.code not in {403, 406}:
-            raise
-        final_url, content_type, raw = fetch_with_headers(
-            {
-                "User-Agent": BROWSER_FALLBACK_USER_AGENT,
-                "Accept": PAGE_ACCEPT_HEADER,
-                "Accept-Language": "en-US,en;q=0.9",
-            }
-        )
+def openbook_fulltext_html_url(final_url: str, html_text: str) -> str:
+    parsed = urlparse(final_url)
+    if "openbookpublishers.com" not in parsed.netloc.casefold():
+        return ""
+    for key in ["citation_fulltext_html_url", "citation_html_url", "dc.relation.isformatof"]:
+        candidate = first_meta(html_text, key)
+        if candidate and re.search(r"\.(?:xhtml|html?)(?:$|[?#])", candidate, flags=re.I):
+            url = urljoin(final_url, candidate)
+            parsed_candidate = urlparse(url)
+            if parsed_candidate.netloc.casefold() == "books.openbookpublishers.com":
+                parsed_candidate = parsed_candidate._replace(scheme="https")
+                return parsed_candidate.geturl()
+            return url
+    return ""
+
+
+def preferred_fulltext_url(source_url: str, final_url: str, html_text: str) -> tuple[str, str]:
+    for method, candidate in [
+        ("arxiv-html", arxiv_html_url(source_url, final_url, html_text)),
+        ("citation-fulltext-html", openbook_fulltext_html_url(final_url, html_text)),
+    ]:
+        if candidate and candidate.rstrip("/") != (final_url or source_url).rstrip("/"):
+            return candidate, method
+    return "", ""
+
+
+def response_access_issue(
+    html_text: str,
+    headers: object,
+    status_code: int,
+    article_chars: int = 0,
+) -> tuple[str, str]:
+    lower = clean_text(html_text, 4000).casefold()
+    header_lookup = {}
+    if hasattr(headers, "items"):
+        header_lookup = {str(key).casefold(): str(value) for key, value in headers.items()}
+    if header_lookup.get("x-amzn-waf-action", "").casefold() == "challenge":
+        return "aws-waf-challenge", "網站回 CloudFront / AWS WAF challenge，需要用瀏覽器或手動方式補全文。"
+    if header_lookup.get("cf-mitigated", "").casefold() == "challenge":
+        return "cloudflare-challenge", "網站回 Cloudflare challenge，需要用瀏覽器、cookie 或手動方式補全文。"
+    if "just a moment" in lower and "enable javascript and cookies to continue" in lower:
+        return "cloudflare-challenge", "網站要求 JavaScript 與 cookies，這次無法由本機直接抓全文。"
+    if status_code in {401, 402, 403} and re.search(r"\b(sign in|log in|login|subscribe|subscription|register)\b", lower):
+        return "login-or-subscription", "網站看起來需要登入或訂閱才能讀完整內容。"
+    if article_chars < 500 and re.search(
+        r"(sign in|log in|login|subscribe to continue|subscription required|register for free|continue reading|"
+        r"create an account|登入|訂閱|註冊|會員)",
+        lower,
+        flags=re.I,
+    ):
+        return "login-or-subscription", "頁面疑似只給登入/訂閱提示，沒有抓到完整主文。"
+    return "", ""
+
+
+def apply_access_issue(metadata: dict[str, str], issue: str, note: str) -> None:
+    if not issue:
+        return
+    metadata.update(
+        {
+            "status": "blocked",
+            "access_issue": issue,
+            "access_issue_note": note,
+            "needs_fulltext": "true",
+            "fulltext_status": "needs-manual",
+            "fulltext_note": note,
+        }
+    )
+
+
+def metadata_from_response(
+    requested_url: str,
+    final_url: str,
+    content_type: str,
+    raw: bytes,
+    response_headers: object,
+    status_code: int,
+) -> dict[str, str]:
     charset_match = re.search(r"charset=([\w.-]+)", content_type, flags=re.I)
     charset = charset_match.group(1) if charset_match else "utf-8"
     html_text = raw.decode(charset, errors="replace")
@@ -635,7 +703,7 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
     language, language_source = html_language(html_text, "\n".join([title, description, excerpt]))
     metadata = {
         "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "source_url": url,
+        "source_url": requested_url,
         "final_url": final_url,
         "title": title,
         "original_site_title": title,
@@ -663,6 +731,11 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
         metadata["original_license_url"] = license_url
     article_text, article_method = extract_article_text(html_text)
     article_markdown, article_markdown_method = extract_article_markdown(html_text, final_url=final_url, title=title)
+    article_chars = max(len(article_text), len(article_markdown))
+    issue, issue_note = response_access_issue(html_text, response_headers, status_code, article_chars)
+    if not issue and urlparse(final_url).netloc.casefold() == "books.openbookpublishers.com" and status_code in {202, 405}:
+        issue = "openbook-fulltext-blocked"
+        issue_note = "Open Book Publishers 的 HTML 全文頁拒絕本機抓取，需要用瀏覽器或手動貼文補全文。"
     if not language:
         language = infer_language_from_text(article_text or article_markdown or "\n".join([title, description, excerpt]))
         if language:
@@ -688,6 +761,141 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
                 "article_markdown_label": "Markdown 閱讀版",
             }
         )
+    apply_access_issue(metadata, issue, issue_note)
+    return metadata
+
+
+def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) -> dict[str, str]:
+    url = unwrap_google_alert_url(url)
+
+    def fetch_with_headers(target_url: str, headers: dict[str, str]) -> tuple[str, str, bytes, object, int]:
+        request = urllib.request.Request(target_url, headers=headers)
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            response_status = getattr(response, "status", None)
+            if response_status is None and hasattr(response, "getcode"):
+                response_status = response.getcode()
+            return (
+                response.geturl(),
+                response.headers.get("content-type", ""),
+                response.read(max_bytes),
+                response.headers,
+                int(response_status or 200),
+            )
+
+    default_headers = {
+        "User-Agent": DEFAULT_USER_AGENT,
+        "Accept": PAGE_ACCEPT_HEADER,
+    }
+    browser_headers = {
+        "User-Agent": BROWSER_FALLBACK_USER_AGENT,
+        "Accept": PAGE_ACCEPT_HEADER,
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+    try:
+        final_url, content_type, raw, response_headers, status_code = fetch_with_headers(url, default_headers)
+    except urllib.error.HTTPError as exc:
+        if exc.code not in {403, 406}:
+            raw = exc.read(max_bytes)
+            metadata = metadata_from_response(
+                url,
+                getattr(exc, "url", url) or url,
+                exc.headers.get("content-type", "") if exc.headers else "",
+                raw,
+                exc.headers or {},
+                exc.code,
+            )
+            if metadata.get("access_issue"):
+                return metadata
+            raise
+        try:
+            final_url, content_type, raw, response_headers, status_code = fetch_with_headers(url, browser_headers)
+        except urllib.error.HTTPError as fallback_exc:
+            raw = fallback_exc.read(max_bytes)
+            metadata = metadata_from_response(
+                url,
+                getattr(fallback_exc, "url", url) or url,
+                fallback_exc.headers.get("content-type", "") if fallback_exc.headers else "",
+                raw,
+                fallback_exc.headers or {},
+                fallback_exc.code,
+            )
+            if metadata.get("access_issue"):
+                return metadata
+            raise
+
+    metadata = metadata_from_response(url, final_url, content_type, raw, response_headers, status_code)
+    charset_match = re.search(r"charset=([\w.-]+)", content_type, flags=re.I)
+    charset = charset_match.group(1) if charset_match else "utf-8"
+    html_text = raw.decode(charset, errors="replace")
+    fulltext_url, fulltext_method = preferred_fulltext_url(url, final_url, html_text)
+    if not fulltext_url:
+        return metadata
+
+    metadata["preferred_fulltext_url"] = fulltext_url
+    metadata["preferred_fulltext_url_source"] = fulltext_method
+    try:
+        target_final_url, target_content_type, target_raw, target_headers, target_status = fetch_with_headers(fulltext_url, default_headers)
+    except urllib.error.HTTPError as exc:
+        target_raw = exc.read(max_bytes)
+        target_metadata = metadata_from_response(
+            fulltext_url,
+            getattr(exc, "url", fulltext_url) or fulltext_url,
+            exc.headers.get("content-type", "") if exc.headers else "",
+            target_raw,
+            exc.headers or {},
+            exc.code,
+        )
+        if target_metadata.get("access_issue"):
+            metadata.update(
+                {
+                    "fulltext_source_url": fulltext_url,
+                    "fulltext_source_method": fulltext_method,
+                    "fulltext_status": "blocked",
+                    "fulltext_note": target_metadata.get("access_issue_note", "全文頁無法直接抓取。"),
+                    "needs_fulltext": "true",
+                    "access_issue": target_metadata.get("access_issue", ""),
+                    "access_issue_note": target_metadata.get("access_issue_note", ""),
+                }
+            )
+            return metadata
+        metadata.update(
+            {
+                "fulltext_source_url": fulltext_url,
+                "fulltext_source_method": fulltext_method,
+                "fulltext_status": "fetch-error",
+                "fulltext_note": str(exc),
+                "needs_fulltext": "true",
+            }
+        )
+        return metadata
+    target_metadata = metadata_from_response(fulltext_url, target_final_url, target_content_type, target_raw, target_headers, target_status)
+    if target_metadata.get("access_issue"):
+        metadata.update(
+            {
+                "fulltext_source_url": fulltext_url,
+                "fulltext_source_method": fulltext_method,
+                "fulltext_status": "blocked",
+                "fulltext_note": target_metadata.get("access_issue_note", "全文頁無法直接抓取。"),
+                "needs_fulltext": "true",
+                "access_issue": target_metadata.get("access_issue", ""),
+                "access_issue_note": target_metadata.get("access_issue_note", ""),
+            }
+        )
+        return metadata
+    if int(target_metadata.get("article_markdown_chars") or 0) > int(metadata.get("article_markdown_chars") or 0):
+        merged = {**metadata, **target_metadata}
+        merged.update(
+            {
+                "landing_url": final_url,
+                "preferred_fulltext_url": fulltext_url,
+                "preferred_fulltext_url_source": fulltext_method,
+                "fulltext_source": "preferred-html",
+                "fulltext_source_url": target_metadata.get("final_url") or fulltext_url,
+                "fulltext_source_method": fulltext_method,
+                "fulltext_status": "ok",
+            }
+        )
+        return merged
     return metadata
 
 
@@ -795,4 +1003,7 @@ def enrich_item_metadata(
     ):
         updated["summary"] = metadata["description"]
     updated, completion_changed = complete_item_metadata(updated)
-    return updated, updated != item or completion_changed, ""
+    error = ""
+    if metadata.get("access_issue") and not clean_text(metadata.get("article_markdown") or metadata.get("article_text")):
+        error = clean_text(metadata.get("access_issue_note"), 400) or "需要人工補全文。"
+    return updated, updated != item or completion_changed, error

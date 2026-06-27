@@ -94,6 +94,140 @@ class ReadingMetadataRulesTest(unittest.TestCase):
         self.assertEqual(metadata["published_at"], "2026-06-25")
         self.assertEqual(metadata["published_at_source"], "article:published_time")
 
+    def test_published_date_from_url_handles_slug_suffix_date(self) -> None:
+        self.assertEqual(
+            page_metadata.published_date_from_url(
+                "https://www.reuters.com/world/china/story-title-2026-06-25/"
+            ),
+            "2026-06-25",
+        )
+
+    def test_arxiv_abs_prefers_experimental_html_fulltext(self) -> None:
+        long_body = " ".join(["This full text paragraph is long enough for extraction."] * 18)
+
+        class AbsResponse:
+            headers = {"content-type": "text/html; charset=utf-8"}
+
+            def __enter__(self) -> "AbsResponse":
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+            def geturl(self) -> str:
+                return "https://arxiv.org/abs/2606.09648"
+
+            def read(self, _max_bytes: int) -> bytes:
+                return b"""
+                <html lang="en">
+                  <head>
+                    <meta property="og:url" content="https://arxiv.org/abs/2606.09648v1">
+                    <title>ArtiFact</title>
+                  </head>
+                  <body><main><p>Short abstract only.</p></main></body>
+                </html>
+                """
+
+        class HtmlResponse:
+            headers = {"content-type": "text/html; charset=utf-8"}
+
+            def __enter__(self) -> "HtmlResponse":
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+            def geturl(self) -> str:
+                return "https://arxiv.org/html/2606.09648v1"
+
+            def read(self, _max_bytes: int) -> bytes:
+                return f"""
+                <html lang="en">
+                  <head><title>ArtiFact</title></head>
+                  <body><article><p>{long_body}</p></article></body>
+                </html>
+                """.encode()
+
+        with patch.object(page_metadata.urllib.request, "urlopen", side_effect=[AbsResponse(), HtmlResponse()]):
+            metadata = page_metadata.fetch_page_metadata("https://arxiv.org/abs/2606.09648")
+
+        self.assertEqual(metadata["final_url"], "https://arxiv.org/html/2606.09648v1")
+        self.assertEqual(metadata["landing_url"], "https://arxiv.org/abs/2606.09648")
+        self.assertEqual(metadata["fulltext_source"], "preferred-html")
+        self.assertGreater(metadata["article_markdown_chars"], 500)
+
+    def test_openbook_landing_records_blocked_html_fulltext_url(self) -> None:
+        class LandingResponse:
+            headers = {"content-type": "text/html; charset=utf-8"}
+
+            def __enter__(self) -> "LandingResponse":
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+            def geturl(self) -> str:
+                return "https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.02"
+
+            def read(self, _max_bytes: int) -> bytes:
+                return b"""
+                <html lang="en">
+                  <head>
+                    <title>Open Book chapter</title>
+                    <meta name="citation_fulltext_html_url" content="http://books.openbookpublishers.com/10.11647/obp.0528/ch2.xhtml">
+                    <meta name="description" content="Chapter landing page">
+                  </head>
+                  <body><main><p>Landing page summary.</p></main></body>
+                </html>
+                """
+
+        class ChallengeResponse:
+            headers = {
+                "content-type": "text/html; charset=UTF-8",
+                "x-amzn-waf-action": "challenge",
+            }
+            status = 202
+
+            def __enter__(self) -> "ChallengeResponse":
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+            def geturl(self) -> str:
+                return "https://books.openbookpublishers.com/10.11647/obp.0528/ch2.xhtml"
+
+            def read(self, _max_bytes: int) -> bytes:
+                return b""
+
+        with patch.object(page_metadata.urllib.request, "urlopen", side_effect=[LandingResponse(), ChallengeResponse()]):
+            metadata = page_metadata.fetch_page_metadata(
+                "https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.02"
+            )
+
+        self.assertEqual(metadata["preferred_fulltext_url"], "https://books.openbookpublishers.com/10.11647/obp.0528/ch2.xhtml")
+        self.assertEqual(metadata["fulltext_status"], "blocked")
+        self.assertEqual(metadata["access_issue"], "aws-waf-challenge")
+        self.assertEqual(metadata["needs_fulltext"], "true")
+
+    def test_openbook_direct_xhtml_405_records_manual_fulltext_signal(self) -> None:
+        error = urllib.error.HTTPError(
+            "https://books.openbookpublishers.com/10.11647/obp.0528/ch2.xhtml",
+            405,
+            "Not Allowed",
+            {"content-type": "text/html; charset=UTF-8"},
+            io.BytesIO(b""),
+        )
+        with patch.object(page_metadata.urllib.request, "urlopen", side_effect=error):
+            metadata = page_metadata.fetch_page_metadata(
+                "https://books.openbookpublishers.com/10.11647/obp.0528/ch2.xhtml"
+            )
+        error.close()
+
+        self.assertEqual(metadata["access_issue"], "openbook-fulltext-blocked")
+        self.assertEqual(metadata["needs_fulltext"], "true")
+        self.assertEqual(metadata["fulltext_status"], "needs-manual")
+
     def test_html_article_markdown_uses_blank_lines_between_paragraphs(self) -> None:
         html = """
         <article>

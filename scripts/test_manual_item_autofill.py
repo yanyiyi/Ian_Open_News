@@ -70,6 +70,81 @@ class ManualItemAutofillTest(unittest.TestCase):
 
         self.assertNotIn("OCF", local_web.suggested_item_tags(record, [], limit=8))
 
+    def test_tag_aliases_canonicalize_to_formal_labels(self) -> None:
+        self.assertEqual(local_web.canonical_tag_label("OS"), "開放原始碼")
+        self.assertEqual(local_web.canonical_tag_label("open source"), "開放原始碼")
+        self.assertEqual(local_web.canonical_tag_label("OD"), "開放資料")
+
+    def test_suggested_tags_use_triage_and_mechanism_keywords(self) -> None:
+        record = {
+            "title": "Open source AI model with compliance commitments",
+            "url": "https://example.com/story-2026-06-25/",
+            "source_name": "Example News",
+            "summary": "The model pitch emphasizes transparency, compliance, and model provenance.",
+            "tags": [],
+            "track": "open-tech-open-industry",
+            "triage": {
+                "matched_keywords": ["open source"],
+                "mechanism_keywords": ["compliance"],
+                "skip_keywords": [],
+                "recommendation": "suggest-keep",
+            },
+        }
+
+        suggestions = local_web.suggested_item_tags(record, [], limit=8)
+
+        self.assertIn("開放原始碼", suggestions)
+        self.assertIn("法規政策", suggestions)
+
+    def test_manual_autofill_adds_summary_date_notes_and_tags(self) -> None:
+        keyword_config = {
+            "version": 1,
+            "tracks": {
+                "open-tech-open-industry": {
+                    "keep_keywords": ["open source"],
+                    "skip_keywords": [],
+                    "mechanism_keywords": ["compliance"],
+                }
+            },
+        }
+        context = local_web.build_editorial_context([], keyword_config)
+        record = {
+            "title": "Open source AI model with compliance commitments",
+            "url": "https://example.com/news/story-2026-06-25/",
+            "source_name": "Example News",
+            "author": "",
+            "published_at": "",
+            "summary": "",
+            "tags": [],
+            "track": "open-tech-open-industry",
+            "origin": "manual-web",
+            "review": local_web.default_review(""),
+        }
+        metadata = {
+            "description": "The company says the model will be released openly and documented for compliance review.",
+            "published_at": "",
+        }
+
+        updated = local_web.apply_manual_item_autofill(record, metadata, [], keyword_config, context)
+
+        self.assertEqual(updated["published_at"], "2026-06-25")
+        self.assertIn("released openly", updated["summary"])
+        self.assertIn("初步值得追", updated["review"]["notes"])
+        self.assertIn("開放原始碼", updated["tags"])
+
+    def test_fulltext_signal_uses_metadata_access_issue(self) -> None:
+        item = {
+            "title": "Blocked article",
+            "summary": "",
+            "reading_metadata": {
+                "preferred_fulltext_url": "https://example.com/fulltext",
+                "access_issue": "cloudflare-challenge",
+                "needs_fulltext": "true",
+            },
+        }
+
+        self.assertTrue(local_web.item_has_fulltext_signal(item))
+
 
 if __name__ == "__main__":
     unittest.main()
