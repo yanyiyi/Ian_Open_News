@@ -4285,6 +4285,9 @@ def title_from_url_path(url: str) -> str:
 
 
 def markdown_link_title(markdown: str, start: int, label: str, url: str) -> str:
+    clean_label = strip_markdown_syntax(label, 260)
+    if clean_label.casefold() not in GENERIC_NEWSLETTER_LINK_LABELS:
+        return clean_label
     context = markdown[max(0, start - 900) : start]
     same_line = context.rsplit("\n", 1)[-1]
     for pattern in [r"\*\*([^*\n]{8,260})\*\*", r"###?\s+([^\n]{8,260})"]:
@@ -4298,9 +4301,6 @@ def markdown_link_title(markdown: str, start: int, label: str, url: str) -> str:
         bold = re.findall(r"\*\*([^*\n]{8,260})\*\*", line)
         if bold:
             return strip_markdown_syntax(bold[-1], 260)
-    clean_label = strip_markdown_syntax(label, 260)
-    if clean_label.casefold() not in GENERIC_NEWSLETTER_LINK_LABELS:
-        return clean_label
     path_title = title_from_url_path(url)
     if path_title:
         return path_title
@@ -4351,6 +4351,8 @@ def classify_newsletter_link(item: dict, link: dict) -> tuple[bool, str]:
     functional_haystack = f"{label}\n{title}\n{url}"
     if any(domain in host for domain in ["mailerlite", "mailchimp", "list-manage.com", "linkedin.com", "x.com", "twitter.com", "facebook.com"]):
         return False, "功能性或社群連結"
+    if re.search(r"/(?:series|categor(?:y|ies)|tags?|authors?|contributors?)(?:/|$)", parsed.path, re.I):
+        return False, "系列、分類或作者索引頁"
     if NEWSLETTER_FUNCTIONAL_LINK_RE.search(functional_haystack):
         return False, "功能性 / 機會型連結"
     if label.casefold() in GENERIC_NEWSLETTER_LINK_LABELS and len(title) >= 8:

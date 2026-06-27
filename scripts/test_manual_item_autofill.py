@@ -145,6 +145,37 @@ class ManualItemAutofillTest(unittest.TestCase):
 
         self.assertTrue(local_web.item_has_fulltext_signal(item))
 
+    def test_newsletter_link_title_prefers_specific_openbook_label(self) -> None:
+        markdown = """
+## [9. Paradoxes of Openness: Power, Reciprocity, and the Governance of Scholarly Infrastructures](https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.09)
+
+## [10. From Data to Display: Infrastructures of Openness in the Making](https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.10)
+"""
+
+        links = local_web.extract_markdown_links(markdown)
+
+        self.assertEqual(
+            links[1]["title"],
+            "10. From Data to Display: Infrastructures of Openness in the Making",
+        )
+
+    def test_newsletter_link_candidates_skip_openbook_series_page(self) -> None:
+        item = {
+            "url": "https://www.openbookpublishers.com/books/10.11647/obp.0528",
+            "reading_metadata": {
+                "article_markdown": """
+[Digital Humanities Series](https://www.openbookpublishers.com/series/2054-2429)
+
+## [10. From Data to Display: Infrastructures of Openness in the Making](https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.10)
+"""
+            },
+        }
+
+        candidates, skipped = local_web.newsletter_link_candidates(item)
+
+        self.assertEqual([candidate["title"] for candidate in candidates], ["10. From Data to Display: Infrastructures of Openness in the Making"])
+        self.assertEqual(skipped[0]["reason"], "系列、分類或作者索引頁")
+
 
 if __name__ == "__main__":
     unittest.main()
