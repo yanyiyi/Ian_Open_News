@@ -3783,7 +3783,9 @@ def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
     lines = raw.split("\n")
     parts: list[str] = []
     paragraph: list[str] = []
+    code_block: list[str] = []
     list_tag = ""
+    code_fence = ""
 
     def close_list() -> None:
         nonlocal list_tag
@@ -3797,11 +3799,30 @@ def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
             parts.append(f"<p>{separator.join(inline_markdown_html(line) for line in paragraph)}</p>")
             paragraph.clear()
 
+    def flush_code_block() -> None:
+        if code_fence:
+            parts.append(f"<pre><code>{h(chr(10).join(code_block))}</code></pre>")
+            code_block.clear()
+
     for raw_line in lines:
         line = raw_line.strip()
+        if code_fence:
+            if re.match(rf"^{re.escape(code_fence)}\s*$", line):
+                flush_code_block()
+                code_fence = ""
+            else:
+                code_block.append(raw_line)
+            continue
         if not line:
             flush_paragraph()
             close_list()
+            continue
+        fence = re.match(r"^(```+|~~~+)(?:\S+)?\s*$", line)
+        if fence:
+            flush_paragraph()
+            close_list()
+            code_fence = fence.group(1)
+            code_block.clear()
             continue
         heading = re.match(r"^(#{1,6})\s+(.+)$", line)
         if heading:
@@ -3835,6 +3856,7 @@ def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
         close_list()
         paragraph.append(line)
 
+    flush_code_block()
     flush_paragraph()
     close_list()
     return "\n".join(parts) or "<p>這次沒有抓到可顯示的主文。</p>"
@@ -4603,18 +4625,18 @@ def model_review_card_html(provider: str, review: dict, compact: bool = False) -
 
 
 def item_compact_row(item: dict) -> str:
-    """材料「清單式」精簡列：軌道｜旗標｜建議｜標題 + 時間靠右，下一行 AI 一句話與信心。≤3 行。
+    """材料「清單式」精簡列：軌道｜旗標｜建議｜分數｜標題 + 時間靠右，下一行 AI 一句話。≤3 行。
     與詳細卡共用同一張 .candidate-card 的 checkbox，只是切換顯示的 body。"""
     css_class = track_class(item.get("track", "unclassified"))
     recommendation = candidate_recommendation(item)
+    scores = candidate_priority_scores(item)
+    overall_label = score_label(scores["overall"])
+    confidence_label = score_label(scores["confidence"])
     reviews = record_model_reviews(item)
     ai_line = ""
     if reviews:
         provider, review = reviews[-1]  # 取最新一筆 review
-        confidence = confidence_score_10(review.get("confidence"))
         bits = [f"{ai_provider_label(provider)} 生成"]
-        if confidence:
-            bits.append(f"信心 {score_label(confidence)}/10")
         head = "閱讀建議 " + " · ".join(bits)
         one_line = workflow_display_text(review.get("one_line_recommendation"), 140)
         ai_line = f'<p class="compact-rec">{h(head)}{("：" + h(one_line)) if one_line else ""}</p>'
@@ -4622,6 +4644,8 @@ def item_compact_row(item: dict) -> str:
         f'{badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}'
         f'{reader_flag_badges(item)}'
         f'{badge(recommendation_label(recommendation), recommendation)}'
+        f'{badge(f"綜合 {overall_label}/10", "neutral")}'
+        f'{badge(f"信心 {confidence_label}/10", "neutral")}'
     )
     detail_id = item_detail_panel_id(item)
     return (
@@ -5932,6 +5956,17 @@ def page(title: str, body: str) -> bytes:
       align-items: start;
       transition: grid-template-columns .28s ease, gap .28s ease;
     }}
+    .workspace-layout.is-filtering .workspace-main {{
+      opacity: .58;
+      transition: opacity .12s ease;
+    }}
+    .workspace-layout.is-filtering .filter-panel {{
+      cursor: progress;
+    }}
+    .workspace-layout.is-filtering .filter-panel input,
+    .workspace-layout.is-filtering .filter-panel select {{
+      cursor: progress;
+    }}
     .workspace-layout.is-sidebar-hidden {{
       grid-template-columns: minmax(0, 1fr) minmax(0, 0px);
       gap: 0;
@@ -6637,6 +6672,24 @@ def page(title: str, body: str) -> bytes:
       background: #f7fbfe;
       color: #30445f;
     }}
+    .article-markdown pre {{
+      margin: 1.1em 0;
+      padding: 12px 14px;
+      overflow: auto;
+      white-space: pre-wrap;
+      background: #f6f8fa;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: #263441;
+    }}
+    .article-markdown pre code {{
+      display: block;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      font-size: .95em;
+      line-height: 1.65;
+    }}
     .article-markdown strong,
     .article-markdown b,
     .article-markdown a {{
@@ -6880,26 +6933,30 @@ def page(title: str, body: str) -> bytes:
       peer.setAttribute("aria-pressed", active ? "true" : "false");
     }});
   }};
-  document.querySelectorAll(".layout-toggle-button").forEach((button) => {{
-    button.addEventListener("click", () => {{
-      const target = document.getElementById(button.dataset.layoutTarget);
-      if (!target) return;
-      const mode = button.dataset.layoutMode;
-      target.dataset.layout = mode;
-      syncLayoutButtons(button.dataset.layoutTarget, mode);
-      if (target.hasAttribute("data-layout-persist")) {{
-        try {{ window.localStorage.setItem(`ian-open-news-layout:${{button.dataset.layoutTarget}}`, mode); }} catch (_error) {{}}
-      }}
+  const setupLayoutControls = (root = document) => {{
+    root.querySelectorAll(".layout-toggle-button").forEach((button) => {{
+      if (button.dataset.layoutBound === "1") return;
+      button.dataset.layoutBound = "1";
+      button.addEventListener("click", () => {{
+        const target = document.getElementById(button.dataset.layoutTarget);
+        if (!target) return;
+        const mode = button.dataset.layoutMode;
+        target.dataset.layout = mode;
+        syncLayoutButtons(button.dataset.layoutTarget, mode);
+        if (target.hasAttribute("data-layout-persist")) {{
+          try {{ window.localStorage.setItem(`ian-open-news-layout:${{button.dataset.layoutTarget}}`, mode); }} catch (_error) {{}}
+        }}
+      }});
     }});
-  }});
-  // 還原有 data-layout-persist 的容器先前選的顯示模式
-  document.querySelectorAll("[data-layout-persist]").forEach((target) => {{
-    let saved = null;
-    try {{ saved = window.localStorage.getItem(`ian-open-news-layout:${{target.id}}`); }} catch (_error) {{ saved = null; }}
-    if (!saved) return;
-    target.dataset.layout = saved;
-    syncLayoutButtons(target.id, saved);
-  }});
+    // 還原有 data-layout-persist 的容器先前選的顯示模式
+    root.querySelectorAll("[data-layout-persist]").forEach((target) => {{
+      let saved = null;
+      try {{ saved = window.localStorage.getItem(`ian-open-news-layout:${{target.id}}`); }} catch (_error) {{ saved = null; }}
+      if (!saved) return;
+      target.dataset.layout = saved;
+      syncLayoutButtons(target.id, saved);
+    }});
+  }};
 
   const setCandidateExpanded = (button, expanded) => {{
     const card = button.closest(".candidate-card");
@@ -6910,44 +6967,203 @@ def page(title: str, body: str) -> bytes:
     button.setAttribute("aria-label", label);
     button.title = label;
   }};
-  document.querySelectorAll("[data-item-expand]").forEach((button) => {{
-    button.addEventListener("click", (event) => {{
-      event.preventDefault();
-      const card = button.closest(".candidate-card");
-      setCandidateExpanded(button, !card?.classList.contains("is-expanded"));
+  const setupCandidateExpandControls = (root = document) => {{
+    root.querySelectorAll("[data-item-expand]").forEach((button) => {{
+      if (button.dataset.expandBound === "1") return;
+      button.dataset.expandBound = "1";
+      button.addEventListener("click", (event) => {{
+        event.preventDefault();
+        const card = button.closest(".candidate-card");
+        setCandidateExpanded(button, !card?.classList.contains("is-expanded"));
+      }});
     }});
-  }});
+  }};
 
-  document.querySelectorAll("[data-workspace-toggle]").forEach((button) => {{
-    const layout = document.getElementById(button.dataset.workspaceTarget || "");
-    const sidebar = document.getElementById(button.dataset.sidebarTarget || "");
-    if (!layout || !sidebar) return;
-    const storageKey = `ian-open-news-sidebar:${{button.dataset.sidebarStorageKey || button.dataset.sidebarTarget || "default"}}`;
-    const label = button.querySelector("[data-sidebar-toggle-label]");
-    const applyState = (hidden) => {{
-      layout.classList.toggle("is-sidebar-hidden", hidden);
-      sidebar.setAttribute("aria-hidden", hidden ? "true" : "false");
-      button.setAttribute("aria-expanded", hidden ? "false" : "true");
-      if (label) label.textContent = hidden ? "顯示工具欄" : "隱藏工具欄";
-      button.title = hidden ? "顯示工具欄" : "隱藏工具欄";
-    }};
-    let hidden = false;
-    try {{
-      hidden = window.localStorage.getItem(storageKey) === "hidden";
-    }} catch (_error) {{
-      hidden = false;
-    }}
-    applyState(hidden);
-    button.addEventListener("click", () => {{
-      hidden = !layout.classList.contains("is-sidebar-hidden");
-      applyState(hidden);
+  const setupWorkspaceToggleControls = (root = document) => {{
+    root.querySelectorAll("[data-workspace-toggle]").forEach((button) => {{
+      const layout = document.getElementById(button.dataset.workspaceTarget || "");
+      const sidebar = document.getElementById(button.dataset.sidebarTarget || "");
+      if (!layout || !sidebar) return;
+      const storageKey = `ian-open-news-sidebar:${{button.dataset.sidebarStorageKey || button.dataset.sidebarTarget || "default"}}`;
+      const label = button.querySelector("[data-sidebar-toggle-label]");
+      const applyState = (hidden) => {{
+        layout.classList.toggle("is-sidebar-hidden", hidden);
+        sidebar.setAttribute("aria-hidden", hidden ? "true" : "false");
+        button.setAttribute("aria-expanded", hidden ? "false" : "true");
+        if (label) label.textContent = hidden ? "顯示工具欄" : "隱藏工具欄";
+        button.title = hidden ? "顯示工具欄" : "隱藏工具欄";
+      }};
+      let hidden = false;
       try {{
-        window.localStorage.setItem(storageKey, hidden ? "hidden" : "visible");
+        hidden = window.localStorage.getItem(storageKey) === "hidden";
       }} catch (_error) {{
-        // The layout still works when browser storage is unavailable.
+        hidden = false;
       }}
+      applyState(hidden);
+      if (button.dataset.workspaceToggleBound === "1") return;
+      button.dataset.workspaceToggleBound = "1";
+      button.addEventListener("click", () => {{
+        hidden = !layout.classList.contains("is-sidebar-hidden");
+        applyState(hidden);
+        try {{
+          window.localStorage.setItem(storageKey, hidden ? "hidden" : "visible");
+        }} catch (_error) {{
+          // The layout still works when browser storage is unavailable.
+        }}
+      }});
     }});
+  }};
+
+  const instantFilterSelectors = (form) => (form.dataset.instantFilterTargets || "main")
+    .split(",")
+    .map((selector) => selector.trim())
+    .filter(Boolean);
+  let instantFilterAbort = null;
+  let instantFilterSequence = 0;
+  const instantFilterUrl = (form) => {{
+    const data = new FormData(form);
+    const url = new URL(form.getAttribute("action") || location.pathname, location.href);
+    const params = new URLSearchParams();
+    data.forEach((value, key) => {{
+      const text = String(value);
+      if (!text || text === "all" || text === "auto") return;
+      params.append(key, text);
+    }});
+    url.search = params.toString();
+    return url;
+  }};
+  const activeFilterField = (form) => {{
+    const active = document.activeElement;
+    if (!active || !form.contains(active) || !active.name) return null;
+    return {{
+      formId: form.id || "",
+      name: active.name,
+      value: active.value || "",
+      type: (active.type || "").toLowerCase(),
+    }};
+  }};
+  const restoreFilterFocus = (info) => {{
+    if (!info || !info.formId) return;
+    const form = document.getElementById(info.formId);
+    if (!form) return;
+    let field = null;
+    if (info.type === "checkbox" || info.type === "radio") {{
+      field = Array.from(form.querySelectorAll(`[name="${{CSS.escape(info.name)}}"]`))
+        .find((candidate) => candidate.value === info.value);
+    }} else {{
+      field = form.querySelector(`[name="${{CSS.escape(info.name)}}"]`);
+    }}
+    if (field && typeof field.focus === "function") field.focus({{preventScroll: true}});
+  }};
+  const setInstantFilterBusy = (form, active) => {{
+    const layout = form.closest(".workspace-layout");
+    if (layout) layout.classList.toggle("is-filtering", active);
+    form.setAttribute("aria-busy", active ? "true" : "false");
+  }};
+  const rebindPageAfterPartialUpdate = () => {{
+    setupLocalWebDynamicControls(document);
+    if (typeof window.initItemsPage === "function") window.initItemsPage();
+    if (typeof window.initReaderPage === "function") window.initReaderPage();
+    window.dispatchEvent(new CustomEvent("localweb:partial-update"));
+  }};
+  const loadInstantFilter = async (url, form, options = {{}}) => {{
+    if (!window.fetch || !window.DOMParser) {{
+      location.href = url.toString();
+      return;
+    }}
+    if (instantFilterAbort) instantFilterAbort.abort();
+    const controller = new AbortController();
+    instantFilterAbort = controller;
+    const sequence = ++instantFilterSequence;
+    const focusInfo = activeFilterField(form);
+    setInstantFilterBusy(form, true);
+    try {{
+      const response = await fetch(url.toString(), {{
+        method: "GET",
+        credentials: "same-origin",
+        signal: controller.signal,
+        headers: {{"X-Requested-With": "local-web-filter"}},
+      }});
+      if (!response.ok) throw new Error(`HTTP ${{response.status}}`);
+      const text = await response.text();
+      if (sequence !== instantFilterSequence) return;
+      const doc = new DOMParser().parseFromString(text, "text/html");
+      instantFilterSelectors(form).forEach((selector) => {{
+        const fresh = doc.querySelector(selector);
+        const current = document.querySelector(selector);
+        if (fresh && current) current.replaceWith(fresh);
+      }});
+      if (doc.title) document.title = doc.title;
+      if (options.history !== false) {{
+        history.pushState({{instantFilter: true}}, "", url.toString());
+      }}
+      rebindPageAfterPartialUpdate();
+      restoreFilterFocus(focusInfo);
+    }} catch (error) {{
+      if (error && error.name === "AbortError") return;
+      location.href = url.toString();
+    }} finally {{
+      if (sequence === instantFilterSequence) {{
+        const currentForm = document.getElementById(form.id) || form;
+        setInstantFilterBusy(currentForm, false);
+        instantFilterAbort = null;
+      }}
+    }}
+  }};
+  const submitInstantFilter = (form) => loadInstantFilter(instantFilterUrl(form), form);
+  const setupInstantFilterForms = (root = document) => {{
+    root.querySelectorAll("form[data-instant-filter]").forEach((form) => {{
+      if (form.dataset.instantFilterBound !== "1") {{
+        form.dataset.instantFilterBound = "1";
+        form.addEventListener("submit", (event) => {{
+          event.preventDefault();
+          submitInstantFilter(form);
+        }});
+      }}
+      form.querySelectorAll(".auto-filter, input[type='checkbox'], input[type='date']").forEach((field) => {{
+        if (field.dataset.instantFieldBound === "1") return;
+        field.dataset.instantFieldBound = "1";
+        field.addEventListener("change", () => {{
+          if (form.id === "reader-filter-form" && field.id === "reader-time-filter") {{
+            if (typeof window.syncReaderTimeFields === "function") window.syncReaderTimeFields();
+            if (field.value === "custom") {{
+              const hasDate = Array.from(form.querySelectorAll("[data-time-custom-fields] input"))
+                .some((input) => input.value);
+              if (!hasDate) return;
+            }}
+          }}
+          submitInstantFilter(form);
+        }});
+      }});
+    }});
+  }};
+  document.addEventListener("click", (event) => {{
+    const link = event.target.closest("a[href]");
+    if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (link.target || link.hasAttribute("download") || !link.closest("main")) return;
+    const url = new URL(link.href, location.href);
+    if (url.origin !== location.origin || url.pathname !== location.pathname) return;
+    const form = document.querySelector(`form[data-instant-filter][action="${{url.pathname}}"]`)
+      || document.querySelector("form[data-instant-filter]");
+    if (!form) return;
+    event.preventDefault();
+    loadInstantFilter(url, form);
   }});
+  window.addEventListener("popstate", () => {{
+    const form = document.querySelector("form[data-instant-filter]");
+    if (!form) {{
+      location.reload();
+      return;
+    }}
+    loadInstantFilter(new URL(location.href), form, {{history: false}});
+  }});
+  const setupLocalWebDynamicControls = (root = document) => {{
+    setupLayoutControls(root);
+    setupCandidateExpandControls(root);
+    setupWorkspaceToggleControls(root);
+    setupInstantFilterForms(root);
+  }};
+  setupLocalWebDynamicControls(document);
 
   document.querySelectorAll(".article-title-menu").forEach((menu) => {{
     const positionPopover = () => {{
@@ -11340,6 +11556,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 
         apply_poll_js = """<script>
 (function(){
+  function initInsightPage(){
   // filter-pill 客戶端篩選（僅篩 data-filterable 元素，不篩 pill 本身）
   document.querySelectorAll('.filter-pill').forEach(function(pill){
     pill.addEventListener('click', function(){
@@ -11518,6 +11735,12 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       }
     });
   });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initInsightPage, {once:true});
+  } else {
+    initInsightPage();
+  }
 })();
 </script>"""
 
@@ -12593,7 +12816,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   <aside class="workspace-sidebar" id="items-sidebar">
     <section class="workspace-sidebar-section">
       <h2>篩選入庫建檔</h2>
-      <form class="filter-panel" method="get" action="/items" id="items-filter-form">
+      <form class="filter-panel" method="get" action="/items" id="items-filter-form"
+        data-instant-filter data-instant-filter-targets=".grid,#items-workspace .workspace-main,#items-sidebar">
         {'<input type="hidden" name="show" value="all">' if show_all else ''}
         <div class="form-grid">
           <div>
@@ -12657,11 +12881,14 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   </aside>
 </div>
 <script>
+(() => {{
+window.initItemsPage = function initItemsPage() {{
 const itemCheckboxes = Array.from(document.querySelectorAll(".item-select"));
 const batchIds = document.getElementById("batch-ids");
 const batchReason = document.getElementById("batch-reason");
 const selectedCount = document.getElementById("selected-count");
 const customReason = document.getElementById("batch-custom-reason");
+if (!batchIds || !batchReason || !selectedCount) return;
 
 function liveCheckboxes() {{
   return itemCheckboxes.filter((box) => box.isConnected);
@@ -12674,24 +12901,38 @@ function syncSelection() {{
   return ids;
 }}
 
-itemCheckboxes.forEach((box) => box.addEventListener("change", syncSelection));
-document.querySelectorAll("#items-filter-form .auto-filter, #items-filter-form input[type='checkbox']").forEach((field) => {{
-  field.addEventListener("change", () => document.getElementById("items-filter-form").submit());
+itemCheckboxes.forEach((box) => {{
+  if (box.dataset.selectionBound === "1") return;
+  box.dataset.selectionBound = "1";
+  box.addEventListener("change", syncSelection);
 }});
-document.getElementById("select-visible").addEventListener("click", () => {{
+const selectVisibleButton = document.getElementById("select-visible");
+if (selectVisibleButton && selectVisibleButton.dataset.selectionBound !== "1") {{
+selectVisibleButton.dataset.selectionBound = "1";
+selectVisibleButton.addEventListener("click", () => {{
   liveCheckboxes().forEach((box) => {{ box.checked = true; }});
   syncSelection();
 }});
-document.getElementById("clear-selection").addEventListener("click", () => {{
+}}
+const clearSelectionButton = document.getElementById("clear-selection");
+if (clearSelectionButton && clearSelectionButton.dataset.selectionBound !== "1") {{
+clearSelectionButton.dataset.selectionBound = "1";
+clearSelectionButton.addEventListener("click", () => {{
   liveCheckboxes().forEach((box) => {{ box.checked = false; }});
   syncSelection();
 }});
+}}
 
 // 批次 AI 閱讀建議：用選定引擎對勾選項目逐筆生成，走右下角狀態列（runEngineJob）。
 const aiBatchBtn = document.getElementById("batch-ai-review");
 const aiBatchEngine = document.getElementById("batch-ai-engine");
-if (aiBatchBtn && typeof window.runEngineJob === "function") {{
+if (aiBatchBtn && aiBatchBtn.dataset.aiBatchBound !== "1") {{
+  aiBatchBtn.dataset.aiBatchBound = "1";
   aiBatchBtn.addEventListener("click", async () => {{
+    if (typeof window.runEngineJob !== "function") {{
+      window.alert("頁面還沒接上右下角狀態列，請重新整理後再試。");
+      return;
+    }}
     if (aiBatchBtn.dataset.running === "1") return;  // 防連點
     const ids = syncSelection();
     if (!ids.length) {{ window.alert("請先勾選至少一筆項目，再批次跑 AI 閱讀建議。"); return; }}
@@ -12706,6 +12947,7 @@ if (aiBatchBtn && typeof window.runEngineJob === "function") {{
         url: "/items/codex-review-batch",
         baseBody: "ids=" + encodeURIComponent(ids.join(",")),
         engine: engine,
+        statusUrl: "/api/command-status?command=codex_review_batch",
         onSuccess: (payload) => {{
           if (payload && payload.redirect) {{
             setTimeout(() => {{ window.location = payload.redirect; }}, 1000);
@@ -12786,6 +13028,8 @@ async function submitWithoutLeaving(form, submitter, idsToRemove) {{
 }}
 
 document.querySelectorAll("form[data-decision-form]").forEach((form) => {{
+  if (form.dataset.decisionBound === "1") return;
+  form.dataset.decisionBound = "1";
   form.addEventListener("submit", (event) => {{
     event.preventDefault();
     const reasonInput = form.querySelector("[name='reason']");
@@ -12802,7 +13046,10 @@ document.querySelectorAll("form[data-decision-form]").forEach((form) => {{
   }});
 }});
 
-document.getElementById("items-batch-form").addEventListener("submit", (event) => {{
+const itemsBatchForm = document.getElementById("items-batch-form");
+if (itemsBatchForm && itemsBatchForm.dataset.batchBound !== "1") {{
+itemsBatchForm.dataset.batchBound = "1";
+itemsBatchForm.addEventListener("submit", (event) => {{
   event.preventDefault();
   const ids = syncSelection();
   const submitter = event.submitter;
@@ -12822,6 +13069,14 @@ document.getElementById("items-batch-form").addEventListener("submit", (event) =
   }}
   submitWithoutLeaving(event.currentTarget, submitter, ids);
 }});
+}}
+}}
+if (document.readyState === "loading") {{
+  document.addEventListener("DOMContentLoaded", window.initItemsPage, {{once: true}});
+}} else {{
+  window.initItemsPage();
+}}
+}})();
 </script>
 """
         self.send_html("入庫建檔區", body)
@@ -12991,7 +13246,8 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
   <aside class="workspace-sidebar" id="candidates-sidebar">
     <section class="workspace-sidebar-section">
       <h2>篩選可用材料</h2>
-      <form class="filter-panel" method="get" action="/candidates" id="candidate-filter-form">
+      <form class="filter-panel" method="get" action="/candidates" id="candidate-filter-form"
+        data-instant-filter data-instant-filter-targets=".grid,#candidates-workspace .workspace-main,#candidates-sidebar">
         <label>主線</label>
         <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
         <p class="help">選完會自動更新。進編輯台後產出的內容才會成為 article 草稿。</p>
@@ -13006,14 +13262,6 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
     </section>
   </aside>
 </div>
-<script>
-document.querySelectorAll("#candidate-filter-form .auto-filter").forEach((field) => {{
-  field.addEventListener("change", () => document.getElementById("candidate-filter-form").submit());
-}});
-document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEach((field) => {{
-  field.addEventListener("change", () => document.getElementById("candidate-filter-form").submit());
-}});
-</script>
 """
         self.send_html("可用材料區", body)
 
@@ -13512,7 +13760,8 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
   <aside class="workspace-sidebar" id="reader-sidebar">
     <section class="workspace-sidebar-section">
       <h2>篩選閱讀</h2>
-      <form class="filter-panel" method="get" action="/reader" id="reader-filter-form">
+      <form class="filter-panel" method="get" action="/reader" id="reader-filter-form"
+        data-instant-filter data-instant-filter-targets=".grid,#reader-workspace .workspace-main,#reader-sidebar">
         <div class="form-grid">
           <div>
             <label>主線</label>
@@ -13557,35 +13806,26 @@ document.querySelectorAll("#candidate-filter-form input[type='checkbox']").forEa
   </aside>
 </div>
 <script>
-const readerFilterForm = document.getElementById("reader-filter-form");
-const readerTimeFilter = document.getElementById("reader-time-filter");
-const readerTimeFields = document.querySelector("[data-time-custom-fields]");
-function syncReaderTimeFields() {{
+(() => {{
+window.syncReaderTimeFields = function syncReaderTimeFields() {{
+  const readerTimeFilter = document.getElementById("reader-time-filter");
+  const readerTimeFields = document.querySelector("[data-time-custom-fields]");
   if (!readerTimeFilter || !readerTimeFields) return;
   const isCustom = readerTimeFilter.value === "custom";
   readerTimeFields.hidden = !isCustom;
   readerTimeFields.querySelectorAll("input").forEach((field) => {{
     field.disabled = !isCustom;
   }});
+}};
+window.initReaderPage = function initReaderPage() {{
+  window.syncReaderTimeFields();
+}};
+if (document.readyState === "loading") {{
+  document.addEventListener("DOMContentLoaded", window.initReaderPage, {{once: true}});
+}} else {{
+  window.initReaderPage();
 }}
-syncReaderTimeFields();
-document.querySelectorAll("#reader-filter-form .auto-filter").forEach((field) => {{
-  field.addEventListener("change", () => {{
-    if (field === readerTimeFilter) {{
-      syncReaderTimeFields();
-      if (field.value === "custom" && !readerTimeFields.querySelector("input[value]:not([value=''])")) {{
-        return;
-      }}
-    }}
-    readerFilterForm.submit();
-  }});
-}});
-document.querySelectorAll("#reader-filter-form input[type='checkbox']").forEach((field) => {{
-  field.addEventListener("change", () => readerFilterForm.submit());
-}});
-document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => {{
-  field.addEventListener("change", () => readerFilterForm.submit());
-}});
+}})();
 </script>
 """
         self.send_html("閱讀區", body)
@@ -15727,6 +15967,39 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
         for item_id in item_ids:
             command += ["--id", item_id]
 
+        status_command = "codex_review_batch"
+        started_at = now_iso()
+        write_json(
+            COMMAND_STATUS,
+            {
+                "command": status_command,
+                "state": "running",
+                "message": f"正在用 {ai_provider_label(provider)} 產生 {len(item_ids)} 筆 AI 閱讀建議…",
+                "started_at": started_at,
+                "provider": provider,
+                "total": len(item_ids),
+            },
+        )
+        done = {"flag": False}
+
+        def status_ticker() -> None:
+            n = 0
+            while not done["flag"]:
+                write_json(
+                    COMMAND_STATUS,
+                    {
+                        "command": status_command,
+                        "state": "running",
+                        "message": f"正在用 {ai_provider_label(provider)} 產生 {len(item_ids)} 筆 AI 閱讀建議…（已等待 {n} 秒）",
+                        "started_at": started_at,
+                        "provider": provider,
+                        "total": len(item_ids),
+                    },
+                )
+                n += 2
+                _wait_event(2)
+
+        threading.Thread(target=status_ticker, daemon=True).start()
         try:
             result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800)
             output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
@@ -15736,11 +16009,29 @@ document.querySelectorAll("[data-time-custom-fields] input").forEach((field) => 
             output = (output + f"\n{ai_provider_label(provider)} 批次生成逾時。").strip()
             ok = False
             result = subprocess.CompletedProcess(command, returncode=124, stdout="", stderr=output)
+        finally:
+            done["flag"] = True
 
         if ok:
             final_redirect = f"/items?saved=codex_review_batch&count={len(item_ids)}&provider={quote(provider)}"
         else:
             final_redirect = "/items?error=codex_review"
+        write_json(
+            COMMAND_STATUS,
+            {
+                "command": status_command,
+                "state": "done" if ok else "failed",
+                "message": (
+                    f"已用 {ai_provider_label(provider)} 補上 {len(item_ids)} 筆 AI 閱讀建議。"
+                    if ok
+                    else f"{ai_provider_label(provider)} 批次 AI 閱讀建議失敗。"
+                ),
+                "returncode": result.returncode,
+                "finished_at": now_iso(),
+                "provider": provider,
+                "total": len(item_ids),
+            },
+        )
         if wants_json:
             self.send_json(
                 {

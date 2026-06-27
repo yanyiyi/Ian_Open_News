@@ -10,6 +10,11 @@ from urllib.parse import parse_qs, urljoin, urlparse
 
 
 DEFAULT_USER_AGENT = "IanOpenNewsBot/1.0 metadata fetch (+local reading database)"
+BROWSER_FALLBACK_USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
+)
+PAGE_ACCEPT_HEADER = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 
 BOILERPLATE_PATTERNS = [
     "cookie",
@@ -514,17 +519,32 @@ def extract_article_text(html_text: str, limit: int = 30000) -> tuple[str, str]:
 
 def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) -> dict[str, str]:
     url = unwrap_google_alert_url(url)
-    request = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": DEFAULT_USER_AGENT,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        },
-    )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        final_url = response.geturl()
-        content_type = response.headers.get("content-type", "")
-        raw = response.read(max_bytes)
+
+    def fetch_with_headers(headers: dict[str, str]) -> tuple[str, str, bytes]:
+        request = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return (
+                response.geturl(),
+                response.headers.get("content-type", ""),
+                response.read(max_bytes),
+            )
+
+    default_headers = {
+        "User-Agent": DEFAULT_USER_AGENT,
+        "Accept": PAGE_ACCEPT_HEADER,
+    }
+    try:
+        final_url, content_type, raw = fetch_with_headers(default_headers)
+    except urllib.error.HTTPError as exc:
+        if exc.code not in {403, 406}:
+            raise
+        final_url, content_type, raw = fetch_with_headers(
+            {
+                "User-Agent": BROWSER_FALLBACK_USER_AGENT,
+                "Accept": PAGE_ACCEPT_HEADER,
+                "Accept-Language": "en-US,en;q=0.9",
+            }
+        )
     charset_match = re.search(r"charset=([\w.-]+)", content_type, flags=re.I)
     charset = charset_match.group(1) if charset_match else "utf-8"
     html_text = raw.decode(charset, errors="replace")

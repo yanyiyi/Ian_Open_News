@@ -55,6 +55,18 @@ class MarkdownRenderingTest(unittest.TestCase):
 
         self.assertEqual(rendered, "<p>第一行<br>\n第二行</p>\n<p>下一段</p>")
 
+    def test_fenced_code_block_renders_without_raw_fences(self) -> None:
+        rendered = local_web.markdown_to_html(
+            "# 標題\n\n```\nZDNET 的重點摘要：設計人類與 AI 之間的健康關係。\n```\n\n下一段",
+            preserve_soft_breaks=True,
+        )
+
+        self.assertIn(
+            "<pre><code>ZDNET 的重點摘要：設計人類與 AI 之間的健康關係。</code></pre>",
+            rendered,
+        )
+        self.assertNotIn("```", rendered)
+
     def test_fulltext_edit_storage_keeps_newlines_unchanged(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             items_path = Path(tmp) / "items.jsonl"

@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import json
+import io
 import sys
 import tempfile
 import unittest
+import urllib.error
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -16,6 +18,50 @@ import page_metadata
 
 
 class ReadingMetadataRulesTest(unittest.TestCase):
+    def test_fetch_page_metadata_retries_403_with_browser_headers(self) -> None:
+        class FakeResponse:
+            headers = {"content-type": "text/html; charset=utf-8"}
+
+            def __enter__(self) -> "FakeResponse":
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+            def geturl(self) -> str:
+                return "https://example.com/article"
+
+            def read(self, _max_bytes: int) -> bytes:
+                return b"""
+                <html lang="en">
+                  <head><title>Example article</title></head>
+                  <body><article><p>This paragraph is long enough to be extracted as article text.</p></article></body>
+                </html>
+                """
+
+        blocked = urllib.error.HTTPError(
+            "https://example.com/article",
+            403,
+            "Forbidden",
+            {},
+            io.BytesIO(b""),
+        )
+        with patch.object(
+            page_metadata.urllib.request,
+            "urlopen",
+            side_effect=[blocked, FakeResponse()],
+        ) as urlopen:
+            metadata = page_metadata.fetch_page_metadata("https://example.com/article")
+        blocked.close()
+
+        self.assertEqual(metadata["title"], "Example article")
+        self.assertEqual(urlopen.call_count, 2)
+        retry_request = urlopen.call_args_list[1].args[0]
+        self.assertEqual(
+            retry_request.get_header("User-agent"),
+            page_metadata.BROWSER_FALLBACK_USER_AGENT,
+        )
+
     def test_html_article_markdown_uses_blank_lines_between_paragraphs(self) -> None:
         html = """
         <article>
