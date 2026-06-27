@@ -733,9 +733,7 @@ def metadata_from_response(
     article_markdown, article_markdown_method = extract_article_markdown(html_text, final_url=final_url, title=title)
     article_chars = max(len(article_text), len(article_markdown))
     issue, issue_note = response_access_issue(html_text, response_headers, status_code, article_chars)
-    if not issue and urlparse(final_url).netloc.casefold() == "books.openbookpublishers.com" and status_code in {202, 405}:
-        issue = "openbook-fulltext-blocked"
-        issue_note = "Open Book Publishers 的 HTML 全文頁拒絕本機抓取，需要用瀏覽器或手動貼文補全文。"
+    # books.openbookpublishers.com 用 bot UA 回 202 空頁，改由呼叫端用 browser UA 重試，不在此標 blocked。
     if not language:
         language = infer_language_from_text(article_text or article_markdown or "\n".join([title, description, excerpt]))
         if language:
@@ -833,8 +831,14 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
 
     metadata["preferred_fulltext_url"] = fulltext_url
     metadata["preferred_fulltext_url_source"] = fulltext_method
+    # books.openbookpublishers.com 需要 browser UA 才能取得 200；直接用 browser_headers。
+    fulltext_fetch_headers = (
+        browser_headers
+        if urlparse(fulltext_url).netloc.casefold() == "books.openbookpublishers.com"
+        else default_headers
+    )
     try:
-        target_final_url, target_content_type, target_raw, target_headers, target_status = fetch_with_headers(fulltext_url, default_headers)
+        target_final_url, target_content_type, target_raw, target_headers, target_status = fetch_with_headers(fulltext_url, fulltext_fetch_headers)
     except urllib.error.HTTPError as exc:
         target_raw = exc.read(max_bytes)
         target_metadata = metadata_from_response(
