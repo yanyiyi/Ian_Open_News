@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-06-27T05:38:36+00:00",
+  "updated_at": "2026-06-27T06:54:14+00:00",
   "global": {
     "taiwan_context_required": true,
     "emphasize": [
@@ -278,6 +278,11 @@
       "beat": "這是 oKFN 系列的文章想關注他們怎做",
       "source_div": "div-ebe69a5a",
       "added_at": "2026-06-27T05:38:36+00:00"
+    },
+    {
+      "beat": "鐵道議題小追蹤，人文關懷中、藝術關懷中。",
+      "source_div": "div-9694dda0",
+      "added_at": "2026-06-27T06:54:14+00:00"
     }
   ]
 }
