@@ -1466,6 +1466,54 @@ def _has_pending_proposals_for_divergence(div_id: str, reports: list[dict], prop
     )
 
 
+def _prior_decisions_brief(max_signals: int = 12, max_kw_sample: int = 15, max_props: int = 20) -> str:
+    """精簡彙整既有決策（品味主題、最近訊號、關鍵字現況、既有提案），供分析/套用 prompt 比對，
+    避免重複或牴觸。控制量避免 prompt 過肥。"""
+    lines = [
+        "## 既有決策（請勿重複、勿牴觸）",
+        "下面是系統已內化的偏好與已提的建議。產生新建議時：",
+        "- 不要重複已存在的關鍵字、主題、訊號或提案；",
+        "- 若新建議與既有決策衝突，請明講衝突點與你建議的取捨，不要悄悄覆蓋。",
+        "",
+    ]
+    taste = load_taste_profile()
+    g = taste.get("global") or {}
+    if g.get("emphasize"):
+        lines.append("全域強調：" + "、".join(g["emphasize"]))
+    if g.get("de_emphasize"):
+        lines.append("全域淡化：" + "、".join(g["de_emphasize"]))
+    for track, info in (taste.get("tracks") or {}).items():
+        short = track_meta(track)["short"]
+        if info.get("priority_themes"):
+            lines.append(f"{short} 偏好主題：" + "、".join(info["priority_themes"]))
+        if info.get("avoid_themes"):
+            lines.append(f"{short} 避開主題：" + "、".join(info["avoid_themes"]))
+    sigs = taste.get("learned_signals") or []
+    if sigs:
+        lines.append("")
+        lines.append(f"最近學到的訊號（共 {len(sigs)} 條，列最近 {min(len(sigs), max_signals)} 條）：")
+        for s in sigs[-max_signals:]:
+            lines.append(f"- {clean_text(s.get('signal'))}")
+    kw = load_json(TRIAGE_KEYWORDS)
+    lines.append("")
+    for track, meta in (kw.get("tracks") or {}).items():
+        short = track_meta(track)["short"]
+        keep = meta.get("keep_keywords") or []
+        skip = meta.get("skip_keywords") or []
+        mech = meta.get("mechanism_keywords") or []
+        lines.append(
+            f"{short} 關鍵字現況：keep {len(keep)}、skip {len(skip)}、mechanism {len(mech)} 條。"
+            f" keep 最近樣本：{'、'.join(keep[-max_kw_sample:])}"
+        )
+    props = load_jsonl(SYSTEM_CHANGE_PROPOSALS)
+    if props:
+        lines.append("")
+        lines.append(f"既有程式調整提案（共 {len(props)} 筆，勿重複；列最近 {min(len(props), max_props)} 筆）：")
+        for p in props[-max_props:]:
+            lines.append(f"- [{p.get('status','pending')}] {clean_text(p.get('title'))}")
+    return "\n".join(lines)
+
+
 def _build_analysis_prompt(divergences: list[dict]) -> str:
     lines = ["你是台灣數位人文與開放科技媒體 Ian Open News 的 AI 建議顧問。",
              "以下是使用者最近做出的、和系統建議相反的決策，請分析並給出條列式的洞察報告。",
@@ -1483,6 +1531,8 @@ def _build_analysis_prompt(divergences: list[dict]) -> str:
         if exp:
             lines.append(f"   使用者說明：{exp}")
         lines.append("")
+    lines.append(_prior_decisions_brief())
+    lines.append("")
     lines += [
         "## 請回傳（繁體中文，條列式）",
         "",
@@ -1813,6 +1863,43 @@ def build_proposal_prompt(prop: dict) -> str:
     return "\n".join(lines)
 
 
+def render_apply_change_details(details: list) -> str:
+    """把 apply_runs 的結構化明細渲染成可點列點，連到 /keywords#track-X、/sources#source-Y、品味檔。"""
+    if not details:
+        return ""
+    rows = []
+    for d in details or []:
+        t = d.get("type")
+        scope = h(d.get("scope", ""))
+        added = d.get("added") or []
+        removed = d.get("removed") or []
+        if t == "proposal":
+            body = f"新增提案：{h(d.get('title',''))}" + (f"（{h(d.get('target_area',''))}）" if d.get("target_area") else "")
+            rows.append(f"<li>{body}</li>")
+            continue
+        if t == "keyword":
+            link = f'<a href="/keywords#track-{quote(clean_text(d.get("track")))}" target="_blank">調整這條 ↗</a>'
+        elif t == "source":
+            link = f'<a href="/sources#source-{quote(clean_text(d.get("source_id")))}" target="_blank">看這個來源 ↗</a>'
+        elif t in ("taste", "signal"):
+            link = '<a href="/insights/edit-taste-profile" target="_blank">看品味檔 ↗</a>'
+        else:
+            link = ""
+        if t == "source":
+            sets = d.get("set") or {}
+            setstr = "、".join(f"{h(k)}→{h(str(v))}" for k, v in sets.items())
+            rows.append(f"<li><strong>{scope}</strong>：{setstr} {link}</li>")
+            continue
+        parts = []
+        if added:
+            parts.append("＋ " + "、".join(h(x) for x in added))
+        if removed:
+            parts.append("－ " + "、".join(h(x) for x in removed))
+        rows.append(f"<li><strong>{scope}</strong>：{' ／ '.join(parts)} {link}</li>")
+    return ('<div class="apply-details"><div class="apply-details-title">本次具體調整（非程式部分）</div><ul>'
+            + "".join(rows) + "</ul></div>")
+
+
 def build_report_prompt(rpt: dict) -> str:
     return (
         "你正在 Ian Open News 專案。下面是一份「決策分歧分析報告」，請依其中建議調整系統，"
@@ -1886,6 +1973,7 @@ def _build_apply_prompt(report: dict) -> str:
         f"## 報告 id\n{rpt_id}\n\n"
         "## 目前設定狀態（JSON）\n"
         f"{json.dumps(context, ensure_ascii=False, indent=2)}\n\n"
+        f"{_prior_decisions_brief()}\n\n"
         "## 分析報告全文\n\n"
         f"{report_text}\n"
     )
@@ -1927,7 +2015,13 @@ def apply_structured_patch(patch: dict, report: dict, engine: str = "") -> dict:
     回傳套用摘要 dict。"""
     source_report = report.get("id", "")
     cases = divergence_cases_for_report(report)
-    changes: dict[str, object] = {"taste": False, "keywords": 0, "sources": 0, "proposals": 0}
+    # details：逐條人類可讀的具體調整，供 /insights 報告列點 + 深連到 /keywords#track-X、/sources#source-Y
+    details: list[dict] = []
+    changes: dict[str, object] = {"taste": False, "keywords": 0, "sources": 0, "proposals": 0, "details": details}
+
+    def _delta(old: list, new: list) -> tuple[list, list]:
+        old_set, new_set = set(old or []), set(new or [])
+        return [x for x in new if x not in old_set], [x for x in old if x not in new_set]
 
     # 1. taste-profile
     tp = patch.get("taste_profile") or {}
@@ -1935,17 +2029,33 @@ def apply_structured_patch(patch: dict, report: dict, engine: str = "") -> dict:
         profile = load_taste_profile()
         g = profile.setdefault("global", {})
         gp = tp.get("global") or {}
+        old_emph, old_de = list(g.get("emphasize", [])), list(g.get("de_emphasize", []))
         g["emphasize"] = _apply_list_patch(g.get("emphasize", []), gp.get("emphasize_add"), gp.get("emphasize_remove"))
         g["de_emphasize"] = _apply_list_patch(g.get("de_emphasize", []), gp.get("de_emphasize_add"), gp.get("de_emphasize_remove"))
+        e_add, e_rm = _delta(old_emph, g["emphasize"])
+        d_add, d_rm = _delta(old_de, g["de_emphasize"])
+        if e_add or e_rm:
+            details.append({"type": "taste", "scope": "全域 · 強調", "added": e_add, "removed": e_rm})
+        if d_add or d_rm:
+            details.append({"type": "taste", "scope": "全域 · 淡化", "added": d_add, "removed": d_rm})
         for track, tmeta in (tp.get("tracks") or {}).items():
             tracks = profile.setdefault("tracks", {})
             tinfo = tracks.setdefault(track, {})
+            old_pri, old_avoid = list(tinfo.get("priority_themes", [])), list(tinfo.get("avoid_themes", []))
             tinfo["priority_themes"] = _apply_list_patch(tinfo.get("priority_themes", []), tmeta.get("priority_add"), tmeta.get("priority_remove"))
             tinfo["avoid_themes"] = _apply_list_patch(tinfo.get("avoid_themes", []), tmeta.get("avoid_add"), tmeta.get("avoid_remove"))
-        for sig in (tp.get("learned_signals_add") or []):
-            if sig:
-                profile.setdefault("learned_signals", []).append(
-                    {"signal": sig, "source_report": source_report, "added_at": now_iso()})
+            p_add, p_rm = _delta(old_pri, tinfo["priority_themes"])
+            a_add, a_rm = _delta(old_avoid, tinfo["avoid_themes"])
+            if p_add or p_rm:
+                details.append({"type": "taste", "scope": f"{track_meta(track)['short']} · 偏好主題", "added": p_add, "removed": p_rm})
+            if a_add or a_rm:
+                details.append({"type": "taste", "scope": f"{track_meta(track)['short']} · 避開主題", "added": a_add, "removed": a_rm})
+        sig_add = [s for s in (tp.get("learned_signals_add") or []) if s]
+        for sig in sig_add:
+            profile.setdefault("learned_signals", []).append(
+                {"signal": sig, "source_report": source_report, "added_at": now_iso()})
+        if sig_add:
+            details.append({"type": "signal", "scope": "學到的訊號", "added": sig_add, "removed": []})
         profile["updated_at"] = now_iso()
         write_json(TASTE_PROFILE, profile)
         changes["taste"] = True
@@ -1960,12 +2070,19 @@ def apply_structured_patch(patch: dict, report: dict, engine: str = "") -> dict:
             meta = tracks.get(track)
             if not isinstance(meta, dict):
                 continue
+            old_keep, old_skip = list(meta.get("keep_keywords", [])), list(meta.get("skip_keywords", []))
             new_keep = _apply_list_patch(meta.get("keep_keywords", []), kp.get("keep_add"), kp.get("keep_remove"))
             new_skip = _apply_list_patch(meta.get("skip_keywords", []), kp.get("skip_add"), kp.get("skip_remove"))
-            if new_keep != meta.get("keep_keywords", []) or new_skip != meta.get("skip_keywords", []):
+            if new_keep != old_keep or new_skip != old_skip:
                 meta["keep_keywords"] = new_keep
                 meta["skip_keywords"] = new_skip
                 touched += 1
+                k_add, k_rm = _delta(old_keep, new_keep)
+                s_add, s_rm = _delta(old_skip, new_skip)
+                if k_add or k_rm:
+                    details.append({"type": "keyword", "track": track, "scope": f"{track_meta(track)['short']} · 收錄關鍵字(keep)", "added": k_add, "removed": k_rm})
+                if s_add or s_rm:
+                    details.append({"type": "keyword", "track": track, "scope": f"{track_meta(track)['short']} · 排除關鍵字(skip)", "added": s_add, "removed": s_rm})
         if touched:
             write_json(TRIAGE_KEYWORDS, keywords)
         changes["keywords"] = touched
@@ -1985,6 +2102,9 @@ def apply_structured_patch(patch: dict, report: dict, engine: str = "") -> dict:
                 if s.get("id") == match or (match and match in str(s.get("name", ""))):
                     s.update(sets)
                     touched += 1
+                    details.append({"type": "source", "source_id": clean_text(s.get("id")),
+                                    "scope": f"來源《{clean_text(s.get('name')) or clean_text(s.get('id'))}》",
+                                    "set": sets})
                     break
         if touched:
             write_jsonl(SOURCES, sources)
@@ -1994,8 +2114,9 @@ def apply_structured_patch(patch: dict, report: dict, engine: str = "") -> dict:
     for prop in (patch.get("code_proposals") or []):
         if not prop.get("title"):
             continue
+        new_pid = _proposal_id()
         append_jsonl(SYSTEM_CHANGE_PROPOSALS, {
-            "id": _proposal_id(),
+            "id": new_pid,
             "proposed_at": now_iso(),
             "source_report": source_report,
             "source_engine": engine,
@@ -2007,6 +2128,9 @@ def apply_structured_patch(patch: dict, report: dict, engine: str = "") -> dict:
             "notes": "",
         })
         changes["proposals"] = int(changes["proposals"]) + 1
+        details.append({"type": "proposal", "proposal_id": new_pid,
+                        "scope": "新增程式調整提案", "title": str(prop.get("title", ""))[:200],
+                        "target_area": str(prop.get("target_area", ""))})
 
     return changes
 
@@ -11936,11 +12060,13 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 note = h(run.get("note", ""))
                 change_line = (f"品味{'有改' if ch.get('taste') else '未改'}、"
                                f"關鍵字 {ch.get('keywords',0)} 條 track、來源 {ch.get('sources',0)} 個、提案 {ch.get('proposals',0)} 筆") if ch else ""
+                details_html = render_apply_change_details(ch.get("details") if isinstance(ch, dict) else None)
                 runs_html += f"""
 <div class="apply-run">
   <div class="muted">{h(run.get('engine',''))} · {h((run.get('ran_at','') or '')[:16])}{(' · ' + change_line) if change_line else ''}</div>
   {f'<div>{summary}</div>' if summary else ''}
   {f'<div class="error-banner" style="margin:6px 0">{note}</div>' if note else ''}
+  {details_html}
   <details><summary>設定檔 diff（taste-profile / triage-keywords / sources）</summary><pre class="report-pre">{diff}</pre></details>
   <details><summary>CLI 原始輸出</summary><pre class="report-pre">{out}</pre></details>
 </div>"""
@@ -12012,7 +12138,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <p class="section-sub">AI 建議與你的收錄決策不一致，填上理由後可送分析。</p>
     </div>
     <div class="section-filters">
-      <button class="filter-pill is-active" data-filter-group="cue" data-filter-attr="divState" data-filter-val="active">進行中</button>
+      <button class="filter-pill is-active" data-filter-group="cue" data-filter-attr="divState" data-filter-val="unfilled,explained,analyzed">進行中</button>
       <button class="filter-pill" data-filter-group="cue" data-filter-attr="divState" data-filter-val="unfilled">待填</button>
       <button class="filter-pill" data-filter-group="cue" data-filter-attr="divState" data-filter-val="explained">已填說明</button>
       <button class="filter-pill" data-filter-group="cue" data-filter-attr="divState" data-filter-val="analyzed">已分析</button>
@@ -12023,6 +12149,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   </div>
   {cue_empty}
   {all_cue_cards}
+  <p class="filter-empty muted" data-empty-group="cue" hidden>目前篩選下沒有項目，點上方其他標籤查看。</p>
 </section>"""
 
         # 分析報告
@@ -12036,13 +12163,15 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <p class="section-sub">每次「分析已填說明」的完整記錄，可用 CLI 把建議套用進系統。</p>
     </div>
     <div class="section-filters">
-      <button class="filter-pill is-active" data-filter-group="reports" data-filter-attr="rptStatus" data-filter-val="all">全部</button>
+      <button class="filter-pill is-active" data-filter-group="reports" data-filter-attr="rptStatus" data-filter-val="pending,attempted">進行中</button>
+      <button class="filter-pill" data-filter-group="reports" data-filter-attr="rptStatus" data-filter-val="all">全部</button>
       <button class="filter-pill" data-filter-group="reports" data-filter-attr="rptStatus" data-filter-val="pending">待實作</button>
       <button class="filter-pill" data-filter-group="reports" data-filter-attr="rptStatus" data-filter-val="attempted">已跑過 CLI</button>
       <button class="filter-pill" data-filter-group="reports" data-filter-attr="rptStatus" data-filter-val="implemented">✓ 已實作</button>
     </div>
   </div>
   {reports_html or '<p class="muted">尚無報告。填好說明後在右側按「分析」。</p>'}
+  <p class="filter-empty muted" data-empty-group="reports" hidden>目前篩選下沒有報告（可能都已實作），點「全部」查看。</p>
 </section>"""
 
         # sidebar
@@ -12155,7 +12284,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <p class="section-sub">品味檔接不住的結構性建議，評估後才改程式本體。</p>
     </div>
     <div class="section-filters">
-      <button class="filter-pill is-active" data-filter-group="proposals" data-filter-attr="propStatus" data-filter-val="all">全部</button>
+      <button class="filter-pill is-active" data-filter-group="proposals" data-filter-attr="propStatus" data-filter-val="pending,evaluating">進行中</button>
+      <button class="filter-pill" data-filter-group="proposals" data-filter-attr="propStatus" data-filter-val="all">全部</button>
       <button class="filter-pill" data-filter-group="proposals" data-filter-attr="propStatus" data-filter-val="pending">待評估</button>
       <button class="filter-pill" data-filter-group="proposals" data-filter-attr="propStatus" data-filter-val="evaluating">評估中</button>
       <button class="filter-pill" data-filter-group="proposals" data-filter-attr="propStatus" data-filter-val="done">✓ 已完成</button>
@@ -12163,6 +12293,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     </div>
   </div>
   {prop_rows or '<p class="muted">目前沒有程式提案。</p>'}
+  <p class="filter-empty muted" data-empty-group="proposals" hidden>目前篩選下沒有提案（可能都已完成），點「全部」查看。</p>
 </section>"""
 
         css = """<style>
@@ -12202,6 +12333,10 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 .report-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .report-pre{background:#1e1e2e;color:#e8e8f0;padding:12px;border-radius:4px;white-space:pre-wrap;font-size:0.85em;max-height:420px;overflow-y:auto;line-height:1.55}
 .apply-run{border-left:3px solid #6450dc;padding-left:10px;margin:10px 0}
+.apply-details{background:#f0fff4;border:1px solid #c6f6d5;border-radius:6px;padding:8px 12px;margin:6px 0}
+.apply-details-title{font-weight:600;font-size:0.85em;color:#276749;margin-bottom:4px}
+.apply-details ul{margin:0;padding-left:18px;line-height:1.7;font-size:0.88em}
+.apply-details a{font-size:0.9em;white-space:nowrap}
 .taste-sidebar-list{margin:6px 0 0;padding-left:20px;line-height:1.7;font-size:0.88em}
 .prop-row{border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;flex-direction:column;gap:4px}
 .prop-done{opacity:0.5}
@@ -12217,21 +12352,33 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 (function(){
   function initInsightPage(){
   // filter-pill 客戶端篩選（僅篩 data-filterable 元素，不篩 pill 本身）
+  // 支援多值：data-filter-val="pending,attempted" → 命中集合任一就顯示；"all" → 全顯示。
+  function applyFilter(pill){
+    var filterGroup = pill.dataset.filterGroup;
+    var filterAttr  = pill.dataset.filterAttr;
+    var filterVal   = pill.dataset.filterVal;
+    var camel = filterAttr.replace(/-([a-z])/g, function(_,c){ return c.toUpperCase(); });
+    var allowed = (filterVal==='all') ? null : filterVal.split(',');
+    var anyVisible = false;
+    document.querySelectorAll('[data-filter-group="'+filterGroup+'"]').forEach(function(el){
+      if(el.closest('.section-header')) return;  // 跳過 pill 本身
+      el.hidden = (allowed!==null) && (allowed.indexOf(el.dataset[camel]) === -1);
+      if(!el.hidden) anyVisible = true;
+    });
+    var hint = document.querySelector('.filter-empty[data-empty-group="'+filterGroup+'"]');
+    if(hint) hint.hidden = anyVisible;
+  }
   document.querySelectorAll('.filter-pill').forEach(function(pill){
     pill.addEventListener('click', function(){
-      var filterGroup = pill.dataset.filterGroup;
-      var filterAttr  = pill.dataset.filterAttr;
-      var filterVal   = pill.dataset.filterVal;
       pill.closest('.section-filters').querySelectorAll('.filter-pill')
           .forEach(function(p){ p.classList.toggle('is-active', p===pill); });
-      var camel = filterAttr.replace(/-([a-z])/g, function(_,c){ return c.toUpperCase(); });
-      document.querySelectorAll('[data-filter-group="'+filterGroup+'"]').forEach(function(el){
-        if(el.closest('.section-header')) return;  // 跳過 pill 本身
-        if(filterVal==='active') el.hidden = (el.dataset[camel] === 'closed');
-        else if(filterVal==='all') el.hidden=false;
-        else el.hidden = (el.dataset[camel] !== filterVal);
-      });
+      applyFilter(pill);
     });
+  });
+  // 進頁面即套用每區預設（is-active）篩選，不必先點一下
+  document.querySelectorAll('.section-filters').forEach(function(box){
+    var active = box.querySelector('.filter-pill.is-active');
+    if(active) applyFilter(active);
   });
 
   // AJAX 動畫：dismiss / close-analyzed / save-explanation / batch-close / sample
@@ -17013,7 +17160,7 @@ if (document.readyState === "loading") {{
             css_class = track_class(track)
             track_sections.append(
                 f"""
-<section class="card track-card track-card--{h(css_class)}">
+<section class="card track-card track-card--{h(css_class)}" id="track-{h(track)}">
   {badge(meta["short"], css_class)}
   <h2>{h(meta["label"])}</h2>
   <label>建議收的關鍵字</label>
@@ -18070,7 +18217,7 @@ if (document.readyState === "loading") {{
                     if feed_url:
                         feed_display = f'<code class="url">{h(feed_url)}</code>'
                     rows.append(
-                        f"<tr class='source-row' data-source-row data-source-id='{h(source.get('id', ''))}' data-track='{h(track)}' data-source-group='{h(group)}'>"
+                        f"<tr class='source-row' id='source-{h(source.get('id', ''))}' data-source-row data-source-id='{h(source.get('id', ''))}' data-track='{h(track)}' data-source-group='{h(group)}'>"
                         "<td class='source-drag-cell'>"
                         "<button type='button' class='source-row-grip' data-source-drag draggable='true' title='拖曳到其他分類' aria-label='拖曳到其他分類'>"
                         "<span></span><span></span><span></span><span></span><span></span><span></span>"
