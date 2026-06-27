@@ -6038,6 +6038,8 @@ def page(title: str, body: str) -> bytes:
     code {{ background: #eef1fb; padding: 2px 5px; border-radius: 4px; }}
     pre {{ white-space: pre-wrap; background: #162024; color: #eaf1ec; padding: 16px; border-radius: 8px; overflow: auto; }}
     .notice {{ border-left: 4px solid var(--ocf-primary); padding: 10px 14px; background: #eef1fb; border-radius: 6px; margin-bottom: 18px; }}
+    .notice--warn {{ border-left-color: #e67e22; background: #fef9f0; }}
+    .notice--info {{ border-left-color: #2980b9; background: #eaf4fb; }}
     .badge {{
       display: inline-flex;
       align-items: center;
@@ -17652,6 +17654,39 @@ if (document.readyState === "loading") {{
     def show_item_form(self, query: dict[str, list[str]]) -> None:
         title = clean_text(unquote((query.get("title") or [""])[0]))
         url = clean_text(unquote((query.get("url") or [""])[0]))
+        # 進表單前先查重複：URL 已在資料庫或退件庫 → 直接顯示警告，不花算力繼續
+        if url:
+            url_key = canonical_item_url(url)
+            if url_key:
+                all_items = load_jsonl(ITEMS)
+                rejected_items = load_jsonl(REJECTED_ITEMS)
+                dup = next(
+                    (item for item in [*all_items, *rejected_items] if url_key in item_url_keys(item)),
+                    None,
+                )
+                if dup:
+                    dup_id = clean_text(dup.get("id"))
+                    dup_title = h(item_display_title(dup))
+                    dup_status = h(status_label(clean_text(dup.get("status"))) or clean_text(dup.get("status")) or "未知")
+                    dup_href = f"/items/view?id={quote(dup_id)}" if dup_id else ""
+                    is_rejected = clean_text(dup.get("status")) in {"rejected", "archived"}
+                    notice_class = "notice notice--warn" if is_rejected else "notice notice--info"
+                    dup_link = f'<a href="{h(dup_href)}">{dup_title}</a>' if dup_href else dup_title
+                    notice_msg = (
+                        f"這個網址之前已標記為不收。目前狀態：{dup_status}。如果你想重新審閱，可以開啟原來的紀錄。"
+                        if is_rejected
+                        else f"這個網址已在知識庫中。目前狀態：{dup_status}。不需要重複入庫，直接開啟現有材料即可。"
+                    )
+                    body = f"""
+<h1>手動入庫</h1>
+<div class="{notice_class}">
+  <strong>⚠ 重複：{dup_link}</strong><br>
+  {h(notice_msg)}
+  {f'<div class="button-row" style="margin-top:10px"><a class="button" href="{h(dup_href)}">{button_content("開啟現有材料", "external")}</a><a class="button secondary" href="/items/new">改填其他網址</a></div>' if dup_href else ''}
+</div>
+"""
+                    self.send_html("手動入庫 — 重複", body)
+                    return
         current_track = (query.get("track") or ["digital-humanities-local-knowledge"])[0]
         if current_track not in TRACK_META:
             current_track = "digital-humanities-local-knowledge"
