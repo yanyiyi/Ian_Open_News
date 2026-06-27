@@ -35,6 +35,18 @@ STATUS = CACHE / "editor-status.json"
 WRITING_STYLES = ROOT / "knowledge" / "writing-styles"
 
 
+def _parse_toolbox_state(raw: str) -> dict:
+    """再跑工具箱的排序/勾選狀態 JSON（materials/viewpoints 各為 [{id,title,checked}]）。壞掉就存空。"""
+    raw = (raw or "").strip()
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
 def load_writing_style_text(name: str) -> str:
     """讀 knowledge/writing-styles/<name>.md 的內文（去掉 YAML frontmatter）當撰文風格規則。"""
     name = (name or "").strip()
@@ -761,6 +773,7 @@ def main() -> None:
     parser.add_argument("--rerun-of", default="", help="這次是從哪個 session 用同組材料再跑的")
     parser.add_argument("--viewpoint-ids", default="", help="逗號分隔、已排序的觀點 id（撰稿段落順序依此）")
     parser.add_argument("--vp-explicit", action="store_true", help="有帶這個就用 --viewpoint-ids 指定的觀點集合（空＝不帶觀點），否則用全部")
+    parser.add_argument("--toolbox-state", default="", help="再跑工具箱完整排序/勾選狀態 JSON，供下一輪記住沒選與上下順序")
     parser.add_argument("--session-id", default="")
     parser.add_argument("--timeout", type=int, default=1500)
     parser.add_argument("--dry-run", action="store_true")
@@ -840,6 +853,7 @@ def main() -> None:
             "writing_style": args.writing_style,
             "rerun_of": args.rerun_of,
             "viewpoint_ids": (ordered_vp_ids or []) if args.vp_explicit else [],
+            "toolbox_state": _parse_toolbox_state(args.toolbox_state),
             "item_ids": [clean_text(r.get("id")) for r in records],
             "item_titles": [record_title(r) for r in records],
             "used_translation": [m["id"] for m in materials if m["body_kind"] == "translated_full"],

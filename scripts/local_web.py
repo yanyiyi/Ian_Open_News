@@ -10552,6 +10552,7 @@ class Handler(BaseHTTPRequestHandler):
         rerun_of = form_value(data, "rerun_of")
         viewpoint_ids = form_value(data, "viewpoint_ids")
         vp_explicit = form_value(data, "vp_explicit") == "1"
+        toolbox_state = form_value(data, "toolbox_state")
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
 
         ids = [x for x in re.split(r"[\s,]+", items_raw) if x]
@@ -10590,6 +10591,8 @@ class Handler(BaseHTTPRequestHandler):
             command += ["--rerun-of", rerun_of]
         if vp_explicit:
             command += ["--viewpoint-ids", viewpoint_ids, "--vp-explicit"]
+        if toolbox_state:
+            command += ["--toolbox-state", toolbox_state]
         try:
             result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800)
             ok = result.returncode == 0
@@ -10796,54 +10799,102 @@ class Handler(BaseHTTPRequestHandler):
             f'<p data-toolbox-hint="{h(k)}" class="editor-hint"{"" if k == toolbox_default_task else " hidden"}>{h(v)}</p>'
             for k, v in EDITOR_TASK_HINTS.items()
         )
-        # C6：列出本 session 材料（可取消勾選排除、↑↓ 重排、搜尋加入新材料）。
-        # 材料順序＝撰稿時段落取材順序，所以提供上下排列。
+        # C6 + 記憶：材料與觀點都可「取消勾選、↑↓、:: 拖曳」排序；上一輪的勾選與順序
+        # 記在 session.toolbox_state，這一輪原樣帶回來（含沒選的列出但不勾）。
+        grip_btn = (
+            '<button type="button" class="toolbox-grip" draggable="true" data-drag-handle '
+            'title="拖曳排序" aria-label="拖曳排序">' + ("<span></span>" * 6) + "</button>"
+        )
         move_btns = (
             '<span class="toolbox-move">'
             '<button type="button" class="button button-small quiet" data-move-row="up" aria-label="上移">↑</button>'
             '<button type="button" class="button button-small quiet" data-move-row="down" aria-label="下移">↓</button>'
-            '</span>'
+            "</span>"
         )
+
+        def toolbox_row(box_class: str, rid: str, title: str, body: str, checked: bool) -> str:
+            title_attr = f' title="{h(body)}"' if body else ""
+            chk = " checked" if checked else ""
+            return (
+                f'<div class="toolbox-mat" data-id="{h(rid)}" data-title="{h(title)}">{grip_btn}{move_btns}'
+                f'<label><input type="checkbox" class="{box_class}" value="{h(rid)}"{chk}> '
+                f"<span{title_attr}>{h(title)}</span></label></div>"
+            )
+
+        state = session.get("toolbox_state") if isinstance(session.get("toolbox_state"), dict) else {}
         session_item_ids = [clean_text(i) for i in (session.get("item_ids") or []) if clean_text(i)]
         session_titles = session.get("item_titles") or []
-        toolbox_mat_rows = ""
-        for idx, mid in enumerate(session_item_ids):
-            title = clean_text(session_titles[idx]) if idx < len(session_titles) else mid
-            toolbox_mat_rows += (
-                f'<div class="toolbox-mat">{move_btns}'
-                f'<label><input type="checkbox" class="toolbox-mat-box" value="{h(mid)}" checked> <span>{h(title)}</span></label>'
-                "</div>"
-            )
+        _seen_session_ids = set(session_item_ids)
+        _all_vps = load_jsonl(VIEWPOINTS)
+        vp_lookup = {clean_text(v.get("id")): v for v in _all_vps}
+        _suggested_vp = clean_text(session.get("suggested_viewpoint_id"))
+        relevant_vp_ids = [
+            clean_text(v.get("id"))
+            for v in _all_vps
+            if ({clean_text(x) for x in (v.get("related_item_ids") or [])} & _seen_session_ids)
+            or clean_text(v.get("id")) == _suggested_vp
+        ]
+
+        # 材料 entries：優先 toolbox_state（含沒選的＋順序），否則 session.item_ids（全選）
+        mat_entries = []  # (id, title, checked)
+        if isinstance(state.get("materials"), list) and state["materials"]:
+            for m in state["materials"]:
+                mid = clean_text(m.get("id"))
+                if mid:
+                    mat_entries.append((mid, clean_text(m.get("title")) or mid, bool(m.get("checked", True))))
+        else:
+            for idx, mid in enumerate(session_item_ids):
+                title = clean_text(session_titles[idx]) if idx < len(session_titles) else mid
+                mat_entries.append((mid, title, True))
+        toolbox_mat_rows = "".join(toolbox_row("toolbox-mat-box", mid, t, "", c) for mid, t, c in mat_entries)
         if not toolbox_mat_rows:
             toolbox_mat_rows = '<p class="muted">這個 session 沒有記錄材料；用下方搜尋加入。</p>'
-        _seen_session_ids = set(session_item_ids)
+
+        # 觀點 entries：優先 toolbox_state；否則 session.viewpoint_ids（選取＋順序）＋其餘相關觀點不勾
+        vp_entries = []  # (id, title, body, checked)
+        used_vids: set[str] = set()
+        if isinstance(state.get("viewpoints"), list) and state["viewpoints"]:
+            for v in state["viewpoints"]:
+                vid = clean_text(v.get("id"))
+                if not vid or vid in used_vids:
+                    continue
+                used_vids.add(vid)
+                vp = vp_lookup.get(vid, {})
+                title = clean_text(v.get("title")) or clean_text(vp.get("title")) or vid
+                vp_entries.append((vid, title, clean_text(vp.get("body"), 240), bool(v.get("checked", True))))
+        else:
+            selected_vids = [clean_text(x) for x in (session.get("viewpoint_ids") or []) if clean_text(x)]
+            default_checked = not selected_vids  # 舊 session 沒存過 → 全選
+            for vid in selected_vids:
+                if vid in used_vids:
+                    continue
+                used_vids.add(vid)
+                vp = vp_lookup.get(vid, {})
+                vp_entries.append((vid, clean_text(vp.get("title")) or vid, clean_text(vp.get("body"), 240), True))
+            for vid in relevant_vp_ids:
+                if vid in used_vids:
+                    continue
+                used_vids.add(vid)
+                vp = vp_lookup.get(vid, {})
+                vp_entries.append((vid, clean_text(vp.get("title")) or vid, clean_text(vp.get("body"), 240), default_checked))
+        # 補上 state 未涵蓋、但現在相關的新觀點（列出、不勾）
+        if state.get("viewpoints"):
+            for vid in relevant_vp_ids:
+                if vid in used_vids:
+                    continue
+                used_vids.add(vid)
+                vp = vp_lookup.get(vid, {})
+                vp_entries.append((vid, clean_text(vp.get("title")) or vid, clean_text(vp.get("body"), 240), False))
+        toolbox_vp_rows = "".join(toolbox_row("toolbox-vp-box", vid, t, b, c) for vid, t, b, c in vp_entries)
+        if not toolbox_vp_rows:
+            toolbox_vp_rows = '<p class="muted">這組材料目前沒有相關觀點。可在下方「可加入觀點庫」先建立。</p>'
+
         toolbox_mat_pool = [
             {"id": clean_text(r.get("id")), "title": editor_item_title(r)}
             for r in load_jsonl(ITEMS)
-            if is_skill_candidate(r) and clean_text(r.get("id")) not in _seen_session_ids
+            if is_skill_candidate(r) and clean_text(r.get("id")) not in {e[0] for e in mat_entries}
         ]
         toolbox_mat_pool_json = json.dumps(toolbox_mat_pool[:400], ensure_ascii=False).replace("<", "\\u003c")
-        # 觀點順序（可 ↑↓ 重排、勾選）＝撰稿時觀點段落順序。列出與本組材料相關的觀點。
-        _all_vps = load_jsonl(VIEWPOINTS)
-        _suggested_vp = clean_text(session.get("suggested_viewpoint_id"))
-        relevant_vps = []
-        for vp in _all_vps:
-            rel = {clean_text(x) for x in (vp.get("related_item_ids") or [])}
-            if (rel & _seen_session_ids) or clean_text(vp.get("id")) == _suggested_vp:
-                relevant_vps.append(vp)
-        toolbox_vp_rows = ""
-        for vp in relevant_vps:
-            vid = clean_text(vp.get("id"))
-            vtitle = clean_text(vp.get("title")) or vid
-            vbody = clean_text(vp.get("body"), 240)
-            toolbox_vp_rows += (
-                f'<div class="toolbox-mat">{move_btns}'
-                f'<label><input type="checkbox" class="toolbox-vp-box" value="{h(vid)}" checked> '
-                f'<span title="{h(vbody)}">{h(vtitle)}</span></label>'
-                "</div>"
-            )
-        if not toolbox_vp_rows:
-            toolbox_vp_rows = '<p class="muted">這組材料目前沒有相關觀點。可在下方「可加入觀點庫」先建立。</p>'
         toolbox_panel = f"""
 <details class="card editor-session-toolbox" open>
   <summary><h2>工具箱</h2><span class="help-dot" title="用同一組材料改跑其他寫法、其他任務，或換另一個 AI。可取消勾選排除材料、搜尋加入新材料。">?</span></summary>
@@ -10876,6 +10927,7 @@ class Handler(BaseHTTPRequestHandler):
     <div class="editor-label">觀點（取消勾選＝這次不帶；↑↓ 排順序＝撰稿時觀點段落順序）</div>
     <input type="hidden" name="vp_explicit" value="1">
     <input type="hidden" name="viewpoint_ids" value="">
+    <input type="hidden" name="toolbox_state" value="">
     <div class="toolbox-materials" id="toolbox-viewpoints">{toolbox_vp_rows}</div>
     <label class="editor-label">這次額外指示
       <textarea name="instructions" rows="2" placeholder="例如：換成較短的彙報式，或改用另一個觀點切入"></textarea>
@@ -10889,34 +10941,73 @@ class Handler(BaseHTTPRequestHandler):
   if (!form) return;
   var itemsHidden = form.querySelector('input[name=items]');
   var vpHidden = form.querySelector('input[name=viewpoint_ids]');
+  var stateHidden = form.querySelector('input[name=toolbox_state]');
   var matWrap = document.getElementById('toolbox-materials');
   var vpWrap = document.getElementById('toolbox-viewpoints');
-  function collect(wrap, boxClass) {{
+  function rowsOf(wrap) {{ return wrap ? Array.prototype.slice.call(wrap.querySelectorAll('.toolbox-mat')) : []; }}
+  function checkedIds(wrap, boxClass) {{
     return Array.prototype.slice.call(wrap.querySelectorAll('.' + boxClass))
       .filter(function(b) {{ return b.checked; }}).map(function(b) {{ return b.value; }});
   }}
-  function syncItems() {{ if (matWrap && itemsHidden) itemsHidden.value = collect(matWrap, 'toolbox-mat-box').join(','); }}
-  function syncViewpoints() {{ if (vpWrap && vpHidden) vpHidden.value = collect(vpWrap, 'toolbox-vp-box').join(','); }}
-  if (matWrap) {{ matWrap.addEventListener('change', syncItems); syncItems(); }}
-  if (vpWrap) {{ vpWrap.addEventListener('change', syncViewpoints); syncViewpoints(); }}
-  // ↑↓ 重排：移動該列在容器內的位置，再重新同步順序
+  function stateOf(wrap, boxClass) {{
+    return rowsOf(wrap).map(function(row) {{
+      var box = row.querySelector('.' + boxClass);
+      return {{ id: row.getAttribute('data-id') || (box ? box.value : ''), title: row.getAttribute('data-title') || '', checked: box ? box.checked : false }};
+    }});
+  }}
+  function sync() {{
+    if (matWrap && itemsHidden) itemsHidden.value = checkedIds(matWrap, 'toolbox-mat-box').join(',');
+    if (vpWrap && vpHidden) vpHidden.value = checkedIds(vpWrap, 'toolbox-vp-box').join(',');
+    if (stateHidden) stateHidden.value = JSON.stringify({{ materials: stateOf(matWrap, 'toolbox-mat-box'), viewpoints: stateOf(vpWrap, 'toolbox-vp-box') }});
+  }}
+  if (matWrap) matWrap.addEventListener('change', sync);
+  if (vpWrap) vpWrap.addEventListener('change', sync);
+  // ↑↓ 重排
   form.addEventListener('click', function(e) {{
     var mv = e.target.closest('[data-move-row]'); if (!mv) return;
     e.preventDefault();
     var row = mv.closest('.toolbox-mat'); if (!row) return;
     var wrap = row.parentNode;
-    if (mv.getAttribute('data-move-row') === 'up') {{
-      if (row.previousElementSibling) wrap.insertBefore(row, row.previousElementSibling);
-    }} else if (row.nextElementSibling) {{
-      wrap.insertBefore(row.nextElementSibling, row);
-    }}
-    if (wrap === matWrap) syncItems(); else if (wrap === vpWrap) syncViewpoints();
+    if (mv.getAttribute('data-move-row') === 'up') {{ if (row.previousElementSibling) wrap.insertBefore(row, row.previousElementSibling); }}
+    else if (row.nextElementSibling) {{ wrap.insertBefore(row.nextElementSibling, row); }}
+    sync();
   }});
+  // :: 拖曳重排（grip 為 draggable，容器內排序，像 RSS 管理）
+  var dragRow = null;
+  function afterElement(wrap, y) {{
+    var els = Array.prototype.slice.call(wrap.querySelectorAll('.toolbox-mat:not(.is-dragging)'));
+    var best = null, bestOffset = -Infinity;
+    els.forEach(function(child) {{
+      var box = child.getBoundingClientRect();
+      var offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > bestOffset) {{ bestOffset = offset; best = child; }}
+    }});
+    return best;
+  }}
+  form.addEventListener('dragstart', function(e) {{
+    var handle = e.target.closest('[data-drag-handle]'); if (!handle) return;
+    dragRow = handle.closest('.toolbox-mat'); if (!dragRow) return;
+    dragRow.classList.add('is-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    try {{ e.dataTransfer.setData('text/plain', dragRow.getAttribute('data-id') || ''); }} catch (_e) {{}}
+  }});
+  [matWrap, vpWrap].forEach(function(wrap) {{
+    if (!wrap) return;
+    wrap.addEventListener('dragover', function(e) {{
+      if (!dragRow || dragRow.parentNode !== wrap) return;
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      var after = afterElement(wrap, e.clientY);
+      if (after == null) wrap.appendChild(dragRow); else wrap.insertBefore(dragRow, after);
+    }});
+  }});
+  form.addEventListener('dragend', function() {{ if (dragRow) {{ dragRow.classList.remove('is-dragging'); dragRow = null; sync(); }} }});
+  sync();
   var taskSel = form.querySelector('[data-toolbox-task]');
   if (taskSel) taskSel.addEventListener('change', function() {{
     form.querySelectorAll('[data-toolbox-hint]').forEach(function(p) {{ p.hidden = p.getAttribute('data-toolbox-hint') !== taskSel.value; }});
   }});
   function esc(s) {{ return (s || '').replace(/[&<>\"]/g, function(c) {{ return {{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}}[c]; }}); }}
+  var gripBtn = '<button type="button" class="toolbox-grip" draggable="true" data-drag-handle title="拖曳排序" aria-label="拖曳排序"><span></span><span></span><span></span><span></span><span></span><span></span></button>';
   var moveBtns = '<span class="toolbox-move"><button type="button" class="button button-small quiet" data-move-row="up" aria-label="上移">↑</button><button type="button" class="button button-small quiet" data-move-row="down" aria-label="下移">↓</button></span>';
   var pool = {toolbox_mat_pool_json};
   var search = document.getElementById('toolbox-mat-search');
@@ -10935,8 +11026,9 @@ class Handler(BaseHTTPRequestHandler):
     var id = btn.getAttribute('data-add-mat');
     var m = pool.filter(function(x) {{ return x.id === id; }})[0]; if (!m) return;
     var row = document.createElement('div'); row.className = 'toolbox-mat';
-    row.innerHTML = moveBtns + '<label><input type="checkbox" class="toolbox-mat-box" value="' + esc(id) + '" checked> <span>' + esc(m.title) + '</span></label>';
-    matWrap.appendChild(row); syncItems(); search.value = ''; results.innerHTML = '';
+    row.setAttribute('data-id', id); row.setAttribute('data-title', m.title || '');
+    row.innerHTML = gripBtn + moveBtns + '<label><input type="checkbox" class="toolbox-mat-box" value="' + esc(id) + '" checked> <span>' + esc(m.title) + '</span></label>';
+    matWrap.appendChild(row); sync(); search.value = ''; results.innerHTML = '';
   }});
 }})();
 </script>
@@ -11082,6 +11174,11 @@ class Handler(BaseHTTPRequestHandler):
   .toolbox-mat span {{ min-width:0; word-break:break-word; }}
   .toolbox-move {{ display:inline-flex; gap:2px; flex:0 0 auto; }}
   .toolbox-move button {{ margin:0; padding:2px 7px; min-width:0; line-height:1.1; }}
+  .toolbox-grip {{ display:grid; grid-template-columns:repeat(2,4px); grid-auto-rows:4px; gap:3px; align-content:center; justify-content:center; width:22px; height:26px; padding:4px; margin:0; border:1px solid transparent; border-radius:6px; background:transparent; color:var(--muted,#64748b); cursor:grab; flex:0 0 auto; box-shadow:none; }}
+  .toolbox-grip span {{ width:4px; height:4px; border-radius:999px; background:currentColor; }}
+  .toolbox-grip:hover {{ background:var(--soft,#eef6ff); color:var(--ocf-primary,#6450dc); box-shadow:none; transform:none; }}
+  .toolbox-grip:active {{ cursor:grabbing; }}
+  .toolbox-mat.is-dragging {{ opacity:.5; }}
   .toolbox-mat-results {{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }}
   .editor-toolbox-grid {{ display:flex; flex-direction:column; gap:0; }}
   .editor-vp-candidates {{ display:flex; flex-direction:column; gap:8px; margin:8px 0; }}
@@ -11634,20 +11731,90 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         explained_count = len(explained)
         engines = editor_engine_status()
 
+        # 查找表：分歧只存了原始（多為英文）標題，渲染時即時用 id 查回 live item，
+        # 才能顯示「當時翻譯／看到的中文標題」與更多當時脈絡。涵蓋 items + rejected-items。
+        _div_item_lookup: dict[str, dict] = {}
+        for _row in [*load_jsonl(ITEMS), *load_jsonl(REJECTED_ITEMS)]:
+            _rid = clean_text(_row.get("id"))
+            if _rid and _rid not in _div_item_lookup:
+                _div_item_lookup[_rid] = _row
+
+        _USER_ACTION_LABELS = {
+            "accepted-for-editing": "收進可用材料",
+            "direct-pr-small-news": "直接送 PR（小消息）",
+            "want-to-read": "想讀 / 超想看",
+            "accepted-current-reading": "正在閱讀",
+            "rejected": "不收",
+        }
+
         def _div_title_links(div: dict) -> str:
+            """中文顯示標題（可點）＋原文標題（不同才顯示），即時查 live item。"""
             item_ids = div.get("item_ids") or []
-            item_titles = div.get("item_titles") or []
+            stored = div.get("item_titles") or []
+            n = max(len(item_ids), len(stored))
             parts = []
-            for i, title in enumerate(item_titles[:3]):
+            for i in range(min(n, 3)):
                 iid = item_ids[i] if i < len(item_ids) else ""
-                if iid:
-                    parts.append(f'<a href="/items/view?id={quote(iid)}" class="item-link" target="_blank">{h(title)} ↗</a>')
-                else:
-                    parts.append(h(title))
-            joined = "；".join(parts)
-            if len(item_titles) > 3:
-                joined += f"…等 {len(item_titles)} 筆"
+                item = _div_item_lookup.get(iid)
+                zh = item_display_title(item) if item else (stored[i] if i < len(stored) else "（無標題）")
+                orig = item_original_title(item) if item else ""
+                head = (f'<a href="/items/view?id={quote(iid)}" class="item-link" target="_blank">{h(zh)} ↗</a>'
+                        if iid else h(zh))
+                sub = ""
+                if orig and clean_text(orig) and clean_text(orig) != clean_text(zh):
+                    sub = f'<br><span class="muted div-orig-title">原標題：{h(orig)}</span>'
+                parts.append(f"<div class='div-title-row'>{head}{sub}</div>")
+            joined = "".join(parts) or "（未知標題）"
+            if n > 3:
+                joined += f"<div class='muted'>…等共 {n} 筆</div>"
             return joined
+
+        def _div_context_html(div: dict) -> str:
+            """當時 AI 建議（含來源/類型/信心）→ 你的決定；加 track 與記錄日期。"""
+            ai = div.get("ai_suggestion") or {}
+            src = ai.get("source", "")
+            rec = ai.get("recommendation", "")
+            kind = ai.get("content_kind", "")
+            conf = ai.get("confidence", "")
+            user_act = div.get("user_action", "")
+            track = clean_text(div.get("track"))
+            logged = (div.get("logged_at") or "")[:10]
+            src_label = {"editorial_triage": "AI 深度判斷", "triage": "關鍵字快篩"}.get(src, src or "")
+            rec_label = editorial_recommendation_label(rec) if src == "editorial_triage" else recommendation_label(rec)
+            ai_extra = "、".join([x for x in [src_label, (content_kind_label(kind) if kind else ""), (f"信心 {conf}" if conf else "")] if x])
+            ai_extra_html = f"（{h(ai_extra)}）" if ai_extra else ""
+            act_label = _USER_ACTION_LABELS.get(user_act, user_act or "未知")
+            meta_bits = []
+            if track:
+                meta_bits.append(h(track_meta(track)["short"]))
+            if logged:
+                meta_bits.append(f"記錄於 {h(logged)}")
+            meta_line = f'<div class="muted div-meta">{"　·　".join(meta_bits)}</div>' if meta_bits else ""
+            return (
+                f'<div class="div-context"><span class="muted">AI 當時：</span>{h(rec_label)}{ai_extra_html}'
+                f' <span class="muted">→ 你的決定：</span><strong>{h(act_label)}</strong></div>{meta_line}'
+            )
+
+        def _div_detail_block(div: dict) -> str:
+            """可展開：當時 AI 理由 + 原文摘要，幫使用者回想為何當初這樣決定。"""
+            ai = div.get("ai_suggestion") or {}
+            src = ai.get("source", "")
+            iid = (div.get("item_ids") or [""])[0]
+            item = _div_item_lookup.get(iid) or {}
+            reason = ""
+            if src == "editorial_triage":
+                reason = clean_text((item.get("editorial_triage") or {}).get("summary_reason") or (item.get("editorial_triage") or {}).get("reason"))
+            if not reason:
+                reason = clean_text((item.get("triage") or {}).get("reason"))
+            summary = clean_text(item.get("summary"), 400)
+            if not reason and not summary:
+                return ""
+            inner = ""
+            if reason:
+                inner += f'<p class="muted" style="margin:4px 0"><strong>當時 AI 理由：</strong>{h(reason)}</p>'
+            if summary:
+                inner += f'<p class="muted" style="margin:4px 0"><strong>原文摘要：</strong>{h(summary)}</p>'
+            return f'<details class="div-detail"><summary class="muted">看當時摘要與 AI 理由</summary>{inner}</details>'
 
         def div_card(div: dict, state: str = "unfilled") -> str:
             div_id = h(div.get("id", ""))
@@ -11674,9 +11841,10 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     {conf_label}
   </div>
   <div class="div-card-body">
-    {f'<strong>{cluster_label}</strong><br>' if cluster_label else ''}
-    <span class="div-titles">《{title_links}》</span><br>
-    <span class="muted">AI: {h(ai_rec)} → 你: {h(user_act)}</span>
+    {f'<strong>{cluster_label}</strong>' if cluster_label else ''}
+    <div class="div-titles">{title_links}</div>
+    {_div_context_html(div)}
+    {_div_detail_block(div)}
   </div>
   <form class="div-explain-form" method="post" action="/insights/explain" data-ajax-explain>
     <input type="hidden" name="id" value="{div_id}">
@@ -11724,9 +11892,10 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <span class="badge badge-gray" style="font-weight:400">已分析 {analyzed_at}</span>
   </div>
   <div class="div-card-body">
-    <span class="div-titles">《{title_links}》</span><br>
-    <span class="muted">AI: {h(ai_rec)} → 你: {h(user_act)}</span>
-    {f'<br><span class="muted">你的理由：{expl}</span>' if expl else ''}
+    <div class="div-titles">{title_links}</div>
+    {_div_context_html(div)}
+    {f'<div class="muted">你的理由：{expl}</div>' if expl else ''}
+    {_div_detail_block(div)}
   </div>
   {action_html}
 </div>"""
@@ -11818,8 +11987,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <span class="badge badge-green">✓ 已結案</span>
   </div>
   <div class="div-card-body">
-    <span class="div-titles muted">《{title_links}》</span>
-    {f'<br><span class="muted">你的理由：{expl}</span>' if expl else ''}
+    <div class="div-titles muted">{title_links}</div>
+    {f'<span class="muted">你的理由：{expl}</span>' if expl else ''}
   </div>
 </div>"""
 
@@ -12001,6 +12170,12 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 .div-card-header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
 .div-card-body{margin-bottom:8px;line-height:1.6}
 .div-titles{font-weight:500}
+.div-title-row{margin:2px 0}
+.div-orig-title{font-weight:400;font-size:0.85em}
+.div-context{margin:6px 0 2px;line-height:1.6}
+.div-meta{font-size:0.82em;margin-bottom:2px}
+.div-detail{margin:4px 0}
+.div-detail summary{cursor:pointer;font-size:0.85em}
 .item-link{color:inherit;text-decoration:underline dotted}
 .item-link:hover{text-decoration:underline}
 .div-explain-form{display:flex;gap:6px;align-items:center;margin-bottom:4px}
