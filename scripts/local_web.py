@@ -737,7 +737,139 @@ def discover_feed_links(html_text: str, final_url: str) -> list[dict]:
     return feeds[:8]
 
 
-def build_url_preview(url: str, track: str) -> dict:
+TRACK_AUTOFILL_CANDIDATES = ["open-tech-open-industry", "digital-humanities-local-knowledge"]
+
+
+def metadata_source_name(metadata: dict, url: str) -> str:
+    site_name = clean_text(metadata.get("site_name"), 160).lstrip("@")
+    return site_name or host_label(clean_text(metadata.get("final_url") or metadata.get("canonical_url") or url))
+
+
+def metadata_site_url(metadata: dict, url: str) -> str:
+    candidate = clean_text(metadata.get("canonical_url") or metadata.get("final_url") or url)
+    parsed = urlparse(candidate)
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}"
+    return candidate
+
+
+def manual_track_score(triage: dict, editorial: dict) -> int:
+    score = {
+        "suggest-keep": 6,
+        "suggest-ask": 4,
+        "suggest-skip": 0,
+    }.get(clean_text(triage.get("recommendation")), 0)
+    score += len(triage.get("matched_keywords") or []) * 2
+    score += len(triage.get("mechanism_keywords") or [])
+    score -= len(triage.get("skip_keywords") or []) * 3
+    score += {
+        "suggest-collect": 8,
+        "suggest-review": 6,
+        "suggest-ask": 5,
+        "suggest-skip": 0,
+    }.get(clean_text(editorial.get("recommendation")), 0)
+    for key in ["keyword_fit", "prior_collection_fit", "taste_fit"]:
+        fit = editorial.get(key) if isinstance(editorial.get(key), dict) else {}
+        score += int(fit.get("score") or 0)
+    deletion = editorial.get("deletion_pattern_fit") if isinstance(editorial.get("deletion_pattern_fit"), dict) else {}
+    score -= int(deletion.get("score") or 0)
+    return score
+
+
+def infer_manual_item_track(
+    record: dict,
+    keyword_config: dict,
+    editorial_context: dict,
+    fallback_track: str,
+) -> tuple[str, str, list[dict]]:
+    fallback_track = fallback_track if fallback_track in TRACK_META else "unclassified"
+    choices = []
+    for track in TRACK_AUTOFILL_CANDIDATES:
+        candidate = {**record, "track": track}
+        triage = evaluate_triage(candidate, keyword_config)
+        candidate["triage"] = triage
+        editorial = evaluate_editorial_triage(candidate, keyword_config, editorial_context)
+        choices.append(
+            {
+                "track": track,
+                "score": manual_track_score(triage, editorial),
+                "triage": triage,
+                "editorial_triage": editorial,
+            }
+        )
+    if not choices:
+        return fallback_track, "", []
+    best = max(choices, key=lambda choice: (choice["score"], -TRACK_AUTOFILL_CANDIDATES.index(choice["track"])))
+    fallback_choice = next((choice for choice in choices if choice["track"] == fallback_track), None)
+    fallback_score = int(fallback_choice.get("score") or 0) if fallback_choice else 0
+    suggested = best["track"] if best["score"] > 0 and best["score"] > fallback_score else fallback_track
+    suggested_choice = next((choice for choice in choices if choice["track"] == suggested), best)
+    triage = suggested_choice.get("triage") or {}
+    editorial = suggested_choice.get("editorial_triage") or {}
+    matched = [clean_text(keyword) for keyword in triage.get("matched_keywords") or [] if clean_text(keyword)]
+    taste = editorial.get("taste_fit") if isinstance(editorial.get("taste_fit"), dict) else {}
+    taste_signals = [clean_text(signal) for signal in taste.get("signals") or [] if clean_text(signal)]
+    reason = "、".join(matched[:4]) or (taste_signals[0] if taste_signals else "")
+    return suggested, reason, choices
+
+
+def apply_manual_item_autofill(
+    record: dict,
+    metadata: dict,
+    existing_items: list[dict],
+    keyword_config: dict,
+    editorial_context: dict,
+    *,
+    metadata_error: str = "",
+    add_tags: bool = True,
+) -> dict:
+    updated = dict(record)
+    metadata = dict(metadata) if isinstance(metadata, dict) else {}
+    reference = dict(updated.get("reference") if isinstance(updated.get("reference"), dict) else {})
+    reference.setdefault("created_by", "local_web")
+    reference["created_from"] = "manual-url"
+    if metadata_error:
+        reference["metadata_fetch_error"] = clean_text(metadata_error, 500)
+    updated["reference"] = reference
+
+    title = clean_text(updated.get("title"), 300)
+    url = clean_text(updated.get("url"))
+    page_title = clean_text(metadata.get("title") or metadata.get("original_site_title"), 300)
+    if page_title and (not title or title == url):
+        updated["title"] = page_title
+    if not clean_text(updated.get("summary")):
+        updated["summary"] = clean_text(metadata.get("description") or metadata.get("excerpt"), 1200)
+    if not clean_text(updated.get("published_at")) and metadata.get("published_at"):
+        updated["published_at"] = clean_text(metadata.get("published_at"), 40)
+    if metadata.get("image_url") and not clean_text(updated.get("image_url")):
+        updated["image_url"] = clean_text(metadata.get("image_url"))
+    source_name = clean_text(updated.get("source_name"), 160)
+    if not source_name or source_name == "Manual bookmark":
+        updated["source_name"] = metadata_source_name(metadata, url) or "Manual bookmark"
+    author = clean_text(updated.get("author"), 240)
+    if not author or author == "Manual bookmark":
+        updated["author"] = clean_text(metadata.get("original_author"), 240) or clean_text(updated.get("source_name"), 240)
+
+    updated["triage"] = evaluate_triage(updated, keyword_config)
+    updated["editorial_triage"] = evaluate_editorial_triage(updated, keyword_config, editorial_context)
+    if add_tags and not item_tags(updated):
+        suggested_tags = suggested_item_tags(updated, existing_items, limit=8)
+        if suggested_tags:
+            updated["tags"] = suggested_tags
+            tag_metadata = dict(updated.get("tag_metadata") if isinstance(updated.get("tag_metadata"), dict) else {})
+            updated["tag_metadata"] = {
+                **tag_metadata,
+                "source": "local_web",
+                "autofill_source": "manual-url",
+                "updated_at": clean_text(updated.get("captured_at")) or now_iso(),
+            }
+    elif item_tags(updated):
+        tag_metadata = dict(updated.get("tag_metadata") if isinstance(updated.get("tag_metadata"), dict) else {})
+        updated["tag_metadata"] = {**tag_metadata, "source": "local_web", "updated_at": clean_text(updated.get("captured_at")) or now_iso()}
+    return updated
+
+
+def build_url_preview(url: str, track: str, title: str = "") -> dict:
     original_url = clean_text(url)
     url = fetchable_http_url(unwrap_google_alert_url(original_url))
     if not url:
@@ -791,10 +923,40 @@ def build_url_preview(url: str, track: str) -> dict:
             }
         )
 
-    title = clean_text(metadata.get("title") or feed_info.get("feed_title"), 300)
+    title = clean_text(metadata.get("title") or feed_info.get("feed_title") or title, 300)
     description = clean_text(metadata.get("description") or feed_info.get("description") or metadata.get("excerpt"), 900)
     canonical = clean_text(metadata.get("canonical_url"))
     site_url = clean_text(feed_info.get("site_url") or canonical or final_url)
+    keyword_config = load_json(TRIAGE_KEYWORDS) or {"version": 1, "tracks": {}}
+    existing_items = load_jsonl(ITEMS)
+    editorial_context = build_editorial_context([*existing_items, *load_jsonl(REJECTED_ITEMS)], keyword_config)
+    seed_record = {
+        "title": title or clean_text(title, 300) or host_label(final_url),
+        "url": url,
+        "source_name": metadata_source_name(metadata, final_url),
+        "author": clean_text(metadata.get("original_author"), 240),
+        "published_at": clean_text(metadata.get("published_at"), 40),
+        "summary": description,
+        "tags": [],
+        "origin": "manual-web",
+    }
+    suggested_track, track_reason, track_choices = infer_manual_item_track(seed_record, keyword_config, editorial_context, track)
+    preview_record = {
+        **seed_record,
+        "track": suggested_track if suggested_track in TRACK_META else track,
+        "status": "inbox",
+        "priority": "normal",
+        "captured_at": now_iso(),
+        "reference": {"created_by": "local_web", "created_from": "manual-url-preview"},
+    }
+    preview_record = apply_manual_item_autofill(
+        preview_record,
+        metadata,
+        existing_items,
+        keyword_config,
+        editorial_context,
+        metadata_error=metadata_error,
+    )
     return {
         "ok": True,
         "url": url,
@@ -807,13 +969,28 @@ def build_url_preview(url: str, track: str) -> dict:
         "excerpt": clean_text(metadata.get("excerpt"), 900),
         "image_url": clean_text(metadata.get("image_url")),
         "canonical_url": canonical,
-        "source_name": host_label(final_url),
+        "source_name": metadata_source_name(metadata, final_url),
+        "site_name": clean_text(metadata.get("site_name"), 160),
+        "author": clean_text(metadata.get("original_author"), 240),
+        "published_at": clean_text(metadata.get("published_at"), 40),
+        "original_language": clean_text(metadata.get("original_language"), 80),
         "is_feed": bool(feed_info),
         "feed_title": clean_text(feed_info.get("feed_title"), 220),
         "feed_type": clean_text(feed_info.get("feed_type")),
         "entry_count": feed_info.get("entry_count", 0),
         "site_url": site_url,
         "feed_suggestions": enriched_feeds,
+        "suggested_track": suggested_track,
+        "suggested_track_label": track_meta(suggested_track)["short"] if suggested_track in TRACK_META else "",
+        "track_reason": track_reason,
+        "track_choices": [
+            {"track": choice["track"], "score": choice["score"], "label": track_meta(choice["track"])["short"]}
+            for choice in track_choices
+            if choice["track"] in TRACK_META
+        ],
+        "suggested_tags": item_tags(preview_record)[:8],
+        "triage": preview_record.get("triage") or {},
+        "editorial_triage": preview_record.get("editorial_triage") or {},
         "metadata_error": metadata_error,
         "document_error": document_error,
     }
@@ -2932,29 +3109,16 @@ def form_tags(data: dict[str, list[str]], key: str = "tags") -> list[str]:
 
 def item_tag_text_haystack(item: dict) -> str:
     triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
-    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
-    model_reviews = [review for _, review in record_model_reviews(item)]
     metadata = item_reading_metadata(item)
     parts: list[object] = [
         item.get("title"),
         item.get("summary"),
-        editorial.get("zh_title"),
-        editorial.get("zh_summary"),
-        editorial.get("summary_reason"),
         metadata.get("title"),
         metadata.get("description"),
         metadata.get("article_text"),
+        metadata.get("article_markdown"),
         " ".join(triage.get("matched_keywords") or []),
     ]
-    for review in model_reviews:
-        parts.extend(
-            [
-                review.get("zh_title"),
-                review.get("one_line_recommendation"),
-                review.get("summary"),
-                " ".join(review.get("reasons") or []),
-            ]
-        )
     return "\n".join(clean_text(part, 3000) for part in parts if part).casefold()
 
 
@@ -7670,6 +7834,11 @@ def page(title: str, body: str) -> bytes:
     element.value = value;
   }};
 
+  const setValue = (element, value) => {{
+    if (!element || !value) return;
+    element.value = value;
+  }};
+
   const splitTagInput = (value) => String(value || "")
     .split(/[\\n,，]/)
     .map((tag) => tag.trim().replace(/\\s+/g, " "))
@@ -8117,6 +8286,8 @@ def page(title: str, body: str) -> bytes:
       const parts = [];
       if (payload.is_feed) parts.push(`${{payload.feed_type || "RSS"}}，${{payload.entry_count || 0}} 則`);
       if (payload.final_url && payload.final_url !== payload.url) parts.push("已帶入跳轉後網址");
+      if (kind === "item" && payload.suggested_track_label) parts.push(`主線：${{payload.suggested_track_label}}`);
+      if (kind === "item" && payload.suggested_tags?.length) parts.push(`標籤：${{payload.suggested_tags.length}} 個`);
       status.textContent = parts.length ? `抓到了：${{parts.join("；")}}。` : "已抓到頁面資訊。";
     }}
     if (result) {{
@@ -8136,9 +8307,27 @@ def page(title: str, body: str) -> bytes:
     if (kind === "item") {{
       const urlInput = form.querySelector("[data-preview-url]");
       if (urlInput && payload.unwrapped_url) urlInput.value = payload.unwrapped_url;
+      const trackSelect = form.querySelector("[data-preview-track]");
+      if (
+        trackSelect &&
+        form.dataset.previewTrackAutofill === "1" &&
+        payload.suggested_track &&
+        Array.from(trackSelect.options).some((option) => option.value === payload.suggested_track)
+      ) {{
+        trackSelect.value = payload.suggested_track;
+      }}
       setIfEmpty(form.querySelector("[data-preview-title]"), payload.title || payload.feed_title);
       setIfEmpty(form.querySelector("[data-preview-source-name]"), payload.source_name);
       setIfEmpty(form.querySelector("[data-preview-summary]"), description);
+      setIfEmpty(form.querySelector("[data-preview-published-at]"), payload.published_at);
+      setValue(form.querySelector("[data-preview-author]"), payload.author);
+      setValue(form.querySelector("[data-preview-image-url]"), payload.image_url);
+      setValue(form.querySelector("[data-preview-canonical-url]"), payload.canonical_url);
+      setValue(form.querySelector("[data-preview-final-url]"), payload.final_url);
+      setValue(form.querySelector("[data-preview-site-name]"), payload.site_name);
+      if (form.tagPickerAddTag && Array.isArray(payload.suggested_tags)) {{
+        payload.suggested_tags.forEach((tag) => form.tagPickerAddTag(tag));
+      }}
     }} else {{
       const feedInput = form.querySelector("[data-preview-feed-url]");
       const siteInput = form.querySelector("[data-preview-site-url]");
@@ -8170,6 +8359,7 @@ def page(title: str, body: str) -> bytes:
     const data = new URLSearchParams();
     data.set("url", url);
     data.set("track", form.querySelector("[data-preview-track]")?.value || "digital-humanities-local-knowledge");
+    data.set("title", form.querySelector("[data-preview-title]")?.value || "");
     try {{
       const response = await fetch("/preview-url", {{
         method: "POST",
@@ -16262,8 +16452,9 @@ if (document.readyState === "loading") {{
     def preview_url(self, data: dict[str, list[str]]) -> None:
         url = form_value(data, "url")
         track = form_value(data, "track", "digital-humanities-local-knowledge")
+        title = form_value(data, "title")
         try:
-            payload = build_url_preview(url, track)
+            payload = build_url_preview(url, track, title)
         except Exception as exc:  # noqa: BLE001 - keep the local form from crashing on unusual pages.
             payload = {"ok": False, "error": str(exc)}
         self.send_json(payload, HTTPStatus.OK if payload.get("ok") else HTTPStatus.BAD_REQUEST)
@@ -16836,6 +17027,29 @@ if (document.readyState === "loading") {{
         current_track = (query.get("track") or ["digital-humanities-local-knowledge"])[0]
         if current_track not in TRACK_META:
             current_track = "digital-humanities-local-knowledge"
+        track_autofill = "0"
+        if "track" not in query and (title or url):
+            keyword_config = load_json(TRIAGE_KEYWORDS) or {"version": 1, "tracks": {}}
+            history = [*load_jsonl(ITEMS), *load_jsonl(REJECTED_ITEMS)]
+            editorial_context = build_editorial_context(history, keyword_config)
+            inferred_track, _reason, _choices = infer_manual_item_track(
+                {
+                    "title": title,
+                    "url": url,
+                    "source_name": host_label(url),
+                    "author": "",
+                    "published_at": "",
+                    "summary": "",
+                    "tags": [],
+                    "origin": "manual-web",
+                },
+                keyword_config,
+                editorial_context,
+                current_track,
+            )
+            if inferred_track in TRACK_META:
+                current_track = inferred_track
+            track_autofill = "1"
         tag_records = load_jsonl(ITEMS)
         existing_tags = all_tag_options(tag_records, limit=200)
         # 建議＝資料庫實際有的標籤（依分面分群，含同主題的罕見 tag）＋ taxonomy 骨架（確保空主題也露面），
@@ -16853,7 +17067,7 @@ if (document.readyState === "loading") {{
 <h1>手動入庫</h1>
 <p class="lede">用在你看到一篇文章、一個頁面或一個案例，想先丟進入庫建檔區時。這裡新增的是單筆知識項目，不是長期 RSS 來源。</p>
 <div class="button-row"><a class="button secondary" href="/items/upload-pdf">{button_content("上傳 PDF", "text-lines")}</a></div>
-<form class="form-panel tag-picker" method="post" action="/items" data-url-preview-form data-preview-kind="item" data-tag-picker>
+<form class="form-panel tag-picker" method="post" action="/items" data-url-preview-form data-preview-kind="item" data-preview-track-autofill="{track_autofill}" data-tag-picker>
   <label>主線</label>
   <select name="track" data-preview-track>{option_list(TRACKS, current_track)}</select>
   <p class="help">這決定它會出現在「開放科技」或「人文與在地知識」哪一個工作台。</p>
@@ -16863,6 +17077,11 @@ if (document.readyState === "loading") {{
   <label>網址</label>
   <input name="url" value="{h(url)}" required data-preview-url placeholder="https://example.com/article">
   <p class="help">網址很長也沒關係，列表會自動換行。</p>
+  <input type="hidden" name="author" data-preview-author>
+  <input type="hidden" name="preview_image_url" data-preview-image-url>
+  <input type="hidden" name="preview_canonical_url" data-preview-canonical-url>
+  <input type="hidden" name="preview_final_url" data-preview-final-url>
+  <input type="hidden" name="preview_site_name" data-preview-site-name>
   <div class="preview-panel" data-preview-panel hidden>
     <div class="preview-status" data-preview-status>等待網址。</div>
     <div class="preview-result" data-preview-result></div>
@@ -16872,7 +17091,7 @@ if (document.readyState === "loading") {{
   <input name="source_name" placeholder="例如：報導者、Open Knowledge Foundation" data-preview-source-name>
   <p class="help">不知道作者時，先填網站或組織名稱。</p>
   <label>發布日期</label>
-  <input name="published_at" placeholder="YYYY-MM-DD">
+  <input name="published_at" placeholder="YYYY-MM-DD" data-preview-published-at>
   <p class="help">不確定可以留空，之後整理時再補。</p>
   <label>摘要或摘記</label>
   <textarea name="summary" data-preview-summary></textarea>
@@ -17096,9 +17315,60 @@ if (document.readyState === "loading") {{
                 return
             self.send_html("已存在", f"<h1>這個網址已經在資料庫</h1><p>{h(url)}</p><p><a href='/'>回總覽</a></p>")
             return
-        source_name = form_value(data, "source_name") or "Manual bookmark"
         track = form_value(data, "track", "unclassified")
+        if track not in TRACK_META:
+            track = "unclassified"
+        captured_at = now_iso()
+        tags = self.selected_tag_values(data) or [tag.strip() for tag in form_value(data, "tags").split(",") if tag.strip()]
+        notes = form_value(data, "notes")
+        preview_metadata = {
+            "image_url": form_value(data, "preview_image_url"),
+            "canonical_url": form_value(data, "preview_canonical_url"),
+            "final_url": form_value(data, "preview_final_url"),
+            "site_name": form_value(data, "preview_site_name"),
+        }
+        preview_metadata = {key: value for key, value in preview_metadata.items() if clean_text(value)}
+        if preview_metadata:
+            preview_metadata["preview_source"] = "local_web"
+        record = {
+            "id": stable_id("item", "manual-web", url, title),
+            "track": track,
+            "status": "inbox",
+            "priority": "normal",
+            "title": title,
+            "url": url,
+            "source_id": "",
+            "source_name": form_value(data, "source_name"),
+            "author": form_value(data, "author") or form_value(data, "source_name"),
+            "published_at": form_value(data, "published_at"),
+            "captured_at": captured_at,
+            "summary": form_value(data, "summary"),
+            "tags": tags,
+            "origin": "manual-web",
+            "reference": {"created_by": "local_web", "created_from": "manual-url"},
+            "review": default_review(notes),
+        }
+        if preview_metadata:
+            record["reading_metadata"] = preview_metadata
+        if preview_metadata.get("image_url"):
+            record["image_url"] = preview_metadata["image_url"]
+        enriched, _did_change, metadata_error = enrich_item_metadata(record)
+        keyword_config = load_json(TRIAGE_KEYWORDS) or {"version": 1, "tracks": {}}
+        editorial_context = build_editorial_context([*items, *load_jsonl(REJECTED_ITEMS)], keyword_config)
+        record = apply_manual_item_autofill(
+            enriched,
+            item_reading_metadata(enriched),
+            items,
+            keyword_config,
+            editorial_context,
+            metadata_error=metadata_error,
+        )
+        metadata = item_reading_metadata(record)
+        source_name = clean_text(record.get("source_name"), 160) or "Manual bookmark"
         source_id = stable_id("src", "manual-web", source_name)
+        record["source_id"] = source_id
+        record["source_name"] = source_name
+        record["author"] = clean_text(record.get("author"), 240) or source_name
         if not any(source.get("id") == source_id for source in sources):
             append_jsonl(
                 SOURCES,
@@ -17110,39 +17380,13 @@ if (document.readyState === "loading") {{
                     "source_type": "manual",
                     "fetch_frequency": "daily",
                     "feed_url": "",
-                    "site_url": "",
+                    "site_url": metadata_site_url(metadata, url),
                     "status": "active",
                     "required_keywords": [],
                     "excluded_keywords": [],
                     "notes": "由本機網頁加入。",
                 },
             )
-        tags = self.selected_tag_values(data) or [tag.strip() for tag in form_value(data, "tags").split(",") if tag.strip()]
-        notes = form_value(data, "notes")
-        record = {
-            "id": stable_id("item", "manual-web", url, title),
-            "track": track,
-            "status": "inbox",
-            "priority": "normal",
-            "title": title,
-            "url": url,
-            "source_id": source_id,
-            "source_name": source_name,
-            "author": source_name,
-            "published_at": form_value(data, "published_at"),
-            "captured_at": now_iso(),
-            "summary": form_value(data, "summary"),
-            "tags": tags,
-            "origin": "manual-web",
-            "reference": {"created_by": "local_web"},
-            "review": default_review(notes),
-        }
-        enriched, did_change, _ = enrich_item_metadata(record)
-        if did_change:
-            metadata = item_reading_metadata(enriched)
-            if title == url and metadata.get("title"):
-                enriched["title"] = clean_text(metadata.get("title"), 300)
-            record = enriched
         append_jsonl(ITEMS, record)
         if async_request:
             self.send_json({"ok": True, "duplicate": False, "item_id": clean_text(record.get("id")),

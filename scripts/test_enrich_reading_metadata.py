@@ -62,6 +62,38 @@ class ReadingMetadataRulesTest(unittest.TestCase):
             page_metadata.BROWSER_FALLBACK_USER_AGENT,
         )
 
+    def test_fetch_page_metadata_extracts_site_name_and_published_date(self) -> None:
+        class FakeResponse:
+            headers = {"content-type": "text/html; charset=utf-8"}
+
+            def __enter__(self) -> "FakeResponse":
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+            def geturl(self) -> str:
+                return "https://example.com/world/story-2026-06-25/"
+
+            def read(self, _max_bytes: int) -> bytes:
+                return b"""
+                <html lang="en">
+                  <head>
+                    <meta property="og:site_name" content="Example News">
+                    <meta property="article:published_time" content="2026-06-25T12:30:00Z">
+                    <title>Example article</title>
+                  </head>
+                  <body><article><p>This article paragraph is long enough to be extracted as article text.</p></article></body>
+                </html>
+                """
+
+        with patch.object(page_metadata.urllib.request, "urlopen", return_value=FakeResponse()):
+            metadata = page_metadata.fetch_page_metadata("https://example.com/world/story-2026-06-25/")
+
+        self.assertEqual(metadata["site_name"], "Example News")
+        self.assertEqual(metadata["published_at"], "2026-06-25")
+        self.assertEqual(metadata["published_at_source"], "article:published_time")
+
     def test_html_article_markdown_uses_blank_lines_between_paragraphs(self) -> None:
         html = """
         <article>

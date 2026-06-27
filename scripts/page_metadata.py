@@ -315,6 +315,81 @@ def author_from_html(html_text: str) -> tuple[str, str]:
     return "", ""
 
 
+def normalize_published_date(value: object) -> str:
+    text = clean_text(value, 160)
+    if not text:
+        return ""
+    iso_text = text.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(iso_text).date().isoformat()
+    except ValueError:
+        pass
+    match = re.search(r"\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b", text)
+    if match:
+        year, month, day = (int(part) for part in match.groups())
+        try:
+            return datetime(year, month, day).date().isoformat()
+        except ValueError:
+            return ""
+    plain_text = re.sub(r"\b(\d{1,2})(?:st|nd|rd|th)\b", r"\1", text, flags=re.I)
+    for fmt in ("%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y"):
+        try:
+            return datetime.strptime(plain_text, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return ""
+
+
+def published_date_from_url(url: str) -> str:
+    path = urlparse(url).path
+    for pattern in [
+        r"(?:^|/)(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:/|$|[-_])",
+        r"(?:^|/)(\d{4})(\d{2})(\d{2})(?:/|$|[-_])",
+    ]:
+        match = re.search(pattern, path)
+        if not match:
+            continue
+        year, month, day = (int(part) for part in match.groups())
+        try:
+            return datetime(year, month, day).date().isoformat()
+        except ValueError:
+            continue
+    return ""
+
+
+def published_date_from_html(html_text: str, final_url: str = "") -> tuple[str, str]:
+    for key in [
+        "article:published_time",
+        "article:published",
+        "og:published_time",
+        "pubdate",
+        "publishdate",
+        "date",
+        "dc.date",
+        "dcterms.created",
+        "dcterms.issued",
+        "parsely-pub-date",
+        "sailthru.date",
+        "shareaholic:article_published_time",
+    ]:
+        published = normalize_published_date(first_meta(html_text, key))
+        if published:
+            return published, key
+    for key in ["datePublished", "dateCreated", "uploadDate"]:
+        published = normalize_published_date(jsonld_first_value(html_text, key))
+        if published:
+            return published, f"json-ld {key}"
+    for match in re.finditer(r"<time\b[^>]*>", html_text, flags=re.I | re.S):
+        attrs = attrs_from_tag(match.group(0))
+        published = normalize_published_date(attrs.get("datetime") or attrs.get("content"))
+        if published:
+            return published, "time datetime"
+    published = published_date_from_url(final_url)
+    if published:
+        return published, "URL path"
+    return "", ""
+
+
 def license_from_html(html_text: str, final_url: str = "") -> tuple[str, str, str]:
     license_link = first_link(html_text, "license")
     if license_link:
@@ -551,9 +626,11 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
     image = first_meta(html_text, "og:image", "og:image:url", "twitter:image", "twitter:image:src")
     canonical = first_link(html_text, "canonical")
     description = first_meta(html_text, "og:description", "description", "twitter:description")
+    site_name = first_meta(html_text, "og:site_name", "application-name", "twitter:site")
     title = title_from_html(html_text)
     excerpt = excerpt_from_html(html_text)
     author, author_source = author_from_html(html_text)
+    published_at, published_at_source = published_date_from_html(html_text, final_url)
     license_text, license_source, license_url = license_from_html(html_text, final_url)
     language, language_source = html_language(html_text, "\n".join([title, description, excerpt]))
     metadata = {
@@ -565,10 +642,14 @@ def fetch_page_metadata(url: str, timeout: int = 8, max_bytes: int = 1_500_000) 
         "description": description,
         "image_url": urljoin(final_url, image) if image else "",
         "canonical_url": urljoin(final_url, canonical) if canonical else "",
+        "site_name": site_name,
         "excerpt": excerpt,
         "content_type": content_type,
         "status": "ok",
     }
+    if published_at:
+        metadata["published_at"] = published_at
+        metadata["published_at_source"] = published_at_source
     if language:
         metadata["original_language"] = language
         metadata["original_language_source"] = language_source
