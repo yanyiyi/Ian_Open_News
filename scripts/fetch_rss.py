@@ -541,7 +541,18 @@ def evaluate_triage(record: dict, keyword_config: dict) -> dict:
     skip_matches = keyword_matches(text, skip_keywords)
     mechanism_matches = keyword_matches(text, mechanism_keywords)
 
-    if skip_matches:
+    if skip_matches and mechanism_matches and not keep_matches:
+        # 同時命中排除詞與底層機制詞（常見：文章結尾在推銷，但前段有可萃取的政策／技術概念）。
+        # 不因「推銷結尾」整篇否決——改標「先問你」，附上機制切角提示讓使用者決定。
+        recommendation = "suggest-ask"
+        reason = (
+            "雖出現排除關鍵字「"
+            + "、".join(skip_matches[:3])
+            + "」，但同時命中底層機制關鍵字「"
+            + "、".join(mechanism_matches[:4])
+            + "」，前段可能有可萃取價值，建議先問你再決定，不要整篇略過。"
+        )
+    elif skip_matches:
         recommendation = "suggest-skip"
         reason = "出現排除關鍵字，先標成建議不要看。"
     elif keep_matches:
