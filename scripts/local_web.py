@@ -54,6 +54,7 @@ SOURCES = DATABASE / "sources.jsonl"
 ITEMS = DATABASE / "items.jsonl"
 REJECTED_ITEMS = DATABASE / "rejected-items.jsonl"
 REVIEW_EVENTS = DATABASE / "review-events.jsonl"
+PUBLISHED_PAGES = DATABASE / "published-pages.jsonl"
 TRIAGE_KEYWORDS = DATABASE / "triage-keywords.json"
 CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
 DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
@@ -199,6 +200,24 @@ TRACK_META = {
 }
 TRACK_ORDER = ["open-tech-open-industry", "digital-humanities-local-knowledge", "unclassified"]
 ONLINE_READER_BASE_URL = "https://technews.ospo.tw/reader"
+LICENSE_UNSPECIFIED = "未明確標示"
+LICENSE_NON_CC_PREFIX = "非 CC："
+LICENSE_URLS = {
+    "CC BY 4.0": "https://creativecommons.org/licenses/by/4.0/",
+    "CC BY-SA 4.0": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "CC BY-NC 4.0": "https://creativecommons.org/licenses/by-nc/4.0/",
+    "CC BY-NC-SA 4.0": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+    "CC BY-ND 4.0": "https://creativecommons.org/licenses/by-nd/4.0/",
+    "CC BY-NC-ND 4.0": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+    "CC BY 3.0 TW": "https://creativecommons.org/licenses/by/3.0/tw/",
+    "CC BY-SA 3.0 TW": "https://creativecommons.org/licenses/by-sa/3.0/tw/",
+    "CC BY-NC 3.0 TW": "https://creativecommons.org/licenses/by-nc/3.0/tw/",
+    "CC BY-NC-SA 3.0 TW": "https://creativecommons.org/licenses/by-nc-sa/3.0/tw/",
+    "CC BY-ND 3.0 TW": "https://creativecommons.org/licenses/by-nd/3.0/tw/",
+    "CC BY-NC-ND 3.0 TW": "https://creativecommons.org/licenses/by-nc-nd/3.0/tw/",
+    "CC0 1.0": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "Public Domain Mark 1.0": "https://creativecommons.org/publicdomain/mark/1.0/",
+}
 LOCAL_TIMEZONE = ZoneInfo("Asia/Taipei")
 SOURCE_TYPES = ["rss", "google-alert", "youtube", "podcast", "facebook", "inoreader-monitor", "spreadsheet", "manual"]
 SOURCE_STATUSES = ["active", "paused", "archived"]
@@ -286,7 +305,16 @@ COMMAND_SHORTCUTS = {
     "git_diff_stat": "I",
     "commit_database_state": "K",
 }
-DATA_AUTOCOMMIT_FILES = [ITEMS, REVIEW_EVENTS, SOURCES, DECISION_DIVERGENCES, INSIGHT_REPORTS, SYSTEM_CHANGE_PROPOSALS, TASTE_PROFILE]
+DATA_AUTOCOMMIT_FILES = [
+    ITEMS,
+    REVIEW_EVENTS,
+    SOURCES,
+    PUBLISHED_PAGES,
+    DECISION_DIVERGENCES,
+    INSIGHT_REPORTS,
+    SYSTEM_CHANGE_PROPOSALS,
+    TASTE_PROFILE,
+]
 DATA_AUTOCOMMIT_LOCK = threading.Lock()
 # 序列化資料庫的「讀取→修改→整檔覆寫」交易。ThreadingHTTPServer 會並發處理請求，
 # 沒有這把鎖時，批次或快速連點的收件/分流會 lost-update：item 被另一執行緒的舊
@@ -2852,6 +2880,154 @@ def badge(label: str, class_name: str = "neutral") -> str:
     return f'<span class="badge badge--{h(class_name)}">{h(label)}</span>'
 
 
+def taxonomy_license_names() -> list[str]:
+    taxonomy = load_json(DATABASE / "taxonomy.json") or {}
+    names = taxonomy.get("licenses") if isinstance(taxonomy.get("licenses"), list) else []
+    return [clean_text(name, 120) for name in names if clean_text(name, 120)]
+
+
+def license_name_is_valid(name: str, known_names: set[str] | None = None) -> bool:
+    name = clean_text(name, 120)
+    if not name:
+        return False
+    known = known_names if known_names is not None else set(taxonomy_license_names())
+    return name in known or name.startswith(LICENSE_NON_CC_PREFIX)
+
+
+def item_license_name(record: dict) -> str:
+    license_data = record.get("license") if isinstance(record.get("license"), dict) else {}
+    return clean_text(license_data.get("name"), 120)
+
+
+def license_label(record: dict) -> str:
+    name = item_license_name(record)
+    if not name:
+        return ""
+    license_data = record.get("license") if isinstance(record.get("license"), dict) else {}
+    if license_data.get("uncertain") and name != LICENSE_UNSPECIFIED:
+        return f"{name}（待確認）"
+    return name
+
+
+def license_badge_html(record: dict) -> str:
+    label = license_label(record)
+    return badge(label, "neutral") if label else ""
+
+
+def license_filter_options(records: list[dict] | None = None, default_label: str = "全部授權") -> list[tuple[str, str]]:
+    known = taxonomy_license_names()
+    options: list[tuple[str, str]] = [("all", default_label)] + [(name, name) for name in known]
+    if records:
+        known_set = set(known)
+        extra = sorted(
+            {
+                name
+                for name in (item_license_name(record) for record in records)
+                if name and name not in known_set
+            }
+        )
+        options.extend((name, name) for name in extra)
+    return options
+
+
+def sanitize_attribution_table(value: object) -> list[dict]:
+    if not isinstance(value, list):
+        return []
+    rows = []
+    for row in value:
+        if not isinstance(row, dict):
+            continue
+        cleaned = {
+            "scope": clean_text(row.get("scope"), 80),
+            "attribution": clean_text(row.get("attribution"), 320),
+            "license_name": clean_text(row.get("license_name"), 120),
+        }
+        if any(cleaned.values()):
+            rows.append(cleaned)
+    return rows
+
+
+def sanitize_license_record(value: object) -> dict:
+    if not isinstance(value, dict):
+        return {}
+    name = clean_text(value.get("name"), 120)
+    if not name:
+        return {}
+    record: dict = {
+        "name": name,
+        "uncertain": bool(value.get("uncertain")) or name == LICENSE_UNSPECIFIED,
+    }
+    license_url = clean_text(value.get("license_url"), 500) or LICENSE_URLS.get(name, "")
+    if license_url:
+        record["license_url"] = license_url
+    evidence = value.get("evidence")
+    if isinstance(evidence, dict):
+        cleaned_evidence = {
+            key: clean_text(evidence.get(key), 1000)
+            for key in ["source_url", "page_title", "rights_holder", "license_link_url", "access_date"]
+            if clean_text(evidence.get(key), 1000)
+        }
+        if cleaned_evidence:
+            record["evidence"] = cleaned_evidence
+    table = sanitize_attribution_table(value.get("attribution_table"))
+    if table:
+        record["attribution_table"] = table
+    provenance = value.get("provenance")
+    if isinstance(provenance, dict):
+        cleaned_provenance = {
+            key: clean_text(provenance.get(key), 500)
+            for key in ["method", "determined_at", "confidence", "source_field"]
+            if clean_text(provenance.get(key), 500)
+        }
+        if cleaned_provenance:
+            record["provenance"] = cleaned_provenance
+    return record
+
+
+def manual_license_record(name: str, existing: object = None, raw_json: str = "") -> dict:
+    existing_record = sanitize_license_record(existing)
+    json_record: dict = {}
+    if raw_json.strip():
+        try:
+            parsed = json.loads(raw_json)
+        except json.JSONDecodeError:
+            parsed = {}
+        json_record = sanitize_license_record(parsed)
+    name = clean_text(name or json_record.get("name") or existing_record.get("name"), 120)
+    if not name:
+        return {}
+    if existing_record and item_license_name({"license": existing_record}) == name and not json_record:
+        return existing_record
+    record = {**json_record, "name": name, "uncertain": name == LICENSE_UNSPECIFIED or bool(json_record.get("uncertain"))}
+    if name in LICENSE_URLS and not record.get("license_url"):
+        record["license_url"] = LICENSE_URLS[name]
+    provenance = dict(record.get("provenance") or {})
+    provenance.update({"method": "manual", "determined_at": now_iso(), "confidence": "high"})
+    record["provenance"] = provenance
+    return sanitize_license_record(record)
+
+
+def license_attribution_table_html(record: dict) -> str:
+    license_data = record.get("license") if isinstance(record.get("license"), dict) else {}
+    rows = sanitize_attribution_table(license_data.get("attribution_table"))
+    if not rows:
+        return ""
+    body = "".join(
+        "<tr>"
+        f"<td>{h(row.get('scope'))}</td>"
+        f"<td>{h(row.get('attribution'))}</td>"
+        f"<td>{h(row.get('license_name'))}</td>"
+        "</tr>"
+        for row in rows
+    )
+    return f"""
+<table class="metadata-table license-table">
+  <thead><tr><th>使用對象</th><th>Attribution / 應標示對象</th><th>CC 授權名稱</th></tr></thead>
+  <tbody>{body}</tbody>
+</table>
+"""
+
+
 def href_with_query(path: str, params: list[tuple[str, str]]) -> str:
     clean_params = [(key, value) for key, value in params if value]
     if not clean_params:
@@ -3981,6 +4157,85 @@ def public_reader_feature_url(article: dict) -> str:
     """專文的公開線上版 URL（狀態為 published、跑過更新線上閱讀版後才存在）。"""
     article_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(article.get("id")) or "article").strip("-")
     return f"{ONLINE_READER_BASE_URL}/features/{article_id}.html"
+
+
+def source_public_slug(source_id: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(source_id) or "source").strip("-") or "source"
+
+
+def page_public_url(page_type: str, slug: str) -> str:
+    folder = "tags" if page_type == "tag" else "sources"
+    return f"{ONLINE_READER_BASE_URL}/{folder}/{slug}.html"
+
+
+def published_page_id(page_type: str, key: str) -> str:
+    if page_type == "tag":
+        slug = pdf_slugify(canonical_tag_label(key), fallback=stable_id("tag", key), limit=64)
+        return f"pubpage-tag-{slug}"
+    return f"pubpage-source-{source_public_slug(key)}"
+
+
+def published_page_slug(page_type: str, key: str, title: str, existing_pages: list[dict] | None = None) -> str:
+    if page_type == "source":
+        return source_public_slug(key)
+    base = pdf_slugify(canonical_tag_label(title or key), fallback="tag", limit=64)
+    existing_pages = existing_pages if existing_pages is not None else load_jsonl(PUBLISHED_PAGES)
+    collision = next(
+        (
+            page
+            for page in existing_pages
+            if clean_text(page.get("type")) == page_type
+            and clean_text(page.get("slug")) == base
+            and clean_text(page.get("key")) != clean_text(key)
+        ),
+        None,
+    )
+    if collision:
+        return f"{base}-{stable_id('tag', key).removeprefix('tag-')[:8]}"
+    return base
+
+
+def published_page_for(page_type: str, key: str) -> dict:
+    page_id = published_page_id(page_type, key)
+    return next((page for page in load_jsonl(PUBLISHED_PAGES) if clean_text(page.get("id")) == page_id), {})
+
+
+def publish_page_card(page_type: str, key: str, title: str, blurb: str = "") -> str:
+    existing = published_page_for(page_type, key)
+    slug = clean_text(existing.get("slug")) or published_page_slug(page_type, key, title)
+    published = bool(existing.get("published"))
+    current_blurb = clean_text(existing.get("blurb"), 1000) or clean_text(blurb, 1000)
+    action = "unpublish" if published else "publish"
+    button_label = "取消公開頁" if published else "產生可分享公開頁"
+    toggle_text = "已公開" if published else "未公開"
+    active_class = " is-on" if published else ""
+    public_url = page_public_url(page_type, slug)
+    url_panel = (
+        f'<p class="help">下次更新線上閱讀版後生效：<a href="{h(public_url)}" target="_blank" rel="noopener" data-publish-url>{h(public_url)}</a></p>'
+        f'<button type="button" class="button button-small quiet" data-copy-publish-url="{h(public_url)}">複製網址</button>'
+        if published
+        else '<p class="help" data-publish-url>公開後，這裡會顯示可分享網址；下次更新線上閱讀版後才會正式存在。</p>'
+    )
+    return f"""
+<section class="card publish-page-card" data-publish-card>
+  <div class="section-kicker">發布</div>
+  <h2>分享這一頁</h2>
+  <form method="post" action="/pages/toggle-publish" data-page-publish-form>
+    <input type="hidden" name="type" value="{h(page_type)}">
+    <input type="hidden" name="key" value="{h(key)}">
+    <input type="hidden" name="title" value="{h(title)}">
+    <input type="hidden" name="action" value="{h(action)}" data-page-publish-action>
+    <input type="hidden" name="redirect" value="{h('/tags?tag=' + quote(key) if page_type == 'tag' else '/sources/view?id=' + quote(key))}">
+    <label>公開頁導言</label>
+    <textarea name="blurb" rows="3" placeholder="這個議題或來源適合分享給外部讀者的簡短說明。">{h(current_blurb)}</textarea>
+    <div class="button-row">
+      <button type="submit" class="source-toggle{active_class}" data-page-publish-button aria-label="{h(button_label)}"><span></span><span data-page-publish-label>{h(toggle_text)}</span></button>
+      <span class="muted" data-page-publish-message>{h(button_label)}</span>
+    </div>
+  </form>
+  <div data-page-publish-output>{url_panel}</div>
+</section>
+"""
 
 
 def resolve_final_url(url: str, timeout: int = 12) -> tuple[str, str]:
@@ -8284,6 +8539,72 @@ def page(title: str, body: str) -> bytes:
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 
+  const setupPublishCopyButtons = (root = document) => {{
+    root.querySelectorAll("[data-copy-publish-url]").forEach((button) => {{
+      if (button.dataset.copyPublishBound === "1") return;
+      button.dataset.copyPublishBound = "1";
+      button.addEventListener("click", async () => {{
+        const url = button.dataset.copyPublishUrl || "";
+        let ok = false;
+        try {{
+          if (navigator.clipboard?.writeText) {{
+            await navigator.clipboard.writeText(url);
+            ok = true;
+          }}
+        }} catch (_error) {{
+          ok = false;
+        }}
+        button.textContent = ok ? "已複製" : "請手動複製網址";
+      }});
+    }});
+  }};
+
+  document.querySelectorAll("form[data-page-publish-form]").forEach((form) => {{
+    form.addEventListener("submit", async (event) => {{
+      if (!window.fetch) return;
+      event.preventDefault();
+      const button = form.querySelector("[data-page-publish-button]");
+      const label = form.querySelector("[data-page-publish-label]");
+      const actionInput = form.querySelector("[data-page-publish-action]");
+      const message = form.querySelector("[data-page-publish-message]");
+      const output = form.closest("[data-publish-card]")?.querySelector("[data-page-publish-output]");
+      if (button) button.disabled = true;
+      try {{
+        const data = new URLSearchParams(new FormData(form));
+        data.set("format", "json");
+        const response = await fetch(form.getAttribute("action") || form.action, {{
+          method: "POST",
+          headers: {{
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "X-Requested-With": "local-web-fetch"
+          }},
+          body: data
+        }});
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) throw new Error(payload.error || "發布切換失敗");
+        const published = Boolean(payload.published);
+        if (button) button.classList.toggle("is-on", published);
+        if (label) label.textContent = published ? "已公開" : "未公開";
+        if (actionInput) actionInput.value = published ? "unpublish" : "publish";
+        if (message) message.textContent = published ? "下次更新線上閱讀版後生效。" : "已取消公開；下次更新線上閱讀版後會清掉頁面。";
+        if (output) {{
+          if (published) {{
+            const url = payload.public_url || "";
+            output.innerHTML = '<p class="help">下次更新線上閱讀版後生效：<a href="' + escapeHTML(url) + '" target="_blank" rel="noopener" data-publish-url>' + escapeHTML(url) + '</a></p><button type="button" class="button button-small quiet" data-copy-publish-url="' + escapeHTML(url) + '">複製網址</button>';
+            setupPublishCopyButtons(output);
+          }} else {{
+            output.innerHTML = '<p class="help" data-publish-url>公開已關閉；下次更新線上閱讀版後會清掉對應 HTML。</p>';
+          }}
+        }}
+      }} catch (error) {{
+        if (message) message.textContent = String(error);
+      }} finally {{
+        if (button) button.disabled = false;
+      }}
+    }});
+  }});
+  setupPublishCopyButtons(document);
+
   const setIfEmpty = (element, value) => {{
     if (!element || !value || element.value.trim()) return;
     element.value = value;
@@ -9114,6 +9435,7 @@ def normalize_article_record(record: dict) -> dict:
         "item_ids": [clean_text(i) for i in (record.get("item_ids") or []) if clean_text(i)],
         "viewpoint_ids": [clean_text(v) for v in (record.get("viewpoint_ids") or []) if clean_text(v)],
         "source_session_id": clean_text(record.get("source_session_id")),
+        "license": sanitize_license_record(record.get("license")),
         "factcheck": record.get("factcheck") if isinstance(record.get("factcheck"), dict) else {},
         "created_at": created_at,
         "updated_at": now_iso(),
@@ -9664,6 +9986,7 @@ ARTICLE_EDITOR_JS = """
   var titleInput = document.getElementById("article-title");
   var statusSel = document.getElementById("article-status");
   var trackSel = document.getElementById("article-track");
+  var licenseSel = document.getElementById("article-license");
   var bodyArea = document.getElementById("article-body");
   var savedLabel = document.getElementById("article-saved-label");
   var tagsForm = document.querySelector("[data-article-tags]");
@@ -9698,6 +10021,7 @@ ARTICLE_EDITOR_JS = """
     body.set("body_markdown", easymde ? easymde.value() : (bodyArea ? bodyArea.value : ""));
     body.set("track", trackSel ? trackSel.value : (state.track || ""));
     body.set("status", statusSel ? statusSel.value : (state.status || "draft"));
+    body.set("license", licenseSel ? licenseSel.value : (state.license || ""));
     body.set("item_ids", itemIds().join(","));
     body.set("viewpoint_ids", viewpointIds().join(","));
     currentTags().forEach(function(t){ body.append("tags", t); });
@@ -9801,6 +10125,7 @@ ARTICLE_EDITOR_JS = """
   if (titleInput) titleInput.addEventListener("input", markDirty);
   if (statusSel) statusSel.addEventListener("change", markDirty);
   if (trackSel) trackSel.addEventListener("change", markDirty);
+  if (licenseSel) licenseSel.addEventListener("change", markDirty);
   if (tagsForm) {
     tagsForm.addEventListener("click", function(){ setTimeout(markDirty, 60); });
     tagsForm.addEventListener("keydown", function(e){ if (e.key === "Enter") setTimeout(markDirty, 60); });
@@ -10378,6 +10703,8 @@ class Handler(BaseHTTPRequestHandler):
             self.update_item_tags(self.read_form())
         elif parsed.path == "/items/toggle-reading-priority":
             self.toggle_reading_priority(self.read_form())
+        elif parsed.path == "/pages/toggle-publish":
+            self.toggle_page_publish(self.read_form())
         elif parsed.path == "/items/requeue-skill":
             self.requeue_skill_item(self.read_form())
         elif parsed.path == "/items/read-more":
@@ -11933,6 +12260,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 "viewpoint_ids": viewpoint_ids,
                 "created_at": existing.get("created_at"),
                 "source_session_id": existing.get("source_session_id"),
+                "license": manual_license_record(form_value(data, "license"), existing.get("license")),
                 "factcheck": existing.get("factcheck"),
             }
         )
@@ -12904,6 +13232,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 "title": article["title"],
                 "track": article["track"],
                 "status": article["status"],
+                "license": item_license_name(article),
                 "tags": article["tags"],
                 "item_ids": item_ids,
                 "viewpoint_ids": viewpoint_ids,
@@ -12919,6 +13248,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             f'<option value="{h(key)}"{" selected" if key == article["status"] else ""}>{h(label)}</option>'
             for key, label in ARTICLE_STATUS_LABELS.items()
         )
+        current_license = item_license_name(article)
+        license_options = option_list([("", "未設定授權")] + [(name, name) for name in taxonomy_license_names()], current_license)
         all_tags = sorted({clean_text(t) for rec in load_jsonl(ITEMS) for t in (rec.get("tags") or []) if clean_text(t)})
         tag_controls = tag_picker_controls_html(article.get("tags") or [], [], all_tags, placeholder="搜尋或新增 tag")
 
@@ -13003,6 +13334,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <select id="article-track">{track_options}</select>
       <label class="article-field" for="article-status" style="margin-top:10px;">狀態</label>
       <select id="article-status">{status_options}</select>
+      <label class="article-field" for="article-license" style="margin-top:10px;">授權</label>
+      <select id="article-license">{license_options}</select>
       <p class="help" style="margin-top:6px;">狀態設為「已發布」並按首頁的「更新線上閱讀版」後，會產出公開線上版：<br><a href="{h(public_reader_feature_url(article))}" target="_blank" rel="noopener">{h(public_reader_feature_url(article))}</a></p>
       <h3 style="margin-top:12px;">標籤</h3>
       <form data-tag-picker data-article-tags class="tag-picker" onsubmit="return false">{tag_controls}</form>
@@ -13031,12 +13364,15 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         articles.sort(key=lambda a: clean_text(a.get("updated_at")), reverse=True)
         track_filter = clean_text((query.get("track") or ["all"])[0]) or "all"
         status_filter = clean_text((query.get("status") or ["all"])[0]) or "all"
+        license_filter = clean_text((query.get("license") or ["all"])[0]) or "all"
         tag_filter = clean_text((query.get("tag") or [""])[0])
 
         def matches(a: dict) -> bool:
             if track_filter != "all" and clean_text(a.get("track")) != track_filter:
                 return False
             if status_filter != "all" and clean_text(a.get("status")) != status_filter:
+                return False
+            if license_filter != "all" and item_license_name(a) != license_filter:
                 return False
             if tag_filter and tag_filter not in [clean_text(t) for t in (a.get("tags") or [])]:
                 return False
@@ -13052,6 +13388,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             f'<option value="{h(k)}"{" selected" if k == status_filter else ""}>{h(v)}</option>'
             for k, v in ARTICLE_STATUS_LABELS.items()
         )
+        license_opts = option_list(license_filter_options(articles), license_filter)
 
         cards = ""
         for a in visible:
@@ -13063,7 +13400,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             body_preview = clean_text(re.sub(r"[#>*`_\-]+", " ", a.get("body_markdown") or ""), 140)
             cards += f"""
 <a class="article-index-card" href="/articles/view?id={quote(art_id)}">
-  <div class="article-index-meta">{badge(status_label, "neutral")}{badge(track_short, track_class(a.get("track", "unclassified")))}<span class="muted">{h(editor_relative_time(a.get("updated_at")))}</span></div>
+  <div class="article-index-meta">{badge(status_label, "neutral")}{badge(track_short, track_class(a.get("track", "unclassified")))}{license_badge_html(a)}<span class="muted">{h(editor_relative_time(a.get("updated_at")))}</span></div>
   <h3>{h(a.get("title"))}</h3>
   <p class="muted">{h(body_preview)}</p>
   <div class="article-index-tags">{tag_html}</div>
@@ -13081,6 +13418,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   <form method="get" action="/articles" class="article-index-filters">
     <select name="track" class="auto-filter" onchange="this.form.submit()">{track_opts}</select>
     <select name="status" class="auto-filter" onchange="this.form.submit()">{status_opts}</select>
+    <select name="license" class="auto-filter" onchange="this.form.submit()">{license_opts}</select>
     {f'<input type="hidden" name="tag" value="{h(tag_filter)}">' if tag_filter else ''}
     <span class="muted">共 {len(visible)} 篇{f"・標籤：{h(tag_filter)}" if tag_filter else ""}</span>
     <span style="margin-left:auto;">{layout_toggle("articles-grid", default_layout)}</span>
@@ -13129,6 +13467,12 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         tag_html = "".join(f'<a class="tag-pill" href="/tags?tag={quote(t)}">{h(t)}</a>' for t in (article.get("tags") or []))
         source_session = clean_text(article.get("source_session_id"))
         source_link = f'<a href="/editor/session?id={quote(source_session)}">原始編輯歷程 →</a>' if source_session else ""
+        license_table = license_attribution_table_html(article)
+        license_side = (
+            f'<div class="card"><h2>授權標示</h2><p>{license_badge_html(article)}</p>{license_table}</div>'
+            if item_license_name(article)
+            else ""
+        )
         body_html = markdown_to_html(article.get("body_markdown") or "（尚無內容）")
         hero_url, hero_credit = feature_hero_image(article, lookup)
         hero_html = (
@@ -13143,7 +13487,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 <section class="article-view">
   <div class="article-view-main">
     <div class="card">
-      <div class="article-index-meta">{badge(status_label, "neutral")}{badge(track_short, track_class(article.get("track", "unclassified")))}<span class="muted">更新於 {h(editor_relative_time(article.get("updated_at")))}</span></div>
+      <div class="article-index-meta">{badge(status_label, "neutral")}{badge(track_short, track_class(article.get("track", "unclassified")))}{license_badge_html(article)}<span class="muted">更新於 {h(editor_relative_time(article.get("updated_at")))}</span></div>
       <h1>{h(article.get("title"))}</h1>
       <div class="article-view-tags">{tag_html}</div>
       <div class="button-row" style="margin-top:10px;">
@@ -13164,6 +13508,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <h2>關聯觀點</h2>
       <ul>{viewpoint_rows or '<li class="muted">（無）</li>'}</ul>
     </div>
+    {license_side}
     {f'<div class="card"><p class="muted">{source_link}</p></div>' if source_link else ''}
   </aside>
 </section>
@@ -13469,6 +13814,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         pending_entries = [("rss", candidate) for candidate in candidates] + [("item", item) for item in inbox_items]
         track_filter = (query.get("track") or ["all"])[0]
         recommendation_filter = (query.get("recommendation") or ["all"])[0]
+        license_filter = clean_text((query.get("license") or ["all"])[0]) or "all"
         selected_keywords = {keyword for keyword in (query.get("keyword") or []) if keyword}
         show_all = (query.get("show") or [""])[0] == "all"
 
@@ -13476,6 +13822,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             if track_filter != "all" and record.get("track") != track_filter:
                 return False
             if recommendation_filter != "all" and candidate_recommendation(record) != recommendation_filter:
+                return False
+            if license_filter != "all" and item_license_name(record) != license_filter:
                 return False
             return True
 
@@ -13500,6 +13848,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             entry
             for entry in pending_entries
             if (track_filter == "all" or entry[1].get("track") == track_filter)
+            and (license_filter == "all" or item_license_name(entry[1]) == license_filter)
             and (not selected_keywords or bool(item_triage_keywords(entry[1]) & selected_keywords))
         ]
         counts = Counter(candidate_recommendation(record) for _, record in summary_entries)
@@ -13511,6 +13860,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 params.append(("track", track_filter))
             if recommendation:
                 params.append(("recommendation", recommendation))
+            if license_filter != "all":
+                params.append(("license", license_filter))
             for keyword in sorted(selected_keywords):
                 params.append(("keyword", keyword))
             return href_with_query("/items", params)
@@ -13574,6 +13925,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
     {badge(f"綜合 {priority_score}/10", "neutral")}
+    {license_badge_html(item)}
     <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
@@ -13632,6 +13984,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
     {badge(f"綜合 {priority_score}/10", "neutral")}
+    {license_badge_html(item)}
     <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
   <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
@@ -13683,6 +14036,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 parts.append(f"track={quote(track_filter)}")
             if recommendation_filter != "all":
                 parts.append(f"recommendation={quote(recommendation_filter)}")
+            if license_filter != "all":
+                parts.append(f"license={quote(license_filter)}")
             for keyword in sorted(selected_keywords):
                 parts.append(f"keyword={quote(keyword)}")
             parts.append("show=all")
@@ -13694,6 +14049,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             ("suggest-keep", "只看建議收"),
             ("suggest-skip", "只看建議不要看"),
         ]
+        license_options = license_filter_options([record for _, record in pending_entries])
         keyword_filters = []
         for keyword in keyword_options:
             checked = " checked" if keyword in selected_keywords else ""
@@ -13714,6 +14070,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 f'<input type="hidden" name="track" value="{h(track_filter)}">',
                 f'<input type="hidden" name="recommendation" value="{h(recommendation)}">',
             ]
+            if license_filter != "all":
+                hidden_inputs.append(f'<input type="hidden" name="license" value="{h(license_filter)}">')
             if show_all:
                 hidden_inputs.append('<input type="hidden" name="show" value="all">')
             for keyword in sorted(selected_keywords):
@@ -13790,6 +14148,11 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             <label>系統建議</label>
             <select name="recommendation" class="auto-filter">{option_list(recommendation_options, recommendation_filter)}</select>
             <p class="help">優先採用已產生的模型判斷，否則使用關鍵字初篩。</p>
+          </div>
+          <div>
+            <label>授權</label>
+            <select name="license" class="auto-filter">{option_list(license_options, license_filter)}</select>
+            <p class="help">依正規化授權欄位篩選；未回填的 RSS 新進不會出現在特定授權下。</p>
           </div>
         </div>
         <label>關鍵字 / tag</label>
@@ -14470,6 +14833,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
 
     def show_tag_view(self, query: dict[str, list[str]]) -> None:
         selected_tag = canonical_tag_label(form_value(query, "tag"))
+        license_filter = clean_text((query.get("license") or ["all"])[0]) or "all"
         all_items = load_jsonl(ITEMS)
         candidates = load_jsonl(CANDIDATES)
         rejected_items = load_jsonl(REJECTED_ITEMS)
@@ -14495,6 +14859,10 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
 
         matching_items = [item for item in all_items if item_matches_tag(item, selected_tag)]
         matching_candidates = [item for item in candidates if item_matches_tag(item, selected_tag)]
+        if license_filter != "all":
+            matching_items = [item for item in matching_items if item_license_name(item) == license_filter]
+            matching_candidates = [item for item in matching_candidates if item_license_name(item) == license_filter]
+        license_options = option_list(license_filter_options([*matching_items, *matching_candidates]), license_filter)
 
         def sort_records(records: list[dict]) -> list[dict]:
             return sorted(records, key=lambda item: (item_sort_time(item), item_display_title(item)), reverse=True)
@@ -14516,6 +14884,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
   <div class="reader-list-meta">
     {badge(status_label(item.get("status", "RSS 新進")), "neutral")}
     {badge(content_kind_label(item_display_kind(item)), "neutral")}
+    {license_badge_html(item)}
     {badge(item_display_time(item, 'published_at', 'captured_at'), "neutral")}
     {reader_flag_badges(item)}
   </div>
@@ -14553,6 +14922,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
       {badge(status_label(item.get("status", "RSS 新進")), "neutral")}
       {badge(content_kind_label(kind), "neutral")}
       {reader_flag_badges(item)}
+      {license_badge_html(item)}
     </div>
     <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
     <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
@@ -14617,7 +14987,12 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
   <a class="button quiet" href="/tags">{icon_span("back", "", "icon")}所有 tag</a>
   <a class="button secondary" href="{h(href_with_query('/items', [('keyword', selected_tag)]))}">回入庫建檔區篩選</a>
   <a class="button secondary" href="{h(href_with_query('/reader', [('time', 'all'), ('keyword', selected_tag)]))}">回閱讀區篩選</a>
+  <form method="get" action="/tags" class="inline-select-form">
+    <input type="hidden" name="tag" value="{h(selected_tag)}">
+    <select name="license" aria-label="授權篩選" onchange="this.form.submit()">{license_options}</select>
+  </form>
 </div>
+{publish_page_card("tag", selected_tag, selected_tag)}
 <div class="metric-row">
   {metric_tile(len(featured), "精選 / 觀點", "#tag-featured", "看區塊")}
   {metric_tile(len(small_news), "小消息", "#tag-small-news", "看區塊")}
@@ -14637,6 +15012,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
         track_filter = (query.get("track") or ["all"])[0]
         kind_filter = (query.get("kind") or ["all"])[0]
         reading_filter = (query.get("reading") or ["all"])[0]
+        license_filter = clean_text((query.get("license") or ["all"])[0]) or "all"
         if reading_filter not in {"all", "current"}:
             reading_filter = "all"
         view_mode = (query.get("view") or ["auto"])[0]
@@ -14661,6 +15037,8 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
             if kind_filter != "all" and kind != kind_filter:
                 return False
             if reading_filter == "current" and not item_is_current_reading(item):
+                return False
+            if license_filter != "all" and item_license_name(item) != license_filter:
                 return False
             return True
 
@@ -14704,6 +15082,8 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
             redirect_parts.append(f"kind={quote(kind_filter)}")
         if reading_filter != "all":
             redirect_parts.append(f"reading={quote(reading_filter)}")
+        if license_filter != "all":
+            redirect_parts.append(f"license={quote(license_filter)}")
         if view_mode != "auto":
             redirect_parts.append(f"view={quote(view_mode)}")
         if time_filter != "all":
@@ -14740,6 +15120,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
       {badge(status_label(item.get("status", "")), "neutral")}
       {badge(content_kind_label(kind), "neutral")}
       {reader_flag_badges(item)}
+      {license_badge_html(item)}
     </div>
     <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
     <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
@@ -14773,6 +15154,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
   <div class="reader-list-meta">
     {badge(content_kind_label(kind), "neutral")}
     {reader_flag_badges(item)}
+    {license_badge_html(item)}
     {badge(item_display_time(item, 'published_at', 'captured_at'), "neutral")}
   </div>
   <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
@@ -14910,6 +15292,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
             ("needs-review", "人工判斷"),
         ]
         reading_options = [("all", "全部閱讀標記"), ("current", "優先正在閱讀 / 想分享")]
+        license_options = license_filter_options(items)
         view_options = [("auto", "自動：分區預設"), ("card", "卡片"), ("list", "列表"), ("compact", "清單")]
         time_options = READER_TIME_FILTERS
         custom_hidden = "" if time_filter == "custom" else " hidden"
@@ -14977,6 +15360,10 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
           <div>
             <label>閱讀標記</label>
             <select name="reading" class="auto-filter">{option_list(reading_options, reading_filter)}</select>
+          </div>
+          <div>
+            <label>授權</label>
+            <select name="license" class="auto-filter">{option_list(license_options, license_filter)}</select>
           </div>
           <div>
             <label>顯示格式</label>
@@ -15170,8 +15557,9 @@ if (document.readyState === "loading") {{
             else "按「展開全文」後會從原始連結往下抓全文，載入完成後以 Markdown 閱讀版顯示在這裡。"
         )
         # 「編輯全文」入口：任何有全文（原文／翻譯／已編輯）的材料都能改排版或補截斷
+        edit_fulltext_label = "編輯中文 Markdown" if has_translation else "編輯全文"
         edit_fulltext_button = (
-            f'<a class="button button-small" href="/items/edit-fulltext?id={quote(item_id)}">{button_content("編輯全文", "edit")}</a>'
+            f'<a class="button button-small" href="/items/edit-fulltext?id={quote(item_id)}">{button_content(edit_fulltext_label, "edit")}</a>'
             if (article_markdown or article_text or has_translation or is_edited) and not is_rss_candidate
             else ""
         )
@@ -15179,13 +15567,11 @@ if (document.readyState === "loading") {{
         # 原文本身就是主全文時 prominent；有翻譯或已編輯時收合成比對用。
         original_is_primary = not (is_edited or has_translation)
         if original_is_primary:
-            original_edit_row = f'<div class="button-row">{edit_fulltext_button}</div>' if edit_fulltext_button else ""
             original_fulltext_panel = f"""
 <section class="card fulltext-panel source-card source-card--source" id="fulltext-panel"{fulltext_hidden}>
   <div class="section-kicker">原始主文</div>
   <p class="help" data-fulltext-meta>{h(fulltext_message)}</p>
   <div class="article-text article-markdown" data-fulltext-body>{article_html}</div>
-  {original_edit_row}
   {translate_actions_row}
 </section>
 """
@@ -15210,7 +15596,6 @@ if (document.readyState === "loading") {{
 <section class="card fulltext-panel source-card source-card--source" id="primary-fulltext-panel">
   <div class="section-kicker">全文（已手動修正）</div>
   <div class="article-text article-markdown">{edited_html}</div>
-  <div class="button-row">{edit_fulltext_button}</div>
   {translate_actions_row}
 </section>
 """
@@ -15218,8 +15603,7 @@ if (document.readyState === "loading") {{
         if has_translation and is_edited:
             translation_panel = translation_panels_html(item, collapsed=True)
         elif has_translation:
-            translation_edit_row = f'<div class="button-row">{edit_fulltext_button}</div>' if edit_fulltext_button else ""
-            translation_panel = translation_panels_html(item) + translation_edit_row
+            translation_panel = translation_panels_html(item)
         else:
             translation_panel = ""
         # 閱讀區順序：主全文（編輯版）→ 翻譯 → 原文
@@ -15548,6 +15932,11 @@ if (document.readyState === "loading") {{
     <p class="help">拆出的文章會先進入入庫建檔區，不會直接變成可用材料{h(skipped_hint)}。</p>
   </div>
 """
+        current_license = item_license_name(item)
+        license_options = option_list([("", "未設定授權")] + [(name, name) for name in taxonomy_license_names()], current_license)
+        license_json_value = ""
+        if isinstance(item.get("license"), dict) and item.get("license"):
+            license_json_value = json.dumps(item.get("license"), ensure_ascii=False, indent=2)
         metadata_form = f"""
     <details class="card metadata-dock">
       <summary><h2>原始 metadata</h2><span class="help-dot" title="手動修正網站標題、語言、授權與作者；這區需要按儲存。">?</span></summary>
@@ -15567,6 +15956,10 @@ if (document.readyState === "loading") {{
         <input name="original_license" value="{h(article_meta.get('original_license', ''))}" placeholder="Creative Commons / 著作權保護 / 未標示">
         <label>授權連結</label>
         <input name="original_license_url" value="{h(article_meta.get('original_license_url', ''))}" placeholder="https://...">
+        <label>正規化授權</label>
+        <select name="license_name">{license_options}</select>
+        <label>授權 JSON（進階，可保留 evidence / attribution_table）</label>
+        <textarea name="license_json" placeholder='{{"name":"CC BY 4.0","attribution_table":[...]}}'>{h(license_json_value)}</textarea>
         <button type="submit">儲存 metadata</button>
       </form>
     </details>
@@ -15650,6 +16043,7 @@ if (document.readyState === "loading") {{
     <h2>閱讀操作 <span class="help-dot" title="這個面板會跟著畫面停在右側，讀到哪裡都能操作。">?</span></h2>
     <div class="button-row article-dock-actions">
       {read_more_actions}
+      {edit_fulltext_button}
       {reading_priority_actions}
     </div>
   </div>
@@ -15718,6 +16112,7 @@ if (document.readyState === "loading") {{
       {badge(content_kind_label(kind), "neutral")}
       {badge(recommendation_label(candidate_recommendation(item)), candidate_recommendation(item))}
       {reader_flag_badges(item)}
+      {license_badge_html(item)}
     </div>
     <p class="zh-summary">{h(item_zh_summary(item, 780))}</p>
     {tag_chips_html(item_visible_tags(item, 8))}
@@ -16265,6 +16660,58 @@ if (document.readyState === "loading") {{
         append_jsonl(REVIEW_EVENTS, review_event(event_item, event_status, event_note))
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=reading_priority")
+
+    def toggle_page_publish(self, data: dict[str, list[str]]) -> None:
+        page_type = form_value(data, "type")
+        if page_type not in {"tag", "source"}:
+            self.send_json({"ok": False, "error": "未知的公開頁類型"}, HTTPStatus.BAD_REQUEST)
+            return
+        key = canonical_tag_label(form_value(data, "key")) if page_type == "tag" else form_value(data, "key")
+        if not key:
+            self.send_json({"ok": False, "error": "缺少公開頁 key"}, HTTPStatus.BAD_REQUEST)
+            return
+        title = canonical_tag_label(form_value(data, "title") or key) if page_type == "tag" else form_value(data, "title", key)
+        blurb = clean_text((data.get("blurb") or [""])[0], 1000)
+        action = form_value(data, "action", "publish")
+        existing = published_page_for(page_type, key)
+        published = action != "unpublish"
+        now = now_iso()
+        slug = clean_text(existing.get("slug")) or published_page_slug(page_type, key, title)
+        record = {
+            **existing,
+            "id": clean_text(existing.get("id")) or published_page_id(page_type, key),
+            "type": page_type,
+            "key": key,
+            "slug": slug,
+            "title": title,
+            "blurb": blurb or clean_text(existing.get("blurb"), 1000),
+            "published": published,
+            "updated_at": now,
+            "source": "local_web",
+        }
+        if published and not clean_text(existing.get("published_at")):
+            record["published_at"] = now
+        elif clean_text(existing.get("published_at")):
+            record["published_at"] = clean_text(existing.get("published_at"))
+        upsert_jsonl(PUBLISHED_PAGES, record)
+        public_url = page_public_url(page_type, slug)
+        if self.is_async_request() or form_value(data, "format") == "json":
+            self.send_json(
+                {
+                    "ok": True,
+                    "published": published,
+                    "public_url": public_url,
+                    "blurb": record.get("blurb", ""),
+                    "message": "下次更新線上閱讀版後生效。",
+                }
+            )
+            return
+        redirect_to = safe_redirect_path(
+            form_value(data, "redirect"),
+            f"/tags?tag={quote(key)}" if page_type == "tag" else f"/sources/view?id={quote(key)}",
+        )
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}saved=publish_page")
 
     def requeue_skill_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
@@ -17394,6 +17841,11 @@ if (document.readyState === "loading") {{
                     metadata[f"{field}_source"] = "manual"
             metadata["metadata_updated_at"] = updated_at
             updated["reading_metadata"] = metadata
+            updated["license"] = manual_license_record(
+                form_value(data, "license_name"),
+                updated.get("license"),
+                (data.get("license_json") or [""])[0],
+            )
             updated_records.append(updated)
         if found:
             write_jsonl(path, updated_records)
@@ -18770,6 +19222,7 @@ if (document.readyState === "loading") {{
 
     def show_source_view(self, query: dict[str, list[str]]) -> None:
         source_id = form_value(query, "id")
+        license_filter = clean_text((query.get("license") or ["all"])[0]) or "all"
         sources = load_jsonl(SOURCES)
         source = next((row for row in sources if row.get("id") == source_id), None)
         if not source:
@@ -18781,6 +19234,12 @@ if (document.readyState === "loading") {{
         rejected = [item for item in load_jsonl(REJECTED_ITEMS) if item.get("source_id") == source_id]
         dismissed = [item for item in load_jsonl(DISMISSED) if item.get("source_id") == source_id]
         health = source_health_summary(source, load_jsonl(ITEMS), load_jsonl(REJECTED_ITEMS), load_jsonl(CANDIDATES), load_jsonl(DISMISSED))
+        license_options = option_list(license_filter_options([*items, *candidates, *rejected, *dismissed]), license_filter)
+        if license_filter != "all":
+            items = [item for item in items if item_license_name(item) == license_filter]
+            candidates = [item for item in candidates if item_license_name(item) == license_filter]
+            rejected = [item for item in rejected if item_license_name(item) == license_filter]
+            dismissed = [item for item in dismissed if item_license_name(item) == license_filter]
 
         def sort_items(records: list[dict]) -> list[dict]:
             return sorted(
@@ -18823,6 +19282,7 @@ if (document.readyState === "loading") {{
 <article class="reader-list-card">
   <div class="reader-list-meta">
     {badge("不收紀錄", "suggest-skip") if archived else badge(content_kind_label(kind), "neutral")}
+    {license_badge_html(item)}
     {badge(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'), "neutral")}
   </div>
   <h3>{title_html}</h3>
@@ -18873,6 +19333,7 @@ if (document.readyState === "loading") {{
       {badge(track_meta(item.get("track", source.get("track", "unclassified")))["short"], css_class)}
       {badge(status_label(item.get("status", "")), "neutral")}
       {badge(content_kind_label(kind), "neutral") if not archived else badge("不收紀錄", "suggest-skip")}
+      {license_badge_html(item)}
     </div>
     <h3>{title_html}</h3>
     <p class="muted break-anywhere">{h(item_display_time(item, 'published_at', 'captured_at', 'dismissed_at'))}</p>
@@ -18981,8 +19442,13 @@ if (document.readyState === "loading") {{
       <button type="submit" class="secondary">手動更新 RSS</button>
     </form>
     <a class="button quiet" href="/sources?track={quote(source.get('track', 'unclassified'))}">回 RSS 來源</a>
+    <form method="get" action="/sources/view" class="inline-select-form">
+      <input type="hidden" name="id" value="{h(source_id)}">
+      <select name="license" aria-label="授權篩選" onchange="this.form.submit()">{license_options}</select>
+    </form>
   </div>
 </section>
+{publish_page_card("source", source_id, source.get("name") or source_id, clean_text(source.get("description") or ""))}
 {section("source-featured", "精選文章與觀點文章", "已確認值得細讀、可能後續撰稿或觀點整理的內容。", featured, "這個來源目前沒有精選文章或觀點文章。", "card")}
 {section("source-small-news", "純新聞 / 小消息", "可以快速掃過、查核後短訊處理的內容。", small_news, "這個來源目前沒有小消息。", "list")}
 {section("source-inbox", "入庫建檔 / RSS 新進", "還沒完成收或不收判斷的內容，包含已入庫 inbox 和 RSS 新進。", [*inbox, *pending], "這個來源目前沒有入庫建檔項目。", "list")}

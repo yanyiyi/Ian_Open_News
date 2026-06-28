@@ -10,9 +10,12 @@ from pathlib import Path
 
 from local_web import (
     ITEMS,
+    PUBLISHED_PAGES,
+    SOURCES,
     VIEWPOINTS,
     action_icon,
     action_label,
+    canonical_tag_label,
     clean_text,
     editor_item_lookup,
     feature_hero_image,
@@ -28,18 +31,22 @@ from local_web import (
     item_display_kind,
     item_edited_markdown,
     item_image_url,
+    item_license_name,
+    item_matches_tag,
     item_primary_markdown,
     item_sort_time,
     item_translated_markdown,
     item_visible_tags,
     item_zh_summary,
     load_jsonl,
+    license_label,
     markdown_to_html,
     normalized_title_key,
     public_reader_article_filename,
     reader_month_key,
     reader_period_key,
     reader_period_label,
+    source_public_slug,
     strip_duplicate_leading_heading,
     track_meta,
 )
@@ -415,7 +422,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
   <a class="{h('is-active' if current == 'features' else '')}" href="{root_prefix}features.html">專文</a>
 </nav>
 """
-    page_heading = "" if current == "article" else f'<section class="page-heading"><h1>{h(title)}</h1></section>'
+    page_heading = "" if current in {"article", "topic"} else f'<section class="page-heading"><h1>{h(title)}</h1></section>'
     return f"""<!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -957,9 +964,10 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
 """
 
 
-def item_card(item: dict) -> str:
+def item_card(item: dict, depth: int = 0) -> str:
+    prefix = "../" if depth else ""
     kind = item_display_kind(item)
-    image = reader_image_url(item)
+    image = reader_image_url(item, depth)
     image_html = f'<img src="{h(image)}" alt="">' if image else f"<span>{h(track_meta(item.get('track', ''))['short'])}</span>"
     summary = item_zh_summary(item, 440)
     has_body = bool(item_body_markdown(item))
@@ -968,7 +976,7 @@ def item_card(item: dict) -> str:
   <div class="thumb">{image_html}</div>
   <div class="story-body">
     <div>{reader_status_badges(item, has_body)}</div>
-    <h2><a href="{h(article_href(item))}">{h(item_display_title(item))}</a></h2>
+    <h2><a href="{h(prefix + article_href(item))}">{h(item_display_title(item))}</a></h2>
     <p class="summary">{h(summary)}</p>
     {public_tag_chips(item)}
   </div>
@@ -1017,6 +1025,7 @@ def metadata_html(item: dict, display_title: str = "") -> str:
         ("translated_zh_title", "自動翻譯中文標題", metadata.get("translated_zh_title")),
         ("original_author", "原始作者", metadata.get("original_author") or item.get("author")),
         ("original_license", "原始網站授權", metadata.get("original_license")),
+        ("license_name", "正規化授權", license_label(item) if item_license_name(item) else ""),
     ]
     items = []
     display_title_key = normalized_title_key(display_title)
@@ -1190,6 +1199,81 @@ def news_page(items: list[dict]) -> str:
 <div class="empty" data-time-empty hidden>這個時間範圍沒有可顯示的小消息。</div>
 """
     return page_shell("開放科技小消息", body, current="news", include_time_filter=True)
+
+
+def public_topic_header(kicker: str, title: str, blurb: str, count: int, extra_html: str = "") -> str:
+    blurb_html = f'<p class="lede">{h(blurb)}</p>' if clean_text(blurb) else ""
+    return f"""
+<section class="article-summary-card">
+  <div class="section-kicker">{h(kicker)}</div>
+  <h1>{h(title)}</h1>
+  {blurb_html}
+  <div class="article-summary-meta">{reader_badge(f"{count} 筆公開項目", "neutral")}{extra_html}</div>
+</section>
+"""
+
+
+def tag_public_page(record: dict, items: list[dict]) -> str:
+    title = canonical_tag_label(record.get("title") or record.get("key"))
+    key = canonical_tag_label(record.get("key") or title)
+    matched = [item for item in items if item_matches_tag(item, key)]
+    matched.sort(key=lambda item: (item_sort_time(item), item_display_title(item)), reverse=True)
+    primary = [item for item in matched if item_display_kind(item) in PRIMARY_KINDS]
+    small_news = [item for item in matched if item_display_kind(item) == "small-news"]
+    other = [item for item in matched if item not in primary and item not in small_news]
+    primary_html = period_sections(primary, lambda item: item_card(item, depth=1), "card-grid", "這個議題目前沒有公開精選文章或觀點文章。")
+    small_news_html = period_sections(small_news, lambda item: news_row(item, depth=1), "news-list", "這個議題目前沒有公開小消息。")
+    other_html = period_sections(other, lambda item: news_row(item, depth=1), "news-list", "這個議題目前沒有其他公開項目。")
+    body = f"""
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html">返回閱讀版</a>
+</nav>
+{public_topic_header("概念主題", title, clean_text(record.get("blurb"), 1000), len(matched))}
+<section>
+  <h2>精選文章與觀點文章</h2>
+  {primary_html}
+</section>
+<section>
+  <h2>小消息</h2>
+  {small_news_html}
+</section>
+{f'<section><h2>其他項目</h2>{other_html}</section>' if other else ''}
+"""
+    return page_shell(title, body, current="topic", depth=1, include_time_filter=False)
+
+
+def source_public_page(record: dict, items: list[dict], source_lookup: dict[str, dict]) -> str:
+    source_id = clean_text(record.get("key"))
+    source = source_lookup.get(source_id) or {}
+    title = clean_text(record.get("title") or source.get("name") or source_id)
+    matched = [item for item in items if clean_text(item.get("source_id")) == source_id]
+    matched.sort(key=lambda item: (item_sort_time(item), item_display_title(item)), reverse=True)
+    primary = [item for item in matched if item_display_kind(item) in PRIMARY_KINDS]
+    small_news = [item for item in matched if item_display_kind(item) == "small-news"]
+    primary_html = period_sections(primary, lambda item: item_card(item, depth=1), "card-grid", "這個來源目前沒有公開精選文章或觀點文章。")
+    small_news_html = period_sections(small_news, lambda item: news_row(item, depth=1), "news-list", "這個來源目前沒有公開小消息。")
+    site_url = clean_text(source.get("site_url") or source.get("url"))
+    source_link = (
+        f'<a class="button quiet" href="{h(site_url)}" target="_blank" rel="noreferrer">原始網站</a>'
+        if site_url
+        else ""
+    )
+    body = f"""
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html">返回閱讀版</a>
+  {source_link}
+</nav>
+{public_topic_header("RSS / 來源", title, clean_text(record.get("blurb"), 1000), len(matched))}
+<section>
+  <h2>精選文章與觀點文章</h2>
+  {primary_html}
+</section>
+<section>
+  <h2>小消息</h2>
+  {small_news_html}
+</section>
+"""
+    return page_shell(title, body, current="topic", depth=1, include_time_filter=False)
 
 
 # ------------------------------------------------------------------ #
@@ -1423,8 +1507,40 @@ def main() -> None:
     for article in features:
         write_clean(features_dir / article_doc_filename(article), article_public_page(article, item_lookup, vp_lookup))
 
+    published_pages = [page for page in load_jsonl(PUBLISHED_PAGES) if page.get("published")]
+    tag_pages = [page for page in published_pages if clean_text(page.get("type")) == "tag"]
+    source_pages = [page for page in published_pages if clean_text(page.get("type")) == "source"]
+    tags_dir = output_dir / "tags"
+    sources_dir = output_dir / "sources"
+    expected_tags = {clean_text(page.get("slug")) + ".html" for page in tag_pages if clean_text(page.get("slug"))}
+    expected_sources = {clean_text(page.get("slug")) + ".html" for page in source_pages if clean_text(page.get("slug"))}
+    if tag_pages:
+        tags_dir.mkdir(parents=True, exist_ok=True)
+    if source_pages:
+        sources_dir.mkdir(parents=True, exist_ok=True)
+    if tags_dir.exists():
+        for stale in tags_dir.glob("*.html"):
+            if stale.name not in expected_tags:
+                stale.unlink()
+    if sources_dir.exists():
+        for stale in sources_dir.glob("*.html"):
+            if stale.name not in expected_sources:
+                stale.unlink()
+    for page in tag_pages:
+        slug = clean_text(page.get("slug"))
+        if slug:
+            write_clean(tags_dir / f"{slug}.html", tag_public_page(page, items))
+    source_lookup = {clean_text(source.get("id")): source for source in load_jsonl(SOURCES)}
+    for page in source_pages:
+        slug = clean_text(page.get("slug")) or source_public_slug(page.get("key"))
+        if slug:
+            write_clean(sources_dir / f"{slug}.html", source_public_page(page, items, source_lookup))
+
     conflict_note = f", removed {removed_conflicts} duplicate copies" if removed_conflicts else ""
-    print(f"wrote {output_dir} ({len(items)} items, {len(items)} article pages, {len(features)} 專文{conflict_note})")
+    print(
+        f"wrote {output_dir} ({len(items)} items, {len(items)} article pages, "
+        f"{len(features)} 專文, {len(tag_pages)} tag pages, {len(source_pages)} source pages{conflict_note})"
+    )
 
 
 if __name__ == "__main__":

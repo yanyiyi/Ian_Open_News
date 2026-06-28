@@ -51,11 +51,31 @@ def validate() -> list[str]:
     tracks = set(taxonomy["tracks"].keys())
     statuses = set(taxonomy["statuses"])
     priorities = set(taxonomy["priorities"])
+    license_names = set(taxonomy.get("licenses", []))
     source_types = set(taxonomy["source_types"])
     source_statuses = set(taxonomy.get("source_statuses", ["active", "paused", "archived"]))
     review_steps = set(taxonomy["review_steps"])
 
     article_statuses = {"draft", "ready", "published"}
+
+    def validate_license(record: dict, path: Path) -> None:
+        if "license" not in record:
+            return
+        license_record = record.get("license")
+        if license_record in (None, {}):
+            return
+        if not isinstance(license_record, dict):
+            errors.append(f"{path}:{record.get('_line', '?')}: license must be an object")
+            return
+        name = str(license_record.get("name") or "").strip()
+        if name and name not in license_names and not name.startswith("非 CC："):
+            errors.append(f"{path}:{record.get('_line', '?')}: unknown license name {name}")
+        if "evidence" in license_record and not isinstance(license_record.get("evidence"), dict):
+            errors.append(f"{path}:{record.get('_line', '?')}: license.evidence must be an object")
+        if "attribution_table" in license_record and not isinstance(license_record.get("attribution_table"), list):
+            errors.append(f"{path}:{record.get('_line', '?')}: license.attribution_table must be a list")
+        if "provenance" in license_record and not isinstance(license_record.get("provenance"), dict):
+            errors.append(f"{path}:{record.get('_line', '?')}: license.provenance must be an object")
 
     sources_path = DATABASE / "sources.jsonl"
     items_path = DATABASE / "items.jsonl"
@@ -124,6 +144,7 @@ def validate() -> list[str]:
                 errors.append(f"{items_path}:{item['_line']}: reader_flags must be an object")
             if "tag_metadata" in item and not isinstance(item.get("tag_metadata"), dict):
                 errors.append(f"{items_path}:{item['_line']}: tag_metadata must be an object")
+            validate_license(item, items_path)
         except ValueError as exc:
             errors.append(str(exc))
 
@@ -154,6 +175,7 @@ def validate() -> list[str]:
                 errors.append(f"{rejected_items_path}:{item['_line']}: reader_flags must be an object")
             if "tag_metadata" in item and not isinstance(item.get("tag_metadata"), dict):
                 errors.append(f"{rejected_items_path}:{item['_line']}: tag_metadata must be an object")
+            validate_license(item, rejected_items_path)
             decision = item.get("local_decision")
             if not isinstance(decision, dict) or decision.get("action") != "rejected":
                 errors.append(f"{rejected_items_path}:{item['_line']}: local_decision.action must be rejected")
@@ -198,6 +220,7 @@ def validate() -> list[str]:
             factcheck = article.get("factcheck")
             if isinstance(factcheck, dict) and "claims" in factcheck and not isinstance(factcheck.get("claims"), list):
                 errors.append(f"{articles_path}:{article['_line']}: factcheck.claims must be a list")
+            validate_license(article, articles_path)
         except ValueError as exc:
             errors.append(str(exc))
 

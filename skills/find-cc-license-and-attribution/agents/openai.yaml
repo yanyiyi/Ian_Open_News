@@ -1,0 +1,5 @@
+interface:
+  display_name: "Find CC License And Attribution"
+  short_description: "判讀網頁或作品的 CC 授權，產生繁中標示表"
+  default_prompt: "Use $find-cc-license-and-attribution to identify CC license evidence and produce a Traditional Chinese attribution table."
+
