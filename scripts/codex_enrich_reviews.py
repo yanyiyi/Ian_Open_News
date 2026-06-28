@@ -107,6 +107,15 @@ def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     tmp.replace(path)
 
 
+def write_status(path: Path | None, payload: dict[str, Any]) -> None:
+    if not path:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
 def codex_path() -> str:
     candidate = shutil.which("codex")
     if candidate:
@@ -859,6 +868,47 @@ def batched(records: list[dict[str, Any]], size: int) -> list[list[dict[str, Any
     return [records[index : index + size] for index in range(0, len(records), size)]
 
 
+def item_title(record: dict[str, Any]) -> str:
+    return clean_text(record.get("title") or record.get("source_name") or record.get("id"), 120) or "未命名項目"
+
+
+def status_item_title(records: list[dict[str, Any]]) -> str:
+    titles = [item_title(record) for record in records[:3]]
+    suffix = f" 等 {len(records)} 筆" if len(records) > 3 else ""
+    return "、".join(titles) + suffix
+
+
+def progress_status(
+    args: argparse.Namespace,
+    progress: dict[str, int],
+    *,
+    state: str = "running",
+    message: str,
+    provider: str = "",
+    kind: str = "",
+    batch_records: list[dict[str, Any]] | None = None,
+    returncode: int | None = None,
+) -> None:
+    payload: dict[str, Any] = {
+        "command": args.status_command,
+        "state": state,
+        "message": message,
+        "index": progress.get("index", 0),
+        "total": progress.get("total", 0),
+        "provider": provider,
+        "kind": kind,
+        "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    if progress.get("end_index") and progress.get("end_index") != progress.get("index"):
+        payload["end_index"] = progress["end_index"]
+    if batch_records:
+        payload["item_id"] = clean_text(batch_records[0].get("id"))
+        payload["item_title"] = status_item_title(batch_records)
+    if returncode is not None:
+        payload["returncode"] = returncode
+    write_status(args.status_file, payload)
+
+
 def collect_targets(records: list[dict[str, Any]], args: argparse.Namespace, kind: str) -> list[dict[str, Any]]:
     tracks = set(args.track or [])
     statuses = set(args.status or [])
@@ -897,11 +947,20 @@ def collect_targets(records: list[dict[str, Any]], args: argparse.Namespace, kin
     return selected[: args.limit] if args.limit else selected
 
 
-def process_file(path: Path, kind: str, args: argparse.Namespace) -> tuple[int, int]:
-    records = load_jsonl(path)
-    targets = collect_targets(records, args, kind)
+def process_file(
+    path: Path,
+    kind: str,
+    args: argparse.Namespace,
+    progress: dict[str, int] | None = None,
+    records: list[dict[str, Any]] | None = None,
+    targets: list[dict[str, Any]] | None = None,
+) -> tuple[int, int]:
+    records = records if records is not None else load_jsonl(path)
+    targets = targets if targets is not None else collect_targets(records, args, kind)
     if args.prepare_only or not targets:
         return len(targets), 0
+    if progress is None:
+        progress = {"index": 0, "end_index": 0, "total": len(targets)}
 
     # 每筆獨立決定引擎：random 時逐筆加權抽，
     # 其餘沿用指定引擎。再依引擎分組，同組仍可分批送一次 CLI。
@@ -920,14 +979,37 @@ def process_file(path: Path, kind: str, args: argparse.Namespace) -> tuple[int, 
     changed = 0
     for provider, group in grouped.items():
         for batch_records in batched(group, max(1, args.batch_size)):
+            start_index = progress["index"] + 1
+            end_index = progress["index"] + len(batch_records)
+            progress["index"] = start_index
+            progress["end_index"] = end_index
+            label = provider_meta(provider)["label"]
+            progress_status(
+                args,
+                progress,
+                message=f"正在用 {label} 補 AI 閱讀建議",
+                provider=provider,
+                kind=kind,
+                batch_records=batch_records,
+            )
             batch_input = [review_input(record) for record in batch_records]
             reviews = run_provider(batch_input, args, provider)
             batch_changed = apply_reviews(records, reviews, provider)
             changed += batch_changed
+            progress["index"] = end_index
+            progress["end_index"] = end_index
             if batch_changed and not args.dry_run:
                 for record in records:
                     record.pop("_line", None)
                 write_jsonl(path, records)
+            progress_status(
+                args,
+                progress,
+                message=f"已完成 {progress['index']}/{progress['total']} 筆 AI 閱讀建議",
+                provider=provider,
+                kind=kind,
+                batch_records=batch_records,
+            )
             print(
                 f"{kind}: {provider_meta(provider)['label']} batch selected {len(batch_records)}, updated {batch_changed}",
                 flush=True,
@@ -953,6 +1035,8 @@ def main() -> None:
     parser.add_argument("--prepare-only", action="store_true", help="Only count records that would be sent to the selected AI CLI.")
     parser.add_argument("--dry-run", action="store_true", help="Call the selected AI CLI but do not write JSONL.")
     parser.add_argument("--report", type=Path, default=REPORT)
+    parser.add_argument("--status-file", type=Path)
+    parser.add_argument("--status-command", default="codex_enrich_reviews")
     args = parser.parse_args()
 
     provider_label = (
@@ -961,11 +1045,31 @@ def main() -> None:
         else provider_meta(args.provider)["label"]
     )
 
-    totals: list[tuple[str, int, int]] = []
+    planned: list[tuple[str, Path, str, list[dict[str, Any]], list[dict[str, Any]]]] = []
     if args.target in {"candidates", "both"}:
-        totals.append(("RSS 新進", *process_file(args.candidates, "candidates", args)))
+        records = load_jsonl(args.candidates)
+        planned.append(("RSS 新進", args.candidates, "candidates", records, collect_targets(records, args, "candidates")))
     if args.target in {"items", "both"}:
-        totals.append(("資料庫項目", *process_file(args.items, "items", args)))
+        records = load_jsonl(args.items)
+        planned.append(("資料庫項目", args.items, "items", records, collect_targets(records, args, "items")))
+    progress = {"index": 0, "end_index": 0, "total": sum(len(entry[4]) for entry in planned)}
+    progress_status(
+        args,
+        progress,
+        message=(
+            f"準備用 {provider_label} 補 {progress['total']} 筆 AI 閱讀建議"
+            if progress["total"]
+            else "沒有找到需要補 AI 閱讀建議的項目"
+        ),
+    )
+
+    totals: list[tuple[str, int, int]] = []
+    try:
+        for label, path, kind, records, targets in planned:
+            totals.append((label, *process_file(path, kind, args, progress, records, targets)))
+    except Exception as exc:
+        progress_status(args, progress, state="failed", message=f"AI 閱讀建議失敗：{exc}", returncode=1)
+        raise
 
     lines = [
         f"# {provider_label} review enrichment report",
@@ -982,6 +1086,13 @@ def main() -> None:
     text = "\n".join(lines).rstrip() + "\n"
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(text, encoding="utf-8")
+    progress_status(
+        args,
+        progress,
+        state="done",
+        message=f"AI 閱讀建議完成：已處理 {progress['index']}/{progress['total']} 筆",
+        returncode=0,
+    )
     print(text)
 
 

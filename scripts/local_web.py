@@ -590,7 +590,7 @@ COMMANDS = {
     },
     "codex_enrich_reviews": {
         "label": "隨機補 AI 閱讀建議與摘要",
-        "description": "針對入庫建檔區與閱讀區中還沒有任何模型 review 的項目，逐筆加權隨機（Codex 35 / Claude Code 35 / Gemini agy 15 / Ollama 15）挑一個 CLI 產生給 Ian 的一句話推薦、三個閱讀理由、中文標題與中文摘要；未指定項目時會先看標記超過 1 天的正在閱讀材料。",
+        "description": "針對入庫建檔區與閱讀區中還沒有任何模型 review 的項目，逐筆加權隨機挑一個 CLI 產生給 Ian 的一句話推薦、三個閱讀理由、中文標題與中文摘要；右下角會顯示目前做到第幾筆與項目標題。",
         "button": "隨機補 AI 建議",
         "command": [
             sys.executable,
@@ -603,8 +603,13 @@ COMMANDS = {
             "--limit",
             "18",
             "--batch-size",
-            "6",
+            "1",
+            "--status-file",
+            str(COMMAND_STATUS),
+            "--status-command",
+            "codex_enrich_reviews",
         ],
+        "timeout": 3600,
     },
     "commit_database_state": {
         "label": "送 commit 儲存資料庫狀態",
@@ -8179,7 +8184,12 @@ def page(title: str, body: str) -> bytes:
 
   const commandStatusLine = (payload) => {{
     if (!payload || !payload.message) return "執行中。";
-    const index = payload.index && payload.total ? `（${{payload.index}}/${{payload.total}}）` : "";
+    let index = "";
+    if (payload.index && payload.total) {{
+      index = payload.end_index && payload.end_index !== payload.index
+        ? `（${{payload.index}}-${{payload.end_index}}/${{payload.total}}）`
+        : `（${{payload.index}}/${{payload.total}}）`;
+    }}
     const title = payload.item_title ? `：${{payload.item_title}}` : "";
     return `${{payload.message}}${{index}}${{title}}`;
   }};
@@ -8222,7 +8232,7 @@ def page(title: str, body: str) -> bytes:
         const response = await fetch(url, {{headers: {{"X-Requested-With": "local-web-fetch"}}}});
         if (!response.ok) return;
         const payload = await response.json();
-        if (payload?.message) commandStatus.textContent = payload.message;
+        if (payload?.message) commandStatus.textContent = commandStatusLine(payload);
       }} catch (_error) {{
         // Keep the elapsed/final result path available when polling is interrupted.
       }}
@@ -8233,7 +8243,7 @@ def page(title: str, body: str) -> bytes:
 
   const commandTimerFor = (commandName) => {{
     if (commandName === "fetch_rss") return startRssStatusPolling();
-    if (commandName === "enrich_reader_metadata") return startCommandStatusPolling(commandName);
+    if (commandName === "enrich_reader_metadata" || commandName === "codex_enrich_reviews" || commandName === "codex_review_batch") return startCommandStatusPolling(commandName);
     return startElapsedStatus();
   }};
 
@@ -17661,6 +17671,7 @@ if (document.readyState === "loading") {{
         item_ids = [item_id.strip() for item_id in raw_ids.split(",") if item_id.strip()]
         provider = normalize_ai_provider(form_value(data, "provider", "codex"))
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
+        status_command = "codex_review_batch"
         if not item_ids:
             if wants_json:
                 self.send_json({"ok": False, "error": "請先勾選至少一筆項目"}, HTTPStatus.BAD_REQUEST)
@@ -17681,11 +17692,14 @@ if (document.readyState === "loading") {{
             str(len(item_ids)),
             "--batch-size",
             "4",
+            "--status-file",
+            str(COMMAND_STATUS),
+            "--status-command",
+            status_command,
         ]
         for item_id in item_ids:
             command += ["--id", item_id]
 
-        status_command = "codex_review_batch"
         started_at = now_iso()
         write_json(
             COMMAND_STATUS,
@@ -17698,26 +17712,6 @@ if (document.readyState === "loading") {{
                 "total": len(item_ids),
             },
         )
-        done = {"flag": False}
-
-        def status_ticker() -> None:
-            n = 0
-            while not done["flag"]:
-                write_json(
-                    COMMAND_STATUS,
-                    {
-                        "command": status_command,
-                        "state": "running",
-                        "message": f"正在用 {ai_provider_label(provider)} 產生 {len(item_ids)} 筆 AI 閱讀建議…（已等待 {n} 秒）",
-                        "started_at": started_at,
-                        "provider": provider,
-                        "total": len(item_ids),
-                    },
-                )
-                n += 2
-                _wait_event(2)
-
-        threading.Thread(target=status_ticker, daemon=True).start()
         try:
             result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800)
             output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
@@ -17727,8 +17721,6 @@ if (document.readyState === "loading") {{
             output = (output + f"\n{ai_provider_label(provider)} 批次生成逾時。").strip()
             ok = False
             result = subprocess.CompletedProcess(command, returncode=124, stdout="", stderr=output)
-        finally:
-            done["flag"] = True
 
         if ok:
             final_redirect = f"/items?saved=codex_review_batch&count={len(item_ids)}&provider={quote(provider)}"
@@ -19791,7 +19783,7 @@ if (document.readyState === "loading") {{
             },
         )
         try:
-            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=600)
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=int(config.get("timeout", 600)))
         except subprocess.TimeoutExpired as exc:
             result = subprocess.CompletedProcess(
                 command,
