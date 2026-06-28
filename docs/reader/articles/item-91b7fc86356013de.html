@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>爭議中的開放：開放影像生成組裝體探索 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T18:13:54+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-26 12:45</span></div>
+      <h1><a class="article-title-link" href="https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.14" target="_blank" rel="noreferrer" title="開啟原始連結">爭議中的開放：開放影像生成組裝體探索</a></h1>
+      <p class="lede">這段內容討論開放基礎設施如何在既有所有權制度中運作，而不是站在所有權之外。章節以 Stability AI 等生成影像平台為例，分析它們如何嘗試去中心化算力、降低對大型 AI 公司的依賴，卻同時進入以注意力與審美判斷為貨幣的經濟，也面臨權利人對影像使用提出的法律爭議。重點在於開放、所有權、平台協作與捕獲之間的矛盾。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開放資料</span><span class="tag-chip">Open Knowledge</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.openbookpublishers.com/small_obp_logo_high_res_8ad3ef43d4.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>The Politics of Open Infrastructures - 14. Controversial Openness, an Exploration of Open Image Generation Assemblages</h1>
+<h2>14. Controversial Openness, an Exploration of Open Image Generation Assemblages</h2>
+<h2>Nicolas Malevé 1</h2>
+<p>©2026 Nicolas Malevé, CC BY-NC 4.0 <a href="https://doi.org/10.11647/OBP.0528.14" target="_blank" rel="noreferrer">https://doi.org/10.11647/OBP.0528.14</a></p>
+<h2>Introduction</h2>
+<p>Synthetic images are produced at a dizzying scale (Valyaeva 2023a). AI image generation software has become an infrastructure on top of which other products are built. If AI can be compared to electricity, as machine learning pioneer Andrew Ng once put it (Lynch 2017), synthetic image production fulfils an infrastructural function for a gamut of products used in domains such as film production, news or telescopes and is increasingly used by social media users for entertainment purposes or political debate. In these contexts, generative AI provides visual understanding and production on demand.</p>
+<p>Many problems have been identified in AI image production ranging from racist, sexist, and otherwise stereotypical representations (Offert and Phan 2022), to privacy infringement (Walsh 2024) and cultural misappropriation (Milmo and Hern 2024). In these pages, I will focus on another key problem: the concentration of decision power and capital accumulation in the hands of a few global companies (Kak, Myers, and Whittaker 2023). This problem is aggravated by the increasing collusion of platforms and state power as demonstrated in the large-scale investments by international actors such as the US or the EU (Swinhoe 2025; Parvini 2025). This issue emphasises the need for critique as well as the exploration of alternative scenarios. This text is written in the perspective of a potential transformation of AI, to better understand how various practices attempt to challenge the centralised accumulation of power within the constraints of platform capitalism. It examines how different projects and communities challenge the dominant platforms’ centralised mode of production and the implications of these projects for governance, knowledge, infrastructure, and the redistribution of social relations and hierarchies that their open approach to infrastructure induces.</p>
+<p>The chapter is distributed over three main sections. In the first, I use OpenAI to discuss its logic of centralised accumulation of power wherein the ownership of the material base is used to establish dominance. Dominance is achieved through a constant appropriation of external resources which relies on an elaborate practice of legal gaming. By studying OpenAI’s use of software licensing, I argue that this very mechanism of appropriation opens them up to potential interventions. In the next sections, the chapter moves on to discuss two case studies that exemplify the opportunities offered by legal gaming in order to ‘open’ this infrastructure, exploring ways of decentralising it and testing the limits imposed by the material base. In contrast to OpenAI, I examine two projects that take up the challenge of submitting the infrastructure of generative AI (genAI) to a process of variation. Stability AI attempts to lower the dependency on hardware through a curatorial approach to data collection, testing the hypothesis that, with better data, one can provide a state-of-the-art image generation product. Stable Horde, a project run by a network of volunteers, builds on the products and models released by the former to create a distributed infrastructure for image generation where the material base is made of the personal computers of volunteers sharing their resources. Through the analysis of these case studies, I reflect on their implications for governance, knowledge and infrastructure, and the redistribution of social relations and hierarchies. This text is written from the po...</p>
+<h2>Infrastructural Assemblages</h2>
+<p>A widely shared understanding of the term ‘infrastructure’ refers to a material base on top of which activities can be developed (Steinhoff 2018: 90). However, as Marina Vishmidt (2017) has theorised, an infrastructure cannot be limited to an actual material base, it also includes the traits, mechanisms and dynamics that secure its reproduction and form its future orientation. To borrow Bassam El Baroni’s beautiful formula, infrastructures are transitional because they exist ‘between the material and the possible’ (El Baroni 2022: 33). As inherently relational, an infrastructure can be defined as an assemblage, an ‘arrangement of heterogeneous parts’ gaining affordance by entering into relation (Ohls 2022: 158). Its existence requires a constant work of composition and stabilisation. Therefore, to attend to the significant forms of relation that subtend an assemblage requires more than the exhaustive identification of its components. Following Deleuze and Guattari, Manuel De Landa (2016) argues that assemblages are characterised by a diagram, which can be understood as an implicit set of relations between a material base and agents under a number of constraints and possibilities. In line with De Landa, the chapter adopts a diagrammatic approach in that it attempts to map the relational layout of generative AI open infrastructures and to draw its centres of gravity and lines of flight. Further, the fact that assemblages are in a permanent process of composition has an important methodological consequence for thinking about the nature of alternatives and bifurcations in infra...</p>
+<p>As an assemblage permanently involved in a process of composition, an infrastructure always presents some degree of openness. But if this is the case for all infrastructures, some of them are explicitly called ‘open.’ In this chapter, the meaning of the term ‘ open infrastructure’ is inflected by the specific meaning it is given in computer culture to characterise code, platforms as well as standards, licenses and rights. It inherits its understanding from the struggles of the nineties where free and open-source communities fought to reclaim access to their means of production, which had been threatened by the increasing centralisation of the computer industry (Berry 2008: 98–100). In this context, open means that the software infrastructure is transparently offered for reading and writing. The inherent openness of any infrastructure is turned into both a political demand and invitation to participation and mutual aid. Further, openness is formalised through legal means to prevent predatory privatisation. In this specific qualification of openness, law, as we will see, is conceived as a privileged means to manipulate the infrastructural assemblage’s diagram in order to regulate or subvert the relations of power that undergird it.</p>
+<h2>Knowledge Production and the Weight of Compute</h2>
+<p>To begin the analysis of generative AI infrastructures, let’s start with the core component that structures their mode of production: the material base. The cost of state-of-the-art AI systems exponentially increased as the computer industry’s major players engaged in an arms race over the last decade. In 2022, Openexo estimates that Google invested $30.7 billion in AI followed by Facebook and Amazon (Valdés Porras 2024). The firm Andreessen Horowitz reports that many companies spend more than 80% of their capital on computing resources (Apenzeller, Bornstein, and Casado 2023). In 2023, the ‘now next later AI report’ evaluated the training cost for OpenAI’s GPT-4 and Google’s Gemini Ultra to ‘$78 million and $191 million, respectively’ (Almeida 2024). These costs included the extraordinary amount of energy and water consumption that results in a substantial carbon footprint (McLean 2023). The expression ‘ compute divide’ (Besiroglu et al. 2024: 1) designates the disproportionate need for computational power (or ‘ compute’) in AI and its concentration in the hands of a few actors. The compute divide signals a context where the division of labour in AI research is determined by material ownership. As Besiroglu and colleagues (2024: 4) observe, the economic factor conditions who is in charge of the core tasks, such as the creation of large models. If hardware monopoly gives a few companies an uncontested advantage over their competitors, they combine their dominant position with a strategy of collaboration with academic and independent researchers whose terms they dictate. As...</p>
+<p>These observations give us the first elements of the diagram of relations that subtends generative AI infrastructure. Ownership of hardware is not simply a material asset; it is also a powerful means to establish the relations between the platforms and those who produce knowledge. The monopoly on computing capabilities works as an attractor that distributes relations of power. However, the control over the tangible assets such as the compute is not enough to sustain their infrastructural assemblage. A closer look at these power relations reveals the extent to which they are, in addition, legally coded.</p>
+<h2>Legal Coding of AI Platforms and Value Extraction</h2>
+<p>Far from the Microsoft strategy of the 1990s that revolved around intellectual property control, the AI industry strikes a balance between hardware dominance and partial source code distribution. Legal agility is as important for the AI industry mode of production as the monopoly over physical resources. OpenAI is a case in point. In its early phase, OpenAI, then a non-profit organisation, promoted openness as it needed to attract users and talent. OpenAI released its early models under an MIT license that allows anyone to use the software. Then came the phase of capitalisation of their assets. In 2019, OpenAI restricted access to its new algorithms and its services were only available through a commercial API. Since this moment, the source code was kept under wraps.</p>
+<p>Legal coding introduces a degree of what legal scholar Katharina Pistor (2020) calls gameability. Legal gameability refers to the dimension of the law that enables strategies based on the relative indetermination of legal objects, the degree of interpretability that can be leveraged to push legal boundaries, and redistribute the cards among parties seemingly bound by an agreement. The legal construct allowing for the transition from an open-source model to a proprietary model is a good example of legal gaming: a ‘permissive’ license authorises the integration of open products into proprietary software without obligations or constraints in a spirit of market anarchy (Berry 2008: 172). In the case of OpenAI, this legal mechanism enabled the company to build on the efforts of communities of developers without ‘giving back.’ This legal form eases the transition from an open collaborative structure to a closed one. The value produced by the efforts of a multitude of developers unaffiliated to a company can be appropriated in further products.</p>
+<p>However, legal gameability works both ways. The transition from one form of ownership to another always implies a residue that can serve to build an alternative. For instance, OpenAI’s license change doesn’t give it full control... If CLIP paved the way to proprietary versions of GPT-3 and 4, it is also a core building block of Stable Diffusion, a product central to the operation of Stability AI, an open competitor to OpenAI’s Dall-e, to which we now turn.</p>
+<h2>The Case of Stability AI and Stable Diffusion</h2>
+<p>For any new entrant in the market, the first challenge is to raise enough money to compete at scale. Funded by hedge fund manager Emad Mostaque, Stability AI is a company that owns the Dream Studio 3 and ClipDrop <a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch14.xhtml#footnote-014" target="_blank" rel="noreferrer">4</a> platforms, where users can generate images with open-source models at different pricing schemes. To access large scale computing power, Mostaque raised 100 million dollars in venture capital (Wiggers 2022). His experience in the financial sector helped convince donors and secure the financial base. The investment was sufficient to give a chance to Stability to enter the market, but not large enough for Mostaque to secure a computational grid that would compare to tech giants. Even with comfortable seed money, Stability had to build an assemblage whose main trait is to re-balance the weight of the compute against other elements such as expertise and training data.</p>
+<p>Stability AI developed an extensive network of research collaborators across the globe. In particular, the company tapped into the German AI research community. The Stable Diffusion algorithm created by Robin Rombach and colleagues in Munich had many appealing features among which was the ability to generate images faster by performing its calculus with compressed representations rather than pixels, a feature that drastically reduced computational requirements (Rombach et al. 2021). In contrast to OpenAI’s secretive approach to knowledge, Stability AI provided an open environment to experiment publicly. The dynamics instilled by the project are well captured by Patrick Esser, a lead researcher on diffusion algorithms, who defined his ideal contributor as someone who would ‘not overanalyse too much’ and ‘just experiment’ (Jennings 2022). The project’s politics of openness was motivated by the realisation that its ambitions exceeded the narrow goal of crafting a good product:</p>
+<p>It’s not that we’re running out of ideas, we’re mostly running out of time to follow up on them all. By open sourcing our models, there’s so many more people available to explore the space of possibilities. (Jennings 2022)</p>
+<p>As Google developer, Jason Baldridge, remarks, the release of Stable Diffusion’s models under an open-source license brought about a change in the discourses and practices of AI image generation ( Baldridge, Malevé, and Slu... and CivitAI 6 testifies to the success of Stability AI’s strategy. And the popular appeal of images produced by Stable Diffusion is reflected in the numbers as the algorithm is credited for eighty percent of the synthetic images generated in 2024 (Valyaeva 2023b).</p>
+<p>Stability AI’s attempt to minimise its hardware dependency informed its approach to curation. As Mostaque put it, one should not look for ‘more parameters but better data’ (Weights and Biases 2022). He commissioned the non-profit LAION to create the LAION-Aesthetics dataset, a collection of six hundred million image-text pairs. LAION-Aesthetics presents itself in the form a vast table in which each row contains the URL of an image, a description and a series of metrics including an aesthetic score. The combined factors of scale and the aesthetic filtering of the data helped Stability AI’s team to train its model to translate the visual indications contained in prompts in a convincing manner. The importance of LAION’s curatorial approach was further validated by Midjourney, a platform made famous for the diversity of styles it helps to emulate, when it chose LAION to train its model (Payne and Ramanathan 2025).</p>
+<p>Stability AI invests in an ecosystem and helps make its disparate parts aware of each other and operationally connected. But this work of composition is risky and difficult to maintain. The first impediment is economical. Even if Stability AI has reduced its hardware dependencies, the budget spent on GPUs remains considerable. The balance between sharing resources with various communities and ensuring return on investment is impossible to strike convincingly in the long term. Experiencing heavy pressure from its financial backers, Stability AI struggled to deliver a product that it could monetise (Bastian 2024). Mostaque ultimately resigned after four years of leadership (Kokalitcheva 2024). The immediate lesson of Mostaque’s resignation is that openness as conceived by Stability AI cannot exceed the limits set by investors. If Stability’s assemblage recodes the AI platform’s diagram, it can only do it partially as it remains firmly constrained by its funding mechanism. And the variation it proposes remains limited by the orientation of the diagram towards the material assets.</p>
+<p>Stability’s position is difficult for another reason. As its openness is its appeal, Stability’s release of models and datasets has been less controlled and censored than those of other vendors. It has shown a liberal attitude regarding the appropriation of images. The LAION datas... (Heikkilä 2024) that exposed the magnitude of Stability’s use of online images. In that, its policy of openness opened its flank to legal attacks.</p>
+<h2>Image Values and their Discontents</h2>
+<p>To understand the reason of such attacks, it is worth considering the process through which models learn to create images. Algorithmic models used in current applications are said to ‘learn’ to make sense of images through the observation of the statistical regularities in a collection of visual samples. As these scraped images are obtained without permission from their creators, accusations of unfair competition and plagiarism proliferate. Artists and photographers are engaging in boycotts and moving to the courts (Plunkett 2022; *Andersen<strong>et al v.</strong>Stability**AI Ltd. Et al.* 2023). It is not clear at the moment if judges will decide in their favour as they will have to arbitrate between copyrights and many forms of exceptions (Samuelson 2024a). For instance, the defendants argue that the collection of data for the purpose of data-mining benefits from a specific exemption in EU (Moody 2024) and fair use in the US (Samuelson 2024b). In any case, the merit of these complaints is to lay bare the assumption shared by many closed and open AI platforms that, as Microsoft AI’s CEO Mustafa Suleyman declared, content on the web is fair use per ‘social contract’ (Claburn 2024). Suleyman opposes the privileges accorded to authors by copyright to an exceptional economy where large-scale appropriation is an open game. This comment ultimately reveals how the radical de-valuation of ‘content’ is the necessary consequence of an industry revolving around the scarcity of hardware. Ultimately, Stability AI, like other platforms, bets on legal gaming to resist the artists’ challenge. This sh...</p>
+<p>If Stability AI is ultimately caught in its contradictions, the process of recoding the diagram of force of generative AI doesn’t end with it. The variations on genAI’s core set of relations can take different forms and intensities. To substantiate this claim, I am turning to AI Horde, a project originated in the Stable Diffusion ecosystem that further explores the consequences of re-orienting the forces circulating in the infrastructural assemblage.</p>
+<h2>Variation upon Variation, the AI Horde</h2>
+<p>AI Horde is a project that aims to create decentralised infrastructure for AI image generation. Initiated by a group of hackers in 2022, the project revolves around the figure of Konstantine Thoukydides, who operates under the pseudonym DivisionByZero. Thoukydides is a self-proclaimed anarchist who relentlessly advocates, theorises, and engages with the community of users and developers (DB0, n.d.). The Horde that extends to a loose network of collaborators is guided by the value of mutual aid (DB0 2022b). As other image generators, AI Horde can be used as an interface to create images using prompts. However, the underlying mechanism is subtly altered. When a prompt is submitted, the process of generation is not handled by a central unit, but sent to a queue of requests where it is distributed to different machines that compute the requested images. The members of the community who have installed a dedicated piece of software called ‘worker’ (Haidra-Org n.d.), are performing the calculation and sending the results back. These members lend part of their computational power to the project when they are online. Their machine forms part of the larger AI Horde assemblage. Like the early SETI online project, AI Horde implements a distributed protocol that contrasts dramatically with the centralised architectures of tech giants where one entity, a given company, controls the process from beginning to end. With an average of 33 workers, AI Horde shares both code and infrastructure, and claims to have generated 118.4 million images since its inception ( Stable Horde n.d.).</p>
+<p>The distributed character of AI Horde’s physical architecture reflects its politics. In contrast to dominant platforms that concentrate the decision power, AI Horde’s architecture distributes governance decisions among the connected nodes. When a member adds their machine to the Horde’s network, they select various parameters such as the models they want to run or whether the generated images can display NSFW content. Therefore, when a user types a prompt which contains explicit content or that must be processed by a given model, the request is routed to the nodes whose owners have agreed to these conditions and configured their machines accordingly. The architecture embeds a series of rules resembling a social contract that sets the conditions for sharing and the extent to which each participant decides what can be done with their hardware.</p>
+<p>As I have shown, the funding mechanism of open infrastructures imposes limits to their development. As the material base is mutually shared by the contributors, the Horde, as a whole, considerably reduces its costs. In this manner, it operates with minimal funding such as an occasional grant. Its economical structure is further extended by an internal currency. The Horde uses a system of incentives that takes the form of Kudos (DB0 2022a) rewarding those who dedicate computer time to the project by giving them priority in the queue and the means to generate their own images faster. Importantly, Kudos are also conceived as a mechanism against appropriation. If someone builds a commercial interface on top of AI Horde, the commercial app will not be able to siphon all resources for its purpose. The more it will use the Horde without giving back, the slower the network will respond to its queries. Unless the commercial actor gives computer time to the Horde, thereby feeding back into the project.</p>
+<h2>The Production of Aesthetic Scores</h2>
+<p>AI Horde largely makes use of the range of products generated by the Stable Diffusion ecosystem such as models and code. In return, its mode of production has implications for the larger open generative AI ecosystem. As the Horde has become a site of intense production and a meeting point for advanced users of the technology, their expertise gains value. For example, this leads to a partnership with LAION to produce better algorithmic aesthetic predictors (Thoukydidis and hlky 2023). The quality of a predictor is key to image generators as their value lies in their ability to provide users with environments to generate images that correspond to their taste. Producing good aesthetic predictors is a complicated task. In general, predictors are trained on large collections of images where microworkers rank them according to a set of aesthetic criteria. Even if the click workers are badly compensated, the annotation of large data collection remains costly. And the annotators often struggle with the aesthetic criteria they have to apply. Therefore, communities of users who are engaged in the production of images are highly valued by engineers both for their expertise and their interest in getting predictors that reflect their taste. AI Horde’s partnership with LAION can be understood as a convergence of interests. Horde users evaluate images produced by Stable Diffusion models and rank them in order of preference. LAION is then responsible for turning these human judgements into data to feed aesthetic predictors. To encourage participation, AI Horde distributes Kudos to those pr...</p>
+<p>As becomes apparent, AI Horde rebalances the assemblage’s diagram by opening up the compute to myriads of contributors. It decentralises it and in doing that, it decentralises its governance to a significant extent. It doesn’t achieve this goal only by changing the distribution of the compute. It also adopts a different relation to economy. It engages in the production of currencies that regulate its relations internally and externally. With kudos it encourages the sharing of hardware and prevents external abuse of its capabilities. By trading the aesthetic expertise of its community, it exchanges visual knowledge for access to GPU and the production of better predictors. AI Horde’s economy is designed to operate at a scale which grows organically without the pressure of financial backers. It is nevertheless dependent on the production of software such as Stable Diffusion models that require heavy financial investments. Its intensive use of open-source products and code created in Stable Diffusion’s orbit and its contribution to it in the form of aesthetic annotations testify to the solidarity and mutual dependency between open infrastructures of different sizes. As Stability AI, the case of AI Horde shows the modalities in which a common diagram centred on hardware dominance is challenged: through increasing variations rather than radical break. And, as all the products that circulate between Stability AI and AI Horde are attached to a license that allows and encourages sharing, they demonstrate the crucial role played by legal coding.</p>
+<h2>Conclusions</h2>
+<p>In these pages, I have followed the work of composition involved in genAI infrastructures. Instead of considering the ownership of technical assets such as computing power for itself, I focused on the mode of relations they condition and the strategies they elicit. Guided by assemblage theory, my analysis concerned itself with the transitive character of infrastructure: its ability to move between the material and the possible. I sought to discern a space of possibility within material constraints. To this end, I have identified a diagram that encapsulates both the limits and the potential for variations tested by the actors. In that perspective, I have shown how open infrastructures of AI image generation develop strategies to rebalance their dependencies on the compute. Stability AI did so by expanding the idea expressed by Mostaque, for whom to have better models, one might not need more parameters but better data. Here, curated and annotated images play an essential role. In contrast, Stable Horde focuses on the hardware topology itself by distributing the compute over semi-autonomous nodes. Both strategies aim to recode the same infrastructural diagram where the forces in presence are not oriented towards the tangible assets of the infrastructure and its large-scale investments in chips, GPU, and electricity. The political relevance of these projects lies in the fact that this recoding goes beyond a mere practical rearrangement of the material base. It touches upon the positionality engrained in hardware dominance as it is leveraged by hegemonic platforms. What is cont...</p>
+<p>In doing so, both initiatives operate crucial variations on a set of constrained relations imposed by the hardware requirements. While divesting from the gravitational pull of the compute, they open up their mode of governance to a larger set of actors and a more participatory process where the communities involved gain traction. For Stability AI, this ultimately leads to contradictions that cannot be resolved, as its investors and users have diverging agendas. For AI Horde, this is cemented in the networked architecture of the project where each node has control over the services their machine offers to others.</p>
+<p>If these projects exhibit real differences with closed infrastructures such as OpenAI, their differences must be nevertheless understood as part of a process of continuous variation. They explore a same space of possibilities under constraint. They are alternatives inside a world invested in property, not outside of it. Therefore, a form of continuity underlies the dichotomy between open and closed infrastructures. This is expressed through a legal game that allows open and closed systems to appropriate labour. In fact, the mutability of the structures of intellectual ownership is the principle that guides the strategies with which hegemonic platforms capture an economy of collaboration. But as a corollary, this legal agility also allows for other projects to take off. For example, Stability builds on top of software developed by OpenAI before it became proprietary. This mutability conditions how various attempts to build generative AI platforms relate and depart from each other. Each one builds a divergent assemblage rather than a radically different one. From OpenAI to Stability to Stable Horde, we discern different waves of variation on a same mode of production where each project rewrites the assemblage, re-orients the direction of its forces, re-weighs its components and reaches out to recruit more actors.</p>
+<p>Further, the continuity between open and closed infrastructures implies that open infrastructures also engage in practices of appropriation. Like their counterparts, their economy can only function if the value of the billions of images used in training sets is negated and treated as raw material to produce models. And like closed infrastructures, they bet on the legal gameability of the copyright framework to be able to do so, with the clear difference that they openly release and circulate the models produced with appropriated materials. If open infrastructures are controversial as many pending court cases attest, it is not because of the extent to which they oppose closed infrastructures, but rather the degree to which they resemble them. However, at the time of concluding, I would like to insist that such difficulties should not detract from the merits of these initiatives. On the contrary, in the recent context of increased state investment in AI as seen in the US Stargate project (Boak and Miller 2025), the agenda of AI sovereignty in Europe (Madiega 2020), or the ‘Made in China 2025’ plan (Al Midfa 2025), the centralisation of platforms and their associated problems of dominance are likely to increase. As alternatives, open infrastructures are more necessary than ever. But as the stakes are higher, the need to understand their complexities, contradictions, limits and potential increases accordingly.</p>
+<h2>References</h2>
+<p>Al Midfa, Najla. 2025. ‘China’s AI Strategy: A Case Study in Innovation and Global Ambition.’ <em>TRENDS Research &amp; Advisory</em> (28 March). <a href="https://trendsresearch.org/insight/chinas-ai-strategy-a-case-study-in-innovation-and-global-ambition/" target="_blank" rel="noreferrer">https://trendsresearch.org/insight/chinas-ai-strategy-a-case-study-in-innovation-and-global-ambition/</a></p>
+<p>Almeida, Ines. 2024. ‘The AI Landscape in 2024: Training Costs, Open Source, and Running Out of Data.’ <em>Nownextlater</em> (29 April). <a href="https://www.nownextlater.ai/Insights/post/the-ai-landscape-in-2024-the-rising-costs-of-training-ai-models" target="_blank" rel="noreferrer">https://www.nownextlater.ai/Insights/post/the-ai-landscape-in-2024-the-rising-costs-of-training-ai-models</a></p>
+<p>*Andersen et al v. Stability**AI Ltd. et al*. 2023. 3:2023cv00201, no. 3:2023cv00201. <a href="https://dockets.justia.com/docket/california/candce/3" target="_blank" rel="noreferrer">https://dockets.justia.com/docket/california/candce/3</a>:2023cv00201/407208</p>
+<p>Apenzeller, Guido, Matt Bornstein, and Martin Casado. 2023. ‘Navigating the High Cost of AI Compute.’ <em>Andreessen Horowitz</em> (27 April). <a href="https://a16z.com/navigating-the-high-cost-of-ai-compute/" target="_blank" rel="noreferrer">https://a16z.com/navigating-the-high-cost-of-ai-compute/</a></p>
+<p>Baldridge, Jason, Nicolas Malevé, and Katrina Sluis. 2025. ‘La génération d’images au sein du Google Research Lab.: Jason Baldridge en entretien avec Nicolas Malevé et Katrina Sluis.’ <em>Transbordeur. Photographie histoire société</em> 9. <a href="https://doi.org/10.4000/13dx7" target="_blank" rel="noreferrer">https://doi.org/10.4000/13dx7</a></p>
+<p>Bastian, Matthias. 2024. ‘Stability AI Reportedly Runs out of Money and in Negotiations to Sell.’ <em>The Decoder</em> (16 May). <a href="https://the-decoder.com/stability-ai-reportedly-runs-out-of-money-and-in-negotiations-to-sell/" target="_blank" rel="noreferrer">https://the-decoder.com/stability-ai-reportedly-runs-out-of-money-and-in-negotiations-to-sell/</a></p>
+<p>Berry, David M. 2008. *Copy, Rip, Burn: The Politics of Copyleft and Open**Source*, 1st edn. London: Pluto Press.</p>
+<p>Besiroglu, Tamay, et al. 2024. ‘The Compute Divide in Machine Learning: A Threat to Academic Contribution and Scrutiny?’ <a href="https://arxiv.org/abs/2401.02452" target="_blank" rel="noreferrer">https://arxiv.org/abs/2401.02452</a></p>
+<p>Boak, Josh, and Zeke Miller. 2025. ‘Politics Trump Highlights Partnership Investing $500 Billion in AI.’ <em>Associated Press</em> (23 January). <a href="https://apnews.com/article/trump-ai-openai-oracle-softbank-son-altman-ellison-be261f8a8ee07a0623d4170397348c41" target="_blank" rel="noreferrer">https://apnews.com/article/trump-ai-openai-oracle-softbank-son-altman-ellison-be261f8a8ee07a0623d4170397348c41</a></p>
+<p>Claburn, Thomas. 2024. ‘Microsoft CEO of AI: Your Online Content Is “freeware” Fodder for Training Models.’ <em>The Register</em> (28 June). <a href="https://www.theregister.com/2024/06/28/microsoft_ceo_ai/" target="_blank" rel="noreferrer">https://www.theregister.com/2024/06/28/microsoft_ceo_ai/</a></p>
+<p>DB0. 2022a. ‘The Kudos-Based Economy for the KoboldAI Horde.’ *A**Division by Zer0* (9 October). <a href="https://dbzer0.com/blog/the-kudos-based-economy-for-the-koboldai-horde/" target="_blank" rel="noreferrer">https://dbzer0.com/blog/the-kudos-based-economy-for-the-koboldai-horde/</a></p>
+<p>DB0. 2022b. ‘The Stable Horde: AI Image Generation for Everyone through Mutual Aid.’ *A**Division by Zer0* (29 September). <a href="https://dbzer0.com/blog/the-stable-horde-ai-image-generation-for-everyone-through-mutual-aid/" target="_blank" rel="noreferrer">https://dbzer0.com/blog/the-stable-horde-ai-image-generation-for-everyone-through-mutual-aid/</a></p>
+<p>DB0. n.d. ‘About.’ <em>A Division by Zer0</em>. <a href="https://dbzer0.com/about/" target="_blank" rel="noreferrer">https://dbzer0.com/about/</a></p>
+<p>De Landa, Manuel. 2016. <em>Assemblage Theory</em>. Edinburgh: Edinburgh University Press. <a href="https://doi.org/10.1515/9781474413640" target="_blank" rel="noreferrer">https://doi.org/10.1515/9781474413640</a></p>
+<p>El Baroni, Bassam. 2022. ‘Between the Material and the Possible : Infrastructural Re-Examination and Speculation in Art.’ In *Between the Material and the Possible : Infrastructural**Re-Examination and Speculation in Art*, edited by Bassam El Baroni, 29–34. London: Sternberg Press.</p>
+<p>Haidra-Org. n.d. ‘<a href="https://Github.Com/Haidra-Org/Horde-Worker-reGen.’" target="_blank" rel="noreferrer">Https://Github.Com/Haidra-Org/Horde-Worker-reGen.’</a> <em>GitHub</em>. <a href="https://github.com/Haidra-Org/horde-worker-reGen" target="_blank" rel="noreferrer">https://github.com/Haidra-Org/horde-worker-reGen</a></p>
+<p>Heikkilä, Melissa. 2024. ‘Artists Can Now Opt out of the next Version of Stable Diffusion.’ <em>MIT Technology Review</em> (16 December). <a href="https://www.technologyreview.com/2022/12/16/1065247/artists-can-now-opt-out-of-the-next-version-of-stable-diffusion/" target="_blank" rel="noreferrer">https://www.technologyreview.com/2022/12/16/1065247/artists-can-now-opt-out-of-the-next-version-of-stable-diffusion/</a></p>
+<p>Hutchinson, Clare, and Phil John. 2023. ‘AI: Digital Artist’s Work Copied More Times than Picasso.’ *BBC**News* (20 July). <a href="https://www.bbc.com/news/uk-wales-66099850" target="_blank" rel="noreferrer">https://www.bbc.com/news/uk-wales-66099850</a></p>
+<p>Jennings, Sophia. 2022. ‘The Research Origins of Stable Diffusion.’ <em>Runway Research</em> (10 May). <a href="https://research.runwayml.com/the-research-origins-of-stable-difussion" target="_blank" rel="noreferrer">https://research.runwayml.com/the-research-origins-of-stable-difussion</a></p>
+<p>Kak, Amba, Sarah Myers, and Meredith Whittaker. 2023. ‘Make No Mistake—AI Is Owned by Big Tech.’ <em>MIT Technology Review</em> (12 May). <a href="https://www.technologyreview.com/2023/12/05/1084393/make-no-mistake-ai-is-owned-by-big-tech/" target="_blank" rel="noreferrer">https://www.technologyreview.com/2023/12/05/1084393/make-no-mistake-ai-is-owned-by-big-tech/</a></p>
+<p>Kokalitcheva, Kia. 2024. ‘Stability CEO Resigns from Generative AI Company.’ <em>Axios</em> (23 March). <a href="https://www.axios.com/2024/03/23/artificial-intelligence-stability-ceo-resigns" target="_blank" rel="noreferrer">https://www.axios.com/2024/03/23/artificial-intelligence-stability-ceo-resigns</a></p>
+<p>Lynch, Shana. 2017. ‘Andrew Ng: Why AI Is the New Electricity.’ <em>Insights by Stanford Business</em> (3 November). <a href="https://www.gsb.stanford.edu/insights/andrew-ng-why-ai-new-electricity" target="_blank" rel="noreferrer">https://www.gsb.stanford.edu/insights/andrew-ng-why-ai-new-electricity</a></p>
+<p>Madiega, Tambama. 2020. ‘Digital Sovereignty for Europe.’ <em>EPRS Ideas Paper</em>. <a href="https://www.europarl.europa.eu/RegData/etudes/BRIE/2020/651992/EPRS_BRI(2020" target="_blank" rel="noreferrer">https://www.europarl.europa.eu/RegData/etudes/BRIE/2020/651992/EPRS_BRI(2020)651992_EN.pdf</a>651992_EN.pdf)</p>
+<p>McLean, Sophie. 2023. ‘The Environmental Impact of ChatGPT: A Call for Sustainable Practices In AI Development.’ <em>Earth.Org</em> (28 April). <a href="https://earth.org/environmental-impact-chatgpt" target="_blank" rel="noreferrer">https://earth.org/environmental-impact-chatgpt</a></p>
+<p>Milmo, Dan, and Alex Hern. 2024. ‘Google Chief Admits “Biased” AI Tool’s Photo Diversity Offended Users.’ <em>The Guardian</em> (28 February). <a href="https://www.theguardian.com/technology/2024/feb/28/google-chief-ai-tools-photo-diversity-offended-users" target="_blank" rel="noreferrer">https://www.theguardian.com/technology/2024/feb/28/google-chief-ai-tools-photo-diversity-offended-users</a></p>
+<p>Moody, Glyn. 2024. ‘German Court: LAION’s Generative AI Training Dataset Is Legal Thanks To EU Copyright Exceptions.’ <em>Techdirt</em> (25 October). <a href="https://www.techdirt.com/2024/10/25/german-court-laions-generative-ai-training-dataset-is-legal-thanks-to-eu-copyright-exceptions/" target="_blank" rel="noreferrer">https://www.techdirt.com/2024/10/25/german-court-laions-generative-ai-training-dataset-is-legal-thanks-to-eu-copyright-exceptions/</a></p>
+<p>Offert, Fabian, and Thao Phan. 2022. ‘A Sign That Spells: DALL-E 2, Invisual Images and The Racial Politics of Feature Space.’ <a href="https://arxiv.org/abs/2211.06323" target="_blank" rel="noreferrer">https://arxiv.org/abs/2211.06323</a></p>
+<p>Ohls, Hauke. 2022. ‘The Artwork as Assemblage. New Materialist Perspectives on Aesthetics.’ <em>Artículos</em>, <em>Revista de Estudios Globales y Arte Contemporáneo</em> 8 (1): 156–184. <a href="https://doi.org/10.1344/regac2022.8.41420" target="_blank" rel="noreferrer">https://doi.org/10.1344/regac2022.8.41420</a></p>
+<p>Parvini, Sarah. 2025. ‘Biden Signs Executive Order That Seeks to Grow Artificial Intelligence Infrastructure in the U.S.’ <em>PBS News</em> (14 January). <a href="https://www.pbs.org/newshour/science/biden-signs-executive-order-that-seeks-to-grow-artificial-intelligence-infrastructure-in-the-u-s" target="_blank" rel="noreferrer">https://www.pbs.org/newshour/science/biden-signs-executive-order-that-seeks-to-grow-artificial-intelligence-infrastructure-in-the-u-s</a></p>
+<p>Payne, Laura, and Tara Ramanathan. 2025. ‘Midjourney.’ <em>Britannica</em> (23 June). <a href="https://www.britannica.com/technology/Midjourney" target="_blank" rel="noreferrer">https://www.britannica.com/technology/Midjourney</a></p>
+<p>Pistor, Katharina. 2020. *The Code of**Capital: How the Law Creates Wealth and Inequality*. Princeton, NJ: Princeton University Press.</p>
+<p>Plunkett, Luke. 2022. ‘Artists Protest After ArtStation Features AI-Generated Images.’ <em>Kotaku</em> (13 December). <a href="https://kotaku.com/artstation-ai-art-generated-images-epic-games-protest-1849891085" target="_blank" rel="noreferrer">https://kotaku.com/artstation-ai-art-generated-images-epic-games-protest-1849891085</a></p>
+<p>Rombach, Robin, et al. 2021. ‘High-Resolution Image Synthesis with Latent Diffusion Models.’ *2022 IEEE/CVF Conference on Computer Vision and**Pattern Recognition (CVPR*), 10674–85.</p>
+<p>Samuelson, Pamela. 2024a. ‘How to Think about Remedies in the Generative AI Copyright Cases.’ <em>Commun. ACM</em> 67 (7): 27–30. <a href="https://doi.org/10.1145/3654699" target="_blank" rel="noreferrer">https://doi.org/10.1145/3654699</a></p>
+<p>Samuelson, Pamela. 2024b. ‘Fair Use Defenses in Disruptive Technology Cases.’ *UCLA L. Rev. UCLA Law**Review* (2024) 71 (5): 1. <a href="http://lawcat.berkeley.edu/record/1279755" target="_blank" rel="noreferrer">http://lawcat.berkeley.edu/record/1279755</a></p>
+<p>Stable Horde. n.d. <em>AI Horde</em>. <a href="https://stablehorde.net/" target="_blank" rel="noreferrer">https://stablehorde.net/</a></p>
+<p>Steinhoff, James. 2018. ‘Cognition On Tap: Capital’s Theory of AI as Utility.’ <em>Digital Culture &amp; Society</em> 4: 89–104. <a href="https://doi.org/10.14361/dcs-2018-0206" target="_blank" rel="noreferrer">https://doi.org/10.14361/dcs-2018-0206</a></p>
+<p>Swinhoe, Dan. 2025. ‘EU Allocates €20bn to Developing Four “AI Gigafactories.”’ <em>Data Center Dynamics</em> (14 February). <a href="https://www.datacenterdynamics.com/en/news/eu-allocates-20bn-to-developing-four-ai-gigafactories/" target="_blank" rel="noreferrer">https://www.datacenterdynamics.com/en/news/eu-allocates-20bn-to-developing-four-ai-gigafactories/</a></p>
+<p>Thoukydidis, Konstantinos, and hlky. 2023. ‘Collaboration between LAION and the Stable Horde.’ <em>LAION</em> (1 August). <a href="https://laion.ai/blog/laion-stable-horde/" target="_blank" rel="noreferrer">https://laion.ai/blog/laion-stable-horde/</a></p>
+<p>Valdés Porras, Edgar Antonio. 2024. ‘How Much Is Invested in Artificial Intelligence?’ <em>Openexo</em> (22 March). <a href="https://openexo.com/insight/how-much-is-invested-in-artificial-intelligence" target="_blank" rel="noreferrer">https://openexo.com/insight/how-much-is-invested-in-artificial-intelligence</a></p>
+<p>Valyaeva, Alina. 2023a. ‘AI Has Already Created As Many Images As Photographers Have Taken in 150 Years. Statistics for 2023.’ <em>Everypixel Journal</em> (15 August). <a href="https://journal.everypixel.com/ai-image-statistics" target="_blank" rel="noreferrer">https://journal.everypixel.com/ai-image-statistics</a></p>
+<p>Valyaeva, Alina. 2023b. ‘People Are Creating an Average of 34 Million Images Per Day. Statistics for 2024.’ <em>Everypixel Journal</em> (15 August). <a href="https://journal.everypixel.com/ai-image-statistics" target="_blank" rel="noreferrer">https://journal.everypixel.com/ai-image-statistics</a></p>
+<p>Vishmidt, Marina. 2017. ‘Between Not Everything and Not Nothing: Cuts Towards Infrastructural Critique.’ In *Former West: Art and the**Contemporary After 1989*, edited by Maria Hlavajova and Simon Sheikh, 265–269. Cambridge, MA: The MIT Press). <a href="https://research.gold.ac.uk/id/eprint/23935/" target="_blank" rel="noreferrer">https://research.gold.ac.uk/id/eprint/23935/</a></p>
+<p>Walsh, Tracy. 2024. ‘Photos of Australian Kids Have Been Found in a Massive AI Training Data Set. What Can We Do?’ <em>The Conversation</em> (7 March). <a href="https://theconversation.com/photos-of-australian-kids-have-been-found-in-a-massive-ai-training-data-set-what-can-we-do-233868" target="_blank" rel="noreferrer">https://theconversation.com/photos-of-australian-kids-have-been-found-in-a-massive-ai-training-data-set-what-can-we-do-233868</a></p>
+<p>Weights and Biases. 2022. ‘Emad Mostaque—Stable Diffusion, Stability AI, and What’s Next.’ <em>YouTube</em> (15 October). <a href="https://www.youtube.com/watch?v=bG5hTokyh5Q" target="_blank" rel="noreferrer">https://www.youtube.com/watch?v=bG5hTokyh5Q</a></p>
+<p>Wiggers, Kyle. 2022. ‘Stability AI, the Startup behind Stable Diffusion, Raises $101M.’ <em>Tech Crunch</em> (17 October). <a href="https://techcrunch.com/2022/10/17/stability-ai-the-startup-behind-stable-diffusion-raises-101m/" target="_blank" rel="noreferrer">https://techcrunch.com/2022/10/17/stability-ai-the-startup-behind-stable-diffusion-raises-101m/</a></p>
+<ul>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch14.xhtml#footnote-017-backlink" target="_blank" rel="noreferrer">1</a> This work has been made with the support of SHAPE for the ‘Knowledge Servers’ project at Aarhus University. Additionally, this work received government funding managed by the French National Research Agency under France 2030, reference ANR-23-IACL-0007.</li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch14.xhtml#footnote-016-backlink" target="_blank" rel="noreferrer">2</a> See <a href="https://openai.com/index/clip/" target="_blank" rel="noreferrer">https://openai.com/index/clip/</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch14.xhtml#footnote-015-backlink" target="_blank" rel="noreferrer">3</a> See <a href="https://beta.dreamstudio.ai/generate" target="_blank" rel="noreferrer">https://beta.dreamstudio.ai/generate</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch14.xhtml#footnote-014-backlink" target="_blank" rel="noreferrer">4</a> See <a href="https://clipdrop.co/" target="_blank" rel="noreferrer">https://clipdrop.co/</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch14.xhtml#footnote-013-backlink" target="_blank" rel="noreferrer">5</a> A list of the 83,033 diffusion-based models offered by the platform is available here: https://huggingface.co/models?library=diffusers&amp;sort=trending</li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch14.xhtml#footnote-012-backlink" target="_blank" rel="noreferrer">6</a> Stable Diffusion-based models are available on this page: https://civitai.com/models</li>
+</ul></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-51803b4eb4edb65f.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">開放的悖論：權力、互惠與學術基礎設施治理</span>
+</a>
+
+<a class="article-sequence-link" href="item-6e6abba3e28db6b9.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">打開網路基礎設施：草根社群網路中的開放社會物質政治</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-91b7fc86356013de.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Politics of Open Infrastructures - 14. Controversial Openness, an Exploration of Open Image Generation Assemblages</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Nicolas Malevé 1（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-28T18:04:57+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-28T18:04:57+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-91b7fc86356013de";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

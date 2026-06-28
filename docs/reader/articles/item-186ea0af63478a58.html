@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+            <p class="generated">產生時間：2026-06-28T18:13:55+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,91 @@
       <p class="lede">這篇是 CNCF Blog 的實作 walkthrough，介紹如何在 Kubernetes 叢集內跑一個可感知叢集狀態的 AI agent，並用 GitHub Actions、Argo CD Image Updater 等工具處理 CI/CD。摘要中特別強調 agent 是自架、唯讀，而且資料不離開叢集。</p>
       <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">AI Agents</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://www.cncf.io/wp-content/uploads/2026/06/Cluster-Aware-AI-Agent-w-K8s-Argo-CD-GitOps.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Building a Cluster-Aware AI Agent with Kubernetes, Argo CD, and GitOps</h1>
+<p>Posted on June 25, 2026 by Maryam Tavakkoli (CNCF Ambassador | Lead Cloud Engineer @ RELEX Solutions)</p>
+<p>CNCF projects highlighted in this post</p>
+<p><em>A practical walkthrough of running a self-hosted, read-only AI agent inside a Kubernetes cluster, with the full CI/CD chain handled by GitHub Actions and Argo CD Image Updater. No data leaves the cluster, no cloud AI provider involved.</em></p>
+<h2><strong>Why a Cluster-Aware Agent Is an Interesting Pattern</strong></h2>
+<p>Most “AI for Kubernetes” tooling today is a hosted SaaS that consumes cluster data and returns advice. The model lives elsewhere. The data leaves the network.</p>
+<p>This article walks through the opposite design: an agent that runs <strong>inside</strong> the cluster, <strong>observes</strong> live state through the Kubernetes API, and <strong>reasons</strong> with a local LLM. Every layer is visible, every credential is scoped, and the only network egress is a model pull at startup.</p>
+<p>The interesting properties of this pattern for platform engineers:</p>
+<p>Source code:<a href="https://github.com/MaryamTavakkoli/local-k8s-ai-agent" target="_blank" rel="noreferrer">github.com/MaryamTavakkoli/local-k8s-ai-agent</a></p>
+<h2><strong>LLM vs. AI Agent: The Distinction That Matters</strong></h2>
+<p>A Large Language Model answers from training data alone. It has no awareness of the environment it’s deployed into. An <em>agent</em>, in the sense used here, performs an extra step before reasoning: it <strong>observes the real world</strong> and incorporates that observation into the prompt.</p>
+<p>The contrast in output is concrete. A generic LLM call returns <em>“CrashLoopBackOff usually means the container is failing health checks or exiting unexpectedly…”</em> An agent call returns <em>“Pod api-7b8d has restarted 14 times in the last hour with ImagePullBackOff against registry.local . Run kubectl describe pod api-7b8d to confirm.”</em></p>
+<p>The second answer is grounded. The first answer is correct but not actionable for this cluster.</p>
+<p>This project demonstrates both modes through two REST endpoints:</p>
+<ul>
+<li><code>POST /ask</code>— LLM alone, useful for general questions like <em>“What is a StatefulSet?”</em></li>
+<li><code>POST /diagnose</code>— the agent: reads live cluster state, then reasons over it</li>
+</ul>
+<h2><strong>Architecture</strong></h2>
+<p>The system has two halves: a CI/CD chain on the top and a Kubernetes runtime on the bottom.</p>
+<ul>
+<li>An <strong>Ollama</strong> pod serves a local Mistral 7B model on port 11434</li>
+<li>A <strong>FastAPI</strong> pod exposes the agent’s HTTP API and chat UI on port 8000</li>
+<li>A <code>PersistentVolumeClaim</code> holds the model weights so pulls aren’t repeated</li>
+<li>A dedicated <code>ServiceAccount</code> mounted in the FastAPI pod has a <code>ClusterRole</code> permitting only read operations on pods, events, logs, services, and deployments</li>
+<li>A push to the application source in Git triggers <strong>GitHub Actions</strong> to build a multi-architecture image (<code>linux/amd64 + linux/arm64</code>) tagged with the 7-character commit SHA</li>
+<li><strong>Argo CD Image Updater</strong> (from<a href="https://github.com/argoproj-labs/argocd-image-updater" target="_blank" rel="noreferrer">argoproj-labs</a>) polls Docker Hub on a 2-minute interval, detects new tags matching the configured regex, and commits the new tag back into the repository’s <code>kustomization.yaml</code></li>
+<li><strong>Argo CD</strong> detects the manifest change and reconciles the cluster</li>
+</ul>
+<p>The two halves are decoupled. Argo CD has no awareness of the registry. GitHub Actions has no awareness of the cluster. Image Updater is the small operator that bridges them, and it does so by writing to Git, which preserves a single source of truth.</p>
+<h2><strong>The AI Concepts You’ll Actually Touch</strong></h2>
+<p>Here are a few concepts that every AI engineer uses every day, explained in plain language.</p>
+<p><strong>1. LLM (Large Language Model)</strong></p>
+<p>A statistical model trained on enormous amounts of text. It doesn’t “know” facts; it predicts the most likely next word given everything that came before. That’s it. The magic is that this simple task, done at scale, produces something that feels like reasoning.</p>
+<p>This project uses Mistral 7B, a 7-billion-parameter open-source model. “Parameters” are the numbers the model learned during training, similar to the strengths of connections in a brain.</p>
+<p>Most commercial AI services send your text to a remote cloud provider. The trade-off is capability: a local 7B model isn’t as expansive as a massive foundational model running on cloud infrastructure.. But for experimenting, it’s more than enough. And nothing leaves your network.</p>
+<p><strong>3. Ollama (The Model Serving Runtime)</strong></p>
+<p>Ollama is not an AI model. It’s a server that runs AI models. Think of it like a web server for LLMs: it downloads the model files, loads them into memory, and exposes a REST API on port 11434 so anything (including our FastAPI app) can send prompts and get responses.</p>
+<p>Without Ollama, you’d be wrestling with PyTorch, CUDA, and tokenizer libraries. With it, running an LLM is ollama pull mistral followed by an HTTP POST.</p>
+<p><strong>4. System Prompt (The Personality)</strong></p>
+<p>This is the single most important AI concept for application developers, and you can master it in about ten minutes.</p>
+<p>A system prompt is the instructions you give the model before the user’s question. The model reads it first and uses it to shape every response.</p>
+<p>In our project, the system prompt for /ask is:</p>
+<p><em>“You are a DevOps assistant specializing in Kubernetes.</em></p>
+<p><em>When given an error or question, you:</em></p>
+<p><em>1. Explain what it means clearly</em></p>
+<p><em>2. Provide the exact kubectl commands to diagnose or fix it</em></p>
+<p><em>3. Explain why the fix works</em></p>
+<p><em>Be concise and practical.”</em></p>
+<p>Without that prompt, Mistral is a general assistant. With it, Mistral is a Kubernetes specialist who always returns structured answers. No retraining was needed. This is called prompt engineering, and it’s how almost every AI product you use was built.</p>
+<p><strong>5. RAG (Retrieval-Augmented Generation)</strong></p>
+<p>The fancy term for what /diagnose does. RAG means: before asking the model, retrieve real-world data and augment the prompt with it.</p>
+<p>RAG is why contemporary AI assistants work. A code assistant reads your local workspace repository; our agent reads your live cluster state.. Same pattern, different data source.</p>
+<h2><strong>The Two Modes: Where the Agent Becomes Real</strong></h2>
+<p>Here’s where the “agent” idea earns its name.</p>
+<p>You type a question, FastAPI prepends the system prompt, sends it to Ollama. The model answers from its training data. Useful for general K8s questions like “What is a StatefulSet?”</p>
+<p><strong>Mode 2: Diagnose Cluster (true agent)</strong></p>
+<p>You type a question and a namespace. FastAPI does something new: it calls the Kubernetes API and reads:</p>
+<p>All pods in that namespace (phase, restart count, waiting reason)</p>
+<p>The last 20 lines of logs from any non-Running pod</p>
+<p>That entire context is injected into the prompt. Then Mistral reasons, but now it’s reasoning about your actual cluster, not generic Kubernetes knowledge.</p>
+<p>The chat UI even shows you the exact context the agent read, in a collapsible panel under each answer.</p>
+<h2><strong>Read-Only by Design</strong></h2>
+<p>The agent runs with a <code>ServiceAccount</code> bound to a <code>ClusterRole</code> that exposes only read verbs:</p>
+<p>This is the most important design decision in the project, and it generalizes beyond AI workloads. An agent that can delete pod based on its own reasoning is a production incident waiting to happen. Hallucinations multiplied by write access is a poor combination.</p>
+<p>Read-only RBAC inverts the trust model. The agent is allowed to be wrong because being wrong has no consequences. The Kubernetes API server enforces the boundary; the LLM’s output cannot bypass it. Iteration on prompts and models becomes cheap because the worst-case behavior is bounded.</p>
+<p>The same pattern scales: start every agent read-only, then earn each additional capability one verb at a time, each with its own RBAC rule and review.</p>
+<h2><strong>The CI/CD Chain in Detail</strong></h2>
+<p>The delivery half of the architecture uses three independent components, each with one responsibility.</p>
+<p><strong>GitHub Actions</strong> builds and pushes the image. The workflow uses <code>docker buildx</code>with QEMU emulation to produce a manifest list covering both linux/amd64 (GitHub-hosted runners) and <code>linux/arm64</code>(Apple Silicon developer machines). The tag is the 7-character commit SHA, an immutable reference.</p>
+<p><strong>Argo CD Image Updater</strong> polls the registry on a 2-minute interval. Configuration lives in an <code>ImageUpdater</code> Custom Resource that names the target Argo CD <code>Application</code>, the image to track, an <code>allowTags</code> regex (<code>^[0-9a-f]{7}$</code>), and the update strategy (<code>newest-build</code>). When a new matching tag is found, the operator rewrites the <code>newTag</code> field in <code>k8s/kustomization.yaml</code>and commits the change to the <code>main</code> branch.</p>
+<p><strong>Argo CD</strong> watches the repository and reconciles the cluster on each commit. Because the source manifests are managed by Kustomize, Argo CD applies the rendered output, which now includes the updated image tag.</p>
+<h2><strong>Try It Yourself: It&#x27;s a Starting Point, Not a Destination</strong></h2>
+<p>The repo is here: <a href="https://github.com/MaryamTavakkoli/local-k8s-ai-agent" target="_blank" rel="noreferrer">github.com/MaryamTavakkoli/local-k8s-ai-agent</a></p>
+<p>Step-by-step setup with exact commands is in the README. Total time from git clone to working chat UI is about 30 minutes (most of that is the Mistral download).</p>
+<p>To bring this article full circle: if you’re a DevOps or Platform Engineer who’s been hearing “AI agents are coming” and wondering what that actually means in practice, this is meant to be your starting point, not your finish line. Once you’ve seen the agent loop running, you’ll be in a much better position to continue.</p>
+<p>The point of starting local isn’t that local is always the right answer. It’s to understand how the full circle works behind the scenes.</p>
+<h2>The latest from our blog</h2>
+<h3>Security Profiles Operator v1: Stable APIs, Security Hardened, and Shaping Upstream Kubernetes</h3>
+<h3>Securing CI/CD for an open source project, part 3: Credentials, verification, and what&#x27;s next</h3>
+<h3>From Awareness to Engineered Accessibility in Open Source</h3></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-57124c27681c5665.html">
@@ -580,7 +660,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-186ea0af63478a58.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Building a Cluster-Aware AI Agent with Kubernetes, Argo CD, and GitOps</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Maryam Tavakkoli (CNCF Ambassador | Lead Cloud Engineer @ RELEX Solutions)</li><li><strong>原始網站授權</strong>：未標示</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Building a Cluster-Aware AI Agent with Kubernetes, Argo CD, and GitOps（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Maryam Tavakkoli (CNCF Ambassador | Lead Cloud Engineer @ RELEX Solutions)（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-27T14:17:37+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

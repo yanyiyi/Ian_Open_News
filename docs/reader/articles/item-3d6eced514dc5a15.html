@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>聯合國的數位主權：全球推動以開源技術取代美國雲端巨頭 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T18:13:54+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-26 08:00</span></div>
+      <h1><a class="article-title-link" href="https://www.zdnet.com/article/digital-sovereignty-un-global-push-to-replace-us-cloud-giants-with-open-source-tech/" target="_blank" rel="noreferrer" title="開啟原始連結">聯合國的數位主權：全球推動以開源技術取代美國雲端巨頭</a></h1>
+      <p class="lede">這篇報導從聯合國 Open Source Week 切入，描述數位主權成為年度核心議題，並呈現一股以開源技術降低對美國專有雲端公司的依賴的全球動向。摘要已足以看出它涉及開源作為關鍵基礎設施、公共部門技術主權與平台信任問題。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">digital sovereignty</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://www.zdnet.com/a/img/resize/c0e3f665525b362e9807743b7ebb2f969f94bba8/2026/06/26/259a653c-0897-4448-93cb-460097f57abf/un-open-source-week-2026-1.jpg?auto=webp&amp;fit=crop&amp;height=675&amp;width=1200" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><h1>數位主權在聯合國：全球推動以開源技術取代美國雲端巨頭的內幕</h1>
+<p>追蹤 ZDNET：在 Google 新聞將我們加為優先來源。<strong>ZDNET 重點摘要</strong>：全球各國都想擺脫對美國科技公司的依賴。開源是取得數位主權的關鍵。美國反對數位主權。</p>
+<p><strong>紐約</strong> — 在聯合國開源週（UN Open Source Week）上，數位主權從政策口號正式進入行動議程。從德國、愛爾蘭、摩洛哥到坦尚尼亞，來自世界各地的部長與技術專家相繼闡述：開源、互通性（interoperability）與開放人工智慧，正成為各國掌控關鍵數位基礎設施的前提條件。</p>
+<p>新的數位底線是：數位主權不再是打造孤立的國家科技體系，而是掌有資料與基礎設施的所有權，以及在不中斷核心服務的前提下自由切換廠商與模型的能力。與會者也一致認為，實現這一切的唯一途徑，就是推行開放標準與開源技術。</p>
+<p><strong>延伸閱讀：</strong> 98% 的 IT 主管都想要數位主權：SUSE 正在為各地企業將其付諸實踐</p>
+<p>數位主權並非歐洲獨有的運動。眾多「全球南方」（Global South）國家也已受夠了把所有 IT 籌碼壓在 Microsoft、Google 或 Amazon Web Services（AWS）一家身上的處境。</p>
+<h2>坦尚尼亞：「從被動的消費者到主動的創造者」</h2>
+<p>坦尚尼亞為本週活動提供了數位主權在實踐層面最清晰的定義。坦尚尼亞法務與憲政事務部長 Angellah Jasmine Kairuki 開場便拋出一個直白的問題：「誰才是真正擁有服務我們人民的生態系的人？」她說，對太多國家而言，答案是「一份我們沒有參與撰寫的授權條款、一個我們無法檢視的平台、一種我們無力擺脫的依賴關係」。</p>
+<p>她將坦尚尼亞轉向開源定性為一場「從被動的科技消費者，邁向主動的科技創造者」的轉型，並主張「這正是數位主權在實踐上的意義——不是孤立，而是所有權；不是依賴，而是以我們為主體的夥伴關係。」</p>
+<p><strong>延伸閱讀：</strong> 你的組織數位主權程度如何？</p>
+<p>這款 Red Hat 工具幾分鐘內就能告訴你答案</p>
+<p>Kairuki 用數字為這番論述撐腰：坦尚尼亞超過 90% 的政府系統目前已運行於開源技術之上，並有一套法律框架作為依據，包括 2020 年《電子政務局法》、《個人資料保護法》（2023）、網路犯罪法，以及各部門法規，全部圍繞共用的國家基礎設施與開放介面而建立。</p>
+<p>這個國家也將原本花在專有授權費上的錢，重新投入人才培育。根據 Kairuki 的說法，坦尚尼亞已培訓約 500 名公職人員，將他們組成「一個協作性的數位開發者社群——公民為公民而建」，負責維運並持續演進自己打造的系統。</p>
+<p>她給全球南方其他政府的訊息言辭直接：只要有正確的規則、領導力與人才，「建立獨立的數位基礎設施並不是少數富裕國家的特權，而是……每一個願意做出選擇的國家都能企及的目標。」</p>
+<h2>AI 主權</h2>
+<p>在 AI 議題方面，Cloudera 德籍技術長（CTO）Sergio Gago 在一場探討 AI 主權與互通性的場次中警告：當資料、基礎設施與治理權力全數集中在少數幾家供應商手中，其上疊加的任何 AI 層都將「以更快的速度、更大的規模複製所有那些偏見」。他主張：「我們常常說話的方式好像 AI 是從模型開始的……但並非如此。它從資料與基礎設施開始，除此之外，還有機構與人。」</p>
+<p>Gago 的核心論點是：「互通性是參與的前提條件」，而「主權是延續性的前提條件」。他為機構具體說明了 AI 主權與「私有 AI」應該意味著什麼——能夠回答七個實際問題，從「你的資料究竟存放在哪裡？」、「誰能存取它、在什麼條件下？」，到「我們能否即時替換模型、讓系統繼續運作？」以及「如果某家供應商改變其商業或政治立場，我們能否繼續運作？」</p>
+<p>答案顯然是「不能」——正如川普政府近期叫停 Claude Fable 5 與 Mythos 5 在其部署軌道中的使用所揭示的那樣。如果你的 AI 工作流程可以被政府的一時之念關閉，你確實無法真正仰賴它。</p>
+<p>此外：[AI 如何突然對開源開發者變得更有用](#)</p>
+<p>Gago 認為，真正的主權「不代表孤立或科技民族主義」，而是「在不屈從他人服務條款的前提下，參與全球生態系的能力」——這取決於開放格式、開放引擎與開放的協作編排機制，而不只是在專有雲端與資料堆疊上釋出模型權重而已。</p>
+<p>Gago 呼籲建立「真正的開源 AI」，涵蓋資料格式、資料目錄、運算引擎、治理機制與安全工具，讓公私部門機構能夠「把 AI 帶進資料所在之處」——無論是地端（on-prem）、主權雲或公有雲——而非將敏感資料送入不透明的外部系統。</p>
+<h2>歐洲與愛爾蘭：主權即選擇與韌性</h2>
+<p>這一週，歐洲官員與實務工作者致力於提煉一套較不零和的主權論述，將其定位為「在深度相互連結的生態系中保有選擇與韌性的能力」。</p>
+<p>愛爾蘭新任政府 CIO Louise McKeever 從政府視角給出了簡明定義：在她看來，數位主權是「政府在跨境資料流動、AI 與地緣政治風險交織的世界裡，維持對自身數位基礎設施、資料與技術之掌控能力」——這讓它不僅是科技議題，更是「國家安全議題」。</p>
+<p>此外：[法國正為了數位主權放棄 Windows——其新的 Linux 技術堆疊正逐步成形](#)</p>
+<p>McKeever 主張，主權「關乎的是選擇與韌性」，而非「擁有每一項技術」，並將其直接連結至愛爾蘭的《更好公共服務 2030 計畫》（Better Public Services 2030）——該計畫目標是讓幾乎所有公共服務都能線上提供且廣泛使用。</p>
+<p>在這套策略中，開源是愛爾蘭提升掌控力、韌性、安全性與內部能力的途徑：從農業部採用的「開源優先」技術堆疊，到共享的數位基礎模組，例如以隱私、使用者控制及跨機關重複利用為設計原則的政府數位錢包。</p>
+<p>在政策面，OpenForum Europe 的 Dr.</p>
+<p>Sachiko Muto 強調，數位主權「並非被定義為零和賽局」，而是「將使用者控制權納入討論」，並降低關鍵基礎設施對單一國家或單一廠商的依賴。</p>
+<h3>OSPO 與「主權科技機構」：從口號到基礎建設</h3>
+<p>如果坦尚尼亞的發言是從道德與政治角度定義數位主權，那麼「OSPO for Good」議程軌則把大量時間花在制度管線上：如何打造讓主權真正落地的機制。在那場座談中，開放原始碼程式辦公室（Open Source Program Office，OSPO）被描述為「政策與開放原始碼的交會點」；Nvidia 開放原始碼生態系暨開發者平台總監 Arun Gupta 則稱其為讓機構從「想要數位主權」走向「真正實現數位主權」的「工具」。</p>
+<p><strong>延伸閱讀：為什麼 AI 代幣（token）會讓你的企業雲端帳單再度暴衝</strong></p>
+<p>以具體功能而言，OSPO 能讓組織的開放原始碼選擇與使命及未來架構對齊，而不是依賴臨時拼湊的採用方式。它也能為想要貢獻程式碼、加入上游專案、或與私部門合作的公務員提供法律與程序上的保護傘，解決他們面對的法規不確定性。此外，OSPO 還能扮演「科技外交官」的角色，跨境連結各國政府的 OSPO，形成某位講者所稱的「開放原始碼專業人員外交團」，共同分享解決方案、聯合資助維護工作。</p>
+<p>德國主權科技機構（Sovereign Tech Agency，ZenDiS）總監 Adriana Groh 進一步指出，OSPO 能協助推動上游開放原始碼專案成為數位主權工作的基礎。Groh 表示，各國政府不能把開放原始碼志願者當作關鍵元件的「非自願供應商」，而必須像對待道路與橋梁一樣看待基礎性的開放原始碼——這是公部門有責任維護、而非只是取用的基礎設施。</p>
+<p>她提出一種分層視角：在<strong>協作層</strong>，國家、企業與社群共同出資、共同維護共用元件；在<strong>競爭層</strong>，廠商與機構則在此之上的服務中各展所長、相互競爭。</p>
+<p>在這個模型中，主權意味著在競爭層擁有選擇空間——而這份空間的前提，是協作層必須穩健、開放、且有集體資源支撐。</p>
+<p>若缺乏這一點，對少數幾家超大規模雲端業者（hyperscaler）與大型廠商的依賴就會在結構上根深柢固。</p>
+<p><strong>廠商、超大規模業者與基礎設施</strong></p>
+<p>產業界人士承認，AI 帶來了一套新的依賴鏈——GPU、能源，以及資本密集的基礎設施——這些問題光靠軟體開放無法解決。但他們主張，讓軟體層與協作編排層保持開放，仍是目前爭取數位主權最有力的槓桿。這同時意味著，各國在 AI 上不必依賴美國的超大規模業者與資料中心。Gupta 指出，一個由「在地主權雲端夥伴」組成的生態系正在壯大，這些夥伴在各自國家境內運行 Nvidia 的技術堆疊；他也強調，他的職責是「確保這套堆疊從核心（kernel）到編排層再到生成框架，全程保持開源」，讓各國政府在仰賴主要硬體廠商的同時，仍能掌握自己的算力、資料與技術能力。</p>
+<p><strong>延伸閱讀</strong>：[5 ways to grow your business with AI - without leaving employees behind]</p>
+<p>Nextcloud 執行長暨創辦人 Frank Karlitschek 反駁了「只有美國超大規模業者才能提供『面向未來』基礎設施」的說法，指出「這在某種程度上也是個行銷問題」，並強調無數 Nextcloud 實例與其他工作負載已在非超大規模業者的基礎設施上大規模運行。</p>
+<p>他與其他與會者認為，建立在開放平台之上、更去中心化的基礎設施格局，在技術上完全可行；真正缺乏的是政治意志、採購制度的改革，以及對公共與社群能量的投資。</p>
+<p><strong>數位主權的匯聚</strong></p>
+<p>整個週間，講者不斷強調，「數位主權」不應等同於國家孤立。Kairuki 以一句話點出了與會者的共識，許多講者隨後也紛紛呼應：這是「在夥伴關係中追求所有權，而非尋求獨立」，而且「當我們開放自己的解決方案，力量就會倍增」。</p>
+<p>「讓公民，而不是廠商，站在中心位置。」愛爾蘭的 McKeever 也以類似的框架描述此事：對支撐公共服務的技術，必須「維持有實質意義的掌控、選擇與韌性」；歐洲官員則強調「戰略依賴」問題——必須擁有「不只一家」供應商，並成為共享基礎設施的積極參與者。Gago 進一步將這個概念延伸至 AI：主權意味著能夠更換模型、遷移工作負載、審計系統而不中斷服務，同時「參與全球生態系，而非臣服於他人的服務條款」。</p>
+<p>各國之間仍存在分歧的，是走多遠、走多快，以及該投入多少資源。但在本週的聯合國會議上，與會者一致同意：「沒有開源的數位主權，本身就是個矛盾。」</p>
+<p>美國注意到了這股走向開源與數位主權的趨勢，川普政府似乎並不認同。在一份針對聯合國會議發出的聲明中，美國負責經濟事務的副國務卿 Jacob Helberg 寫道，追求數位主權的國家只能換來「一種同步的平庸——一個由次等複製品組成的星球，每個人都在英勇地重建去年的突破，而突破本身早已繼續向前」。Helberg 補充：「當其他人忙著重建現在，美國企業將在發明未來。」</p>
+<p>在聯合國，這種「美國優先」的觀點遭到冷眼以對。一位不願具名的人士直言：「建造未來的是開源，而不是美國例外主義的幻想。」</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-39f7ee4a20b68a6a.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">資訊自由如何真正運作？ATI Day 2026 的制度反思</span>
+</a>
+
+<a class="article-sequence-link" href="item-18b0788c7b5a6742.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">歐盟以科隆 GOVSATCOM 樞紐強化政府衛星通訊</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-3d6eced514dc5a15.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Digital sovereignty at the UN: Inside the global push to replace US cloud giants with open-source tech</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：數位主權在聯合國：全球推動以開源技術取代美國雲端巨頭的內幕（Claude Code）</li><li><strong>原始作者</strong>：@ZDNET（twitter:creator）</li><li><strong>原始網站授權</strong>：著作權保護（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-28T18:02:27+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-28T18:02:27+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-3d6eced514dc5a15";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+            <p class="generated">產生時間：2026-06-28T18:13:54+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -553,11 +553,40 @@
       <p class="lede">摘要只透露一個方向：前沿 AI 模型已能掃描大型開源專案並找出多個漏洞，因此出現新的開源漏洞協調機構。從 Ian 的品味看，這可能關乎 AI 對開源安全流程的衝擊，以及漏洞回報、維護者負擔和平台責任如何被重新安排。</p>
       <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開源 AI / OSAID</span><span class="tag-chip">資安 / 供應鏈</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://cdn.thenewstack.io/media/2026/06/d51d6774-getty-images-bzp8oa7jsas-unsplash-scaled.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>After Fable 5 ban, Anthropic and 19 organizations launch open source security body</h1>
+<p>Check your inbox for a confirmation email where you can adjust your preferences and even join additional groups.</p>
+<p>Follow TNS on your favorite social media networks.</p>
+<p>Become a <a href="https://www.linkedin.com/company/the-new-stack" target="_blank" rel="noreferrer">TNS follower on LinkedIn</a>.</p>
+<p>The arrival of frontier AI models capable of scanning major open-source projects and surfacing multiple vulnerabilities in a single pass has handed defenders an extraordinary tool — but one that attackers can access, too.</p>
+<p>Now, some of the biggest names in tech and industry are betting that the only way to stay ahead is to work together.</p>
+<p>The result is <a href="https://akrites.org/" target="_blank" rel="noreferrer">Akrites</a>, launched <a href="https://www.linuxfoundation.org/press/linux-foundation-and-industry-leaders-launch-akrites-to-defend-critical-open-source-software-against-ai-enabled-cyber-threats" target="_blank" rel="noreferrer">on Thursday</a> by the Linux Foundation, which serves as a coordinated body to handle vulnerability discovery, remediation, and disclosure for critical open-source software.</p>
+<p>Its founding roster spans some 20 organizations, among them AWS, Anthropic, Google, Microsoft and its GitHub subsidiary, OpenAI, Cisco, Red Hat, NVIDIA, Chainguard, Sonatype, Ericsson, Vodafone, Citi, and JPMorganChase. The initiative takes its name from the <a href="https://en.wikipedia.org/wiki/Akritai" target="_blank" rel="noreferrer">Akritai</a>, the soldiers who guarded the Byzantine Empire’s outermost borders — the places most exposed, most frequently attacked, and most dependent on whoever showed up to defend them.</p>
+<p>The launch comes at a volatile moment in the AI security landscape. Back in April, <a href="https://thenewstack.io/anthropic-claude-mythos-cybersecurity/" target="_blank" rel="noreferrer">Anthropic released Claude Mythos</a> through Project Glasswing, making its most capable model available to a small group of trusted partners specifically for cybersecurity defense. Then, in early June, <a href="https://thenewstack.io/anthropic-claude-mythos-fable-5/" target="_blank" rel="noreferrer">Anthropic followed up</a> with Fable 5 and Mythos 5 — the first generally available Mythos-class models, with built-in guardrails against misuse. Three days later, the US government suspended both after researchers found a way to use them to assist with cyberattacks.</p>
+<p>Anthropic, notably, is one of Akrites’ founding members.</p>
+<h2>Security silo: The problem with going it alone</h2>
+<p>The open-source security model has long relied on a loose, decentralized network of maintainers, researchers, and organizations that scan for problems and report them. When finding a serious flaw took weeks of expert work, defenders had time to get ahead of it, but AI has closed that gap.</p>
+<p>When multiple organizations independently scan the same widely used library and each files their own report, maintainers face a wall of duplicates, and the real, exploitable findings get buried in the noise. Worse, every additional party sitting on knowledge of an unpatched vulnerability increases the chances it leaks before a fix exists.</p>
+<p><a href="https://www.linkedin.com/in/vbadhwar/" target="_blank" rel="noreferrer">Varun Badhwar</a>, CEO of software supply chain security company <a href="https://www.endorlabs.com/" target="_blank" rel="noreferrer">Endor Labs</a> and a founding member of Akrites, says that AI tools have already surfaced thousands of validated open source vulnerabilities in recent months, with fewer than 5% patched — a figure from his company’s own data that hasn’t been independently verified. The hard part, he says, was never the discovery itself.</p>
+<blockquote>“For years we have believed finding vulnerabilities was never the hard part. Fixing them was. AI has made that gap impossible to ignore.”</blockquote>
+<p>“For years, we have believed finding vulnerabilities was never the hard part. Fixing them was,” Badhwar says in a statement. “AI has made that gap impossible to ignore.”</p>
+<p>The existing model — each organization working separately, filing its own reports — is itself the problem Akrites is designed to fix. <a href="https://www.linkedin.com/in/jason-d-clinton/" target="_blank" rel="noreferrer">Jason Clinton</a>, deputy chief information security officer at Anthropic, argues the model has simply been left behind.</p>
+<blockquote>“The existing model for coordinated disclosure has been outpaced by how quickly AI can now find vulnerabilities.”</blockquote>
+<p>“Open source projects collectively underpin much of the internet, and the existing model for coordinated disclosure has been outpaced by how quickly AI can now find vulnerabilities,” Clinton says. “Getting ahead of that requires the industry to coordinate on findings and get fixes upstream before they’re disclosed and exploited.”</p>
+<h2>Patch first, publish second</h2>
+<p>The core of the Akrites initiative is a shared Security Incident Response Team (SIRT) that acts as a single point of coordination for the industry. Rather than maintainers receiving a dozen separate reports about the same flaw from a dozen different organizations, the SIRT consolidates findings, validates which are genuine and exploitable, and manages a single coordinated fix and disclosure process. It uses established industry standards — CVE, CVSS, among others — and operates under strict confidentiality rules from the moment a finding comes in.</p>
+<p>When a patch is ready, it goes back into the original project on the maintainer’s terms. For projects with no active maintainer, Akrites will step in as a fallback so a fix can still reach everyone who depends on the code.</p>
+<p>JPMorgan Chase CISO <a href="https://www.linkedin.com/in/pat-opet-4a714a1/" target="_blank" rel="noreferrer">Pat Opet</a> explains the underlying logic: s uccess should be measured by fixes reaching live systems, rather than by patches being published.</p>
+<blockquote>“We owe maintainers a single, reliable signal: confirmed vulnerabilities, well-tested proposed fixes, and a predictable partner they can trust.”</blockquote>
+<p>“AI has massively compressed the time between vulnerability discovery and exploitation to near real-time, which means we have to compress the time from fix to deployment,” Opet says. “We owe maintainers a single, reliable signal: confirmed vulnerabilities, well-tested proposed fixes, and a predictable partner they can trust, rather than a flood of duplicative, conflicting reports.”</p>
+<h2>The Alpha-Omega factor</h2>
+<p>Akrites is open to new members across three tiers — Premier, for critical infrastructure operators and the vendors they depend on; General, for organizations that want to contribute without committing large engineering resources; and Associate, for open-source foundations and projects at no cost.</p>
+<p>Seed funding comes from <a href="https://alpha-omega.dev/" target="_blank" rel="noreferrer">Alpha-Omega</a>, an Open Source Security Foundation (<a href="https://openssf.org/" target="_blank" rel="noreferrer">OpenSSF</a>) project <a href="https://thenewstack.io/alpha-omega-dishes-out-cash-to-secure-open-source-projects/" target="_blank" rel="noreferrer">under the Linux Foundation</a>, backed by Anthropic, AWS, Google, Microsoft, OpenAI, and others, with an annual budget of over $7 million. Microsoft’s Azure CTO <a href="https://www.linkedin.com/in/markrussinovich/" target="_blank" rel="noreferrer">Mark Russinovich</a> pointed to Alpha-Omega as proof of what coordinated industry action can achieve.</p>
+<p>“OpenSSF and Alpha-Omega demonstrated what is possible when industry comes together to strengthen open source security,” Russinovich says. “Building on our experience co-founding these organizations, Akrites was created to address the emerging inflection point of AI-powered vulnerability discovery and defense.”</p>
+<p>Community created roadmaps, articles, resources and journeys for developers to help you choose your path and grow in your career.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-4b400acefb71d64e.html">
@@ -580,7 +609,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-64e0329577e4a7da.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：After Fable 5 ban, Anthropic and 19 organizations launch open source security body</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Paul Sawers</li><li><strong>原始網站授權</strong>：未標示</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：After Fable 5 ban, Anthropic and 19 organizations launch open source security body（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Paul Sawers（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-27T16:19:36+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

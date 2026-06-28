@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+            <p class="generated">產生時間：2026-06-28T18:13:55+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -556,8 +556,95 @@
     <figure class="article-hero"><img src="../assets/images/item-0f670a832c3d0802-7d38ede83f15.webp" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>COSCUP 2023 - 開源工具加速前端開發</h1>
+<h4>tags: <code>Web</code> <code>環境設定</code></h4>
+<h4>category: <code>Conference</code></h4>
+<h4>description: <code>COSCUP2023 - 開源工具加速前端開發 - A framework agnostic solution</code></h4>
+<h4>created_at: <code>2023/08/04 08:00:00</code></h4>
+<h2>前言</h2>
+<p><code>COSCUP 2023</code> 的時間是在<code>2023/07/30</code>，休息了幾天後，想說也該來更新一下部落格，就先從這篇文章開始(?)</p>
+<p>因為也是滿難得的機會，第一次參加這種活動，所以就來寫一下心得。</p>
+<p>會投稿的理由很單純，就只是在學校我同學找我一起，所以實際上這次的內容有一半是我同學負責的，而我主要負責是頭尾的部分，但中間的部分我也會稍微介紹一下。</p>
+<p>這篇內容主要是介紹我在開發前端時所使用的工具，以及我如何使用這些工具來加速開發。</p>
+<p>不一定都要使用這些工具，但適度的使用總會幫助你開發的更順暢(?)</p>
+<h2>議程簡介</h2>
+<ul>
+<li>配置環境非常麻煩(像是 <code>ESLint</code>、<code>Prettier</code>、<code>VSCode settings</code>…等等)</li>
+<li>手動撰寫大量串接 <code>API</code> 的函數</li>
+<li>後端寫超慢，需要等待後端開發完成才能串接等等…</li>
+<li>後端提供 <code>API</code> <code>Spec</code>，但：</li>
+<li>好多 <code>endpoint</code> 要寫</li>
+<li>寫 <code>request body</code> 一個一個欄位對，好累</li>
+<li>使用 <code>TypeScript</code>，但：</li>
+<li>各種 <code>schema</code> 都要寫 <code>type</code>，寫不完</li>
+<li><code>response parse</code> 成 <code>json</code> 後型別是 <code>any</code>，好不方便</li>
+</ul>
+<p>所以我們將分享利用各種開源工具來解決或加速處理前端以往會遇到的麻煩事，來讓整個開發變得更彈性且高效。</p>
+<p>更重要的是，這個解決方案是 <code>framework agnostic</code> 的。</p>
+<p>當初只是大概列一下，但是不知道大家有沒有共鳴，覺得很麻煩(?)</p>
+<p>最後先附上<a href="https://www.canva.com/design/DAFpD5sWfnM/4sE18aTMhv0pyIYPhkYLjw/view" target="_blank" rel="noreferrer">簡報</a>，可以先瀏覽(?)</p>
+<h2>簡報前言</h2>
+<ul>
+<li>管理好自己的 <code>Data flow</code></li>
+</ul>
+<p>大概節錄一些，簡報上也有提到，然後這次分享就是要介紹如何使用<strong>一份 API 文件</strong>加上各種開源工具來解決大部分的問題，那麼你剩下需要做的就是</p>
+<ul>
+<li>管理好自己的 <code>Data flow</code></li>
+</ul>
+<p>備註: 沒提到的功能也不是說不重要，而是不是每個網站都必須或常見(?)，所以就沒有提到，如效能優化、<code>SEO</code>、<code>SSR</code>、<code>PWA</code>...等等，但是基底打得好，後面開發總是比較順。</p>
+<h2>開發環境設定</h2>
+<ul>
+<li><code>VSCode settings</code></li>
+</ul>
+<p><code>settings.json</code></p>
+<ul>
+<li><code>tsconfig.json (optional)</code></li>
+<li><code>jsconfig.json (optional)</code></li>
+<li><code>Testing</code></li>
+</ul>
+<p><code>Vitest</code></p>
+<ul>
+<li><code>Testing Library</code></li>
+<li><code>Mock Service Worker</code></li>
+</ul>
+<p>總之就是有一堆東西要設定或要安裝來用，然後有些又很吃版本或設定，常常莫名奇妙衝突或不運作(?)</p>
+<p>例如說像前陣子的 <code>Prettier</code> 更新到第 <code>3</code> 版，如果平時沒去關注直接裝，那就有很多 <code>Plugin</code> 直接壞掉，然後就要花很多時間去解決。</p>
+<p>再來直接省略 <code>N</code> 字進重點，總之就是很麻煩，然後解法就是 <a href="https://github.com/LaiJunBin/lai-cmd" target="_blank" rel="noreferrer">lai-cmd</a>，第二版( 我不確定我什麼時候會合併回 <code>main</code>，所以如果看 <code>source code</code> 可能要注意一下 )，如果是有看過我其他篇文章的應該有看過(?)，只是第一版有一些缺點，所以就重寫了一次。</p>
+<p>第一版的時候 <code>init</code> 後面要帶明確的指令，而且整個 <code>flow</code> 會拉的很長，在第二版解決掉這些問題。</p>
+<h2>資料驗證</h2>
+<p>再來是資料驗證的部分，如果是 <code>TypeScript</code> 可能比較會碰到這問題，因為如果你寫的是 <code>JavaScript</code> 你可能不會去照顧你的 <code>IDE</code>(?)，但 <code>TypeScript</code> 的話 <code>IDE</code> 會檢查，不過你 <code>IDE</code> 開心並不代表 <code>Runtime</code> 能動。</p>
+<p>上面說的並不是 <code>JavaScript</code> 就不會碰到資料驗證的問題，而是 <code>TypeScript</code> 可能會讓你以為 <code>IDE</code> 檢查過了就沒問題，但其實 <code>Runtime</code> 還是會有問題。</p>
+<p>而為了讓 <code>Runtime</code> 也能運作，這邊介紹的工具是 <a href="https://zod.dev/" target="_blank" rel="noreferrer">Zod</a> 這個套件，他可以很簡單的去定義 <code>Schema</code>，然後用他去 <code>parse</code> 你的資料，如果 <code>parse</code> 失敗，他會回傳 <code>error</code>，然後你就可以去處理這個 <code>error</code>。</p>
+<p>如果 <code>parse</code> 成功，他會回傳你 <code>parse</code> 後的資料(包含型別)，然後你就可以去做你想做的事。</p>
+<p>然後也可以將你的 <code>Schema</code> 無痛轉換成 <code>TypeScript</code> 的型別，這樣你就可以拿去做更多事。</p>
+<h2>串接 <code>API</code></h2>
+<p>再來開始串 <code>API</code> 發現有太多端點要串，每個都要寫一樣的東西好麻煩，而且還要去定義一坨 <code>Schema</code> 好麻煩，這邊要使用的工具是 <a href="https://www.zodios.org/" target="_blank" rel="noreferrer">Zodios</a> ，他是 <code>Zod</code> + <code>Axios</code> 的結合，可以讓你集中化的去管理你的 <code>API</code>，而且他也可以幫你做資料驗證。</p>
+<p>但這邊去看他需要寫很多東西，實際上還是會很懶，所以如果你有 <code>API</code> 文件，就可以透過下一個工具，叫做 <a href="https://github.com/astahmer/openapi-zod-client" target="_blank" rel="noreferrer">openapi-zod-client</a>，他可以幫你自動產生 <code>Zodios</code> 的 <code>Client</code>，而且也可以幫你自動產生 <code>Schema</code>，這樣你就可以省下很多時間。</p>
+<p>然後實際上這次演講有個重點是介紹一個開發流程，通過改 <code>API</code> 文件，去重新佈署新版本的 <code>APP</code>。</p>
+<p>所以由 <code>openapi-zod-client</code> 所生成的程式碼不上版控，避免有人亂改導致對不上，這樣的話就可以在 <code>CI</code> 階段去產生新的 <code>Client</code>，然後再去佈署。</p>
+<p>這個專案的 <code>Demo</code> 也有在 <a href="https://github.com/zod-flow-demo" target="_blank" rel="noreferrer">Github</a> 上，有興趣的話可以去看看。</p>
+<p><code>meta</code> 是存放 <code>API</code> 文件，然後 <code>frontend</code> 中將 <code>meta</code> 以 <code>submodule</code> 的方式掛上去。</p>
+<h2>等後端很麻煩</h2>
+<p>這邊介紹的工具是 <a href="https://mswjs.io/" target="_blank" rel="noreferrer">Mock Service Worker</a>，用法很簡單，在簡報上很詳細就略過(?)，直接進到重點。</p>
+<p>當有很多 <code>API Endpoint</code> 要寫就很麻煩，而且如果你有很多 <code>Endpoint</code> 要驗證，就要重複寫一樣的邏輯很多次，所以這邊我寫了一個 <code>Middleware</code> 來使用，用法跟一般後端寫 <code>Middleware</code> 的用法一樣，而這個套件名稱叫做 <a href="https://github.com/LaiJunBin/mswx" target="_blank" rel="noreferrer">mswx</a>，就好比 <code>js</code> 有 <code>jsx</code> 一樣(?)</p>
+<p>那麼再來是自動產生 <code>handlers</code>，可以使用的工具是 <a href="https://github.com/zoubingwu/msw-auto-mock" target="_blank" rel="noreferrer">msw-auto-mock</a>，但他有幾個缺點:</p>
+<ul>
+<li>選擇 <code>response</code> 使用輪巡的方式，且全域共用這個輪巡的變數，所以很難測試 <code>happy path</code></li>
+<li>如果跟前面提到的 <code>zodios</code> 一起使用，會有 <code>type</code> 不對的問題，因為他產生的 <code>response</code> 純粹是亂數產生</li>
+</ul>
+<p>A: 所以...我去 <code>fork</code> 了 <a href="https://github.com/LaiJunBin/msw-auto-mock" target="_blank" rel="noreferrer">msw-auto-mock</a> 來改 ( 詳細見簡報 )</p>
+<h2>沒有 <code>API</code> 文件怎麼辦?</h2>
+<p>有時候是沒有 <code>API</code> 文件，或是我只是想做個 <code>POC</code> 或是玩具(?)，不想花那麼多時間去先寫文件，或是寫一堆 <code>Schema</code> 去使用 <code>Zodios</code>，怎麼辦?</p>
+<p>基於這個問題( 我自己也常常碰到 )，所以我包了一個套件叫做 <a href="https://github.com/LaiJunBin/axios-api-gen" target="_blank" rel="noreferrer">axios-api-gen</a>，他可以簡單的根據 <code>endpoints</code> 去生成 <code>axios</code> 的 <code>api client</code>，且使用上也有自動補齊。</p>
+<p>另外也可以完美整合 <a href="https://github.com/LaiJunBin/mswx" target="_blank" rel="noreferrer">mswx</a> ( 畢竟都是我做的 )，這樣如果改 <code>endpoint</code> 的話， <code>msw</code> 的部分完全不用改。</p>
+<h2>結論</h2>
+<p>這篇很多地方都簡短帶過，想說因為已經有<a href="https://www.canva.com/design/DAFpD5sWfnM/4sE18aTMhv0pyIYPhkYLjw/view" target="_blank" rel="noreferrer">簡報</a>了(?)，所以就沒有提太多細節，如果有興趣的話可以去看簡報，然後把 <a href="https://github.com/zod-flow-demo" target="_blank" rel="noreferrer">Demo</a> 跑起來玩玩看。</p>
+<h2>心得</h2>
+<p>第一次參加這種活動，不知道議程的難度大概要怎麼拿捏，然後就照著 <code>COSCUP</code> 提供的參考資料來選擇，後來是選擇中階</p>
+<p>但後來參加議程後發現好多掛入門但都講得好深XD，後來跟我同學在彩排的時候聊到，就嘗試去改成入門，後來當下沒反應還以為應該是不能改了，隔天發現改成功，變成了入門，結果議程結束之後，收到的回饋是可以掛中階，因為很多東西沒用過的人真的聽也不知道在幹嘛(?)，即使有 <code>Demo</code>（ 難易度變來變去</p>
+<p>整體下來感覺還不錯，經過這次經驗也大概知道該怎麼拿捏難易度還有合適的內容，希望未來還有機會報(?)</p>
+<p>不過覺得滿可惜的是講者跟聽眾的紀念品沒有分開，之後有機會參加要早一點去買東西，不然有些東西都沒了QQ</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-461b91000c01eada.html">
@@ -580,7 +667,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-0f670a832c3d0802.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：COSCUP 2023 - 開源工具加速前端開發（RSS/頁面標題）</li><li><strong>原始語言</strong>：zh（推斷）</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：COSCUP 2023 - 開源工具加速前端開發（RSS/頁面標題）</li><li><strong>原始語言</strong>：zh（推斷）</li><li><strong>原始作者</strong>：LaiJunBin（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-18T13:16:53+00:00</li><li>審稿備註：2026-06-18T13:16:53+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>

@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+            <p class="generated">產生時間：2026-06-28T18:13:55+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -556,8 +556,36 @@
     <figure class="article-hero"><img src="../assets/images/item-a5946e7ebb2a2f00-cb721504d964.png" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>【COSCUP演講】IOTA的帳本結構與共識創新 | 凝視奇點的物理學徒</h1>
+<h2>【COSCUP演講】IOTA的帳本結構與共識創新</h2>
+<h2>文章目錄</h2>
+<ul>
+<li><a href="https://physics2045.blog/2022/09/17/coscup-iota-ledger-and-consensus/#utxo-ledger" target="_blank" rel="noreferrer">UTXO Ledger</a></li>
+<li><a href="https://physics2045.blog/2022/09/17/coscup-iota-ledger-and-consensus/#dlt-is-about-consensus" target="_blank" rel="noreferrer">DLT is about consensus</a></li>
+<li><a href="https://physics2045.blog/2022/09/17/coscup-iota-ledger-and-consensus/#leaderless--solve-blockchain-trilemma-with-dag" target="_blank" rel="noreferrer">Leaderless : solve Blockchain Trilemma with DAG</a></li>
+<li><a href="https://physics2045.blog/2022/09/17/coscup-iota-ledger-and-consensus/#dag--reality-based-consensus" target="_blank" rel="noreferrer">DAG : Reality-based Consensus</a></li>
+</ul>
+<p>感謝主辦方邀請，讓我能在台灣開源人年會（<a href="https://coscup.org/2022/zh-TW/session" target="_blank" rel="noreferrer">COSCUP2022</a>）和大家分享IOTA、也讓IOTA連續兩年在COSCUP露臉 ．我的講題題目「<strong>A Leaderless DAG and Reality-based UTXO Ledger</strong>」，是深入淺出的談論IOTA 兩篇學術研究成果（註一），從帳本創新到共識機制創新都有所討論，希望能讓聽眾理解到IOTA 堅持從第一原理出發、把事情做對的堅持．即使幣價長時間是躺著，這絲毫不影響我相信IOTA 科技是可以改變世界的DLT（大家也可以閱讀<a href="https://physics2045.blog/2022/01/26/iota-to-the-moon/" target="_blank" rel="noreferrer">【IOTA社群語音紀錄】終極DLT的歷史衝突與科技創新</a>、<a href="https://physics2045.blog/2022/04/28/crytpo-and-physics-about-time-and-consensus/" target="_blank" rel="noreferrer">【分散式帳本與物理 】共識、時間與資料結構</a>）．希望大家能夠從文章/影片（註二）有所獲得，依照慣例，歡迎留言分享、轉發讚賞、甚至捐款：）</p>
+<p>註一：我用兩篇論文的標題構建演講題目(<a href="https://arxiv.org/abs/2205.02177" target="_blank" rel="noreferrer">Tangle 2.0 Leaderless Nakamoto Consensus on the Heaviest DAG</a>, <a href="https://arxiv.org/abs/2205.01345" target="_blank" rel="noreferrer">Reality-based UTXO Ledger</a>）</p>
+<p>註二：COSCUP的錄影仍然沒有上線，所以我先根據演講內容並發出文章，之後會更新Youtube 連結</p>
+<h2>UTXO Ledger</h2>
+<p>這篇網誌會遵循演講的架構，對於講題「<strong>A Leaderless DAG and Reality-based UTXO Ledger</strong>」進行說文解字，來帶領大家理解IOTA 在方方面面的思考．首先，既然我們談論的是去中心化帳本科技（DLT），我們就得有個帳本(<strong>Ledger</strong>)．現在主流的帳本有兩種形式：<strong>Account</strong> 以及<strong>UTXO</strong>．Account 是追蹤帳戶有多少錢，如下圖左，隨著帳本更新，帳戶裡面的錢有所增減；UTXO 是追蹤交易裡面的錢，這筆錢被誰花過，現在誰可以花，如下圖右。Account 作為帳本的優點在於容易執行智能合約，所有的帳本紀錄都能以序列形式執行和追蹤（舉例：可以追蹤誰持有LP token，或是可以透過一筆交易中執行多個動作），基本上執行智能合約的公鏈（如ETH）都是採用Account，而其中例如Solana 這樣的高速公鏈都在設計上提高交易的並行性來提高吞吐量．採用UTXO 架構的公鏈包含BTC、ADA 等，UTXO 帳本優點在於更小的帳本體積並允許了原生並行送交易的可能（如果我有10個UTXO能花費，我可以同時寄給十個地址，不用像是Account一筆筆寄出）、同時 UTXO也比較安全（檢查 double spending 比較容易，看哪筆UTXO 被引用兩次就很清楚，Account 就相對困難），缺點在於不適合原生跑智能合約（如果跟ADA一樣硬要跑的話，每個UTXO代表的智能合約在每個區塊只能被呼叫一次，可用性非常堪憂）．</p>
+<p>IOTA 原本是採用Account 作為帳本，後來在2021年的大升級中，重生成UTXO帳本．IOTA 認為要成為最安全、高速、去中心化的DLT，無法原生執行智能合約是必須的取捨：IOTA L1 可以定義原生資產、NFT、轉帳，成為清算層（settlement layer），將智能合約和計算層放到L2(Assembly 網路)，不過就算無法在L1跑圖靈完備的智能合約，光是Time locked hash contract 就可以有很多有趣應用，舉例：除了atomic swap 或是閃電網路外，「送出交易之後可以設定收款失效時間」可以避免手殘轉錯地址的燒幣行為．</p>
+<h2>DLT is about consensus</h2>
+<p>接下來我想和大家討論DLT本質的另外一面向：建立共識． DLT除了需要帳本存在之外、也需要節點們對於帳本達成共識．畢竟避免矛盾達成一致性是帳本的核心要求．在區塊鏈的世界中，這個問題可以說是被簡化成誰能當「出塊者」(不論是POW或POS）：因為所有事件是由首尾相連的區塊（全局排序）所構成，由於任意區塊中都只有一個領袖(Leader)出塊，那麼確定哪個帳本為真就等同於如何獲得領袖．</p>
+<p>區塊鏈世界常見的長鏈獲勝原則（中本聰共識），就是讓想要成為領袖的不同節點去中心化選出領袖的一種做法．區塊鏈中每筆交易都會包含收發雙方以及一個全局Hash．當不同節點都出塊自認為是領袖打包不同交易時，區塊鏈長得更像是「區塊樹」(一堆fork)，分支產生了多種可能性．而在經過幾個區塊的產生後，節點的社會共識就是長鍊獲勝原則，將其他的可能性剪除，讓區塊組成區塊鏈（這裡就不討論整個區塊鏈被監管的<a href="https://physics2045.blog/2021/07/17/decentralized-btc-can-still-lose-censorship-resistance/" target="_blank" rel="noreferrer">可能</a>）．</p>
+<h2>Leaderless : solve Blockchain Trilemma with DAG</h2>
+<p>區塊鏈透過每個區塊中擁有領袖進行打包出塊，（在線性時間中）來達成共識．不過也因此在架構上產生諸多問題．領袖模型有以下問題需要克服：首先是溝通複雜度，由於同時間只有一個領袖節點出塊，透過常見的gossip model 傳遞訊息就限制了整個帳本同步的速度（Solana 確實在區塊鏈中對降低通訊複雜度有創新）；另外就是節點硬體效能浪費，（在不考慮分片的情況下）每個區塊都只有一個節點擔任領袖、代表其他節點都是待機或驗證交易．因為區塊鏈網路多數的硬體資源沒有發揮作用，整個網路效能最多就和一個節點一樣快．也就是說節點數量上升沒有辦法讓區塊鏈網路的效能輕易上升（這點Move 系SUI確實有用DAG 創造水平效能擴展）；最後一個領袖模型難以避免的問題就是手續費(fee)，當使用者沒有辦法自己更新DLT帳本時，必須得要透過給予領袖節點經濟誘因來打包交易，這個要透過領袖節點打包所造成的瓶頸，會使得使用者難以免手續費使用區塊鏈．</p>
+<p>簡單來說，區塊鏈普遍透過要求「事件排序」並透過「領袖節點出塊」來達成共識，並創造了極為豐富的可能性．不過這個架構也因此產生了著名的區塊鏈不可能三角「安全性、去中心化、效能」無法兼具．用之前的視角來分析，如果是區塊鏈透過中本聰共識讓「事件排序」達成安全的話，那整個網路的效能會和「領袖節點」去中心化程度有所取捨（當然這不是「不可能定理」）．</p>
+<p>若是用更高層次的視角來思考此問題，或許區塊鏈三難只是區塊鏈架構設計招致的自身侷限，如果把帳本架構以及共識架構都換掉，或許一切能豁然開朗．IOTA DAG則嘗試從第一原理出發提出了DLT 四難的典範轉移：是「全域帳本排列、安全性、去中心化、效能」無法兼具．IOTA DAG指出優秀的L1 完全可以兼具區塊鏈三難的三個性質，這個典範就相當於從二維空間的三角形平面國（上圖），進入三維空間正四面體的現實世界（下圖）；當然更哲學的說，IOTA DAG是離開了柏拉圖洞穴寓言中的影子世界．只要帳本犧牲了必須「全局排列」的要求，釋放出來的潛能是「非線性帳本」可以「無領袖的達成共識」，透過無需領袖的共識機制（因此沒有出塊瓶頸）來達成安全的話，去中心化與效能就不再是不可兼得的良好特性．相反的，去中心化和效能變成相輔相成，更多人使用IOTA DAG網路，會讓IOTA DAG網路有「更高的」效能，節點們能一同處理交易後產生了革命性的效果．</p>
+<h2>DAG : <strong>Reality-based</strong> Consensus</h2>
+<p>DAG 除了有原生能平行處理交易的優點外，因此也更容易產生帳本衝突（也沒有線性全局順序來揪錯）．為了建構適用於無領袖、非同步的共識機制，IOTA 提出了第四次帳本革命：從單純流水帳、（有收發方）複式記帳簿演化到（有收發方與交易Hash）的區塊鏈後，IOTA將帳本中的每筆交易賦予「收發方、交易Hash以及節點ID（與其Mana）」，來創造「基於現實的共識」．</p>
+<p>就讓我們以下圖為例，IOTA 每筆交易（框框)都會指向之前的交易，UTXO則一定是從青色格子指向酒紅色格子．基於最左邊的UTXO DAG，我們能夠發現有許多衝突交易，接著可以將UTXO DAG 簡化成中間下圖的Conflict DAG；並且根據哪些UTXO(酒紅色格子)被指向超過一次，畫出中上圖Conflict Graph（相鄰的框框代表有矛盾）．這裡要注意的是已經喪失UTXO 資訊的中上圖和中下圖是無法互相推導的．然後我們就來定義「分支」和「現實」：「分支」是由無矛盾的交易所構成，所以n個交易可以產生指數等級的「分支」，故所有右圖中的框框都是「分支」，而盡可能包含更多無矛盾交易的「分支」就是「現實」，右下圖是八個「分支」中有四個「現實」（「現實」由灰色框框標記）．</p>
+<p>「基於現實的共識」可以由下圖來說明：由於每個節點在透過傳遞交易訊息時會包含送出交易的相應節點ID(與其Mana)，每個節點都可以因此消除Conflict Graph 的框框和Conflict DAG 的「分支」，這個計算權重的過程無需節點之間的投票就能進行，最終每個節點都會獲得沒有矛盾的Conflict Graph 、以及權重最高的「現實」．透過將IOTA DAG 網路中每筆交易增添一筆欄位：節點ID（與其Mana），IOTA 做到了前所未見的共識機制．</p>
+<p>額外需要提及的是「基於現實的共識」不是IOTA 共識機制的全部：因為<a href="https://levelup.gitconnected.com/practical-understanding-of-flp-impossibility-for-distributed-consensus-8886e73cdfe5" target="_blank" rel="noreferrer">FLP 定理</a>的存在，使得非同步的決定性模型理論上無法「在有限時間內獲得容錯的共識」，IOTA 在協議層引入了一個隨機變數來創造「非決定性的心跳」，讓節點在有限時間內表態一次避免共識機制卡死．</p>
+<p>最後我引用Hans Moog 慷慨激昂的一段話來總結本篇文章，IOTA 在資料結構和共識結構上的創新不是要和週期賽跑成為「下一個L1」，而是要追求完美、達到理論允許的極致成為「最後的L1」．</p>
+<blockquote>“當代DLT之所以依賴全局排序的唯一原因是：他們使用的資料結構無法理解衝突” Hans Moog, <a href="https://husqy.medium.com/the-trust-machine-part3-quadruple-entry-accounting-6da022f5e832" target="_blank" rel="noreferrer">The Trust Machine — Part3</a></blockquote></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-99029d2f2e61e949.html">
@@ -580,7 +608,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-a5946e7ebb2a2f00.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：【COSCUP演講】IOTA的帳本結構與共識創新 | 凝視奇點的物理學徒（RSS/頁面標題）</li><li><strong>原始語言</strong>：zh（推斷）</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：【COSCUP演講】IOTA的帳本結構與共識創新 | 凝視奇點的物理學徒（RSS/頁面標題）</li><li><strong>原始語言</strong>：zh（推斷）</li><li><strong>原始作者</strong>：曾可維（json-ld）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-18T13:16:53+00:00</li><li>審稿備註：2026-06-18T13:16:53+00:00 本機標記直接送 PR（小消息）；純事實項目，不跑 skill。</li></ul>
