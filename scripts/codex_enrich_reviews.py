@@ -65,7 +65,7 @@ AI_PROVIDERS = {
         "model": "gemma4:12b-mlx",
     },
     "ollama-twinkle": {
-        "label": "Ollama Twinkle Gemma 3",
+        "label": "TwinkleAI:Gemma-3-4B-T1-IT",
         "review_key": "ollama_twinkle_review",
         "generated_key": "ollama_twinkle_generated_at",
         "generator": "ollama-cli",
@@ -245,33 +245,63 @@ def prepare_json_candidate(text: str) -> str:
     return escape_json_string_newlines(terminal_clean_text(text)).strip()
 
 
-def load_json_from_text(text: str) -> Any:
-    raw = prepare_json_candidate(text)
-    if not raw:
-        raise RuntimeError("model output is empty")
+def json_text_candidates(raw: str) -> list[str]:
     candidates = [raw]
-    fence_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, flags=re.S | re.I)
-    if fence_match:
-        candidates.insert(0, fence_match.group(1).strip())
+    for fence_match in re.finditer(r"```(?:json)?\s*(.*?)\s*```", raw, flags=re.S | re.I):
+        fenced = fence_match.group(1).strip()
+        if fenced:
+            candidates.insert(0, fenced)
     object_match = re.search(r"\{.*\}", raw, flags=re.S)
     if object_match:
         candidates.append(object_match.group(0).strip())
     last_line = next((line.strip() for line in reversed(raw.splitlines()) if line.strip()), "")
     if last_line and last_line not in candidates:
         candidates.append(last_line)
-    for candidate in candidates:
+
+    decoder = json.JSONDecoder()
+    for index, char in enumerate(raw):
+        if char not in "[{":
+            continue
         try:
-            return json.loads(candidate)
+            _, end = decoder.raw_decode(raw[index:])
         except json.JSONDecodeError:
-            try:
-                return json.loads(prepare_json_candidate(candidate))
-            except json.JSONDecodeError:
-                continue
-    raise RuntimeError("model output missing valid JSON payload")
+            continue
+        candidate = raw[index : index + end].strip()
+        if candidate:
+            candidates.append(candidate)
+    return candidates
+
+
+def load_json_from_text(text: str) -> Any:
+    raw = prepare_json_candidate(text)
+    if not raw:
+        raise RuntimeError("model output is empty")
+    decoded: list[Any] = []
+    seen: set[str] = set()
+    last_error = ""
+    for candidate in json_text_candidates(raw):
+        prepared = prepare_json_candidate(candidate)
+        if not prepared or prepared in seen:
+            continue
+        seen.add(prepared)
+        try:
+            decoded.append(json.loads(prepared))
+        except json.JSONDecodeError as exc:
+            last_error = f"{exc.msg} at character {exc.pos}"
+            continue
+    if decoded:
+        for payload in decoded:
+            if isinstance(payload, dict) and any(key in payload for key in ("reviews", "result", "message", "response")):
+                return payload
+        return decoded[0]
+    detail = f": {last_error}" if last_error else ""
+    raise RuntimeError(f"model output missing valid JSON payload{detail}")
 
 
 def parse_cli_json(raw: str) -> dict[str, Any]:
     payload = load_json_from_text(raw)
+    if isinstance(payload, str):
+        payload = load_json_from_text(payload)
     if isinstance(payload, dict) and "reviews" in payload:
         return payload
     if isinstance(payload, dict) and "result" in payload:
@@ -282,7 +312,16 @@ def parse_cli_json(raw: str) -> dict[str, Any]:
             result_payload = load_json_from_text(result)
             if isinstance(result_payload, dict):
                 return result_payload
+    if isinstance(payload, dict) and "response" in payload and isinstance(payload["response"], str):
+        response_payload = load_json_from_text(payload["response"])
+        if isinstance(response_payload, dict):
+            return response_payload
     if isinstance(payload, dict) and "message" in payload and isinstance(payload["message"], dict):
+        content = payload["message"].get("content")
+        if isinstance(content, str):
+            content_payload = load_json_from_text(content)
+            if isinstance(content_payload, dict):
+                return content_payload
         return payload["message"]
     raise RuntimeError("model output missing structured payload")
 
@@ -700,23 +739,38 @@ def run_ollama(batch: list[dict[str, Any]], args: argparse.Namespace, provider: 
         "--nowordwrap",
         "--hidethinking",
     ]
-    result = subprocess.run(
-        command,
-        cwd=ROOT,
-        input=prompt,
-        text=True,
-        capture_output=True,
-        timeout=args.timeout,
-        env=cli_env(),
-    )
+    try:
+        result = subprocess.run(
+            command,
+            cwd=ROOT,
+            input=prompt,
+            text=True,
+            capture_output=True,
+            timeout=args.timeout,
+            env=cli_env(),
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"{provider_meta(provider)['label']}（model: {model}）執行超過 {args.timeout} 秒，"
+            "請縮小批次、拉長 timeout，或改用其他 AI CLI。"
+        ) from exc
     if result.returncode != 0:
         raise RuntimeError(
             f"ollama run failed（model: {model}）\n"
             f"STDOUT:\n{result.stdout[-2000:]}\n"
             f"STDERR:\n{result.stderr[-2000:]}"
         )
-    (cache / f"{safe_provider}-review-output.json").write_text(result.stdout, encoding="utf-8")
-    payload = parse_cli_json(result.stdout)
+    output_path = cache / f"{safe_provider}-review-output.json"
+    output_path.write_text(result.stdout, encoding="utf-8")
+    try:
+        payload = parse_cli_json(result.stdout)
+    except RuntimeError as exc:
+        output_tail = terminal_clean_text(result.stdout)[-1200:].strip()
+        tail_note = f"\nOUTPUT TAIL:\n{output_tail}" if output_tail else ""
+        raise RuntimeError(
+            f"{provider_meta(provider)['label']}（model: {model}）輸出不是可用的閱讀建議 JSON：{exc}。"
+            f"原始輸出已保存到 {output_path.relative_to(ROOT)}。{tail_note}"
+        ) from exc
     reviews = payload.get("reviews")
     if not isinstance(reviews, list):
         raise RuntimeError("Ollama output missing reviews array")
@@ -932,4 +986,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        raise SystemExit(1)

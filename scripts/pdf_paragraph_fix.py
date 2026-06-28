@@ -30,7 +30,7 @@ PROVIDER_LABELS = {
     "gemini": "Gemini (agy)",
     "ollama": "Ollama CLI",
     "ollama-gemma4": "Ollama gemma4:12b MLX",
-    "ollama-twinkle": "Ollama Twinkle Gemma 3",
+    "ollama-twinkle": "TwinkleAI:Gemma-3-4B-T1-IT",
 }
 
 

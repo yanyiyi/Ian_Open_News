@@ -143,8 +143,8 @@ AI_PROVIDER_META = {
         "model": "gemma4:12b-mlx",
     },
     "ollama-twinkle": {
-        "label": "Ollama Twinkle Gemma 3",
-        "short": "Ollama Twinkle",
+        "label": "TwinkleAI:Gemma-3-4B-T1-IT",
+        "short": "TwinkleAI:Gemma-3",
         "review_key": "ollama_twinkle_review",
         "translation_markdown_key": "ollama_twinkle_translated_article_markdown_zh",
         "translation_title_key": "ollama_twinkle_translated_zh_title",

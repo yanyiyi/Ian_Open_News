@@ -29,7 +29,7 @@ AI_PROVIDERS = {
     "gemini": {"label": "Gemini", "generator": "agy-cli"},
     "ollama": {"label": "Ollama CLI", "generator": "ollama-cli"},
     "ollama-gemma4": {"label": "Ollama gemma4:12b MLX", "generator": "ollama-cli", "translation_prefix": "ollama_gemma4"},
-    "ollama-twinkle": {"label": "Ollama Twinkle Gemma 3", "generator": "ollama-cli", "translation_prefix": "ollama_twinkle"},
+    "ollama-twinkle": {"label": "TwinkleAI:Gemma-3-4B-T1-IT", "generator": "ollama-cli", "translation_prefix": "ollama_twinkle"},
 }
 
 
