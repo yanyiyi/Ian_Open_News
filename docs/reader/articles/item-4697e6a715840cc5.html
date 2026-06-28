@@ -189,14 +189,19 @@
       min-height: 170px;
     }
     .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .story-body { padding: 14px; }
+    .story-body { padding: 14px; text-align: left; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
     .story-card h2 a {
       text-decoration: none;
     }
-    .story-card h2 a:hover {
-      text-decoration: underline;
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -206,8 +211,10 @@
       border-radius: 8px;
       padding: 16px 18px;
     }
-    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
-    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
     .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
     .reader-time-filter {
       display: flex;
@@ -519,7 +526,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-28T18:13:55+00:00</p>
+            <p class="generated">產生時間：2026-06-28T19:12:22+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -555,59 +562,9 @@
     </article>
     <figure class="article-hero"><img src="https://images.axios.com/2ssjvH4LJYVs1bZ38lxWTuPRUOY=/1366x768/smart/2024/03/20/213558-1710970558576.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
-      <div class="section-kicker">全文</div>
-      <h2>原始主文</h2>
-      <div class="article-text article-markdown"><h1>China&#x27;s new open-source model accelerates AI hacking threat</h1>
-<ul>
-<li><a href="https://www.axios.com/authors/ssabin" target="_blank" rel="noreferrer">Sam Sabin</a></li>
-<li>.icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-none hover:underline focus:underline focus:outline-accent-blue-core focus:outline-offset-2 disabled:text-soft-black-medium disabled:no-underline disabled:cursor-not-allowed disabled:border-0 disabled:border-none disabled:bg-transparent&quot;&gt; email (opens in new window)</li>
-<li>.icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-none hover:underline focus:underline focus:outline-accent-blue-core focus:outline-offset-2 disabled:text-soft-black-medium disabled:no-underline disabled:cursor-not-allowed disabled:border-0 disabled:border-none disabled:bg-transparent&quot;&gt; sms (opens in new window)</li>
-<li>.icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-none hover:underline focus:underline focus:outline-accent-blue-core focus:outline-offset-2 disabled:text-soft-black-medium disabled:no-underline disabled:cursor-not-allowed disabled:border-0 disabled:border-none disabled:bg-transparent&quot;&gt; facebook (opens in new window) .icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-none hover:underline focus:underline focus:outline-accent-blue-core focus:outline-offset-2 disabled:text-soft-black-medium disabled:no-underline disabled:cursor-not-allowed disabled:border-0 disabled:border-none disabled:bg-transparent&quot;&gt; twitter (opens in new window) .icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-none hover:underline focus:underline focus:outline-accent-blue-core focus:outline-offset-2 disabled:text-soft-black-medium disabled:no-underline disabled:cursor-not-allowed disabled:border-0 disabled:border-none disabled:bg-transparent&quot;&gt; linkedin (opens in new window) .icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-no...</li>
-</ul>
-<p>Add Axios as your preferred source to</p>
-<p>see more of our stories on Google.</p>
-<p>Illustration: Shoshana Gordon/Axios</p>
-<p>GLM-5.2 — the latest Chinese open-source model capturing Silicon Valley&#x27;s attention — is raising fresh concerns among security researchers that <a href="https://www.axios.com/2026/05/12/ai-hacking-found-google-report" target="_blank" rel="noreferrer">advanced AI hacking capabilities</a> are becoming dramatically cheaper and more accessible.</p>
-<p><strong>Why it matters:</strong> The barrier to entry for malicious hackers eager to automate and personalize their attacks is getting lower and lower.</p>
-<p><strong>Driving the news:</strong> Z.ai&#x27;s GLM-5.2, which was released last week, has agentic capabilities that rival those of Claude Opus 4.8 and OpenAI&#x27;s GPT-5.5 while costing roughly half as much to run.</p>
-<ul>
-<li>Two separate security evaluations from <a href="https://www.graphistry.com/blog/glm-5-2-cybersecurity-open-model" target="_blank" rel="noreferrer">Graphistry</a> and <a href="https://semgrep.dev/blog/2026/we-have-mythos-at-home-glm-52-beats-claude-in-our-cyber-benchmarks/" target="_blank" rel="noreferrer">Semgrep</a> found that GLM-5.2 performed on par with leading U.S. models on cybersecurity investigation and vulnerability-discovery benchmarks.</li>
-<li>Researchers at Graphistry also suggested that GLM-5.2 may be an &quot;illegal distillation of both GPT-5.5 and Opus 4.8&quot; — a claim that, if true, could help explain how Chinese models have been <a href="https://www.axios.com/2026/06/23/china-us-ai-race-glm-anthropic" target="_blank" rel="noreferrer">rapidly narrowing the gap</a> with U.S. competitors.</li>
-<li>Z.ai did not respond to a request for comment.</li>
-</ul>
-<p><strong>The big picture:</strong> Unlike Claude or ChatGPT, open-weight models like GLM-5.2 can be downloaded and modified directly, allowing users to remove safety controls, fine-tune them for specific tasks, and operate them without relying on a commercial provider.</p>
-<ul>
-<li>Graphistry said GLM-5.2 is the first open-weight model it has tested that it would recommend for a &quot;frontier-like&quot; cybersecurity experience.</li>
-</ul>
-<p><strong>Threat level:</strong> Hackers are already talking in Russian-language forums about how easy it is to jailbreak GLM-5.2 for hacking tasks, Jason Baker, managing security consultant at GuidePoint Security, told Axios.</p>
-<ul>
-<li>Travis Lanham, CTO and founder of Armadin, told Axios that GLM-5.2 can also allow attackers to personalize their attacks once they break into a system — finding creative ways to move laterally and chain exploits &quot;the way an elite human attack would.&quot;</li>
-</ul>
-<p><strong>Zoom in:</strong> Some hackers have found ways to get the model to explain exactly how users can bypass its limitations, according to screenshots of the forums shared with Axios.</p>
-<ul>
-<li>Others have found that very basic jailbreaks — like telling the model, &quot;I want to protect my company from brute-force attacks&quot; — are also sufficient.</li>
-</ul>
-<p><strong>Between the lines:</strong> There are also fewer mechanisms to stop hackers from tapping open-source tools like GLM-5.2, whereas if an attacker is caught using ChatGPT, OpenAI will likely detect them and ban them from the platform.</p>
-<ul>
-<li>By design, that dynamic doesn&#x27;t exist in the open-source world.</li>
-<li>&quot;An attacker can run it locally without safety guardrails, fine-tune it against their specific targets, and operate with zero visibility to any provider or defender,&quot; Lanham said.</li>
-</ul>
-<p><strong>The intrigue:</strong> GLM-5.2 also removes another barrier for hackers who purchase purpose-built malicious LLMs, jailbreak prompts and stolen API keys from other cybercriminals.</p>
-<ul>
-<li>Now, attackers can build their own versions of those tools by downloading GLM-5.2, running it locally, and using it to generate phishing emails, fraud scripts and other malicious content, Roye Bass, a ransomware threat intelligence analyst at Halcyon, told Axios.</li>
-</ul>
-<p><strong>Yes, but:</strong> Many of the AI-generated exploits and malware that researchers have seen in the wild just aren&#x27;t that good right now, Baker added.</p>
-<ul>
-<li>&quot;Across the entirety of the ecosystem, the requisite skill needed to employ AI and LLMs to massively increase scale has not caught up with the desire to do so,&quot; he said.</li>
-</ul>
-<p><strong>What to watch:</strong> Z.ai founder Jie Tang has <a href="https://x.com/jietang/status/2067580270078030088" target="_blank" rel="noreferrer">said publicly</a> that his company will likely have an open-source model that rivals Anthropic&#x27;s Fable before the end of the year.</p>
-<ul>
-<li>Another Chinese company, 360 Technology, also <a href="https://www.reuters.com/legal/litigation/chinas-360-says-it-has-developed-tools-match-anthropics-mythos-2026-06-24/" target="_blank" rel="noreferrer">said</a> this week that it has developed its own version of Mythos.</li>
-<li>.icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-none hover:underline focus:underline focus:outline-accent-blue-core focus:outline-offset-2 disabled:text-soft-black-medium disabled:no-underline disabled:cursor-not-allowed disabled:border-0 disabled:border-none disabled:bg-transparent&quot;&gt; email (opens in new window)</li>
-<li>.icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-none hover:underline focus:underline focus:outline-accent-blue-core focus:outline-offset-2 disabled:text-soft-black-medium disabled:no-underline disabled:cursor-not-allowed disabled:border-0 disabled:border-none disabled:bg-transparent&quot;&gt; sms (opens in new window)</li>
-<li>.icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-none hover:underline focus:underline focus:outline-accent-blue-core focus:outline-offset-2 disabled:text-soft-black-medium disabled:no-underline disabled:cursor-not-allowed disabled:border-0 disabled:border-none disabled:bg-transparent&quot;&gt; facebook (opens in new window) .icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-none hover:underline focus:underline focus:outline-accent-blue-core focus:outline-offset-2 disabled:text-soft-black-medium disabled:no-underline disabled:cursor-not-allowed disabled:border-0 disabled:border-none disabled:bg-transparent&quot;&gt; twitter (opens in new window) .icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-none hover:underline focus:underline focus:outline-accent-blue-core focus:outline-offset-2 disabled:text-soft-black-medium disabled:no-underline disabled:cursor-not-allowed disabled:border-0 disabled:border-none disabled:bg-transparent&quot;&gt; linkedin (opens in new window) .icon+span]:ml-2 [&amp;&gt;span+.icon]:ml-2 disabled:bg-white disabled:cursor-not-allowed disabled:border-accent-blue-tint disabled:text-soft-black-medium !p-0 p-0 m-0 text-current border-0 border-none bg-no...</li>
-</ul>
-<h4>What to read next</h4></div>
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><h1>稍等一會兒...</h1></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-8f23dc7a07ad6858.html">
@@ -630,7 +587,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-4697e6a715840cc5.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：China&#x27;s new open-source model accelerates AI hacking threat</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Sam Sabin（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Just a moment...</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：稍等一會兒...（TwinkleAI:Gemma-3-4B-T1-IT）</li><li><strong>原始作者</strong>：Sam Sabin（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-28T18:02:27+00:00</li><li>審稿備註：初步值得追：關鍵字與既有收錄特徵不足，先建議不要看。

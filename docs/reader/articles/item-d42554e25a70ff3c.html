@@ -189,14 +189,19 @@
       min-height: 170px;
     }
     .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .story-body { padding: 14px; }
+    .story-body { padding: 14px; text-align: left; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
     .story-card h2 a {
       text-decoration: none;
     }
-    .story-card h2 a:hover {
-      text-decoration: underline;
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -206,8 +211,10 @@
       border-radius: 8px;
       padding: 16px 18px;
     }
-    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
-    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
     .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
     .reader-time-filter {
       display: flex;
@@ -519,7 +526,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-28T18:13:54+00:00</p>
+            <p class="generated">產生時間：2026-06-28T19:12:22+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -636,9 +643,9 @@
 <h4>Powering the future of robotics in Europe</h4></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
-<a class="article-sequence-link" href="item-537909ad59fadf0b.html">
+<a class="article-sequence-link" href="item-7a285af5f2ca5599.html">
   <span class="article-sequence-label">上一則</span>
-  <span class="article-sequence-title">愛沙尼亞擬啟動 AI 代理專屬數位身分，能否解決借用人類帳號的治理難題？</span>
+  <span class="article-sequence-title">實際環境中的代理型 AI：當你的 AI 掌握關鍵權限，信任必須重新思考</span>
 </a>
 
 <a class="article-sequence-link" href="item-011a22ae489b3726.html">

@@ -189,14 +189,19 @@
       min-height: 170px;
     }
     .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .story-body { padding: 14px; }
+    .story-body { padding: 14px; text-align: left; }
     .summary { white-space: pre-wrap; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
     .story-card h2 a {
       text-decoration: none;
     }
-    .story-card h2 a:hover {
-      text-decoration: underline;
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
     }
     .news-list { display: grid; gap: 10px; margin-top: 12px; }
     .news-item {
@@ -206,8 +211,10 @@
       border-radius: 8px;
       padding: 16px 18px;
     }
-    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
-    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
     .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
     .reader-time-filter {
       display: flex;
@@ -519,7 +526,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-28T18:13:54+00:00</p>
+            <p class="generated">產生時間：2026-06-28T19:12:22+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -573,9 +580,9 @@
 <p>Apertus’s scores on the same benchmarks Rijgersberg used are available in EuroEval [5] <a href="https://euroeval.com/leaderboards/Monolingual/dutch/" target="_blank" rel="noreferrer">EuroEval Dutch leaderboard</a>, (v16.10.1, retrieved 20 June 2026). ScaLA-nl (MCC) and SQuAD-nl (EM) from the NLU view; MMLU-nl (MCC) from the generative view. Rows: swiss-ai/Apertus-8B-2509 and swiss-ai/Apertus-70B-2509. The Apertus-8B WikiLingua-nl figure was provided by Edwin Rijgersberg, on the same metric as GPT-NL’s score. . The chart below sets the results for Apertus-8B base alongside his numbers [6] Apertus comes in 8B and 70B versions, each with a base and an instruction-tuned variant. The 8B base model is the closest comparison to GPT-NL’s foundation model—a non-instruction-tuned base model—and at 8 billion parameters it is smaller than GPT-NL, so it cannot be winning on size alone. :</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
-<a class="article-sequence-link" href="item-aa27b2260c080f7d.html">
+<a class="article-sequence-link" href="item-7925358e92ac3049.html">
   <span class="article-sequence-label">上一則</span>
-  <span class="article-sequence-title">美國政府要求 OpenAI 限制 GPT-5.6 存取資格</span>
+  <span class="article-sequence-title">盧森堡 AI 在政府應用中的整合：從 eGovDay 談起</span>
 </a>
 
 <a class="article-sequence-link" href="item-64e0329577e4a7da.html">
