@@ -55,6 +55,18 @@ class MarkdownRenderingTest(unittest.TestCase):
 
         self.assertEqual(rendered, "<p>第一行<br>\n第二行</p>\n<p>下一段</p>")
 
+    def test_heading_normalizes_english_possessive_apostrophe(self) -> None:
+        rendered = local_web.markdown_to_html(
+            "### Delivering the UK Government\u2019s Test, Learn and Grow programme"
+        )
+        rendered_spaced = local_web.markdown_to_html("### Delivering the UK Government\u2019 s Test")
+
+        self.assertIn(
+            "<h3>Delivering the UK Government&#x27;s Test, Learn and Grow programme</h3>",
+            rendered,
+        )
+        self.assertIn("Government&#x27;s Test", rendered_spaced)
+
     def test_fenced_code_block_renders_without_raw_fences(self) -> None:
         rendered = local_web.markdown_to_html(
             "# 標題\n\n```\nZDNET 的重點摘要：設計人類與 AI 之間的健康關係。\n```\n\n下一段",

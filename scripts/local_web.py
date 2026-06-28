@@ -3875,6 +3875,99 @@ def item_detail_href(item: dict) -> str:
     return f"/items/view?id={quote(str(item.get('id', '')))}"
 
 
+RECYCLE_ORIGIN_LABELS = {
+    "rejected": "已入庫後不收",
+    "dismissed": "RSS 新進略過",
+}
+
+
+def recycle_record_reason(record: dict, limit: int = 140) -> str:
+    decision = record.get("local_decision") if isinstance(record.get("local_decision"), dict) else {}
+    reason = clean_text(decision.get("reason"), limit) or clean_text(record.get("reason"), limit)
+    if not reason:
+        notes = clean_text(record.get("notes"), 260)
+        match = re.search(r"原因[：:]\s*([^。；;\n]+)", notes)
+        if match:
+            reason = clean_text(match.group(1), limit)
+        elif notes:
+            reason = clean_text(notes, limit)
+    if not reason:
+        editorial = record.get("editorial_triage") if isinstance(record.get("editorial_triage"), dict) else {}
+        reason = clean_text(editorial.get("summary_reason"), limit)
+    return alias_rejection_reason(reason) or rejection_reason_base(reason)
+
+
+def recycle_record_decided_at(record: dict) -> str:
+    decision = record.get("local_decision") if isinstance(record.get("local_decision"), dict) else {}
+    archive = record.get("archive") if isinstance(record.get("archive"), dict) else {}
+    return clean_text(
+        decision.get("decided_at")
+        or archive.get("moved_at")
+        or record.get("dismissed_at")
+        or record.get("captured_at")
+        or record.get("published_at")
+    )
+
+
+def recycle_record_sort_time(record: dict) -> str:
+    parsed = parse_loose_date(recycle_record_decided_at(record))
+    if not parsed:
+        parsed = item_datetime(record, "published_at", "captured_at", "dismissed_at")
+    return parsed.isoformat() if parsed else ""
+
+
+def recycle_record_origin_label(record: dict) -> str:
+    origins = record.get("_recycle_origins") if isinstance(record.get("_recycle_origins"), list) else []
+    labels = [RECYCLE_ORIGIN_LABELS.get(origin, origin) for origin in origins if origin]
+    if labels:
+        return " / ".join(labels)
+    return RECYCLE_ORIGIN_LABELS.get(clean_text(record.get("_recycle_origin")), "不收紀錄")
+
+
+def recycle_records() -> list[dict]:
+    merged: dict[str, dict] = {}
+    for origin, path in [("rejected", REJECTED_ITEMS), ("dismissed", DISMISSED)]:
+        for index, record in enumerate(load_jsonl(path)):
+            item = dict(record)
+            item["_recycle_origin"] = origin
+            item["_recycle_origins"] = [origin]
+            item["_recycle_index"] = index
+            item_id = clean_text(item.get("id"))
+            url = clean_text(item.get("url"))
+            key = item_id or (f"url:{url}" if url else stable_id("recycle", origin, index, item.get("title")))
+            existing = merged.get(key)
+            if not existing:
+                merged[key] = item
+                continue
+            origins = list(existing.get("_recycle_origins") or [])
+            if origin not in origins:
+                origins.append(origin)
+            old_quality = (1 if existing.get("_recycle_origin") == "rejected" else 0, len(json.dumps(existing, ensure_ascii=False)))
+            new_quality = (1 if origin == "rejected" else 0, len(json.dumps(item, ensure_ascii=False)))
+            if new_quality > old_quality:
+                item["_recycle_origins"] = origins
+                merged[key] = item
+            else:
+                existing["_recycle_origins"] = origins
+    return sorted(merged.values(), key=lambda record: (recycle_record_sort_time(record), item_display_title(record)), reverse=True)
+
+
+def clean_restored_recycle_record(record: dict, decided_at: str, source_label: str) -> dict:
+    restored = {key: value for key, value in record.items() if not key.startswith("_recycle_")}
+    for key in ["archive", "dismissed_at", "candidate_status", "reason"]:
+        restored.pop(key, None)
+    restored["status"] = "inbox"
+    restored["priority"] = "normal"
+    restored["local_decision"] = {
+        "action": "restored",
+        "decided_at": decided_at,
+        "reason": source_label,
+        "source": "local_web",
+        "next_step": "review-in-rss-inbox",
+    }
+    return restored
+
+
 def public_reader_article_filename(item: dict) -> str:
     item_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(item.get("id")) or "item").strip("-")
     return f"{item_id}.html"
@@ -4218,6 +4311,13 @@ def inline_markdown_html(text: str) -> str:
     return "".join(parts)
 
 
+ENGLISH_POSSESSIVE_APOSTROPHE_RE = re.compile(r"(?<=[A-Za-z])[\u2018\u2019]\s*([sS])\b")
+
+
+def normalize_markdown_heading_text(text: object) -> str:
+    return ENGLISH_POSSESSIVE_APOSTROPHE_RE.sub(r"'\1", str(text or ""))
+
+
 def normalized_title_key(text: object) -> str:
     value = clean_text(text, 500)
     value = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", value)
@@ -4302,7 +4402,8 @@ def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
             flush_paragraph()
             close_list()
             level = min(len(heading.group(1)), 5)
-            parts.append(f"<h{level}>{inline_markdown_html(heading.group(2))}</h{level}>")
+            heading_text = normalize_markdown_heading_text(heading.group(2))
+            parts.append(f"<h{level}>{inline_markdown_html(heading_text)}</h{level}>")
             continue
         if re.match(r"^(-{3,}|\*{3,}|_{3,})$", line):
             flush_paragraph()
@@ -5137,9 +5238,9 @@ def item_compact_row(item: dict) -> str:
         f'<button type="button" class="candidate-expand-toggle" data-item-expand aria-controls="{h(detail_id)}" '
         f'aria-expanded="false" aria-label="展開這則材料" title="展開這則材料"><span class="candidate-expand-triangle" aria-hidden="true"></span></button>'
         f'<span class="compact-badges">{badges}</span>'
-        f'<a class="compact-title" href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a>'
         f'<span class="compact-time">{h(item_display_time(item, "published_at", "captured_at"))}</span>'
         "</div>"
+        f'<a class="compact-title" href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a>'
         f"{ai_line}"
         "</div>"
     )
@@ -6341,19 +6442,42 @@ def page(title: str, body: str) -> bytes:
        兩者都預先 render，靠 .list[data-layout] 切換顯示；checkbox 共用、兩 mode 都能批次勾選。 */
     .candidate-compact {{ display: none; }}
     .list[data-layout="compact"] .candidate-detailed {{ display: none; }}
-    .list[data-layout="compact"] .candidate-compact {{ display: block; }}
+    .list[data-layout="compact"] .candidate-compact {{ display: contents; }}
     .list[data-layout="compact"] .candidate-card.is-expanded .candidate-detailed {{
       display: grid;
+      grid-column: 1 / -1;
+      order: 3;
       gap: 10px;
       padding-top: 10px;
       margin-top: 2px;
       border-top: 1px solid var(--line);
     }}
-    .list[data-layout="compact"] .candidate-card {{ gap: 6px; padding: 10px 14px; }}
+    .list[data-layout="compact"] .candidate-card.is-expanded .candidate-detailed-heading {{ display: none; }}
+    .list[data-layout="compact"] .candidate-card {{
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 6px 8px;
+      padding: 10px 14px;
+    }}
     .list[data-layout="compact"] .candidate-card.is-expanded {{ border-color: #d7dcf0; }}
-    .list[data-layout="compact"] .select-item {{ margin: 0; }}
+    .list[data-layout="compact"] .select-item {{
+      grid-column: 1;
+      grid-row: 1;
+      align-self: center;
+      justify-self: center;
+      min-height: 26px;
+      margin: 0;
+    }}
     .list[data-layout="compact"] .select-item-text {{ display: none; }}
-    .compact-head {{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 8px; }}
+    .compact-head {{
+      grid-column: 2;
+      grid-row: 1;
+      order: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 8px;
+      min-width: 0;
+    }}
     .candidate-expand-toggle {{
       display: inline-grid;
       place-items: center;
@@ -6386,10 +6510,19 @@ def page(title: str, body: str) -> bytes:
     }}
     .candidate-card.is-expanded .candidate-expand-triangle {{ transform: rotate(90deg) translateX(1px); }}
     .compact-badges {{ display: inline-flex; flex-wrap: wrap; gap: 4px; }}
-    .compact-title {{ font-weight: 700; color: var(--ocf-dark); text-decoration: none; flex: 1 1 240px; min-width: 0; }}
+    .compact-title {{
+      grid-column: 1 / -1;
+      order: 1;
+      display: block;
+      min-width: 0;
+      font-weight: 700;
+      line-height: 1.42;
+      color: var(--ocf-dark);
+      text-decoration: none;
+    }}
     .compact-title:hover {{ text-decoration: underline; }}
     .compact-time {{ margin-left: auto; color: var(--muted, #64748b); font-size: 12px; white-space: nowrap; }}
-    .compact-rec {{ margin: 2px 0 0; color: var(--muted, #475569); font-size: 13px; line-height: 1.5; }}
+    .compact-rec {{ grid-column: 1 / -1; order: 2; margin: 2px 0 0; color: var(--muted, #475569); font-size: 13px; line-height: 1.5; }}
     .decision-panel {{ border-top: 1px solid var(--line); padding-top: 10px; }}
     .reason-presets {{ display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }}
     .reason-presets button {{ margin-top: 0; }}
@@ -7327,6 +7460,7 @@ def page(title: str, body: str) -> bytes:
         <summary>{icon_span("workspace", "W")}材料區</summary>
         <div class="nav-menu-links">
           <a href="/items">{icon_span("rss", "R")}入庫建檔區</a>
+          <a href="/recycle-bin">{icon_span("archive", "T")}資源回收區</a>
           <a href="/candidates">{icon_span("inbox", "C")}可用材料區</a>
           <a href="/reader">{icon_span("read", "B")}閱讀區</a>
         </div>
@@ -10130,6 +10264,11 @@ class Handler(BaseHTTPRequestHandler):
             self.show_integrity(query)
         elif parsed.path == "/items":
             self.show_items(query)
+        elif parsed.path == "/recycle":
+            suffix = f"?{parsed.query}" if parsed.query else ""
+            self.redirect(f"/recycle-bin{suffix}")
+        elif parsed.path == "/recycle-bin":
+            self.show_recycle_bin(query)
         elif parsed.path == "/items/view":
             self.show_item_detail(query)
         elif parsed.path == "/items/reject":
@@ -10275,6 +10414,8 @@ class Handler(BaseHTTPRequestHandler):
             self.update_item_metadata(self.read_form())
         elif parsed.path == "/items/translate-zh":
             self.translate_item_zh(self.read_form())
+        elif parsed.path == "/recycle-bin/restore":
+            self.restore_recycle_item(self.read_form())
         elif parsed.path == "/preview-url":
             self.preview_url(self.read_form())
         elif parsed.path == "/candidates/accept":
@@ -13180,6 +13321,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         reader_items = [item for item in items if is_reader_item(item)]
         pending_review_items = [*candidates, *inbox_items]
         pending_counts = Counter(candidate_recommendation(item) for item in pending_review_items)
+        recycle_items = recycle_records()
+        recycle_type_counts = Counter(item.get("_recycle_origin") for item in recycle_items)
         notice = ""
         if query.get("saved"):
             notice = '<div class="notice">已儲存。</div>'
@@ -13248,6 +13391,16 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     </div>
     <p><a class="button" href="/items">打開入庫建檔區</a></p>
     <p class="help">確認收會進可用材料區，不收會移出主資料庫並保留到學習檔，純小消息可直接標記送 PR。</p>
+  </div>
+  <div class="card">
+    <h3>資源回收區</h3>
+    <p class="muted">集中查看已按過不收或 RSS 階段略過的歷史紀錄。</p>
+    <div class="metric-row">
+      {metric_tile(len(recycle_items), "全部不收", "/recycle-bin", "打開")}
+      {metric_tile(recycle_type_counts.get("dismissed", 0), "RSS 略過", "/recycle-bin?origin=dismissed", "只看")}
+    </div>
+    <p><a class="button secondary" href="/recycle-bin">打開資源回收區</a></p>
+    <p class="help">需要重看時，可從這裡把單篇重新收錄回入庫建檔區。</p>
   </div>
   <div class="card">
     <h3>可用材料區</h3>
@@ -13416,7 +13569,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <span class="select-item-text">選取這則做批次處理</span>
   </label>
   <div class="candidate-detailed" id="{h(detail_panel_id)}">
-  <div>
+  <div class="candidate-detailed-heading">
     {badge("RSS 新進", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
@@ -13474,7 +13627,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <span class="select-item-text">選取這則做批次處理</span>
   </label>
   <div class="candidate-detailed" id="{h(detail_panel_id)}">
-  <div>
+  <div class="candidate-detailed-heading">
     {badge("已入庫待分流", "neutral")}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
@@ -13889,6 +14042,248 @@ if (document.readyState === "loading") {{
 """
         self.send_html("入庫建檔區", body)
 
+    def show_recycle_bin(self, query: dict[str, list[str]]) -> None:
+        records = recycle_records()
+        track_filter = form_value(query, "track", "all")
+        origin_filter = form_value(query, "origin", "all")
+        source_filter = form_value(query, "source_id", "all")
+        reason_filter = form_value(query, "reason", "all")
+        text_filter = form_value(query, "q")
+        show_all = form_value(query, "show") == "all"
+
+        def recycle_href(**overrides: str) -> str:
+            values = {
+                "track": track_filter,
+                "origin": origin_filter,
+                "source_id": source_filter,
+                "reason": reason_filter,
+                "q": text_filter,
+            }
+            values.update(overrides)
+            params = []
+            for key in ["track", "origin", "source_id", "reason"]:
+                value = values.get(key, "all")
+                if value and value != "all":
+                    params.append((key, value))
+            if values.get("q"):
+                params.append(("q", values["q"]))
+            if overrides.get("show") or show_all:
+                params.append(("show", overrides.get("show", "all")))
+            return href_with_query("/recycle-bin", params)
+
+        source_names: dict[str, str] = {}
+        for record in records:
+            source_id = clean_text(record.get("source_id"))
+            if source_id and source_id not in source_names:
+                source_names[source_id] = clean_text(record.get("source_name") or record.get("author")) or source_id
+        source_options = [("all", "全部來源")] + sorted(source_names.items(), key=lambda item: item[1].casefold())
+
+        reason_counts = Counter(recycle_record_reason(record) or "未標示原因" for record in records)
+        reason_options = [("all", "全部原因")] + [(reason, f"{reason}（{count}）") for reason, count in reason_counts.most_common(40)]
+        if reason_filter != "all" and reason_filter not in {value for value, _label in reason_options}:
+            reason_options.insert(1, (reason_filter, reason_filter))
+
+        def matches(record: dict, *, ignore_origin: bool = False) -> bool:
+            if track_filter != "all" and record.get("track") != track_filter:
+                return False
+            if not ignore_origin and origin_filter != "all" and record.get("_recycle_origin") != origin_filter:
+                return False
+            if source_filter != "all" and record.get("source_id") != source_filter:
+                return False
+            reason = recycle_record_reason(record) or "未標示原因"
+            if reason_filter != "all" and reason != reason_filter:
+                return False
+            if text_filter:
+                haystack = "\n".join(
+                    [
+                        item_display_title(record),
+                        item_original_title(record),
+                        clean_text(record.get("url"), 500),
+                        clean_text(record.get("source_name") or record.get("author"), 200),
+                        item_zh_summary(record, 600),
+                        reason,
+                        " ".join(item_visible_tags(record, 20)),
+                    ]
+                ).casefold()
+                if text_filter.casefold() not in haystack:
+                    return False
+            return True
+
+        filtered = [record for record in records if matches(record)]
+        filtered.sort(key=lambda record: (recycle_record_sort_time(record), item_display_title(record)), reverse=True)
+        visible = filtered if show_all else filtered[:160]
+        type_summary_records = [record for record in records if matches(record, ignore_origin=True)]
+        type_counts = Counter(record.get("_recycle_origin") for record in type_summary_records)
+        current_href = recycle_href(show="all" if show_all else "")
+
+        def restore_form(record: dict) -> str:
+            item_id = clean_text(record.get("id"))
+            if not item_id:
+                return ""
+            return f"""
+<form class="chip-form" method="post" action="/recycle-bin/restore">
+  <input type="hidden" name="id" value="{h(item_id)}">
+  <input type="hidden" name="redirect" value="{h(current_href)}">
+  <button type="submit" class="reason-chip">{button_content("重新收錄", "refresh", "R")}</button>
+</form>
+"""
+
+        def record_row(record: dict) -> str:
+            title = item_display_title(record)
+            url = clean_text(record.get("url"))
+            title_html = f'<a href="{h(url)}" target="_blank" rel="noreferrer">{h(title)}</a>' if url else h(title)
+            reason = recycle_record_reason(record) or "未標示原因"
+            css_class = track_class(record.get("track", "unclassified"))
+            decision_time = recycle_record_decided_at(record)
+            time_label = format_datetime(decision_time) if decision_time else item_display_time(record, "dismissed_at", "captured_at", "published_at")
+            summary = item_zh_summary(record, 360) or clean_text(record.get("summary"), 360)
+            original_link = (
+                f'<a class="button secondary reader-action-button" href="{h(url)}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{icon_span("external", "L", "icon reader-action-icon")}{action_label("原始連結")}</a>'
+                if url
+                else ""
+            )
+            source_id = clean_text(record.get("source_id"))
+            source_link = (
+                f'<a class="button quiet reader-action-button" href="/sources/view?id={quote(source_id)}#source-rejected">{icon_span("source", "S", "icon reader-action-icon")}{action_label("看來源")}</a>'
+                if source_id
+                else ""
+            )
+            return f"""
+<article class="card candidate-card candidate-card--suggest-skip">
+  <div class="candidate-detailed">
+    <div class="candidate-detailed-heading">
+      {badge(recycle_record_origin_label(record), "suggest-skip")}
+      {badge(track_meta(record.get("track", "unclassified"))["short"], css_class)}
+      {badge(time_label, "neutral")}
+      <strong>{title_html}</strong>
+    </div>
+    <p class="muted break-anywhere">{source_name_link(record)} · {h(url)}</p>
+    <p class="help">不收原因：{h(reason)}</p>
+    {f'<p>{h(summary)}</p>' if summary else ''}
+    {tag_chips_html(item_visible_tags(record))}
+    <div class="button-row reader-card-actions">
+      {restore_form(record)}
+      {original_link}
+      {source_link}
+    </div>
+  </div>
+</article>
+"""
+
+        rows = [record_row(record) for record in visible]
+        if not rows:
+            rows.append('<div class="card"><strong>目前沒有符合條件的不收紀錄</strong><p class="muted">換一個篩選條件，或先回入庫建檔區處理新資料。</p></div>')
+
+        more_link = ""
+        if not show_all and len(filtered) > len(visible):
+            more_link = f'<p><a class="button secondary" href="{h(recycle_href(show="all"))}">顯示全部 {len(filtered)} 筆</a></p>'
+
+        notice = ""
+        if form_value(query, "saved") == "restored":
+            count = h(form_value(query, "count", "1"))
+            notice = f'<div class="notice">已從資源回收區重新收錄 {count} 筆，項目會回到入庫建檔區。</div>'
+        elif form_value(query, "error") == "not-found":
+            notice = '<div class="notice">找不到這筆不收紀錄，可能已經被重新收錄或資料檔已更新。</div>'
+
+        track_options = [("all", "全部主線")] + [(track, TRACK_META[track]["label"]) for track in TRACK_ORDER]
+        origin_options = [("all", "全部紀錄"), ("rejected", "已入庫後不收"), ("dismissed", "RSS 新進略過")]
+        body = f"""
+<h1>資源回收區</h1>
+<p class="lede">這裡統整已經按過不收、略過或移出入庫建檔區的歷史紀錄。需要重新判斷時，可以直接把單篇撈回入庫建檔區。</p>
+{notice}
+<div class="grid">
+  {metric_card(len(records), "全部不收紀錄", "/recycle-bin", "看全部", "is-active" if origin_filter == "all" else "")}
+  {metric_card(type_counts.get("rejected", 0), "已入庫後不收", recycle_href(origin="rejected"), "只看", "is-active" if origin_filter == "rejected" else "")}
+  {metric_card(type_counts.get("dismissed", 0), "RSS 新進略過", recycle_href(origin="dismissed"), "只看", "is-active" if origin_filter == "dismissed" else "")}
+  {metric_card(len(filtered), "目前符合", current_href, "筆")}
+</div>
+<div class="workspace-toolbar">
+  {workspace_sidebar_toggle("recycle-workspace", "recycle-sidebar", "recycle", "篩選回收紀錄")}
+</div>
+<div class="workspace-layout" id="recycle-workspace">
+  <section class="workspace-main">
+    <h2>不收歷史</h2>
+    <p class="muted">符合條件：{len(filtered)} 筆。{'' if show_all else f'目前先顯示 {len(visible)} 筆。'}</p>
+    {more_link}
+    <div class="list" id="recycle-list">{''.join(rows)}</div>
+    {more_link}
+  </section>
+  <aside class="workspace-sidebar" id="recycle-sidebar">
+    <section class="workspace-sidebar-section">
+      <h2>篩選資源回收區</h2>
+      <form class="filter-panel" method="get" action="/recycle-bin">
+        {'<input type="hidden" name="show" value="all">' if show_all else ''}
+        <div class="form-grid">
+          <div>
+            <label>主線</label>
+            <select name="track">{option_list(track_options, track_filter)}</select>
+          </div>
+          <div>
+            <label>紀錄類型</label>
+            <select name="origin">{option_list(origin_options, origin_filter)}</select>
+          </div>
+        </div>
+        <label>來源</label>
+        <select name="source_id">{option_list(source_options, source_filter)}</select>
+        <label>不收原因</label>
+        <select name="reason">{option_list(reason_options, reason_filter)}</select>
+        <label>搜尋</label>
+        <input type="search" name="q" value="{h(text_filter)}" placeholder="標題、摘要、來源、URL、tag">
+        <div class="button-row">
+          <button type="submit">{button_content("套用篩選", "filter")}</button>
+          <a class="button secondary" href="/recycle-bin">清除篩選</a>
+        </div>
+        <p class="help">重新收錄會把項目移回入庫建檔區，並從不收學習檔與 RSS 略過清單移除同一個 id。</p>
+      </form>
+    </section>
+  </aside>
+</div>
+"""
+        self.send_html("資源回收區", body)
+
+    @with_db_write_lock
+    def restore_recycle_item(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), "/recycle-bin")
+        if not item_id:
+            self.redirect(f"{redirect_to}{'&' if '?' in redirect_to else '?'}error=not-found")
+            return
+
+        rejected_records = load_jsonl(REJECTED_ITEMS)
+        dismissed_records = load_jsonl(DISMISSED)
+        matching_records = [
+            {**record, "_recycle_origin": "rejected"}
+            for record in rejected_records
+            if clean_text(record.get("id")) == item_id
+        ] + [
+            {**record, "_recycle_origin": "dismissed"}
+            for record in dismissed_records
+            if clean_text(record.get("id")) == item_id
+        ]
+        if not matching_records:
+            self.redirect(f"{redirect_to}{'&' if '?' in redirect_to else '?'}error=not-found")
+            return
+
+        restored_record = max(
+            matching_records,
+            key=lambda record: (
+                1 if record.get("_recycle_origin") == "rejected" else 0,
+                len(json.dumps(record, ensure_ascii=False)),
+            ),
+        )
+        decided_at = now_iso()
+        note = "從資源回收區重新收錄，回到入庫建檔區。"
+        restored = clean_restored_recycle_record(restored_record, decided_at, "資源回收區重新收錄")
+        restored["review"] = append_review_note(restored.get("review") or {}, f"{decided_at} {note}")
+
+        upsert_jsonl(ITEMS, restored)
+        write_jsonl(REJECTED_ITEMS, [record for record in rejected_records if clean_text(record.get("id")) != item_id])
+        write_jsonl(DISMISSED, [record for record in dismissed_records if clean_text(record.get("id")) != item_id])
+        append_jsonl(REVIEW_EVENTS, review_event(restored, "restored", note))
+
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}saved=restored&count=1")
+
     def show_item_reject_form(self, query: dict[str, list[str]]) -> None:
         item_id = form_value(query, "id")
         items = load_jsonl(ITEMS)
@@ -13985,7 +14380,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
                 f"""
 <article class="card candidate-card">
   <div class="candidate-detailed" id="{h(detail_panel_id)}">
-  <div>
+  <div class="candidate-detailed-heading">
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge("可進編輯台", "neutral")}
     {badge(recommendation_label(recommendation), recommendation)}
