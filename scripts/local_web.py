@@ -4229,7 +4229,7 @@ def publish_page_card(page_type: str, key: str, title: str, blurb: str = "") -> 
     <label>公開頁導言</label>
     <textarea name="blurb" rows="3" placeholder="這個議題或來源適合分享給外部讀者的簡短說明。">{h(current_blurb)}</textarea>
     <div class="button-row">
-      <button type="submit" class="source-toggle{active_class}" data-page-publish-button aria-label="{h(button_label)}"><span></span><span data-page-publish-label>{h(toggle_text)}</span></button>
+      <button type="submit" class="source-toggle{active_class}" data-page-publish-button aria-label="{h(button_label)}"><span class="toggle-dot"></span><span data-page-publish-label>{h(toggle_text)}</span></button>
       <span class="muted" data-page-publish-message>{h(button_label)}</span>
     </div>
   </form>
@@ -6978,7 +6978,8 @@ def page(title: str, body: str) -> bytes:
       font-weight: 850;
       transition: background-color .18s ease, color .18s ease, border-color .18s ease;
     }}
-    .source-toggle span {{
+    .source-toggle .toggle-dot {{
+      flex: 0 0 auto;
       width: 18px;
       height: 18px;
       border-radius: 999px;
@@ -14992,7 +14993,6 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
     <select name="license" aria-label="授權篩選" onchange="this.form.submit()">{license_options}</select>
   </form>
 </div>
-{publish_page_card("tag", selected_tag, selected_tag)}
 <div class="metric-row">
   {metric_tile(len(featured), "精選 / 觀點", "#tag-featured", "看區塊")}
   {metric_tile(len(small_news), "小消息", "#tag-small-news", "看區塊")}
@@ -15000,6 +15000,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
   {metric_tile(len(other_records), "其他已收", "#tag-other", "看區塊")}
 </div>
 {f'<section class="card"><h2>相關 tag</h2>{related_html}</section>' if related_html else ''}
+{publish_page_card("tag", selected_tag, selected_tag)}
 {section("tag-featured", "精選文章與觀點文章", "已確認值得細讀、可能後續撰稿或觀點整理的內容。", featured, "這個 tag 目前沒有精選文章或觀點文章。", "card")}
 {section("tag-small-news", "純新聞 / 小消息", "可以快速掃過、查核後短訊處理的內容。", small_news, "這個 tag 目前沒有小消息。", "list")}
 {section("tag-inbox", "入庫建檔 / RSS 新進", "還沒完成收或不收判斷的內容，包含已入庫 inbox 和 RSS 新進。", [*inbox, *pending], "這個 tag 目前沒有入庫建檔項目。", "list")}
@@ -19039,7 +19040,7 @@ if (document.readyState === "loading") {{
   <input type="hidden" name="field" value="status">
   <input type="hidden" name="value" value="{h(next_status)}" data-source-toggle-value>
   <input type="hidden" name="redirect" value="{h(redirect_path)}">
-  <button type="submit" class="source-toggle{active_class}" title="{h(hint)}" aria-label="{h(hint)}" data-source-toggle-button><span></span>{h(label)}</button>
+  <button type="submit" class="source-toggle{active_class}" title="{h(hint)}" aria-label="{h(hint)}" data-source-toggle-button><span class="toggle-dot"></span>{h(label)}</button>
 </form>
 """
 
