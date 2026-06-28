@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """編輯台雙引擎執行器。
 
-可選 Claude CLI, Codex CLI 或 Gemini (agy) 跑下列任務：
+可選 Claude CLI、Codex CLI、Gemini (agy) 或 Ollama CLI 跑下列任務：
 - theme-check     ：判斷所選材料適合「主題式」或「彙報式」，參考觀點筆記，沒有相關觀點時記一筆待補觀點。
 - compose-thematic：把幾篇相關材料收斂成一篇帶觀點的 article 草稿。
 - compose-digest  ：把多主題材料整理成彙報式 article 草稿。
@@ -33,6 +33,7 @@ CANDIDATES = CACHE / "rss-candidates.jsonl"
 SESSIONS = CACHE / "editor-sessions.jsonl"
 STATUS = CACHE / "editor-status.json"
 WRITING_STYLES = ROOT / "knowledge" / "writing-styles"
+DEFAULT_OLLAMA_MODEL = "TwinkleAI/gemma-3-4B-T1-it"
 
 
 def _parse_toolbox_state(raw: str) -> dict:
@@ -167,7 +168,7 @@ def record_title(record: dict[str, Any]) -> str:
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
     editorial = record.get("editorial_triage") if isinstance(record.get("editorial_triage"), dict) else {}
     model_titles = []
-    for key in ("codex_review", "claude_review", "gemini_review"):
+    for key in ("codex_review", "claude_review", "gemini_review", "ollama_review"):
         review = editorial.get(key) if isinstance(editorial.get(key), dict) else {}
         model_titles.append(review.get("zh_title"))
     return (
@@ -190,6 +191,7 @@ def translated_markdown(record: dict[str, Any]) -> str:
         "translated_article_markdown_zh",
         "claude_translated_article_markdown_zh",
         "gemini_translated_article_markdown_zh",
+        "ollama_translated_article_markdown_zh",
     ):
         text = clean_text(metadata.get(key), 12000)
         if text:
@@ -567,6 +569,11 @@ def _env() -> dict[str, str]:
     return env
 
 
+def ollama_model() -> str:
+    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or DEFAULT_OLLAMA_MODEL).strip()
+    return model or DEFAULT_OLLAMA_MODEL
+
+
 def run_codex(prompt: str, schema: dict | None, timeout: int, web: bool = False) -> tuple[str, str]:
     """回傳 (raw_text, model)。有 schema 時 raw_text 為 JSON 字串。"""
     CACHE.mkdir(exist_ok=True)
@@ -623,6 +630,25 @@ def run_gemini(prompt: str, schema: dict | None, timeout: int, web: bool = False
     if result.returncode != 0:
         raise RuntimeError(f"agy failed\nSTDOUT:\n{result.stdout[-2000:]}\nSTDERR:\n{result.stderr[-2000:]}")
     return clean_text_keep_markdown(result.stdout), "gemini"
+
+
+def run_ollama(prompt: str, schema: dict | None, timeout: int, web: bool = False) -> tuple[str, str]:
+    """回傳 (result_text, model)。Ollama 是本機模型，不支援需要 web search 的任務。"""
+    if web:
+        raise RuntimeError("Ollama CLI 是本機模型，這個任務需要可上網搜尋的 CLI；請改用 Codex、Claude 或 Gemini。")
+    if schema is not None:
+        prompt += f"\n\n請務必只輸出 JSON 物件，且完全符合以下 JSON Schema，不要任何額外說明或 markdown 包裝：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
+    model = ollama_model()
+    command = [cli_path("ollama"), "run", model]
+    result = subprocess.run(
+        command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=_env()
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"ollama run failed（model: {model}）\n"
+            f"STDOUT:\n{result.stdout[-2000:]}\nSTDERR:\n{result.stderr[-2000:]}"
+        )
+    return clean_text_keep_markdown(result.stdout), model
 
 
 def clean_text_keep_markdown(value: object) -> str:
@@ -763,8 +789,8 @@ def maybe_record_suggested_viewpoint(data: dict, records: list[dict], dry_run: b
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Ian Open News 編輯台雙引擎任務執行器")
-    parser.add_argument("--engine", choices=["claude", "codex", "gemini"], required=True)
+    parser = argparse.ArgumentParser(description="Ian Open News 編輯台 AI CLI 任務執行器")
+    parser.add_argument("--engine", choices=["claude", "codex", "gemini", "ollama"], required=True)
     parser.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
     parser.add_argument("--items", default="", help="逗號分隔的 item id")
     parser.add_argument("--choice", choices=["thematic", "digest"], default="")
@@ -819,6 +845,8 @@ def main() -> None:
             raw, model = run_codex(prompt, schema, args.timeout, web=web)
         elif args.engine == "gemini":
             raw, model = run_gemini(prompt, schema, args.timeout, web=web)
+        elif args.engine == "ollama":
+            raw, model = run_ollama(prompt, schema, args.timeout, web=web)
         else:
             raw, model = run_claude(prompt, args.timeout, web=web)
 

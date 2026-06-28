@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """用快速 AI 把「缺段落結構」的 PDF 全文重新分段（只重排換行與標題，不改字詞）。
 
-對齊三引擎韌性：先試指定引擎，失敗再換其他可用引擎。輸出 JSON 到 stdout 給
+對齊多引擎韌性：先試指定引擎，失敗再換其他可用引擎。輸出 JSON 到 stdout 給
 local_web.py 的 /items/repaginate-fulltext 解析。內建防呆：重排後字數若和原文差太多就判失敗。
 """
 from __future__ import annotations
@@ -17,8 +17,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "database" / "items.jsonl"
 CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
+DEFAULT_OLLAMA_MODEL = "TwinkleAI/gemma-3-4B-T1-it"
 
-PROVIDER_LABELS = {"codex": "Codex", "claude": "Claude Code", "gemini": "Gemini (agy)"}
+PROVIDER_LABELS = {"codex": "Codex", "claude": "Claude Code", "gemini": "Gemini (agy)", "ollama": "Ollama CLI"}
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -74,9 +75,18 @@ def agy_path() -> str:
     return _resolve("agy", ["/opt/homebrew/bin/agy", "/usr/local/bin/agy"])
 
 
+def ollama_path() -> str:
+    return _resolve("ollama", ["/opt/homebrew/bin/ollama", "/usr/local/bin/ollama"])
+
+
+def ollama_model() -> str:
+    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or DEFAULT_OLLAMA_MODEL).strip()
+    return model or DEFAULT_OLLAMA_MODEL
+
+
 def available_providers() -> list[str]:
     out = []
-    for provider, finder in [("claude", claude_path), ("codex", codex_path), ("gemini", agy_path)]:
+    for provider, finder in [("claude", claude_path), ("codex", codex_path), ("gemini", agy_path), ("ollama", ollama_path)]:
         try:
             finder()
         except RuntimeError:
@@ -148,11 +158,22 @@ def run_gemini(prompt: str, timeout: int) -> str:
     return result.stdout
 
 
+def run_ollama(prompt: str, timeout: int) -> str:
+    model = ollama_model()
+    command = [ollama_path(), "run", model]
+    result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=base_env())
+    if result.returncode != 0:
+        raise RuntimeError(f"ollama failed（model: {model}）\n{(result.stderr or result.stdout)[-800:]}")
+    return result.stdout
+
+
 def run_provider(provider: str, prompt: str, timeout: int) -> str:
     if provider == "codex":
         return run_codex(prompt, timeout)
     if provider == "gemini":
         return run_gemini(prompt, timeout)
+    if provider == "ollama":
+        return run_ollama(prompt, timeout)
     return run_claude(prompt, timeout)
 
 

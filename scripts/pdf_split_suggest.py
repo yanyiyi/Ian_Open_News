@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from codex_enrich_reviews import agy_path, claude_path, codex_path, load_json_from_text
+from codex_enrich_reviews import agy_path, claude_path, codex_path, load_json_from_text, ollama_model, ollama_path
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,6 +46,7 @@ def item_markdown(item: dict[str, Any]) -> str:
         "codex_translated_article_markdown_zh",
         "claude_translated_article_markdown_zh",
         "gemini_translated_article_markdown_zh",
+        "ollama_translated_article_markdown_zh",
         "article_markdown",
         "article_text",
     ):
@@ -146,11 +147,16 @@ def run_provider(provider: str, prompt: str, timeout: int) -> dict[str, Any]:
         return generic_payload(output_path.read_text(encoding="utf-8"))
     if provider == "claude":
         command = [claude_path(), "-p", prompt, "--output-format", "json"]
+        stdin_data = None
     elif provider == "gemini":
         command = [agy_path(), "--print", prompt]
+        stdin_data = None
+    elif provider == "ollama":
+        command = [ollama_path(), "run", ollama_model()]
+        stdin_data = prompt
     else:
         raise RuntimeError(f"不支援的 provider：{provider}")
-    result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=timeout, env=env)
+    result = subprocess.run(command, cwd=ROOT, input=stdin_data, text=True, capture_output=True, timeout=timeout, env=env)
     if result.returncode != 0:
         raise RuntimeError((result.stderr or result.stdout or f"{provider} 執行失敗")[-2400:])
     return generic_payload(result.stdout)
@@ -186,7 +192,7 @@ def validate_proposal(payload: dict[str, Any], markdown: str) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Ask one local AI CLI for a PDF split proposal.")
     parser.add_argument("--item-id", required=True)
-    parser.add_argument("--provider", choices=["codex", "claude", "gemini"], required=True)
+    parser.add_argument("--provider", choices=["codex", "claude", "gemini", "ollama"], required=True)
     parser.add_argument("--items", type=Path, default=ITEMS)
     parser.add_argument("--status-file", type=Path, default=STATUS)
     parser.add_argument("--timeout", type=int, default=1800)

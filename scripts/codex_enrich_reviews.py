@@ -23,8 +23,9 @@ TASTE_PROFILE = ROOT / "database" / "taste-profile.json"
 READER_STATUSES = {"triaged", "researching", "drafting", "reviewing", "fact-checking", "ready", "published"}
 READER_ACTIONS = {"accepted-for-editing", "direct-pr-small-news", "revisit-with-personal-notes"}
 CURRENT_READING_PRIORITY_DAYS = 1
-# 隨機（--provider random）時每筆獨立抽引擎的加權比例（Codex 40 / Claude 40 / Gemini 20）。
-PROVIDER_WEIGHTS = {"codex": 40, "claude": 40, "gemini": 20}
+DEFAULT_OLLAMA_MODEL = "TwinkleAI/gemma-3-4B-T1-it"
+# 隨機（--provider random）時每筆獨立抽引擎的加權比例。
+PROVIDER_WEIGHTS = {"codex": 35, "claude": 35, "gemini": 15, "ollama": 15}
 AI_PROVIDERS = {
     "codex": {
         "label": "Codex",
@@ -43,6 +44,12 @@ AI_PROVIDERS = {
         "review_key": "gemini_review",
         "generated_key": "gemini_generated_at",
         "generator": "agy-cli",
+    },
+    "ollama": {
+        "label": "Ollama CLI",
+        "review_key": "ollama_review",
+        "generated_key": "ollama_generated_at",
+        "generator": "ollama-cli",
     },
 }
 
@@ -110,6 +117,31 @@ def agy_path() -> str:
     raise RuntimeError("找不到 agy CLI，請先確認 /opt/homebrew/bin/agy 是否可用。")
 
 
+def ollama_path() -> str:
+    candidate = shutil.which("ollama")
+    if candidate:
+        return candidate
+    for path in [str(Path.home() / ".local" / "bin" / "ollama"), "/opt/homebrew/bin/ollama", "/usr/local/bin/ollama"]:
+        if Path(path).exists():
+            return path
+    raise RuntimeError("找不到 ollama CLI，請先安裝 Ollama，並設定 OLLAMA_MODEL 或 OLLAMA_CLI_MODEL。")
+
+
+def ollama_model() -> str:
+    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or DEFAULT_OLLAMA_MODEL).strip()
+    return model or DEFAULT_OLLAMA_MODEL
+
+
+def cli_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env["PATH"] = (
+        f"{Path.home() / '.local' / 'bin'}:"
+        "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:"
+        + env.get("PATH", "")
+    )
+    return env
+
+
 def provider_meta(provider: str) -> dict[str, str]:
     return AI_PROVIDERS.get(provider, AI_PROVIDERS["codex"])
 
@@ -155,7 +187,7 @@ def parse_cli_json(raw: str) -> dict[str, Any]:
 
 def available_providers() -> list[str]:
     available: list[str] = []
-    for provider, finder in [("codex", codex_path), ("claude", claude_path), ("gemini", agy_path)]:
+    for provider, finder in [("codex", codex_path), ("claude", claude_path), ("gemini", agy_path), ("ollama", ollama_path)]:
         try:
             finder()
         except RuntimeError:
@@ -547,11 +579,49 @@ def run_gemini(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[di
     return reviews
 
 
+def run_ollama(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[dict[str, Any]]:
+    cache = ROOT / ".cache"
+    cache.mkdir(exist_ok=True)
+    schema = output_schema()
+    prompt = build_prompt(batch, "ollama")
+    prompt += f"\n\n請務必只輸出 JSON 物件，且完全符合以下 JSON Schema，不要任何額外說明或 markdown 包裝：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
+    (cache / "ollama-review-prompt.json").write_text(prompt, encoding="utf-8")
+    model = ollama_model()
+    command = [
+        ollama_path(),
+        "run",
+        model,
+    ]
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        input=prompt,
+        text=True,
+        capture_output=True,
+        timeout=args.timeout,
+        env=cli_env(),
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"ollama run failed（model: {model}）\n"
+            f"STDOUT:\n{result.stdout[-2000:]}\n"
+            f"STDERR:\n{result.stderr[-2000:]}"
+        )
+    (cache / "ollama-review-output.json").write_text(result.stdout, encoding="utf-8")
+    payload = parse_cli_json(result.stdout)
+    reviews = payload.get("reviews")
+    if not isinstance(reviews, list):
+        raise RuntimeError("Ollama output missing reviews array")
+    return reviews
+
+
 def run_provider(batch: list[dict[str, Any]], args: argparse.Namespace, provider: str) -> list[dict[str, Any]]:
     if provider == "claude":
         return run_claude(batch, args)
     if provider == "gemini":
         return run_gemini(batch, args)
+    if provider == "ollama":
+        return run_ollama(batch, args)
     return run_codex(batch, args)
 
 
@@ -669,12 +739,12 @@ def process_file(path: Path, kind: str, args: argparse.Namespace) -> tuple[int, 
     if args.prepare_only or not targets:
         return len(targets), 0
 
-    # 每筆獨立決定引擎：random 時逐筆加權抽（40 Codex / 40 Claude / 20 Gemini），
+    # 每筆獨立決定引擎：random 時逐筆加權抽，
     # 其餘沿用指定引擎。再依引擎分組，同組仍可分批送一次 CLI。
     if args.provider == "random":
         providers = available_providers()
         if not providers:
-            raise RuntimeError("找不到可用的 Codex、Claude Code 或 Gemini CLI。")
+            raise RuntimeError("找不到可用的 Codex、Claude Code、Gemini 或 Ollama CLI。")
         assignments = [(weighted_choice(providers), record) for record in targets]
     else:
         assignments = [(args.provider, record) for record in targets]
@@ -702,7 +772,7 @@ def process_file(path: Path, kind: str, args: argparse.Namespace) -> tuple[int, 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Use Codex or Claude Code CLI to add reading recommendations and summaries.")
+    parser = argparse.ArgumentParser(description="Use an AI CLI to add reading recommendations and summaries.")
     parser.add_argument("--provider", choices=sorted([*AI_PROVIDERS, "random"]), default="codex")
     parser.add_argument("--target", choices=["candidates", "items", "both"], default="candidates")
     parser.add_argument("--items", type=Path, default=ITEMS)
@@ -716,13 +786,13 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=6)
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--missing-only", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--prepare-only", action="store_true", help="Only count records that would be sent to Codex.")
-    parser.add_argument("--dry-run", action="store_true", help="Call Codex but do not write JSONL.")
+    parser.add_argument("--prepare-only", action="store_true", help="Only count records that would be sent to the selected AI CLI.")
+    parser.add_argument("--dry-run", action="store_true", help="Call the selected AI CLI but do not write JSONL.")
     parser.add_argument("--report", type=Path, default=REPORT)
     args = parser.parse_args()
 
     provider_label = (
-        "隨機（Codex 40 / Claude 40 / Gemini 20，逐筆加權）"
+        "隨機（Codex 35 / Claude 35 / Gemini 15 / Ollama 15，逐筆加權）"
         if args.provider == "random"
         else provider_meta(args.provider)["label"]
     )

@@ -180,6 +180,7 @@ def item_comparison_text(item: dict[str, Any]) -> str:
         "codex_translated_article_markdown_zh",
         "claude_translated_article_markdown_zh",
         "gemini_translated_article_markdown_zh",
+        "ollama_translated_article_markdown_zh",
         "article_markdown",
         "article_text",
     ):

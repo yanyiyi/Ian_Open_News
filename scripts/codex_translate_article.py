@@ -17,10 +17,12 @@ from page_metadata import infer_language_from_text
 
 ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "database" / "items.jsonl"
+DEFAULT_OLLAMA_MODEL = "TwinkleAI/gemma-3-4B-T1-it"
 AI_PROVIDERS = {
     "codex": {"label": "Codex", "generator": "codex-cli"},
     "claude": {"label": "Claude Code", "generator": "claude-code-cli"},
     "gemini": {"label": "Gemini", "generator": "agy-cli"},
+    "ollama": {"label": "Ollama CLI", "generator": "ollama-cli"},
 }
 
 
@@ -87,6 +89,21 @@ def agy_path() -> str:
         if Path(path).exists():
             return path
     raise RuntimeError("找不到 agy CLI，請先確認 /opt/homebrew/bin/agy 是否可用。")
+
+
+def ollama_path() -> str:
+    candidate = shutil.which("ollama")
+    if candidate:
+        return candidate
+    for path in [str(Path.home() / ".local" / "bin" / "ollama"), "/opt/homebrew/bin/ollama", "/usr/local/bin/ollama"]:
+        if Path(path).exists():
+            return path
+    raise RuntimeError("找不到 ollama CLI，請先安裝 Ollama，並設定 OLLAMA_MODEL 或 OLLAMA_CLI_MODEL。")
+
+
+def ollama_model() -> str:
+    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or DEFAULT_OLLAMA_MODEL).strip()
+    return model or DEFAULT_OLLAMA_MODEL
 
 
 def provider_label(provider: str) -> str:
@@ -347,11 +364,50 @@ def run_gemini(record: dict[str, Any], markdown: str, language: str, timeout: in
     return payload
 
 
+def run_ollama(record: dict[str, Any], markdown: str, language: str, timeout: int) -> dict[str, Any]:
+    cache = ROOT / ".cache"
+    cache.mkdir(exist_ok=True)
+    schema = output_schema()
+    prompt = build_prompt(record, markdown, language, "ollama")
+    prompt += f"\n\n請務必只輸出 JSON 物件，且完全符合以下 JSON Schema，不要任何額外說明或 markdown 包裝：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
+    (cache / "ollama-translate-prompt.md").write_text(prompt, encoding="utf-8")
+    model = ollama_model()
+    command = [
+        ollama_path(),
+        "run",
+        model,
+    ]
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        input=prompt,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+        env=_text_env(),
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"ollama run failed（model: {model}）\n"
+            f"STDOUT:\n{result.stdout[-2000:]}\n"
+            f"STDERR:\n{result.stderr[-2000:]}"
+        )
+    (cache / "ollama-translate-output.json").write_text(result.stdout, encoding="utf-8")
+    payload = parse_cli_json(result.stdout)
+    if clean_text(payload.get("id")) != clean_text(record.get("id")):
+        raise RuntimeError("Ollama output id mismatch")
+    if not clean_text(payload.get("zh_markdown")):
+        raise RuntimeError("Ollama output missing zh_markdown")
+    return payload
+
+
 def run_provider(record: dict[str, Any], markdown: str, language: str, provider: str, timeout: int) -> dict[str, Any]:
     if provider == "claude":
         return run_claude(record, markdown, language, timeout)
     if provider == "gemini":
         return run_gemini(record, markdown, language, timeout)
+    if provider == "ollama":
+        return run_ollama(record, markdown, language, timeout)
     return run_codex(record, markdown, language, timeout)
 
 
@@ -464,11 +520,22 @@ def run_gemini_text(prompt: str, timeout: int) -> str:
     return result.stdout
 
 
+def run_ollama_text(prompt: str, timeout: int) -> str:
+    model = ollama_model()
+    command = [ollama_path(), "run", model]
+    result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=_text_env())
+    if result.returncode != 0:
+        raise RuntimeError(f"ollama run failed（model: {model}）\n{result.stderr[-1500:] or result.stdout[-1500:]}")
+    return result.stdout
+
+
 def run_chunk(provider: str, prompt: str, timeout: int) -> str:
     if provider == "claude":
         return strip_wrapping(run_claude_text(prompt, timeout))
     if provider == "gemini":
         return strip_wrapping(run_gemini_text(prompt, timeout))
+    if provider == "ollama":
+        return strip_wrapping(run_ollama_text(prompt, timeout))
     return strip_wrapping(run_codex_text(prompt, timeout))
 
 
@@ -562,7 +629,7 @@ def apply_translation(record: dict[str, Any], payload: dict[str, Any], language:
     zh_title = clean_text(payload.get("zh_title"), 320)
     zh_markdown = clean_markdown(payload.get("zh_markdown"), 90000)
     source_label = provider_label(provider)
-    provider_prefix = provider if provider in {"claude", "gemini"} else "codex"
+    provider_prefix = provider if provider in {"claude", "gemini", "ollama"} else "codex"
     metadata.update(
         {
             f"{provider_prefix}_translated_zh_title": zh_title,
@@ -593,7 +660,7 @@ def apply_translation(record: dict[str, Any], payload: dict[str, Any], language:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Use Codex or Claude Code CLI to translate one fetched article into Taiwan Traditional Chinese.")
+    parser = argparse.ArgumentParser(description="Use an AI CLI to translate one fetched article into Taiwan Traditional Chinese.")
     parser.add_argument("--provider", choices=sorted(AI_PROVIDERS), default="codex")
     parser.add_argument("--items", type=Path, default=ITEMS)
     parser.add_argument("--id", required=True)

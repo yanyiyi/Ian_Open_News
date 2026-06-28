@@ -74,7 +74,7 @@ def main() -> None:
 
     codex_message = ""
     if os.environ.get("IAN_OPEN_NEWS_AUTO_CODEX", "1") != "0":
-        write_status({"phase": "codex", "message": "RSS 已抓完，正在隨機使用 Codex, Claude Code 或 Gemini 補閱讀建議與摘要。"})
+        write_status({"phase": "codex", "message": "RSS 已抓完，正在隨機使用 Codex、Claude Code、Gemini 或 Ollama 補閱讀建議與摘要。"})
         codex_command = [
             sys.executable,
             str(ROOT / "scripts" / "codex_enrich_reviews.py"),

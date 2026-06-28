@@ -121,8 +121,19 @@ AI_PROVIDER_META = {
         "translation_generated_key": "gemini_translation_generated_at",
         "translation_note_key": "gemini_translation_note",
     },
+    "ollama": {
+        "label": "Ollama CLI",
+        "short": "Ollama",
+        "review_key": "ollama_review",
+        "translation_markdown_key": "ollama_translated_article_markdown_zh",
+        "translation_title_key": "ollama_translated_zh_title",
+        "translation_source_key": "ollama_translation_source",
+        "translation_generated_key": "ollama_translation_generated_at",
+        "translation_note_key": "ollama_translation_note",
+    },
 }
-AI_PROVIDER_ORDER = ["codex", "claude", "gemini"]
+AI_PROVIDER_ORDER = ["codex", "claude", "gemini", "ollama"]
+DEFAULT_OLLAMA_MODEL = "TwinkleAI/gemma-3-4B-T1-it"
 # 標籤 taxonomy：每組 = (正式名, [可輸入的同義/別名])。
 # 分面（facet）由 TAG_FACETS 標示；同一面下的每個 group 就是一個子類。
 # 輸入任一別名都會正規化到正式名，且別名可被搜尋找到（help 找標籤）。
@@ -473,7 +484,7 @@ REJECTION_REASON_ALIASES = {
 COMMANDS = {
     "fetch_rss": {
         "label": "立刻抓 RSS 候選",
-        "description": "先抓到入庫建檔區，不直接寫進正式資料庫；手動按鈕也會包含「按更新時抓」的來源，抓完接著隨機用 Codex, Claude Code 或 Gemini 補閱讀建議、三個理由與中文摘要。",
+        "description": "先抓到入庫建檔區，不直接寫進正式資料庫；手動按鈕也會包含「按更新時抓」的來源，抓完接著隨機用 Codex、Claude Code、Gemini 或 Ollama 補閱讀建議、三個理由與中文摘要。",
         "button": "抓到入庫建檔區",
         "command": [
             sys.executable,
@@ -552,7 +563,7 @@ COMMANDS = {
     },
     "codex_enrich_reviews": {
         "label": "隨機補 AI 閱讀建議與摘要",
-        "description": "針對入庫建檔區與閱讀區中還沒有任何模型 review 的項目，逐筆加權隨機（Codex 40 / Claude Code 40 / Gemini agy 20）挑一個 CLI 產生給 Ian 的一句話推薦、三個閱讀理由、中文標題與中文摘要；未指定項目時會先看標記超過 1 天的正在閱讀材料。",
+        "description": "針對入庫建檔區與閱讀區中還沒有任何模型 review 的項目，逐筆加權隨機（Codex 35 / Claude Code 35 / Gemini agy 15 / Ollama 15）挑一個 CLI 產生給 Ian 的一句話推薦、三個閱讀理由、中文標題與中文摘要；未指定項目時會先看標記超過 1 天的正在閱讀材料。",
         "button": "隨機補 AI 建議",
         "command": [
             sys.executable,
@@ -1618,6 +1629,9 @@ def _insight_cli_run(engine: str, prompt: str, status_label: str, timeout: int =
     elif engine == "claude":
         cmd = [cli, "-p", prompt, "--output-format", "json"]
         stdin_data = None
+    elif engine == "ollama":
+        cmd = [cli, "run", ollama_model()]
+        stdin_data = prompt
     else:  # gemini → agy
         cmd = [cli, "--print", prompt]
         stdin_data = None
@@ -1672,13 +1686,14 @@ def run_analysis_job(divergences: list[dict], mode: str, engine: str = "claude")
     """背景執行：請 CLI 分析分歧，邊跑邊更新狀態列，寫入報告。回傳 report dict。"""
     import time
 
+    engine_label = ai_provider_label(engine)
     div_ids = [d.get("id", "") for d in divergences]
     insight_status("running", f"正在整理 {len(divergences)} 筆分歧資料…", engine=engine)
     prompt = _build_analysis_prompt(divergences)
 
-    report_text, err = _insight_cli_run(engine, prompt, f"正在請 {engine} 分析你的決策模式", timeout=300)
+    report_text, err = _insight_cli_run(engine, prompt, f"正在請 {engine_label} 分析你的決策模式", timeout=300)
     if err and not report_text:
-        report_text = f"（{engine} 分析失敗：{err}）"
+        report_text = f"（{engine_label} 分析失敗：{err}）"
 
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     report_file = CACHE_DIR / f"divergence-analysis-{timestamp}.txt"
@@ -1707,7 +1722,7 @@ def run_analysis_job(divergences: list[dict], mode: str, engine: str = "claude")
     if err and not report_text.strip().strip("（）"):
         insight_status("failed", f"分析失敗：{err}", report_id=rpt["id"])
     else:
-        insight_status("done", f"分析完成（{engine}）。", report_id=rpt["id"], redirect="/insights")
+        insight_status("done", f"分析完成（{engine_label}）。", report_id=rpt["id"], redirect="/insights")
     return rpt
 
 
@@ -1849,7 +1864,7 @@ def _format_cases_block(cases: list[dict]) -> str:
 
 
 def build_proposal_prompt(prop: dict) -> str:
-    """生成可貼進 Codex / Claude Code 的提案 prompt。格式：卡片摘要 + 案例 + 背景 + 指示。"""
+    """生成可貼進 AI CLI 的提案 prompt。格式：卡片摘要 + 案例 + 背景 + 指示。"""
     cases = prop.get("source_divergences") or []
     title = prop.get("title", "")
     target = prop.get("target_area", "") or "（待確認）"
@@ -2168,19 +2183,20 @@ def run_apply_job(report: dict, engine: str) -> None:
     import subprocess
 
     rpt_id = report.get("id", "")
-    insight_status("running", f"正在請 {engine} 研究報告並產生設定調整…", engine=engine, report_id=rpt_id)
+    engine_label = ai_provider_label(engine)
+    insight_status("running", f"正在請 {engine_label} 研究報告並產生設定調整…", engine=engine, report_id=rpt_id)
     prompt = _build_apply_prompt(report)
 
-    raw, err = _insight_cli_run(engine, prompt, f"正在請 {engine} 研究報告並產生設定調整", timeout=600)
+    raw, err = _insight_cli_run(engine, prompt, f"正在請 {engine_label} 研究報告並產生設定調整", timeout=600)
     if err and not raw:
-        insight_status("failed", f"{engine} 執行失敗：{err}", report_id=rpt_id)
+        insight_status("failed", f"{engine_label} 執行失敗：{err}", report_id=rpt_id)
         return
 
     patch = _extract_json_object(raw)
     if patch is None:
         # 無法解析成 JSON：把整段輸出當建議顯示，不動任何檔
         _record_apply_run(rpt_id, engine, raw, "", {}, note="CLI 未回傳可解析的 JSON，未自動套用，請參考下方輸出手動處理。")
-        insight_status("done", f"{engine} 已回覆，但格式無法自動套用，請看輸出手動處理。", report_id=rpt_id, redirect="/insights")
+        insight_status("done", f"{engine_label} 已回覆，但格式無法自動套用，請看輸出手動處理。", report_id=rpt_id, redirect="/insights")
         return
 
     insight_status("running", "正在套用設定調整並計算 diff…", engine=engine, report_id=rpt_id)
@@ -2197,7 +2213,7 @@ def run_apply_job(report: dict, engine: str) -> None:
     summary = str(patch.get("summary", "")).strip()
     _record_apply_run(rpt_id, engine, raw, diff_text, changes, summary=summary)
 
-    msg = (f"{engine} 完成：品味{'有改' if changes['taste'] else '未改'}、"
+    msg = (f"{engine_label} 完成：品味{'有改' if changes['taste'] else '未改'}、"
            f"關鍵字 {changes['keywords']} 條 track、來源 {changes['sources']} 個、提案 {changes['proposals']} 筆。")
     insight_status("done", msg, report_id=rpt_id, redirect="/insights")
 
@@ -3067,13 +3083,13 @@ def command_card(name: str, config: dict) -> str:
         engine_buttons = "".join(
             f"<button type='button' class='secondary' data-engine-job "
             f"data-command='{h(name)}' data-engine='{eng}' data-label='{h(config['label'])}'>{h(label)}</button>"
-            for eng, label in (("random", "隨機"), ("codex", "Codex"), ("claude", "Claude"), ("gemini", "Gemini"))
+            for eng, label in (("random", "隨機"), *[(provider, AI_PROVIDER_META[provider]["short"]) for provider in AI_PROVIDER_ORDER])
         )
         controls = (
             "<div class='command-engine-buttons'>"
             f"{engine_buttons}"
             "</div>"
-            "<p class='help'>選引擎跑；隨機失敗會自動換另外兩個，指定引擎失敗只提醒不自動換。</p>"
+            "<p class='help'>選引擎跑；隨機失敗會自動換其他可用 CLI，指定引擎失敗只提醒不自動換。</p>"
         )
     else:
         controls = (
@@ -5526,7 +5542,7 @@ def model_review_actions_html(item: dict, compact: bool = False) -> str:
         "<div class='source-card source-card--model source-card--empty'>"
         "<div class='section-kicker'>模型建議</div>"
         "<h3>生成閱讀建議</h3>"
-        "<p class='help'>有哪個模型先生成，就先顯示哪張卡；需要交叉比較時，可再補另一個模型。兩邊都有生成時會各自顯示成一張卡。</p>"
+        "<p class='help'>有哪個模型先生成，就先顯示哪張卡；需要交叉比較時，可再補其他模型。多個模型都有生成時會各自顯示成一張卡。</p>"
         f"<div class='button-row'>{''.join(forms)}</div>"
         "</div>"
     )
@@ -8205,10 +8221,10 @@ def page(title: str, body: str) -> bytes:
     }}
   }});
 
-  const ENGINE_LABELS = {{ codex: "Codex", claude: "Claude", gemini: "Gemini" }};
-  const ALL_ENGINES = ["codex", "claude", "gemini"];
+  const ENGINE_LABELS = {{ codex: "Codex", claude: "Claude", gemini: "Gemini", ollama: "Ollama CLI" }};
+  const ALL_ENGINES = ["codex", "claude", "gemini", "ollama"];
 
-  // 共用 AI 工作執行器：隨機→失敗自動換另外兩個（每次跳視窗）；指定引擎→只提醒、不自動換。
+  // 共用 AI 工作執行器：隨機→失敗自動換其他 CLI（每次跳視窗）；指定引擎→只提醒、不自動換。
   window.runEngineJob = async ({{ label, url, baseBody, engine, onSuccess, statusUrl }}) => {{
     let order;
     if (engine === "random") {{
@@ -8267,7 +8283,7 @@ def page(title: str, body: str) -> bytes:
         commandOutput.hidden = false;
         commandOutput.textContent = errMsg;
         if (allowFallback) {{
-          window.alert(`${{label}}\nCodex／Claude／Gemini 三個都失敗了，請稍後再試或檢查登入狀態。`);
+          window.alert(`${{label}}\n所有可用 AI CLI 都失敗了，請稍後再試或檢查登入狀態。`);
         }} else {{
           window.alert(`${{label}}\n${{ENGINE_LABELS[eng] || eng}} 失敗：${{errMsg}}\n可改用 ${{others}} 再跑一次。`);
         }}
@@ -9381,8 +9397,18 @@ def editor_cli_path(name: str) -> str | None:
     return None
 
 
+def ollama_model() -> str:
+    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or DEFAULT_OLLAMA_MODEL).strip()
+    return model or DEFAULT_OLLAMA_MODEL
+
+
 def editor_engine_status() -> dict[str, bool]:
-    return {"claude": bool(editor_cli_path("claude")), "codex": bool(editor_cli_path("codex")), "gemini": bool(editor_cli_path("agy"))}
+    return {
+        "claude": bool(editor_cli_path("claude")),
+        "codex": bool(editor_cli_path("codex")),
+        "gemini": bool(editor_cli_path("agy")),
+        "ollama": bool(editor_cli_path("ollama")),
+    }
 
 
 def new_editor_id(prefix: str) -> str:
@@ -10253,12 +10279,7 @@ def pdf_relation_modal_html(item: dict, auto_open: bool = False) -> str:
 <form class="pdf-cli-confirm-form" data-pdf-relation-confirm>
   <input type="hidden" name="id" value="{h(item_id)}">
   <input type="hidden" name="candidate_id" value="{h(candidate_id)}">
-  <select name="engine" aria-label="確認關係引擎">
-    <option value="random">隨機 CLI</option>
-    <option value="codex">Codex</option>
-    <option value="claude">Claude Code</option>
-    <option value="gemini">Gemini</option>
-  </select>
+  <select name="engine" aria-label="確認關係引擎">{option_list([("random", "隨機 CLI"), *[(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER]], "random")}</select>
   <button type="submit" class="button button-small quiet">{button_content("用 CLI 再確認關係", "sparkle")}</button>
 </form>
 """
@@ -10898,7 +10919,7 @@ class Handler(BaseHTTPRequestHandler):
     <input type="hidden" name="items" data-selected-items>
     <div class="editor-control-grid">
       <label class="editor-label">模型
-        <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換另外兩個）</option>{engine_option('gemini', 'Gemini')}{engine_option('claude', 'Claude CLI')}{engine_option('codex', 'Codex CLI')}</select>
+        <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換其他可用 CLI）</option>{engine_option('gemini', 'Gemini')}{engine_option('claude', 'Claude CLI')}{engine_option('codex', 'Codex CLI')}{engine_option('ollama', 'Ollama CLI')}</select>
       </label>
       <label class="editor-label">任務
         <select name="task_type" id="editor-task-type" class="editor-select">{task_options}</select>
@@ -11152,7 +11173,7 @@ class Handler(BaseHTTPRequestHandler):
 
         ids = [x for x in re.split(r"[\s,]+", items_raw) if x]
         engines = editor_engine_status()
-        if engine not in {"claude", "codex", "gemini"} or not engines.get(engine):
+        if engine not in set(AI_PROVIDER_ORDER) or not engines.get(engine):
             msg = f"引擎 {engine} 目前不可用。"
             if wants_json:
                 self.send_json({"ok": False, "error": msg}, HTTPStatus.BAD_REQUEST)
@@ -11499,7 +11520,7 @@ class Handler(BaseHTTPRequestHandler):
     <input type="hidden" name="rerun_of" value="{h(session_id)}">
     <div class="editor-control-grid">
       <label class="editor-label">模型
-        <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換另外兩個）</option>{toolbox_engine_option('gemini', 'Gemini')}{toolbox_engine_option('claude', 'Claude CLI')}{toolbox_engine_option('codex', 'Codex CLI')}</select>
+        <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換其他可用 CLI）</option>{toolbox_engine_option('gemini', 'Gemini')}{toolbox_engine_option('claude', 'Claude CLI')}{toolbox_engine_option('codex', 'Codex CLI')}{toolbox_engine_option('ollama', 'Ollama CLI')}</select>
       </label>
       <label class="editor-label">任務
         <select name="task_type" class="editor-select" data-toolbox-task>{toolbox_task_options}</select>
@@ -12521,6 +12542,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 cli_button(rpt_id, "claude", "Claude"),
                 cli_button(rpt_id, "codex", "Codex"),
                 cli_button(rpt_id, "gemini", "Gemini"),
+                cli_button(rpt_id, "ollama", "Ollama"),
             ])
 
             runs_html = ""
@@ -12668,6 +12690,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <span id="sample-result" class="muted" style="font-size:0.85em;display:none"></span>
     <div>
       <form method="post" action="/insights/generate-report" data-insight-job="分析已填說明的分歧">
+        <select name="engine" aria-label="分析引擎" style="width:100%;margin-bottom:6px">{option_list([(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER], "claude")}</select>
         <button type="submit" class="button" style="width:100%"{analyze_disabled}>分析已填說明的 {explained_count} 筆</button>
       </form>
       {analyze_hint}
@@ -12739,7 +12762,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   {f"<div class='muted'>{h(p.get('rationale',''))}</div>" if p.get('rationale') else ''}
   {cases_html}
   <div class="prop-actions">
-    <button type="button" class="button small" data-copy="{ta_id}">複製給 Codex / CC 的 prompt</button>
+    <button type="button" class="button small" data-copy="{ta_id}">複製給 AI CLI 的 prompt</button>
     <form method="post" action="/insights/proposal-status" style="display:inline">
       <input type="hidden" name="id" value="{pid}">
       <select name="status" onchange="this.form.submit()">{prop_status_opts(p.get('status','pending'))}</select>
@@ -12967,7 +12990,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       if(!ta) return;
       var text = ta.value;
       var orig = btn.textContent;
-      var ok = function(){ btn.textContent = '✓ 已複製，貼到 Codex / CC 即可'; setTimeout(function(){ btn.textContent = orig; }, 2500); };
+      var ok = function(){ btn.textContent = '✓ 已複製，貼到 AI CLI 即可'; setTimeout(function(){ btn.textContent = orig; }, 2500); };
       if(navigator.clipboard && navigator.clipboard.writeText){
         navigator.clipboard.writeText(text).then(ok).catch(function(){
           ta.style.position='static'; ta.style.width='100%'; ta.style.height='160px'; ta.style.opacity='1'; ta.select();
@@ -13099,6 +13122,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 
     def generate_divergence_report(self, data: dict[str, list[str]], mode: str = "explained") -> None:
         engine = form_value(data, "engine") or "claude"
+        if engine not in AI_PROVIDER_META:
+            engine = "claude"
         divs = load_jsonl(DECISION_DIVERGENCES)
         # 只分析「已填說明、未略過」的
         candidates = [d for d in divs if not d.get("dismissed") and d.get("user_explanation")]
@@ -13108,7 +13133,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             else:
                 self.redirect("/insights?error=no-explained")
             return
-        insight_status("running", f"已送出，準備用 {engine} 分析 {len(candidates)} 筆…", engine=engine)
+        insight_status("running", f"已送出，準備用 {ai_provider_label(engine)} 分析 {len(candidates)} 筆…", engine=engine)
         threading.Thread(target=run_analysis_job, args=(candidates, mode, engine), daemon=True).start()
         if self.is_async_request():
             self.send_json({"ok": True, "message": "分析已開始", "status_url": "/api/insight-status"})
@@ -13118,6 +13143,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     def apply_report_with_cli(self, data: dict[str, list[str]]) -> None:
         rpt_id = form_value(data, "id")
         engine = form_value(data, "engine") or "claude"
+        if engine not in AI_PROVIDER_META:
+            engine = "claude"
         report = next((r for r in load_jsonl(INSIGHT_REPORTS) if r.get("id") == rpt_id), None)
         if not report:
             if self.is_async_request():
@@ -13125,7 +13152,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             else:
                 self.redirect("/insights?error=no-report")
             return
-        insight_status("running", f"已送出，準備用 {engine} 研究報告…", engine=engine, report_id=rpt_id)
+        insight_status("running", f"已送出，準備用 {ai_provider_label(engine)} 研究報告…", engine=engine, report_id=rpt_id)
         threading.Thread(target=run_apply_job, args=(report, engine), daemon=True).start()
         if self.is_async_request():
             self.send_json({"ok": True, "message": "實作已開始", "status_url": "/api/insight-status"})
@@ -14195,7 +14222,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         <div class="batch-ai-review">
           <p class="help" style="margin-top:10px">批次補 AI 閱讀建議（不改分流）</p>
           <div class="button-row">
-            <select id="batch-ai-engine" aria-label="選擇 AI 引擎">{option_list([("codex", "Codex"), ("claude", "Claude Code"), ("gemini", "Gemini")], "codex")}</select>
+            <select id="batch-ai-engine" aria-label="選擇 AI 引擎">{option_list([(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER], "codex")}</select>
             <button type="button" id="batch-ai-review" class="secondary">{button_content("批次跑 AI 閱讀建議", "wand", "I")}</button>
           </div>
           <p class="help">用選定引擎對勾選項目逐筆生成閱讀建議；進度看右下角狀態列，可能需要數分鐘。</p>
@@ -15880,8 +15907,8 @@ if (document.readyState === "loading") {{
       <summary class="button quiet">指定兩個 CLI</summary>
       <form data-pdf-split-specified>
         <input type="hidden" name="id" value="{h(item_id)}">
-        <select name="engine_a">{option_list([("codex", "Codex"), ("claude", "Claude Code"), ("gemini", "Gemini")], "codex")}</select>
-        <select name="engine_b">{option_list([("codex", "Codex"), ("claude", "Claude Code"), ("gemini", "Gemini")], "claude")}</select>
+        <select name="engine_a">{option_list([(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER], "codex")}</select>
+        <select name="engine_b">{option_list([(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER], "claude")}</select>
         <button type="submit" class="button button-small">產生兩份草案</button>
       </form>
     </details>
