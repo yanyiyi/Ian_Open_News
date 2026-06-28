@@ -131,9 +131,36 @@ AI_PROVIDER_META = {
         "translation_generated_key": "ollama_translation_generated_at",
         "translation_note_key": "ollama_translation_note",
     },
+    "ollama-gemma4": {
+        "label": "Ollama gemma4:12b MLX",
+        "short": "Ollama gemma4",
+        "review_key": "ollama_gemma4_review",
+        "translation_markdown_key": "ollama_gemma4_translated_article_markdown_zh",
+        "translation_title_key": "ollama_gemma4_translated_zh_title",
+        "translation_source_key": "ollama_gemma4_translation_source",
+        "translation_generated_key": "ollama_gemma4_translation_generated_at",
+        "translation_note_key": "ollama_gemma4_translation_note",
+        "model": "gemma4:12b-mlx",
+    },
+    "ollama-twinkle": {
+        "label": "Ollama Twinkle Gemma 3",
+        "short": "Ollama Twinkle",
+        "review_key": "ollama_twinkle_review",
+        "translation_markdown_key": "ollama_twinkle_translated_article_markdown_zh",
+        "translation_title_key": "ollama_twinkle_translated_zh_title",
+        "translation_source_key": "ollama_twinkle_translation_source",
+        "translation_generated_key": "ollama_twinkle_translation_generated_at",
+        "translation_note_key": "ollama_twinkle_translation_note",
+        "model": "TwinkleAI/gemma-3-4B-T1-it",
+    },
 }
-AI_PROVIDER_ORDER = ["codex", "claude", "gemini", "ollama"]
+AI_PROVIDER_ORDER = ["codex", "claude", "gemini", "ollama-gemma4", "ollama-twinkle"]
 DEFAULT_OLLAMA_MODEL = "TwinkleAI/gemma-3-4B-T1-it"
+OLLAMA_MODELS = {
+    "ollama": DEFAULT_OLLAMA_MODEL,
+    "ollama-gemma4": "gemma4:12b-mlx",
+    "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it",
+}
 # 標籤 taxonomy：每組 = (正式名, [可輸入的同義/別名])。
 # 分面（facet）由 TAG_FACETS 標示；同一面下的每個 group 就是一個子類。
 # 輸入任一別名都會正規化到正式名，且別名可被搜尋找到（help 找標籤）。
@@ -1629,8 +1656,8 @@ def _insight_cli_run(engine: str, prompt: str, status_label: str, timeout: int =
     elif engine == "claude":
         cmd = [cli, "-p", prompt, "--output-format", "json"]
         stdin_data = None
-    elif engine == "ollama":
-        cmd = [cli, "run", ollama_model(), "--nowordwrap", "--hidethinking"]
+    elif engine.startswith("ollama"):
+        cmd = [cli, "run", ollama_model(engine), "--nowordwrap", "--hidethinking"]
         stdin_data = prompt
     else:  # gemini → agy
         cmd = [cli, "--print", prompt]
@@ -8221,8 +8248,8 @@ def page(title: str, body: str) -> bytes:
     }}
   }});
 
-  const ENGINE_LABELS = {{ codex: "Codex", claude: "Claude", gemini: "Gemini", ollama: "Ollama CLI" }};
-  const ALL_ENGINES = ["codex", "claude", "gemini", "ollama"];
+  const ENGINE_LABELS = {json.dumps({provider: AI_PROVIDER_META[provider]["label"] for provider in AI_PROVIDER_ORDER}, ensure_ascii=False)};
+  const ALL_ENGINES = {json.dumps(AI_PROVIDER_ORDER, ensure_ascii=False)};
 
   // 共用 AI 工作執行器：隨機→失敗自動換其他 CLI（每次跳視窗）；指定引擎→只提醒、不自動換。
   window.runEngineJob = async ({{ label, url, baseBody, engine, onSuccess, statusUrl }}) => {{
@@ -9397,8 +9424,9 @@ def editor_cli_path(name: str) -> str | None:
     return None
 
 
-def ollama_model() -> str:
-    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or DEFAULT_OLLAMA_MODEL).strip()
+def ollama_model(engine: str = "ollama") -> str:
+    default = OLLAMA_MODELS.get(engine, DEFAULT_OLLAMA_MODEL)
+    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or default).strip()
     return model or DEFAULT_OLLAMA_MODEL
 
 
@@ -9408,6 +9436,8 @@ def editor_engine_status() -> dict[str, bool]:
         "codex": bool(editor_cli_path("codex")),
         "gemini": bool(editor_cli_path("agy")),
         "ollama": bool(editor_cli_path("ollama")),
+        "ollama-gemma4": bool(editor_cli_path("ollama")),
+        "ollama-twinkle": bool(editor_cli_path("ollama")),
     }
 
 
@@ -10919,7 +10949,7 @@ class Handler(BaseHTTPRequestHandler):
     <input type="hidden" name="items" data-selected-items>
     <div class="editor-control-grid">
       <label class="editor-label">模型
-        <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換其他可用 CLI）</option>{engine_option('gemini', 'Gemini')}{engine_option('claude', 'Claude CLI')}{engine_option('codex', 'Codex CLI')}{engine_option('ollama', 'Ollama CLI')}</select>
+        <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換其他可用 CLI）</option>{''.join(engine_option(provider, AI_PROVIDER_META[provider]['label']) for provider in AI_PROVIDER_ORDER)}</select>
       </label>
       <label class="editor-label">任務
         <select name="task_type" id="editor-task-type" class="editor-select">{task_options}</select>
@@ -11520,7 +11550,7 @@ class Handler(BaseHTTPRequestHandler):
     <input type="hidden" name="rerun_of" value="{h(session_id)}">
     <div class="editor-control-grid">
       <label class="editor-label">模型
-        <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換其他可用 CLI）</option>{toolbox_engine_option('gemini', 'Gemini')}{toolbox_engine_option('claude', 'Claude CLI')}{toolbox_engine_option('codex', 'Codex CLI')}{toolbox_engine_option('ollama', 'Ollama CLI')}</select>
+        <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換其他可用 CLI）</option>{''.join(toolbox_engine_option(provider, AI_PROVIDER_META[provider]['label']) for provider in AI_PROVIDER_ORDER)}</select>
       </label>
       <label class="editor-label">任務
         <select name="task_type" class="editor-select" data-toolbox-task>{toolbox_task_options}</select>
@@ -12538,12 +12568,10 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             notes_val = h(rpt.get("implementation_notes", ""))
             report_text = h(rpt.get("report_text", ""))
 
-            cli_buttons = "".join([
-                cli_button(rpt_id, "claude", "Claude"),
-                cli_button(rpt_id, "codex", "Codex"),
-                cli_button(rpt_id, "gemini", "Gemini"),
-                cli_button(rpt_id, "ollama", "Ollama"),
-            ])
+            cli_buttons = "".join(
+                cli_button(rpt_id, provider, AI_PROVIDER_META[provider]["short"])
+                for provider in AI_PROVIDER_ORDER
+            )
 
             runs_html = ""
             for run in (rpt.get("apply_runs") or []):

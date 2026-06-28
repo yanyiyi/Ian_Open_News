@@ -47,6 +47,8 @@ def item_markdown(item: dict[str, Any]) -> str:
         "claude_translated_article_markdown_zh",
         "gemini_translated_article_markdown_zh",
         "ollama_translated_article_markdown_zh",
+        "ollama_gemma4_translated_article_markdown_zh",
+        "ollama_twinkle_translated_article_markdown_zh",
         "article_markdown",
         "article_text",
     ):
@@ -151,8 +153,8 @@ def run_provider(provider: str, prompt: str, timeout: int) -> dict[str, Any]:
     elif provider == "gemini":
         command = [agy_path(), "--print", prompt]
         stdin_data = None
-    elif provider == "ollama":
-        command = [ollama_path(), "run", ollama_model(), "--format", "json", "--nowordwrap", "--hidethinking"]
+    elif provider.startswith("ollama"):
+        command = [ollama_path(), "run", ollama_model(provider), "--format", "json", "--nowordwrap", "--hidethinking"]
         stdin_data = prompt
     else:
         raise RuntimeError(f"不支援的 provider：{provider}")
@@ -192,7 +194,7 @@ def validate_proposal(payload: dict[str, Any], markdown: str) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Ask one local AI CLI for a PDF split proposal.")
     parser.add_argument("--item-id", required=True)
-    parser.add_argument("--provider", choices=["codex", "claude", "gemini", "ollama"], required=True)
+    parser.add_argument("--provider", choices=["codex", "claude", "gemini", "ollama", "ollama-gemma4", "ollama-twinkle"], required=True)
     parser.add_argument("--items", type=Path, default=ITEMS)
     parser.add_argument("--status-file", type=Path, default=STATUS)
     parser.add_argument("--timeout", type=int, default=1800)

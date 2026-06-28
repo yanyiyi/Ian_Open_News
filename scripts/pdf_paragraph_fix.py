@@ -18,8 +18,20 @@ ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "database" / "items.jsonl"
 CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
 DEFAULT_OLLAMA_MODEL = "TwinkleAI/gemma-3-4B-T1-it"
+OLLAMA_MODELS = {
+    "ollama": DEFAULT_OLLAMA_MODEL,
+    "ollama-gemma4": "gemma4:12b-mlx",
+    "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it",
+}
 
-PROVIDER_LABELS = {"codex": "Codex", "claude": "Claude Code", "gemini": "Gemini (agy)", "ollama": "Ollama CLI"}
+PROVIDER_LABELS = {
+    "codex": "Codex",
+    "claude": "Claude Code",
+    "gemini": "Gemini (agy)",
+    "ollama": "Ollama CLI",
+    "ollama-gemma4": "Ollama gemma4:12b MLX",
+    "ollama-twinkle": "Ollama Twinkle Gemma 3",
+}
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -79,14 +91,15 @@ def ollama_path() -> str:
     return _resolve("ollama", ["/opt/homebrew/bin/ollama", "/usr/local/bin/ollama"])
 
 
-def ollama_model() -> str:
-    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or DEFAULT_OLLAMA_MODEL).strip()
+def ollama_model(provider: str = "ollama") -> str:
+    default = OLLAMA_MODELS.get(provider, DEFAULT_OLLAMA_MODEL)
+    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or default).strip()
     return model or DEFAULT_OLLAMA_MODEL
 
 
 def available_providers() -> list[str]:
     out = []
-    for provider, finder in [("claude", claude_path), ("codex", codex_path), ("gemini", agy_path), ("ollama", ollama_path)]:
+    for provider, finder in [("claude", claude_path), ("codex", codex_path), ("gemini", agy_path), ("ollama-gemma4", ollama_path), ("ollama-twinkle", ollama_path)]:
         try:
             finder()
         except RuntimeError:
@@ -158,8 +171,8 @@ def run_gemini(prompt: str, timeout: int) -> str:
     return result.stdout
 
 
-def run_ollama(prompt: str, timeout: int) -> str:
-    model = ollama_model()
+def run_ollama(provider: str, prompt: str, timeout: int) -> str:
+    model = ollama_model(provider)
     command = [ollama_path(), "run", model, "--nowordwrap", "--hidethinking"]
     result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=base_env())
     if result.returncode != 0:
@@ -172,8 +185,8 @@ def run_provider(provider: str, prompt: str, timeout: int) -> str:
         return run_codex(prompt, timeout)
     if provider == "gemini":
         return run_gemini(prompt, timeout)
-    if provider == "ollama":
-        return run_ollama(prompt, timeout)
+    if provider.startswith("ollama"):
+        return run_ollama(provider, prompt, timeout)
     return run_claude(prompt, timeout)
 
 

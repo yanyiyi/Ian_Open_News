@@ -24,8 +24,14 @@ READER_STATUSES = {"triaged", "researching", "drafting", "reviewing", "fact-chec
 READER_ACTIONS = {"accepted-for-editing", "direct-pr-small-news", "revisit-with-personal-notes"}
 CURRENT_READING_PRIORITY_DAYS = 1
 DEFAULT_OLLAMA_MODEL = "TwinkleAI/gemma-3-4B-T1-it"
+OLLAMA_MODELS = {
+    "ollama": DEFAULT_OLLAMA_MODEL,
+    "ollama-gemma4": "gemma4:12b-mlx",
+    "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it",
+}
+ACTIVE_PROVIDER_ORDER = ["codex", "claude", "gemini", "ollama-gemma4", "ollama-twinkle"]
 # 隨機（--provider random）時每筆獨立抽引擎的加權比例。
-PROVIDER_WEIGHTS = {"codex": 35, "claude": 35, "gemini": 15, "ollama": 15}
+PROVIDER_WEIGHTS = {"codex": 30, "claude": 30, "gemini": 15, "ollama-gemma4": 13, "ollama-twinkle": 12}
 AI_PROVIDERS = {
     "codex": {
         "label": "Codex",
@@ -50,6 +56,20 @@ AI_PROVIDERS = {
         "review_key": "ollama_review",
         "generated_key": "ollama_generated_at",
         "generator": "ollama-cli",
+    },
+    "ollama-gemma4": {
+        "label": "Ollama gemma4:12b MLX",
+        "review_key": "ollama_gemma4_review",
+        "generated_key": "ollama_gemma4_generated_at",
+        "generator": "ollama-cli",
+        "model": "gemma4:12b-mlx",
+    },
+    "ollama-twinkle": {
+        "label": "Ollama Twinkle Gemma 3",
+        "review_key": "ollama_twinkle_review",
+        "generated_key": "ollama_twinkle_generated_at",
+        "generator": "ollama-cli",
+        "model": "TwinkleAI/gemma-3-4B-T1-it",
     },
 }
 
@@ -127,8 +147,9 @@ def ollama_path() -> str:
     raise RuntimeError("找不到 ollama CLI，請先安裝 Ollama，並設定 OLLAMA_MODEL 或 OLLAMA_CLI_MODEL。")
 
 
-def ollama_model() -> str:
-    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or DEFAULT_OLLAMA_MODEL).strip()
+def ollama_model(provider: str = "ollama") -> str:
+    default = OLLAMA_MODELS.get(provider, DEFAULT_OLLAMA_MODEL)
+    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or default).strip()
     return model or DEFAULT_OLLAMA_MODEL
 
 
@@ -268,7 +289,8 @@ def parse_cli_json(raw: str) -> dict[str, Any]:
 
 def available_providers() -> list[str]:
     available: list[str] = []
-    for provider, finder in [("codex", codex_path), ("claude", claude_path), ("gemini", agy_path), ("ollama", ollama_path)]:
+    for provider in ACTIVE_PROVIDER_ORDER:
+        finder = {"codex": codex_path, "claude": claude_path, "gemini": agy_path}.get(provider, ollama_path)
         try:
             finder()
         except RuntimeError:
@@ -660,14 +682,15 @@ def run_gemini(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[di
     return reviews
 
 
-def run_ollama(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[dict[str, Any]]:
+def run_ollama(batch: list[dict[str, Any]], args: argparse.Namespace, provider: str = "ollama") -> list[dict[str, Any]]:
     cache = ROOT / ".cache"
     cache.mkdir(exist_ok=True)
     schema = output_schema()
-    prompt = build_prompt(batch, "ollama")
+    prompt = build_prompt(batch, provider)
     prompt += f"\n\n請務必只輸出 JSON 物件，且完全符合以下 JSON Schema，不要任何額外說明或 markdown 包裝：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
-    (cache / "ollama-review-prompt.json").write_text(prompt, encoding="utf-8")
-    model = ollama_model()
+    safe_provider = re.sub(r"[^a-z0-9_-]+", "-", provider.lower())
+    (cache / f"{safe_provider}-review-prompt.json").write_text(prompt, encoding="utf-8")
+    model = ollama_model(provider)
     command = [
         ollama_path(),
         "run",
@@ -692,7 +715,7 @@ def run_ollama(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[di
             f"STDOUT:\n{result.stdout[-2000:]}\n"
             f"STDERR:\n{result.stderr[-2000:]}"
         )
-    (cache / "ollama-review-output.json").write_text(result.stdout, encoding="utf-8")
+    (cache / f"{safe_provider}-review-output.json").write_text(result.stdout, encoding="utf-8")
     payload = parse_cli_json(result.stdout)
     reviews = payload.get("reviews")
     if not isinstance(reviews, list):
@@ -705,8 +728,8 @@ def run_provider(batch: list[dict[str, Any]], args: argparse.Namespace, provider
         return run_claude(batch, args)
     if provider == "gemini":
         return run_gemini(batch, args)
-    if provider == "ollama":
-        return run_ollama(batch, args)
+    if provider.startswith("ollama"):
+        return run_ollama(batch, args, provider)
     return run_codex(batch, args)
 
 
@@ -764,6 +787,8 @@ def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]], 
             "needs_fulltext": bool(review.get("needs_fulltext")),
             "note": clean_text(review.get("note"), 500),
         }
+        if meta.get("model"):
+            provider_review["model"] = meta["model"]
         editorial[meta["review_key"]] = provider_review
         has_codex = isinstance(editorial.get("codex_review"), dict)
         if provider == "codex" or not has_codex:

@@ -18,11 +18,18 @@ from page_metadata import infer_language_from_text
 ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "database" / "items.jsonl"
 DEFAULT_OLLAMA_MODEL = "TwinkleAI/gemma-3-4B-T1-it"
+OLLAMA_MODELS = {
+    "ollama": DEFAULT_OLLAMA_MODEL,
+    "ollama-gemma4": "gemma4:12b-mlx",
+    "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it",
+}
 AI_PROVIDERS = {
     "codex": {"label": "Codex", "generator": "codex-cli"},
     "claude": {"label": "Claude Code", "generator": "claude-code-cli"},
     "gemini": {"label": "Gemini", "generator": "agy-cli"},
     "ollama": {"label": "Ollama CLI", "generator": "ollama-cli"},
+    "ollama-gemma4": {"label": "Ollama gemma4:12b MLX", "generator": "ollama-cli", "translation_prefix": "ollama_gemma4"},
+    "ollama-twinkle": {"label": "Ollama Twinkle Gemma 3", "generator": "ollama-cli", "translation_prefix": "ollama_twinkle"},
 }
 
 
@@ -101,8 +108,9 @@ def ollama_path() -> str:
     raise RuntimeError("找不到 ollama CLI，請先安裝 Ollama，並設定 OLLAMA_MODEL 或 OLLAMA_CLI_MODEL。")
 
 
-def ollama_model() -> str:
-    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or DEFAULT_OLLAMA_MODEL).strip()
+def ollama_model(provider: str = "ollama") -> str:
+    default = OLLAMA_MODELS.get(provider, DEFAULT_OLLAMA_MODEL)
+    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or default).strip()
     return model or DEFAULT_OLLAMA_MODEL
 
 
@@ -445,14 +453,15 @@ def run_gemini(record: dict[str, Any], markdown: str, language: str, timeout: in
     return payload
 
 
-def run_ollama(record: dict[str, Any], markdown: str, language: str, timeout: int) -> dict[str, Any]:
+def run_ollama(record: dict[str, Any], markdown: str, language: str, timeout: int, provider: str = "ollama") -> dict[str, Any]:
     cache = ROOT / ".cache"
     cache.mkdir(exist_ok=True)
     schema = output_schema()
-    prompt = build_prompt(record, markdown, language, "ollama")
+    prompt = build_prompt(record, markdown, language, provider)
     prompt += f"\n\n請務必只輸出 JSON 物件，且完全符合以下 JSON Schema，不要任何額外說明或 markdown 包裝：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
-    (cache / "ollama-translate-prompt.md").write_text(prompt, encoding="utf-8")
-    model = ollama_model()
+    safe_provider = re.sub(r"[^a-z0-9_-]+", "-", provider.lower())
+    (cache / f"{safe_provider}-translate-prompt.md").write_text(prompt, encoding="utf-8")
+    model = ollama_model(provider)
     command = [
         ollama_path(),
         "run",
@@ -477,7 +486,7 @@ def run_ollama(record: dict[str, Any], markdown: str, language: str, timeout: in
             f"STDOUT:\n{result.stdout[-2000:]}\n"
             f"STDERR:\n{result.stderr[-2000:]}"
         )
-    (cache / "ollama-translate-output.json").write_text(result.stdout, encoding="utf-8")
+    (cache / f"{safe_provider}-translate-output.json").write_text(result.stdout, encoding="utf-8")
     payload = parse_cli_json(result.stdout)
     if clean_text(payload.get("id")) != clean_text(record.get("id")):
         raise RuntimeError("Ollama output id mismatch")
@@ -491,8 +500,8 @@ def run_provider(record: dict[str, Any], markdown: str, language: str, provider:
         return run_claude(record, markdown, language, timeout)
     if provider == "gemini":
         return run_gemini(record, markdown, language, timeout)
-    if provider == "ollama":
-        return run_ollama(record, markdown, language, timeout)
+    if provider.startswith("ollama"):
+        return run_ollama(record, markdown, language, timeout, provider)
     return run_codex(record, markdown, language, timeout)
 
 
@@ -605,8 +614,8 @@ def run_gemini_text(prompt: str, timeout: int) -> str:
     return result.stdout
 
 
-def run_ollama_text(prompt: str, timeout: int) -> str:
-    model = ollama_model()
+def run_ollama_text(prompt: str, timeout: int, provider: str = "ollama") -> str:
+    model = ollama_model(provider)
     command = [ollama_path(), "run", model, "--nowordwrap", "--hidethinking"]
     result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=_text_env())
     if result.returncode != 0:
@@ -619,8 +628,8 @@ def run_chunk(provider: str, prompt: str, timeout: int) -> str:
         return strip_wrapping(run_claude_text(prompt, timeout))
     if provider == "gemini":
         return strip_wrapping(run_gemini_text(prompt, timeout))
-    if provider == "ollama":
-        return strip_wrapping(run_ollama_text(prompt, timeout))
+    if provider.startswith("ollama"):
+        return strip_wrapping(run_ollama_text(prompt, timeout, provider))
     return strip_wrapping(run_codex_text(prompt, timeout))
 
 
@@ -714,7 +723,7 @@ def apply_translation(record: dict[str, Any], payload: dict[str, Any], language:
     zh_title = clean_text(payload.get("zh_title"), 320)
     zh_markdown = clean_markdown(payload.get("zh_markdown"), 90000)
     source_label = provider_label(provider)
-    provider_prefix = provider if provider in {"claude", "gemini", "ollama"} else "codex"
+    provider_prefix = AI_PROVIDERS.get(provider, {}).get("translation_prefix") or (provider if provider in {"claude", "gemini", "ollama"} else "codex")
     metadata.update(
         {
             f"{provider_prefix}_translated_zh_title": zh_title,

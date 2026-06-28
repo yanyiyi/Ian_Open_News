@@ -34,6 +34,11 @@ SESSIONS = CACHE / "editor-sessions.jsonl"
 STATUS = CACHE / "editor-status.json"
 WRITING_STYLES = ROOT / "knowledge" / "writing-styles"
 DEFAULT_OLLAMA_MODEL = "TwinkleAI/gemma-3-4B-T1-it"
+OLLAMA_MODELS = {
+    "ollama": DEFAULT_OLLAMA_MODEL,
+    "ollama-gemma4": "gemma4:12b-mlx",
+    "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it",
+}
 
 
 def _parse_toolbox_state(raw: str) -> dict:
@@ -569,8 +574,9 @@ def _env() -> dict[str, str]:
     return env
 
 
-def ollama_model() -> str:
-    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or DEFAULT_OLLAMA_MODEL).strip()
+def ollama_model(engine: str = "ollama") -> str:
+    default = OLLAMA_MODELS.get(engine, DEFAULT_OLLAMA_MODEL)
+    model = (os.environ.get("OLLAMA_MODEL") or os.environ.get("OLLAMA_CLI_MODEL") or default).strip()
     return model or DEFAULT_OLLAMA_MODEL
 
 
@@ -632,14 +638,14 @@ def run_gemini(prompt: str, schema: dict | None, timeout: int, web: bool = False
     return clean_text_keep_markdown(result.stdout), "gemini"
 
 
-def run_ollama(prompt: str, schema: dict | None, timeout: int, web: bool = False) -> tuple[str, str]:
+def run_ollama(prompt: str, schema: dict | None, timeout: int, web: bool = False, engine: str = "ollama") -> tuple[str, str]:
     """回傳 (result_text, model)。Ollama 是本機模型，不支援需要 web search 的任務。"""
     if web:
         raise RuntimeError("Ollama CLI 是本機模型，這個任務需要可上網搜尋的 CLI；請改用 Codex、Claude 或 Gemini。")
     use_json_format = schema is not None
     if schema is not None:
         prompt += f"\n\n請務必只輸出 JSON 物件，且完全符合以下 JSON Schema，不要任何額外說明或 markdown 包裝：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
-    model = ollama_model()
+    model = ollama_model(engine)
     command = [cli_path("ollama"), "run", model, "--nowordwrap", "--hidethinking"]
     if use_json_format:
         command += ["--format", "json"]
@@ -793,7 +799,7 @@ def maybe_record_suggested_viewpoint(data: dict, records: list[dict], dry_run: b
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Ian Open News 編輯台 AI CLI 任務執行器")
-    parser.add_argument("--engine", choices=["claude", "codex", "gemini", "ollama"], required=True)
+    parser.add_argument("--engine", choices=["claude", "codex", "gemini", "ollama", "ollama-gemma4", "ollama-twinkle"], required=True)
     parser.add_argument("--task-type", choices=sorted(TASK_TYPES), required=True)
     parser.add_argument("--items", default="", help="逗號分隔的 item id")
     parser.add_argument("--choice", choices=["thematic", "digest"], default="")
@@ -848,8 +854,8 @@ def main() -> None:
             raw, model = run_codex(prompt, schema, args.timeout, web=web)
         elif args.engine == "gemini":
             raw, model = run_gemini(prompt, schema, args.timeout, web=web)
-        elif args.engine == "ollama":
-            raw, model = run_ollama(prompt, schema, args.timeout, web=web)
+        elif args.engine.startswith("ollama"):
+            raw, model = run_ollama(prompt, schema, args.timeout, web=web, engine=args.engine)
         else:
             raw, model = run_claude(prompt, args.timeout, web=web)
 

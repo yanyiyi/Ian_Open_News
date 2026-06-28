@@ -75,8 +75,8 @@ def run(provider: str, prompt: str, timeout: int) -> dict[str, Any]:
     elif provider == "gemini":
         command = [agy_path(), "--print", prompt]
         stdin_data = None
-    elif provider == "ollama":
-        command = [ollama_path(), "run", ollama_model(), "--format", "json", "--nowordwrap", "--hidethinking"]
+    elif provider.startswith("ollama"):
+        command = [ollama_path(), "run", ollama_model(provider), "--format", "json", "--nowordwrap", "--hidethinking"]
         stdin_data = prompt
     else:
         raise RuntimeError(f"不支援的 provider：{provider}")
@@ -90,7 +90,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Use one local AI CLI to confirm the relationship between a PDF item and another material.")
     parser.add_argument("--item-id", required=True)
     parser.add_argument("--candidate-id", required=True)
-    parser.add_argument("--provider", choices=["codex", "claude", "gemini", "ollama"], required=True)
+    parser.add_argument("--provider", choices=["codex", "claude", "gemini", "ollama", "ollama-gemma4", "ollama-twinkle"], required=True)
     parser.add_argument("--timeout", type=int, default=1200)
     args = parser.parse_args()
 
