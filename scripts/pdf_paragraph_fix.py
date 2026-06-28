@@ -160,7 +160,7 @@ def run_gemini(prompt: str, timeout: int) -> str:
 
 def run_ollama(prompt: str, timeout: int) -> str:
     model = ollama_model()
-    command = [ollama_path(), "run", model]
+    command = [ollama_path(), "run", model, "--nowordwrap", "--hidethinking"]
     result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=base_env())
     if result.returncode != 0:
         raise RuntimeError(f"ollama failed（model: {model}）\n{(result.stderr or result.stdout)[-800:]}")

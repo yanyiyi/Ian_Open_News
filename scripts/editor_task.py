@@ -636,10 +636,13 @@ def run_ollama(prompt: str, schema: dict | None, timeout: int, web: bool = False
     """回傳 (result_text, model)。Ollama 是本機模型，不支援需要 web search 的任務。"""
     if web:
         raise RuntimeError("Ollama CLI 是本機模型，這個任務需要可上網搜尋的 CLI；請改用 Codex、Claude 或 Gemini。")
+    use_json_format = schema is not None
     if schema is not None:
         prompt += f"\n\n請務必只輸出 JSON 物件，且完全符合以下 JSON Schema，不要任何額外說明或 markdown 包裝：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
     model = ollama_model()
-    command = [cli_path("ollama"), "run", model]
+    command = [cli_path("ollama"), "run", model, "--nowordwrap", "--hidethinking"]
+    if use_json_format:
+        command += ["--format", "json"]
     result = subprocess.run(
         command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=_env()
     )

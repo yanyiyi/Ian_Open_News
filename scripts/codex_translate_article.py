@@ -110,8 +110,86 @@ def provider_label(provider: str) -> str:
     return AI_PROVIDERS.get(provider, AI_PROVIDERS["codex"])["label"]
 
 
+def terminal_clean_text(text: str) -> str:
+    """Render common terminal control sequences so captured CLI output is parseable."""
+    lines: list[str] = []
+    line: list[str] = []
+    cursor = 0
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == "\x1b":
+            match = re.match(r"\x1b\[([0-9;?]*)([A-Za-z])", text[index:])
+            if match:
+                params = match.group(1)
+                command = match.group(2)
+                first_param = params.split(";", 1)[0].lstrip("?") if params else ""
+                amount = int(first_param) if first_param.isdigit() else 1
+                if command == "K":
+                    del line[cursor:]
+                elif command == "D":
+                    cursor = max(0, cursor - amount)
+                elif command == "C":
+                    cursor = min(len(line), cursor + amount)
+                index += len(match.group(0))
+                continue
+            index += 1
+            continue
+        if char == "\r":
+            cursor = 0
+        elif char == "\n":
+            lines.append("".join(line).rstrip())
+            line = []
+            cursor = 0
+        elif ord(char) < 32 and char not in {"\t"}:
+            pass
+        else:
+            while cursor > len(line):
+                line.append(" ")
+            if cursor == len(line):
+                line.append(char)
+            else:
+                line[cursor] = char
+            cursor += 1
+        index += 1
+    lines.append("".join(line).rstrip())
+    return "\n".join(lines)
+
+
+def escape_json_string_newlines(text: str) -> str:
+    out: list[str] = []
+    in_string = False
+    escaped = False
+    for char in text:
+        if not in_string:
+            out.append(char)
+            if char == '"':
+                in_string = True
+            continue
+        if escaped:
+            out.append(char)
+            escaped = False
+        elif char == "\\":
+            out.append(char)
+            escaped = True
+        elif char == '"':
+            out.append(char)
+            in_string = False
+        elif char == "\n":
+            out.append("\\n")
+        elif char == "\t":
+            out.append("\\t")
+        else:
+            out.append(char)
+    return "".join(out)
+
+
+def prepare_json_candidate(text: str) -> str:
+    return escape_json_string_newlines(terminal_clean_text(text)).strip()
+
+
 def load_json_from_text(text: str) -> Any:
-    raw = text.strip()
+    raw = prepare_json_candidate(text)
     if not raw:
         raise RuntimeError("model output is empty")
     candidates = [raw]
@@ -128,7 +206,10 @@ def load_json_from_text(text: str) -> Any:
         try:
             return json.loads(candidate)
         except json.JSONDecodeError:
-            continue
+            try:
+                return json.loads(prepare_json_candidate(candidate))
+            except json.JSONDecodeError:
+                continue
     raise RuntimeError("model output missing valid JSON payload")
 
 
@@ -376,6 +457,10 @@ def run_ollama(record: dict[str, Any], markdown: str, language: str, timeout: in
         ollama_path(),
         "run",
         model,
+        "--format",
+        "json",
+        "--nowordwrap",
+        "--hidethinking",
     ]
     result = subprocess.run(
         command,
@@ -522,7 +607,7 @@ def run_gemini_text(prompt: str, timeout: int) -> str:
 
 def run_ollama_text(prompt: str, timeout: int) -> str:
     model = ollama_model()
-    command = [ollama_path(), "run", model]
+    command = [ollama_path(), "run", model, "--nowordwrap", "--hidethinking"]
     result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=_text_env())
     if result.returncode != 0:
         raise RuntimeError(f"ollama run failed（model: {model}）\n{result.stderr[-1500:] or result.stdout[-1500:]}")

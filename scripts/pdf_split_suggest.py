@@ -152,7 +152,7 @@ def run_provider(provider: str, prompt: str, timeout: int) -> dict[str, Any]:
         command = [agy_path(), "--print", prompt]
         stdin_data = None
     elif provider == "ollama":
-        command = [ollama_path(), "run", ollama_model()]
+        command = [ollama_path(), "run", ollama_model(), "--format", "json", "--nowordwrap", "--hidethinking"]
         stdin_data = prompt
     else:
         raise RuntimeError(f"不支援的 provider：{provider}")

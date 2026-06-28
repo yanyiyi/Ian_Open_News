@@ -1630,7 +1630,7 @@ def _insight_cli_run(engine: str, prompt: str, status_label: str, timeout: int =
         cmd = [cli, "-p", prompt, "--output-format", "json"]
         stdin_data = None
     elif engine == "ollama":
-        cmd = [cli, "run", ollama_model()]
+        cmd = [cli, "run", ollama_model(), "--nowordwrap", "--hidethinking"]
         stdin_data = prompt
     else:  # gemini → agy
         cmd = [cli, "--print", prompt]
