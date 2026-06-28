@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -551,23 +551,55 @@
       <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-25 08:00</span></div>
       <h1><a class="article-title-link" href="https://thenewstack.io/how-cut-ai-costs/" target="_blank" rel="noreferrer" title="開啟原始連結">我們如何把 AI 成本降低 80%</a></h1>
       <p class="lede">目前可見資訊只有文章標題與一小段未完成摘要，指出 AI 成本正在上升，且原因不只是模型本身變貴。除此之外沒有提供具體做法、組織背景、成本結構或成效證據，因此無法根據現有材料判斷其技術或政策價值。</p>
-      <div class="tag-chip-list"><span class="tag-chip">AI agents</span></div>
+      <div class="tag-chip-list"><span class="tag-chip">AI Agents</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://cdn.thenewstack.io/media/2026/06/e6bf2f29-eva-wahyuni-qn5hziknhlg-unsplash-scaled.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>How we cut AI costs by 80%</h1>
+<p>In total, we ran 12,000 queries and measured token usage for every query.</p>
+<h3>The results</h3>
+<p>Here’s the full average cost breakdown per query across all four conditions and three models:</p>
+<p>In percentage terms vs. baseline:</p>
+<ul>
+<li>Context lake with skills is consistently 80% cheaper than Claude + MCPs across every model.</li>
+<li>Haiku dropped from $0.087 to $0.018, Sonnet from $0.333 to $0.059, and Opus from $1.761 to $0.354. The savings hold regardless of which model you’re using.</li>
+<li>Expensive models become more viable for everyday queries with a context lake. Opus at $1.761 per query is something you’d normally reserve for the most critical tasks. At context lake prices, that same Opus query costs $0.354 – still the most expensive option, but within range for common use.</li>
+</ul>
+<p>The effect of skills surprised us in a couple of ways:</p>
+<p>Adding a skill to Claude + MCPs actually made things worse: 18% more expensive on Haiku, 13% on Sonnet, 24% on Opus. We expected routing guidance to help agents take more direct paths. What actually happened was that agents followed the skill file like a checklist, executing every step in order rather than reasoning about what they actually needed.</p>
+<p>On the context lake, the skill file did help, but in a different way. The data was already joined, so the agent wasn’t making redundant calls. The skill file’s only job was to point toward the right entry point.</p>
+<p>Skill files aren’t a bad idea, but they’re not a silver bullet. They seem to work better when the underlying data is already well-structured.</p>
+<h3>What makes the context lake more efficient</h3>
+<p>A context lake is a continuously updated, unified knowledge layer that connects all your organizational data, such as services, teams, incidents, deployments, and tickets, into a single structured model with explicit relationships. Agents query it instead of querying individual tools.</p>
+<blockquote>“The agent never has to reason about how things connect, because that’s already baked into the data model.”</blockquote>
+<p>Two characteristics of context lake help agents fetch context more efficiently:</p>
+<ul>
+<li><strong>Pre-joined data.</strong> In a direct-to-MCP setup, the agent is the one connecting entities, using partial results from tools that don’t know about each other. Every query reinvents the same connections. In the catalog, a <code>service</code> entity already knows its team, repo, PagerDuty service, and Jira project. The agent reads one thing and gets the full picture. The efficiency gain isn’t just fewer calls. It’s that the agent never has to reason about <em>how</em> things connect, because that’s already baked into the data model.</li>
+<li><strong>Data shortcuts.</strong> Mirror and aggregation properties can shorten paths between data points. For example, <code>service.on_call</code> isn’t a relation the agent traverses. It’s a field already populated by mirroring <code>team.on_call_user</code> at sync time. <code>open_incident_count</code> isn’t something the agent has to count; it’s stored. When an agent counts incidents by querying each service one by one, it’s spending tokens on arithmetic that could have been done once. The catalog does that work at ingestion and serves the result directly.</li>
+</ul>
+<h3>What it all means</h3>
+<p>If you’re building with agents today, here’s what you should take with you:</p>
+<ul>
+<li>You probably don’t need the most expensive model for most of your queries. Haiku handled a significant portion of our test cases adequately, and if your data layer is efficient, the cheaper model has less context to wade through anyway.</li>
+<li>Platform engineering needs to own context management. Right now, most organizations treat agent costs as an agent problem: tune the prompt, add more tools, and hope the model figures it out. But the agent is just responding to whatever structure it’s given. If the data is fragmented, the agent will hop. And that’s expensive.</li>
+<li>The context window is a managed resource with a budget. Someone has to own it, and platform engineering is the right team for the job.</li>
+<li>Pre-integrating data into a shared model moves the work from inference time to ingestion time. You pay to build the relations once; every subsequent query is cheaper. Those savings get better the more you use them.</li>
+</ul>
+<p>To read more about context lake, check out: <a href="https://www.port.io/blog/why-ai-agents-need-a-context-lake" target="_blank" rel="noreferrer">Why agents need a context lake</a>.</p>
+<p>¹<em>Shiva Varma, “How to Manage Token Costs for Custom-Built AI Agents,” Gartner, 26 March 2026.</em></p>
+<p>Community created roadmaps, articles, resources and journeys for developers to help you choose your path and grow in your career.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
-<a class="article-sequence-link" href="item-13e17800c6d61a24.html">
+<a class="article-sequence-link" href="item-186ea0af63478a58.html">
   <span class="article-sequence-label">上一則</span>
-  <span class="article-sequence-title">2026 歐洲開源安全論壇</span>
+  <span class="article-sequence-title">用 Kubernetes、Argo CD 與 GitOps 建置具叢集感知能力的 AI Agent</span>
 </a>
 
-<a class="article-sequence-link" href="item-08cdec8e9f1691c0.html">
+<a class="article-sequence-link" href="item-fb7e35b8eed03f42.html">
   <span class="article-sequence-label">下一則</span>
-  <span class="article-sequence-title">OSI 參與巴西年齡驗證政策諮詢，籲兼顧開源軟體特性</span>
+  <span class="article-sequence-title">咖啡講座：歐盟法案與數位研究資助</span>
 </a>
 </nav>
   </div>
@@ -580,7 +612,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-78652f454816b0c7.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：How we cut AI costs by 80%</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Zohar Einy</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：How we cut AI costs by 80%（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>原始作者</strong>：Zohar Einy（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-25T16:45:30+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

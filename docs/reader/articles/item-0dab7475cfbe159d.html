@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>建構開放，或打開基礎設施？ - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-26 12:45</span></div>
+      <h1><a class="article-title-link" href="https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.15" target="_blank" rel="noreferrer" title="開啟原始連結">建構開放，或打開基礎設施？</a></h1>
+      <p class="lede">這是一段訪談內容，圍繞「打開基礎設施」與「建構開放」的差異。Pelizza 認為基礎設施的權力不是固定持有，而是在關係安排中形成；開放也不能預先由是否採用開源軟體決定。她的研究涵蓋義大利與荷蘭的政府資訊互通性，以及歐洲邊境移民登記與識別中心中的低技術物件如何參與治理。整體重點是資料基礎設施、制度變遷與權力關係。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開放資料</span><span class="tag-chip">Open Knowledge</span><span class="tag-chip">interoperability</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.openbookpublishers.com/small_obp_logo_high_res_8ad3ef43d4.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>The Politics of Open Infrastructures - 15. Infrastructuring Openness or Opening Infrastructures?</h1>
+<h2>15. Infrastructuring Openness or Opening Infrastructures?</h2>
+<h2>Annalisa Pelizza and Renée Ridgway</h2>
+<p>©2026 A. Pelizza &amp; R. Ridgway, CC BY-NC 4.0 <a href="https://doi.org/10.11647/OBP.0528.15" target="_blank" rel="noreferrer">https://doi.org/10.11647/OBP.0528.15</a></p>
+<p><strong>RR</strong>: Today I’m conversing with Prof. Annalisa Pelizza. Annalisa and I both work at Aarhus University in the Digital Design and Information Studies department. We, the editors of this volume, invited Annalisa to talk about her research on infrastructures through the lens of the <em>Politics of Open Infrastructures</em>. To begin, how would you frame the notion of open infrastructures?</p>
+<p><strong>AP:</strong> Thank you for this opportunity to have a dialogue about a key topic in the infrastructure studies community. I wondered about your question when I read the book call. To begin, I suggest that infrastructures are always to be considered in the ‘ing’ form. And that’s what the scholarship of Barbara Czarniawska has stressed: her work foregrounded ‘organizing’ more than ‘organizations’ (2014). That’s even more important for infrastructures––focusing on the dynamics of connecting or disconnecting rather than on stabilised objects. This being said, ‘ open infrastructures’ made me wonder whether we’re talking about ‘infrastructuring openness’ or ‘opening infrastructures.’ The first case might sound a bit deterministic, because what is ‘ openness’ for someone might not be ‘ openness’ for someone else. ‘Opening infrastructures’ is more interesting for me because it triggers questions about how do we know infrastructures and how do we methodologically study infrastructures. How do we as researchers open them up? But also, how can we follow power in infrastructures?</p>
+<p>I also see a temporal dimension about ‘opening infrastructures.’ How long can we keep infrastructures open in order to study and transform them? How can we concomitantly make them more symmetrical, more just and fair? I feel that we need to study infrastructures in their everyday operational activities. How do we keep infrastructures open to study them not only during breakdowns or during their design stages, but also in their mundane operations? This is particularly important with data infrastructures that shape the minor details of our lives. Also, concerning a broader time frame, how do we keep infrastructures open to be acted upon with a long-term perspective? Some colleagues in information infrastructure studies call for longitudinal studies (Pollock and Williams 2008). But longitudinal studies are also very inconvenient because they don’t fit to contemporary academia. Let’s think of a PhD career that is three or four years long. How could a PhD conduct longitudinal studies? Does it mean that information infrastructures can only be kept open by tenured researchers? My idea of ‘opening infrastructures’ is linked to all these methodological issues, which are, in turn, deeply linked with the organisation of research.</p>
+<p><strong>RR:</strong> That’s helpful because besides ‘ openness,’ the book focuses on knowledge infrastructures and how they relate to not only the political but also questions of power. You said that an infrastructure in itself does not have power. Could you talk more about this relationship?</p>
+<p><strong>AP:</strong> I see at least four, maybe five, ways in which science and technology studies or infrastructure studies have addressed power and the political. Among these, I adopt a relational understanding of power. I don’t think that power is a substance that somebody holds; it’s not an object that circulates. Power is the result of how a relationship unfolds. An infrastructure doesn’t ‘have’ power because infrastructuring is always about arranging relations, and such relations are dynamic. The outcome of an infrastructure can be multiple and contingent.</p>
+<p><strong>RR:</strong> Could you please share some of your research as an example?</p>
+<p><strong>AP:</strong> In 2021, I published an article in the *Journal of**Information Technology* based on research in which I analyzed the process of making governmental information infrastructures interoperable in two different contexts. One was Italy, the other one was the Netherlands. The former was about making two administrative systems interoperable, and the latter about making the land registry ecosystem interoperable. Both cases used open-source software. So you might expect that openness is inscribed already in open-source software. Openness is at least the goal of open source. And still, the way interoperability was achieved in the two cases had different outcomes. One case finished up by excluding the same civil servants who were commissioning the job, the other case to exclude potential suppliers and keeping the job in-house, within the government. So that’s an example of how the outcome of an infrastructure can be multiple and contingent. Openness is not defined a priori exclusively by the fact that open-source software is used.</p>
+<p><strong>RR:</strong> That’s really interesting, my chapter is actually about the value of openness in regard to FOSS, FLOSS, or open-source software. There I draw on Star (1999) and Star and Ruhleder’s (1994) use of the term ‘ecological’ and that they’re relational material constructs made by humans, never ‘just a thing,’ as it’s about the network surrounding them and the actors involved. In your research in Italy and the Netherlands, humans were involved in the entire process. You discuss openness through the interoperability of infrastructures and how it reorders institutions, but in other research you call it a ‘vector glance,’ to refer to how interoperability also constructs people in different ways.</p>
+<p><strong>AP:</strong> What I like about ‘infrastructuring’ is that it is a set of practices that extend in time and space, or material practices that you don’t know beforehand, but you can see how boundaries are a network of practices. It’s very difficult for me to say that something is a network and that something surrounding the network is external to it. In a sense, artifacts and actors, humans or non-humans emerge in their being part of the practices and being part of the network. And it’s going to shift accordingly. I don’t distinguish ‘the ecological’ as a substance. I look at ecology as networks of parts, be them humans or non-humans interacting and not simply as standing as a backdrop. So in that sense, in my research an actor can be a human but also a bracelet (Pelizza 2020). I conducted research at migrant registration and identification centres at European borders, at the so-called ‘Hotspots.’ People rescued at sea are given bracelets by NGO operators, and they wear these technologies, very low-tech artifacts that sort them on board. These bracelets do things to people. Therefore, they have agency. And this agency can be the one intended by humans, but can also be, or turn out to be, some other form of agency. For example, bracelets can articulate much broader relationships between, in this case, NGOs and the state apparatus. If positioned in a given space-time, bracelets can have agency, can force the state to act in a certain way––for example, by treating people before fingerprinting them. Otherwise, in other positions in the infrastructure, they can be meaningless and there...</p>
+<p><strong>RR:</strong> ‘Opening infrastructures’ is both a methodological entry point and consists of multiple and contingent agents, right? Yet when is an infrastructure finished?</p>
+<p><strong>AP</strong>: A finished infrastructure for someone might be an impediment for others: again, this has to do with power. There is also an ontoepistemic dimension to that. I once wrote about this with Claudia Aradau in an introduction to a special issue in <em>Science, Technology and Human Values</em>(Pelizza and Aradau 2024), by developing the idea of contingency and obduracy that has obsessed me for quite some time. So ‘when it’s an infrastructure, obdurate or established, it is finished.’ But we have always understood infrastructures as contingent, as always becoming, as always emerging in use and not only in design, haven’t we? I don’t think we can only stick to the postmodern understanding of contingency. We should also account for how things <em>become</em> obdurate, and this is what infrastructures are trying to do, in a way that it is not the very rigid distinction between structure and agency. When is an infrastructure finished? I don’t think infrastructures can ever be finished, because they can always be reworked. But surely it can be in operation, which means that a trade-off between its continuous becoming and its enabling character has been reached. And there are costs to rework an infrastructure, to reopen it. These costs might be epistemic, might be financial, might be organisational, might be labour-related.</p>
+<p><strong>RR</strong><strong>:</strong> Could you cite a case, or an example?</p>
+<p><strong>AP:</strong> I see this very clearly when I work on government information infrastructures. A lot of government information infrastructures are failed infrastructures. Not only are governmental agencies lagging behind the private sector and all those kinds of discussions, which in my work I have tried to historicise. Private infrastructures can also fail! The point is that when it comes to public spending, infrastructures cannot be said to have failed. They have to be obdurate. They have to become stabilised. And that’s part of the state as an ‘effect,’ as Mitchell (1991) called it. I would say that infrastructures are finished when they are said by some actors to be finished. Then it comes to the point of what is the power of enforcement of those actors.</p>
+<p><strong>RR</strong>: Could you apply this to your research on European borders?</p>
+<p><strong>AP:</strong> If a person who is on the move, someone who is usually called a ‘migrant,’ says that an infrastructure failed, this doesn’t have the same effect of someone from the IT department in the Ministry of Interior saying that infrastructure has failed or, on the contrary, that the infrastructure is finished.</p>
+<p><strong>RR</strong>: Is this another way to phrase what you call ‘active enunciation?’</p>
+<p><strong>AP</strong>: Exactly. I actually have a background in the theory of language, but when I was a PhD student I went into more material-related understandings. Yet I still hang on to this idea of an act of enunciation where enunciation is not just discursive––it can also be an act of design or of using an artifact. In that sense I connected to the lesson of Latour, whose work I approached as a student from a socio-semiotic perspective.</p>
+<p><strong>RR</strong>: Technology is society made durable?</p>
+<p><strong>AP:</strong> Yeah, exactly. It’s basically a matter of how agency travels. Through acts of translation. And then it’s not that any act of translation is equivalent. Definitely not. It’s always a betrayal.</p>
+<p><strong>RR:</strong> Are there more tools that can help us understand how language is being captured as data at borders? There is an applicant and there is an interpreter.</p>
+<p><strong>AP:</strong> Applicants are identified several times, not just once. We called it ‘re-identification’ (Van Rossem and Pelizza 2025). There are iterations of identifications. But each iteration uses a different materiality. And this is how infrastructures become obdurate or finished, going back to the idea of finishing an infrastructure. Imagine there is an officer, the interpreter and the applicants (see Pelizza 2021b). Their interaction is mediated by a computer, but it’s also mediated by a piece of paper. And the applicants give their name orally. Voice is already one form of materiality. Which is not the same as writing the name on the piece of paper nor is it the same as writing on a digital system interface.</p>
+<p>Why isn’t that the same as typing the name into a digital system, or a database? Well, because giving the name orally is in the here-and-now––what can be reproduced is only the sound. Then writing the name on a piece of paper adds a further element, which is transliterating, for example, an Arabic sound into writing. And this writing should usually be in Latin fonts, not in Arabic fonts. So, this is already a form of betrayal. What I also noticed is that a lot goes on around that piece of paper circulating among applicant, interpreter and officer. Only once there is a shared transliteration, the name is registered in the digital database. Why? Because the digital database travels across time and space. Not even the officer inputting the name knows who will read the name at some point throughout Europe. This is very different from having a negotiation among three persons at the same table in the same moment. These are three forms of materiality that involve different actors and they have different power outcomes, of course.</p>
+<p><strong>RR:</strong> What just came to mind is how the established notion of a boundary object changes––the written compared to the digital database. This is the problem with data privacy and data digital information as it can be used in one way and then it travels to all these different actors and we don’t know where it’s going to wind up. Even when it was written on paper in the archives it had a kind of static life, though various parties could access it, another distinction from being in the here-and-now of the world. Bringing this back to classical STS infrastructure studies, what came to mind in regard to ‘opening infrastructures’ is how the boundary object can travel yet it retains something that’s recognizable even though it could be a database, a folder or a map. Mongili and Pellegrino’s book relates to information infrastructures that are not something only made by information (2014). They are made of heterogeneous elements. This ‘opening up’ of infrastructures and these boundaries converge quite literally in regard to your research on borders.</p>
+<p><strong>AP:</strong> I agree. At the moment, what is interesting for me is which kind of boundaries do objects articulate? Where does the object operate the cut? Star discusses, together with Bowker (1999), that infrastructures are not just a kind of object. The most important issue to me is that infrastructures define communities of practice and are defined by the communities of practice. Where are the boundaries? Where are the cuts drawn? For me, that’s where the political lies. You enquired whether there is a kind of essential core that remains in the boundary object. I don’t think that we need to adopt an essentialist understanding when we talk about boundary objects. We can always keep a relational understanding, even if we are looking for what stays, what remains obdurate.</p>
+<p><strong>RR:</strong> In a way, it goes back into contingency and obduracy that you mentioned before. Somewhere you mentioned the relationship to how, or where socio-materiality lies in rethinking the synergies between STS and information infrastructure studies in the age of datafication. Yet where do the boundaries lie? Even with STS? How does information infrastructure studies play into this? Because there’s this engagement with the technical artifacts and then there’s different trends going on and specific fields of studies in regard to these epistemological debates and theoretical insights.</p>
+<p>With this line of reasoning, you define information infrastructures as not something that’s only made by information. This would be illogical given that infrastructures are made of heterogeneous elements. Rather, information knowledge goes back to knowledge infrastructures and data, what they are expected to produce. At least, if you’re looking at them at first sight. Is your argument that they produce more new legislation, new organisations, de facto new actors?</p>
+<p><strong>AP:</strong> Yes, that’s basically the argument I am trying to develop in the long-term. The production of information, data and knowledge is the normative goal that justifies the development of these infrastructures. But that doesn’t mean that infrastructures are made only of information, data, etcetera. Infrastructures are also made of laws, or organisational practices and absolutely, people. Information, data and knowledge are what is expected to be the outcomes. But my idea is rather that also new assemblages of actors as organisations are made by producing information and by infrastructuring for information production. New de facto articulations of actors.</p>
+<p><strong>RR</strong>: Would the governance project be a concrete example?</p>
+<p>AP: The Processing Citizenship project on the digital identification of people on the move at the European borders provided some examples. 1 Migration management in Europe is based on the so called ‘Dublin system,’ a legal framework that established that if someone has lodged an asylum application in a Member State, they cannot lodge a second application in another Member State. <em>Eurodac</em> and the multi-level data infrastructure for migration management implement this legal provision. Dublin units have been established in the ministries of interior of EU Member States as organisational units dealing with this sociotechnical process. They didn’t exist before the introduction of the security infrastructure for migration management. These units are not formally new, they are made of people who were already working there, but they are endowed with new functions, and they are connected across borders. Sometimes they have to hire new people. In any case, the important aspect is the fact that Dublin units coordinate across Europe in a way that they create a community of practice. If you don’t follow the infrastructure, you won’t be able to see it. You just see the Ministry of Interior.</p>
+<p>Now I am working on the European digital identity wallet in the ‘Governance by Infrastructure’ project. Also at the supranational level we see new actors emerging that didn’t exist before. For example, the agencies releasing an ‘electronic attestation of attributes.’ They might be new or old organisational bodies but the point is that they have new functions and they need to be created inside organisations to deal with the issues raised by the European electronic identity. Therefore, these key actors in the infrastructure for European electronic identity are somehow new. It’s not important whether these people were already working there or they were hired from scratch. The point is that these are aggregations that have new functions and deal with new problems, with new challenges that didn’t exist before.</p>
+<p><strong>RR:</strong> If governance is conceived as a de facto outcome of infrastructure, is this result based on ‘opening infrastructures’? Because you’re saying we have a more open perspective about what the potentials are. The digitalisation for institutional geography of responsibilitiesis a more ethical response or the possibilities emerging within citizen science and with the way that ‘opening infrastructures’ can evolve. Is that also part of your project about governance by infrastructures?</p>
+<p><strong>AP:</strong> I have wondered whether digital infrastructures have become a trap. They were developed decades ago pursuing transparency, exchange and in some cases efficiency. Since then, they have been appropriated and reused in ways that enhance control, but also the taking over of the means of data production by actors who have a disproportionate power of enforcement (Pelizza 2018). With this, I’m referring indeed to the fact that a lot of infrastructures have been turned around for different purposes than for what they were originally designed. There is ‘scope creep’ going on in many fields, especially governmental infrastructures. Look at the Bureau of Fiscal Service, which is a branch of the US Treasury Department that is responsible for almost ninety percent of federal payments, created with the goal of paying employees and contractors, etc. In February 2025 the staff from DOGE in the US tried to get access to their very sensitive information systems, and apparently, they got access to it and turned user information over to this or that infrastructure for use in different purposes. The point is that digital infrastructures are always open for contingency and different uses than they were designed for.</p>
+<p><strong>RR:</strong>There are people really trying to come up with other alternatives to Big Tech. I think the Euro Stack is the next thing on the agenda for Europe as well as the digital wallet project. People are also promoting “ open source,” but what type of open source? It is not just a business model or co-opting the commons but media hype. How can we as Europe proffer a response as a kind of pushback? Maybe through these types of projects. Or by reconfiguring ethical considerations and obligations or handling personal biometric health and environmental health data from the perspective of STS, critical data studies, and critical infrastructure studies as well.</p>
+<p><strong>AP</strong>: I agree with the idea that somehow we can’t just circulate data on Silicon Valley platforms. You made the example of citizen science, which is a way to produce knowledge that produces also communities of practice that are very different from actors that are enacted by data circulated on Facebook or Instagram.</p>
+<p><strong>RR:</strong> Because what I’ve learned from talking with you is that ‘opening infrastructures’ is about producing communities and not just producing data, which ties back to how relationality, or an ecology is not just about things. It’s about all these different actors and actants coming together. In a way, if I may say, you’re doing an ‘infrastructural inversion,’ but then you’re doing it by saying, I think it’s about ‘opening infrastructures,’ not ‘infrastructuring openness.’</p>
+<p><strong>AP:</strong> Yes, I don’t want to bring in a deterministic perspective. Instead, an interesting direction of research is the difference between infrastructuring and research on infrastructures and research on social media. There’s a lot of research going on at the moment on platformisation. Within the community on information infrastructures, we are trying to keep it distinct, as infrastructural boundaries are not clear-cut. We know who owns platforms, we know who develops platforms. Infrastructures is a concept that was born in the nineties. And in that sense, it keeps an indeterminate perspective. Infrastructures are not owned by only one company. So infrastructures are also integrations that continue to become. And somehow they are much broader than platforms.</p>
+<p><strong>RR:</strong> On behalf of Astrid and Katja, we thank you for this conversation.</p>
+<h2>References</h2>
+<p>Bowker, G. C., and S. L. Star. 2000. *Sorting Things**Out: Classification and Its Consequences*. Cambridge, MA: The MIT Press.</p>
+<p>Czarniawska, B. 2014. <em>A Theory of Organizing</em>. Cheltenham: Edward Elgar Publishing.</p>
+<p>Mitchell, T. 1991. ‘The Limits of the State: Beyond Statist Approaches and their Critics.’ <em>American Political Science Review</em> <em>85</em>(1): 77–96.</p>
+<p>Mongili, A., and G. Pellegrino (edited by). 2014. *Information**Infrastructure(s): Boundaries, Ecologies, Multiplicity*. Cambridge: Cambridge Scholars Publishing.</p>
+<p>Pelizza, A. 2018. *Communities at a Crossroads. Material Semiotics for Online**Sociability in the Fade of Cyberculture*. Amsterdam: Institute of Networked Cultures. <a href="https://networkcultures.org/blog/publication/tod-28-communities-at-a-crossroads/" target="_blank" rel="noreferrer">https://networkcultures.org/blog/publication/tod-28-communities-at-a-crossroads/</a></p>
+<p>—. 2020. ‘Processing Alterity, Enacting Europe. Migrant Registration and Identification as Co-construction of Individuals and Polities.’ *Science**, Technology and Human Values* 45 (2): 262–288. <a href="https://doi.org/10.1177/0162243919827927" target="_blank" rel="noreferrer">https://doi.org/10.1177/0162243919827927</a></p>
+<p>—. 2021a. ‘Towards a Sociomaterial Approach to Inter-organizational Boundaries. How Information Systems Elicit Relevant Knowledge in Government Outsourcing.’ <em>Journal of Information Technology</em> 36 (2): 94–108. <a href="https://doi.org/10.1177/0268396220934490" target="_blank" rel="noreferrer">https://doi.org/10.1177/0268396220934490</a></p>
+<p>—. 2021b. ‘Identification as Translation: The Art of Choosing the Right Spokespersons at the Securitized Border.’ <em>Social Studies of Science</em> 51 (4): 487–511. <a href="https://doi.org/10.1177/0306312720983932" target="_blank" rel="noreferrer">https://doi.org/10.1177/0306312720983932</a></p>
+<p>Pelizza, A., and C. Aradau. 2024. ‘Scripts of Security: Between Contingency and Obduracy.’ <em>Science, Technology &amp; Human Values</em> 49 (4): 723–738. <a href="https://doi.org/10.1177/016224392412588" target="_blank" rel="noreferrer">https://doi.org/10.1177/016224392412588</a></p>
+<p>Pollock, N., and R. Williams. 2008. <em>Software and Organisations<strong>: The Biography of the Enterprise-Wide System or How SAP</strong>Conquered the World</em>. London: Routledge. <a href="https://doi.org/10.4324/9780203891940" target="_blank" rel="noreferrer">https://doi.org/10.4324/9780203891940</a></p>
+<p>Star, S. L. 1999. ‘The Ethnography of Infrastructure.’ <em>American Behavioral Scientist</em> 43 (3): 377–391.</p>
+<p>Star, S. L., and K. Ruhleder. 1994. ‘Steps towards an Ecology of Infrastructure: Complex Problems in Design and Access for Large-scale Collaborative Systems’. *Proceedings of the**1994 ACM conference on Computer Supported Cooperative Work*: 253–264. <a href="https://doi.org/10.1145/192844.193021" target="_blank" rel="noreferrer">https://doi.org/10.1145/192844.193021</a></p>
+<p>Van Rossem, W., and A. Pelizza. 2025. ‘Bridging Silos or Adding Friction? The Data Work behind Re-identification across Interoperable Data Infrastructures.’ <em>Big Data &amp; Society</em> 12 (4): 1–14. <a href="https://doi.org/10.1177/2053951725" target="_blank" rel="noreferrer">https://doi.org/10.1177/2053951725</a></p>
+<ul>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch15.xhtml#footnote-011-backlink" target="_blank" rel="noreferrer">1</a> An archive of the project website is available at <a href="https://www.annalisapelizza.eu/wordpress/processingcitizenship/" target="_blank" rel="noreferrer">https://www.annalisapelizza.eu/wordpress/processingcitizenship/</a></li>
+</ul></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-c41b75e14cb0534a.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">建設開放的基礎設施：奧地利開放政府資料的實作與政治</span>
+</a>
+
+<a class="article-sequence-link" href="item-f04dccbafcd138f1.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">導論：開放數位知識基礎設施的政治</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-0dab7475cfbe159d.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Politics of Open Infrastructures - 15. Infrastructuring Openness or Opening Infrastructures?</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Annalisa Pelizza and Renée Ridgway（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-27T06:56:11+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-27T06:56:11+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-0dab7475cfbe159d";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

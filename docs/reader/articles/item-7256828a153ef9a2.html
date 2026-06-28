@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>區塊鏈如何介入 6G 的信任難題 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-25 23:18</span></div>
+      <h1><a class="article-title-link" href="https://www.lfdecentralizedtrust.org/blog/blockchain-enabled-trust-in-6g?hsLang=en" target="_blank" rel="noreferrer" title="開啟原始連結">區塊鏈如何介入 6G 的信任難題</a></h1>
+      <p class="lede">文章主張 6G 不是單純速度升級，而是高度分散、多利害關係人的通訊架構轉變，因此傳統集中式 PKI 與單一營運商憑證機制難以支撐跨域信任。作者提出以 permissioned distributed ledger、Hyperledger 生態、SSI/DID、零知識證明與鏈上稽核紀錄，處理 6G 中的裝置身分、O-RAN 管理、xApp 授權、RAN 資產登錄與 AI/ML 模型來源驗證。整體可讀成一篇開放通訊基礎設施的信任治理與技術政策文章。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開源治理 / OSPO</span><span class="tag-chip">資安 / 供應鏈</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://www.lfdecentralizedtrust.org/hubfs/lfdt_blockchain_6G.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Blockchain-Enabled Trust in 6G</h1>
+<p>The transition from 5G to 6G is way more than a speed upgrade; it is a fundamental architectural shift. Future networks will be highly decentralized and multi-stakeholder, spanning multi-vendor RANs, globally distributed AI, IoT/V2X ecosystems, and edge clouds.</p>
+<p><em>In such a network, will centralized trust anchors remain viable?</em></p>
+<p>Nope. Traditional PKIs and single-operator Certificate Authorities cannot scale across heterogeneous trust domains. 6G therefore demands a decentralised, zero-trust continuum - a model endorsed by 3GPP, the European Commission, and NIST SP 800-207. Blockchain and Distributed Ledger Technology (DLT) are among the most important cryptographic trust fabrics that make this possible.</p>
+<p><em>Figure 1 - Blockchain-Enabled Trust Fabric across the Full 6G Ecosystem: core, O-RAN, edge, IoT, and AI layers.</em></p>
+<h2>Permissioned Ledgers in Telecom Architecture</h2>
+<p>When blockchain is applied to telecoms it is typically realized through Permissioned Distributed Ledgers (PDLs). Unlike public blockchains, PDLs restrict participation to known, authorised entities - mobile operators, infrastructure vendors, cloud/edge providers, and regulators. ETSI describes them as environments in which every participant is validated by an authority and access control is enforced at the ledger level. In a simpler manner, PDLs strike a balance between decentralization and operational control.</p>
+<p>This design gives telecom networks exactly what they need: consensus-driven trust without a central authority. Only authorised actors can validate transactions, minimising data exposure. Consensus mechanisms such as proof-of-stake or Byzantine fault-tolerant protocols deliver higher throughput and lower latency than public chains. The result is a shared, immutable ledger spanning multiple operators and domains - providing cryptographic assurance and full auditability for every recorded action.</p>
+<p>The open source ecosystem backing this is already mature. LF Decentralized Trust (LFDT) frameworks - <a href="https://www.lfdecentralizedtrust.org/projects/fabric" target="_blank" rel="noreferrer">Hyperledger Fabric</a> for channel-based permissioned ledgers, <a href="https://www.lfdecentralizedtrust.org/projects/besu" target="_blank" rel="noreferrer">Besu</a> for EVM-compatible chains, <a href="https://www.lfdecentralizedtrust.org/projects/tag/decentralized-identity" target="_blank" rel="noreferrer">Hyperledger Indy/Hyperledger AnonCreds/OWF’s ACA-Py</a> for decentralised identity, and <a href="https://www.lfdecentralizedtrust.org/projects/cacti" target="_blank" rel="noreferrer">Hyperledger Cacti</a> for cross-ledger interoperability - give real implementations production-grade technologies to build 6G trust fabrics.</p>
+<h2>Identity and Authentication via SSI in 6G</h2>
+<p>A cornerstone use case is Self-Sovereign Identity (SSI). Instead of relying on centralized SIM/HLR credentials, devices and network functions manage their own on-chain identities. ETSI GS PDL 027 defines a User-Centric Digital ID (UCDID) scheme for telecom, where each UE or NF (network function) holds a blockchain registered Decentralized Identifier (DID) implementable using <a href="https://www.lfdecentralizedtrust.org/projects/hyperledger-indy" target="_blank" rel="noreferrer">Hyperledger Indy</a> .</p>
+<p>In practice: the device generates a key-pair and DID, receives signed credentials from trusted issuers (e.g., the operator), and stores its public key and revocation status on the ledger - while the private key stays off-chain. When attaching to any RAN or service, the device proves identity via a signed credential or zero-knowledge proof, without contacting its home HLR.</p>
+<p><em>Figure 2 - UCDID structure as defined by ETSI GS PDL 027.</em></p>
+<p>The privacy advantages are substantial: users can hold multiple DIDs and selectively disclose only the attributes required (subscription class, enterprise role, etc.). Operators can query the PDL to verify a DID or check revocation without a round trip to another domain&#x27;s HLR. In effect, SSI on PDL replaces static global identities with cryptographic credentials under user control.</p>
+<h2>Blockchain for O-RAN Management and Orchestration</h2>
+<p>Open RAN architectures multiply trust zones: multi-vendor xApps run on disaggregated RICs and the RAN itself can be a neutral-host shared among operators. Blockchain can secure this environment in three complementary ways.</p>
+<ul>
+<li><strong>RAN Infrastructure Registry.</strong> Operators jointly record RAN assets, slice definitions, and licensed spectrum on a shared Hyperledger Fabric ledger. Other operators query this registry to orchestrate roaming UEs or deploy slices, without trusting a single operator&#x27;s database.</li>
+<li><strong>xApp Authentication and Policy Logging.</strong> Third party xApps register their code identity on the PDL and receive verifiable credentials. The SMO/RIC consults the ledger before allowing an xApp to execute. All RIC policy changes are written on-chain, creating independent intent logs that make conflicting commands detectable and resolvable.</li>
+<li><strong>AI/ML Model Provenance.</strong> ML models and O-RAN software are hashed with checksums stored on-chain. A RAN controller can verify a downloaded model&#x27;s authenticity before use; smart contracts can enforce that only models signed by accredited issuers are installed, creating a fully auditable provenance chain for RAN intelligence.</li>
+</ul>
+<h2>Blockchain for Data Sharing and Auditability</h2>
+<p>6G will generate enormous volumes of data across UEs, IoT, V2X, digital twins, and edge apps, all flowing across multiple trust domains. PDLs act as a trust and control plane - not storing raw data, but anchoring immutable metadata: ownership, usage rights, timestamps, hashes, and data origin.</p>
+<p>Smart contracts enforce policy-based sharing with granular access control, automatically verifying jurisdiction, purpose, and temporal constraints before granting access to off-chain data. Immutable access logs enable operators to demonstrate regulatory compliance and support forensic analysis - without depending on any single database. Crucially, latency-sensitive data flows remain direct between devices and edge nodes; hashes and policy events are anchored to the PDL asynchronously to preserve 6G performance.</p>
+<h2>Federated Learning and Decentralized AI</h2>
+<p>6G&#x27;s AI story depends heavily on federated learning - training models across distributed devices without centralizing raw data. The appeal is obvious. The problems are less talked about: how do you verify contributions, incentivize honest participation, and prevent poisoned updates from corrupting a shared model when participants belong to different organizations and trust domains? Blockchain handles all three:</p>
+<p>Traceability. Model updates and training metadata get hashed on-chain, creating a forensically verifiable audit trail. If a poisoned or corrupted update enters the system, you can trace it back to its source and roll back. Every training step - which data was used, what parameters were submitted - becomes verifiable on the PDL.</p>
+<p>Incentives. On-chain token systems reward devices that contribute quality data or model updates. GR PDL 021 specifically notes that pairing a PDL with a token mechanism creates an incentive structure that aligns economic motivation with collaborative training. Participants who misbehave or contribute low-value updates simply don&#x27;t get rewarded.</p>
+<p>Trustless aggregation. A smart contract defines the FL round - aggregation method, participant set, validation rules - and enacts the consensus-based update automatically once all proofs are submitted. No central aggregator, no single point of failure. RAN controllers and network functions verify on-chain digests to confirm models are current and came from legitimate training rounds.</p>
+<h2>H ow Telec om S t a n da rds Are Adopting Blockchain</h2>
+<p>What separates a promising research idea from something that actually lands in deployed networks is standardisation. And on that front, the blockchain-in-telecom story has moved considerably faster than most people outside the standards world realize.</p>
+<p>ETSI&#x27;s ISG PDL - the most focused effort. The ETSI Industry Specification Group on Permissioned Distributed Ledgers has been the primary venue for turning PDL concepts into formal telecom specifications. It started with architectural studies - GR PDL 021 remains the key document mapping how DLT slots into 3GPP network architectures - but has since produced binding specs covering specific deployment areas. GS PDL 027, published in 2025, defines the SSI and UCDID scheme described in this post. GS PDL 033 addresses AI/ML model provenance and O-RAN security. GS PDL 025 covers network slicing and spectrum sharing. GS PDL 011 and 012 deal with smart-contract-based service automation. The group is still active - work items on cross-domain data governance (GS PDL 034) and non-repudiation evidence (GR PDL 014) are in progress.</p>
+<p>ITU-T Study Group 13 - the global layer. ITU-T has been building out the complementary international framework. Y.2345 and Y.2348 define use cases and requirements for DLT-based network slicing and resource sharing. Y.3081 establishes the formal requirements for blockchain integration in 5G/6G environments. X.1413 addresses the security governance framework. And a draft supplement under SG13-TD487/WP3 - focused specifically on network resource sharing with DLT for large-scale deep learning - shows how the standards work is now extending into AI-native network operation, not just connectivity.</p>
+<p>3GPP - from study to requirement . 3GPP&#x27;s involvement is significant because it directly shapes what ends up in deployed network equipment. SA3 and SA6 have been studying blockchain for IoT and V2X authentication scenarios for several release cycles. More concretely, Rel-20 workshop inputs - the early framing for 6G architecture - explicitly call out DLT as a required component for multi-party IoT/V2X services. That&#x27;s not a suggestion; it&#x27;s a design requirement going into the specification process.</p>
+<p>O-RAN Alliance - securing the open RAN. The O-RAN Security Focus Group has active study items on distributed identity for O-RAN components. Given that xApp authentication and RAN asset registries are now concrete security requirements in the O-RAN architecture, the direction of travel toward PDL-based solutions is increasingly clear. Studies referencing blockchain-native RAN operations - including BE-RAN and TrustORAN - have been submitted as input to these groups.</p>
+<p>NIST SP 8 00-207 - the zero-trust foundation . While not a telecom-specific standard, NIST&#x27;s Zero Trust Architecture publication underpins the architectural rationale for much of this. The “never trust, always verify” principle it formalizes is precisely what PDL-based identity and policy enforcement implements at network scale - and it&#x27;s the framework that both the European Commission and NGMN cite when describing the trust model for 6G.</p>
+<p>Taken together, these aren&#x27;t isolated standards efforts. They&#x27;re converging on a shared model: PDL-based components as first-class elements in 6G reference architectures, covering identity, orchestration, AI governance, and data exchange - integrated through ETSI PDL building blocks and 3GPP/O-RAN extension points.</p>
+<h3><strong>Blockchain Applications in 6G - Key Use Cases and Standards</strong></h3>
+<p><strong>Identity, Authentication &amp; Trust Anchors</strong></p>
+<p>UE identity, NF identity, RAN nodes (RU/DU/CU), xApps/rApps, operators, vendors, verticals</p>
+<p>Stores DIDs &amp; Verifiable Credentials, replaces centralized PKI/HLR/HSS, enables SSI</p>
+<p>Multi-operator, multi-vendor, zero-trust environment; authentication without a single home network</p>
+<p>ETSI PDL, GS PDL 027; ITU-T Y.3081; NGMN; PRIVATEER</p>
+<p><strong>Secure Mobility &amp; Roaming</strong></p>
+<p>Inter-PLMN roaming, multi-domain handovers, IoT/V2X/UAV mobility</p>
+<p>Shares public keys &amp; credentials across domains, decentralized roaming authentication</p>
+<p>Ultra-dense roaming, private/emergency networks, intermittent home connectivity</p>
+<p>ETSI GR PDL 021; ITU-T; 3GPP SA3/SA6 (studies)</p>
+<p><strong>Network Slicing &amp; Resource Sharing</strong></p>
+<p>Cross-operator slicing, RAN pooling, spectrum sharing, neutral-host RAN</p>
+<p>Smart contracts encode slice lifecycle &amp; SLAs, consensus on resource ownership</p>
+<p>Slices span multiple administrative domains, no trusted central orchestrator</p>
+<p>ITU-T Y.2345; ITU-T Y.2348; ETSI GS PDL 025; ETSI GS PDL 024; 6GENABLERS</p>
+<p><strong>Data Collection, Sharing &amp; Auditability</strong></p>
+<p>Charging records, KPIs, telemetry, SLA metrics across Core–RAN–Edge</p>
+<p>Tamper-proof shared logs, off-chain data anchoring via hashes, verifiable access records</p>
+<p>Multi-party service chains, automated billing, zero-trust observability</p>
+<p>ETSI GR PDL 021; ETSI GS PDL 013; ETSI GS PDL 022; ITU-T Y.4560; ITU-T Y.4561</p>
+<p><strong>Infrastructure &amp; Asset Registry</strong></p>
+<p>RAN nodes, CN functions, MEC/O-Cloud resources, digital twins</p>
+<p>Decentralized catalog of infrastructure &amp; capabilities, verifiable discovery</p>
+<p>Disaggregated O-RAN, dynamic federation, prevention of false claims</p>
+<p>ETSI GR PDL 021; ETSI GS PDL 024; O-RAN Alliance studies</p>
+<p><strong>O-RAN Management &amp; xApp Security</strong></p>
+<p>Near-RT RIC, Non-RT RIC, xApp/rApp lifecycle</p>
+<p>Registers xApp identities, logs RIC decisions, enables conflict detection</p>
+<p>Third-party xApps untrusted by default; AI-driven control loops need accountability</p>
+<p>O-RAN Alliance security work; ETSI GS PDL 032; ETSI GS PDL 033; academic research</p>
+<p><strong>AI/ML Model Supply Chain Security</strong></p>
+<p>RAN AI, Core AI, security AI, edge inference models</p>
+<p>Anchors model hashes, tracks provenance, enforces authorized deployment</p>
+<p>AI becomes a primary attack surface in AI-native 6G</p>
+<p>ETSI GR PDL 032; ETSI GS PDL 033; ITU-T Y.Suppl.94; EU SNS research</p>
+<p><strong>Federated Learning &amp; Decentralized Intelligence</strong></p>
+<p>Cross-operator FL, edge-device learning, collaborative AI</p>
+<p>Records training contributions, detects poisoned updates, enables incentives</p>
+<p>Central aggregators don’t scale; participants belong to different trust domains</p>
+<p>ITU-T Y.Suppl.94; ETSI GR PDL 021; SNS JU projects</p>
+<p><strong>Automated Orchestration &amp; Zero-Touch Provisioning</strong></p>
+<p>Slice lifecycle, O-Cloud provisioning, RAN auto-configuration</p>
+<p>Smart contracts automate orchestration, immutable deployment logs</p>
+<p>Human-driven orchestration cannot scale; AI-native automation needs trust</p>
+<p>ETSI GS PDL 011; ETSI GS PDL 012; ETSI GS PDL 033; RIGOUROUS / iTrust6G</p>
+<p><strong>End-to-End Security &amp; Zero-Trust Enforcement</strong></p>
+<p>Cross-domain access control, continuous verification, forensics</p>
+<p>Distributed trust anchors, immutable audit trails, eliminates SPOFs</p>
+<p>Explicit zero-trust requirement; continuous verification over static trust</p>
+<p>ETSI GR PDL 030; ITU-T X.1413; NGMN 6G Trustworthiness; NIST SP 800-207; PRIVATEER</p>
+<p><strong>6G Resource Marketplaces</strong></p>
+<p>Trading slices, leasing spectrum, sharing compute &amp; edge services</p>
+<p>Brokerless marketplaces, automated contracts &amp; settlements</p>
+<p>Dynamic multi-stakeholder ecosystems, need transparent governance</p>
+<p>6GENABLERS; PRIVATEER; ITU-T Y.2345; ITU-T Y.2348</p>
+<p><strong>SLA Monitoring &amp; Enforcement</strong></p>
+<p>Cross-domain services, roaming, vertical services</p>
+<p>On-chain SLA definitions, KPI verification, automated penalties</p>
+<p>Manual SLA enforcement infeasible in 6G scale</p>
+<p>ETSI GS PDL 033; ETSI GR PDL 021; 6GENABLERS; EU SNS</p>
+<p><strong>Spectrum Sharing &amp; Dynamic Access</strong></p>
+<p>Licensed/shared spectrum, sub-THz, local spectrum</p>
+<p>Transparent spectrum grants, fraud-resistant leasing</p>
+<p>Dynamic spectrum access across operators and regions</p>
+<p>ETSI GR PDL 021; ETSI GS PDL 025; ITU-T Y.2345; ITU-T Y.2348</p>
+<p><strong>Edge Computing Trust &amp; Coordination</strong></p>
+<p>MEC nodes, edge AI services, local breakouts</p>
+<p>Lightweight PDL nodes, trusted coordination &amp; logging</p>
+<p>Ultra-low latency + decentralized ownership</p>
+<p>ETSI GR PDL 030; ETSI GS PDL 025; ITU-T Y.2348; academic research</p>
+<p><strong>Digital Twins &amp; Network State Integrity</strong></p>
+<p>Network digital twins, operational state models</p>
+<p>Immutable twin state anchoring, traceable updates</p>
+<p>Accurate twins required for AI-native optimization</p>
+<p>ETSI GR PDL 021; ITU-T Y.2345; ITU-T Y.2348</p>
+<p><strong>Trustworthy Data Spaces &amp; Cross-Domain Data Governance</strong></p>
+<p>Telco, vertical, cloud, and regulator data spaces</p>
+<p>Provides provenance, access policy enforcement, and interoperable trust infrastructure for data sharing.</p>
+<p>Important for cross-domain data exchange where multiple parties need auditability and policy control.</p>
+<p>ETSI GS PDL 034 (planned); ETSI GS PDL 013; ETSI GS PDL 022; ITU-T Y.4560; ITU-T Y.4561</p>
+<p><strong>Non-Repudiation &amp; Compliance Evidence</strong></p>
+<p>Security operations, lawful logging, dispute resolution, audit trails</p>
+<p>Captures tamper-evident evidence for actions, decisions, and approvals across domains.</p>
+<p>Important where operators must prove who did what, when, and under which policy.</p>
+<p>ETSI GR PDL 014; ITU-T X.1413; ETSI GS PDL 030</p>
+<p><strong>IoT / oneM2M Service Layer Trust</strong></p>
+<p>oneM2M IoT service layer, constrained devices, cross-domain IoT services</p>
+<p>Uses PDL to register identities, manage service access, and share trusted state in IoT layers.</p>
+<p>Important because 6G will connect massive IoT and service-layer ecosystems at scale.</p>
+<p>ETSI GS PDL 028; ITU-T Y.4560; ITU-T Y.4561; ITU-T Y.Suppl.88</p>
+<p><em>Table 1 - core application areas where blockchain is being formalized in 6G standards, with the key standards body references for each.</em></p>
+<h2>Where This Is Heading</h2>
+<p>This isn&#x27;t theoretical anymore. ETSI&#x27;s ISG PDL has been producing formal specifications with GS PDL 027 on SSI published in 2025 and architectural reports mapping DLT into 3GPP networks already out. 3GPP Rel-20 inputs are explicitly calling for DLT in IoT/V2X multi-party services. The O-RAN Security Focus Group has active study items on distributed identity.</p>
+<p>EU SNS-JU projects are running working prototypes: PRIVATEER on privacy-first decentralized trust, 6GENABLERS/UNICO on DLT-anchored resource marketplaces with smart-contract-automated cross-provider service agreements, and RIGOUROUS/iTrust6G on decentralized security orchestration with cross-domain credential sharing. These aren&#x27;t white-paper exercises - they&#x27;re actual running systems.</p>
+<p>On the open source side, the <a href="https://github.com/LF-Decentralized-Trust-labs/opendecentra-nextg" target="_blank" rel="noreferrer">LF Decentralized Trust opendecentra-nextg lab</a> has already demonstrated  a permissioned ledger overlay running on a real free5GC 5G Core using Hyperledger Fabric - decentralizing traditionally centralized core functions like NF registration, OAuth2 token state and revocation, while staying compatible with existing 3GPP SBA interfaces.</p>
+<p>Production-grade integration isn&#x27;t just theoretically possible; it&#x27;s been built. If you&#x27;d like to get involved and help with this, check out the <a href="https://github.com/LF-Decentralized-Trust-labs/opendecentra-nextg" target="_blank" rel="noreferrer">opendecentra-nextg lab</a> repo on Github.</p>
+<h2>C o n c l u s i on</h2>
+<p>Blockchain <em>isn’t</em> a buzzword play in the 6G context. Permissioned distributed ledgers give future networks something they genuinely need and can&#x27;t get from centralized architectures: a way to establish shared consensus, maintain tamper-resistant records, and verify identity across organizational boundaries - without any single party holding the keys.</p>
+<p>Self-Sovereign Identity, cross-domain orchestration, AI accountability, data governance - these aren&#x27;t separate problems that happen to share a solution. They&#x27;re facets of the same underlying challenge: but how do you build trust into a network that nobody fully owns or controls?</p>
+<p>For anyone designing next-generation network architectures, the practical implication is direct. PDL components - decentralized identity registries, smart-contract policy engines, immutable audit layers - need to be in both <em>core</em> and <em>RAN</em> environments from the ground up. Not added later when something breaks. This isn&#x27;t an upgrade to existing systems. It&#x27;s part of what makes 6G and O-RAN ecosystems actually work.</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-91ca7c75aa951838.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">OKFN 如何把開放原則變成實作：School of Data 與 AI Learning Labs</span>
+</a>
+
+<a class="article-sequence-link" href="item-fd18ea3ad0bc63f5.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">科羅拉多州 SB26-051：運算裝置上的年齡聲明制度</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-7256828a153ef9a2.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Blockchain-Enabled Trust in 6G</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Rudraksh Rawal, coRAN LABS, and Vipin Rathi, Delhi University &amp; Chair Telecom SIG（json-ld）</li><li><strong>原始網站授權</strong>：著作權保護（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：direct-pr-small-news / 2026-06-27T14:15:46+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-27T14:15:46+00:00 本機標記直接送 PR（小消息）；純事實項目，不進編輯台撰稿。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-7256828a153ef9a2";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

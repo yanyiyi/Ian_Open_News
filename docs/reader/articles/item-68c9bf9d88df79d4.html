@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -551,13 +551,22 @@
       <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-23 08:00</span></div>
       <h1><a class="article-title-link" href="https://www.opensourceforu.com/2026/06/microsoft-open-sources-pg_durable-extension-for-in-database-workflows/" target="_blank" rel="noreferrer" title="開啟原始連結">微軟開源 PostgreSQL 工作流程擴充套件 pg_durable</a></h1>
       <p class="lede">Microsoft 開源 pg_durable，這是一個 PostgreSQL 擴充套件，讓開發者能直接在資料庫內建立長時間執行、可容錯的軟體工作流程。摘要強調它把 durable execution 原生帶進 PostgreSQL，降低對外部背景工作、訊息佇列或 orchestration engine 的依賴，並可用標準 SQL 定義流程。</p>
-      <div class="tag-chip-list"><span class="tag-chip">open source</span></div>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://www.opensourceforu.com/wp-content/uploads/2021/11/202111032011340946_Microsoft-launches-its-own-version-of-Google-Wave_SECVPF.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Microsoft Open-Sources &quot;pg_durable&quot; Extension for In-Database Workflows - Open Source For You</h1>
+<ul>
+<li><a href="https://www.opensourceforu.com/category/types-of-content/news/" target="_blank" rel="noreferrer">News</a></li>
+</ul>
+<h2>Microsoft Open-Sources “pg_durable” Extension for In-Database Workflows</h2>
+<p><em>Microsoft has open-sourced pg_durable , a PostgreSQL extension that lets developers build long-running, fault-tolerant software workflows directly inside the database.</em></p>
+<p>The extension introduces durable execution natively to PostgreSQL, eliminating the need for developers to patch together external tools like background workers, message queues, and external orchestration engines. Workflows are defined using standard SQL, allowing PostgreSQL to automatically track execution progress, handle retries, and recover states following unexpected server crashes or database restarts.</p>
+<p>By shifting workflow state tracking directly into PostgreSQL tables, <code>pg_durable</code> guarantees that long-running data processes can survive unexpected system failures and automatically pick up from their last recorded checkpoint. The extension provides developers with dedicated SQL operators designed specifically for managing sequential steps and parallel tasks, making it highly optimized for asynchronous tasks. Key target workloads for the tool include heavy data processing pipelines—such as parsing data for AI vector embeddings using <code>pgvector</code>—as well as automated database maintenance tasks and scheduled API calls.</p>
+<p>Architecturally minimal, the open-source extension runs via a native Postgres background worker with no external control plane requirements. The underlying orchestration runtime is powered by two new Microsoft-developed Rust libraries: <code>duroxide</code>, which coordinates deterministic event tracking, and <code>duroxide-pg</code>, which handles state persistence in a dedicated schema.</p>
+<p>The <code>pg_durable</code> extension is available on GitHub and ships natively as part of Microsoft’s Azure HorizonDB cloud service.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-4b5e12c407aafde6.html">
@@ -580,7 +589,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-68c9bf9d88df79d4.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Microsoft Open-Sources “pg_durable” Extension for In-Database Workflows</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Jiya Jay Singh</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Microsoft Open-Sources “pg_durable” Extension for In-Database Workflows（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Jiya Jay Singh（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-23T17:04:46+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

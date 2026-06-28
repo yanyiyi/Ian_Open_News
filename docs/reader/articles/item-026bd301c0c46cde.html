@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>開放基礎設施中的包容政治：DOAJ 與大使計畫 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-26 12:45</span></div>
+      <h1><a class="article-title-link" href="https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.08" target="_blank" rel="noreferrer" title="開啟原始連結">開放基礎設施中的包容政治：DOAJ 與大使計畫</a></h1>
+      <p class="lede">這章以 DOAJ 為全球開放知識基礎設施案例，討論期刊索引如何一方面建立品質標準，另一方面又可能透過分類制度加深全球知識權力不平等。作者從 STS、批判資訊研究與認識正義出發，分析 DOAJ 如何調整索引標準、處理分類中的例外與灰區，並透過大使計畫試圖讓不同區域的期刊社群參與治理。對 Ian 來說，重點不在 DOAJ 本身，而在「開放」如何被制度化，以及制度化後如何避免把弱勢知識生產者排除在外。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開放資料</span><span class="tag-chip">Open Knowledge</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.openbookpublishers.com/small_obp_logo_high_res_8ad3ef43d4.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>The Politics of Open Infrastructures - 8. The Politics of Infrastructuring Inclusivity</h1>
+<h2>8. The Politics of Infrastructuring Inclusivity: DOAJ and its Ambassador Programme</h2>
+<h2>Ivonne Lujano Vilchis, Katrine Sundsbø, Ina Smith, and Joanna Ball</h2>
+<p>©2026 Ivonne Lujano Vilchis, et al., CC BY-NC 4.0 <a href="https://doi.org/10.11647/OBP.0528.08" target="_blank" rel="noreferrer">https://doi.org/10.11647/OBP.0528.08</a></p>
+<h2>Introduction</h2>
+<p>The Directory of Open Access Journals ( DOAJ), founded in 2003 to index open access ( OA) journals, now includes more than 22,000 titles across 139 countries and 89 languages. Journals apply for inclusion against community-developed criteria. This chapter examines the tensions between setting global standards and fostering inclusivity in scholarly publishing, presenting DOAJ as a global open knowledge infrastructure embedded in the politics of knowledge production. Drawing on science and technology studies ( STS), critical information studies, and epistemic justice literature, especially Bowker and Star’s (2000) work on infrastructuring and classification, and Miranda Fricker’s (2007) concept of epistemic injustice, we analyse how DOAJ balances standardisation and inclusivity through its community-led Ambassador Programme ( AP).</p>
+<p>We first outline key challenges in scholarly publishing, particularly those related to global inequities and epistemic injustice, then trace DOAJ’s origins and evolution, including the development of the AP. Finally, the chapter discusses how a community-led organisation like DOAJ seeks to mitigate epistemic injustices, using the AP as a case study of inclusive infrastructuring.</p>
+<h2>The Geopolitics of Knowledge: Classification, Standards, and Epistemic Injustice</h2>
+<p>DOAJ operates as a knowledge infrastructure—a living constellation of tools, standards and communities whose interactions shape how scholarly work is validated, made visible, and used. Knowledge infrastructures are sometimes regarded as neutral, apolitical, or inherently beneficial for the distribution of knowledge. However, they often cater to the interests, practices, and needs of specific groups, unintentionally reinforcing global power imbalances (Chan et al. 2020). Some scholars have raised concerns about how Western-centred platforms and tools for indexing and disseminating academic content are designed to prioritise the agendas of stakeholders in high-income countries, thereby perpetuating global asymmetries in the circulation of knowledge (Beigel 2014; Roh et al. 2020).</p>
+<p>The supposed neutrality of infrastructures often obscures the political and ethical tensions involved in maintaining and negotiating them, particularly in relation to categorical work—the labour of creating, sustaining, and contesting classification systems ( Bowker and Star 2000). We argue that DOAJ has adopted a participatory approach to establishing standards for scholarly journals, responsive to the diverse needs of global communities of practice. In this sense, we conceptualise DOAJ as an inclusive knowledge infrastructure—defined as ‘the tools, platforms, networks and other socio-technical mechanisms that deliberately allow for multiple forms of participation among a diverse set of actors, and that purposefully acknowledge and seek to redress power relations within a given context’ (Okune et al. 2019: 3).</p>
+<p>To paraphrase Bowker and Star (2000), standard-setting inevitably excludes or silences someone—and this can lead to unjustified forms of judgment. In scholarly publishing, the terms questionable publishing or predatory journals are often used to describe journals that lack proper publishing procedures or do not operate in good faith (Shen and Björk 2015). However, many of the features associated with these labels are also found in journals that are under-resourced and based in low- and middle-income countries (LMICs). This can result in unfair judgments that risk perpetuating epistemic injustices (Albornoz et al. 2020).</p>
+<p>Miranda Fricker’s foundational book, <em>Epistemic Injustice: Power and the Ethics of Knowing</em> (2007), highlights the unfair treatment of individuals and communities as legitimate knowers in different contexts. The concept of epistemic injustice can be summarised as ‘having one’s meaning or contributions systematically distorted, misheard, or misrepresented’ (Kidd et al. 2017: 1). In the global scholarly publishing landscape, epistemic injustice arises when standards of quality and excellence are unilaterally defined by dominant actors in the scientific publishing industry. Journals with publishing practices that deviate from these standards are often excluded or perceived as lower in quality. For example, in Africa, the low levels of digitisation of journals make it particularly challenging for many editorial teams to interpret indexing requirements, resulting in the exclusion of many African journals from major indexes (Aldirdiri, 2024).</p>
+<p>Okune et al. (2019: 16) argue that knowledge infrastructures must recognise diverse human needs and intentionally address power imbalances. DOAJ exemplifies this inclusive infrastructure, striving to counter epistemic injustices while grappling with the challenge of maintaining standards without reinforcing the very inequities it seeks to redress. This tension reflects Bowker and Star’s (2000: 34) notion of infrastructural inversion—the deep interdependence between technical standards and the politics of knowledge production.</p>
+<p>The next section outlines a brief history of DOAJ, with a focus on how the indexing criteria has developed, highlighting the tensions DOAJ faces in balancing the setting of global standards with the promotion of inclusivity in scholarly publishing.</p>
+<h2>Building a Global Infrastructure: The Categorical work of DOAJ</h2>
+<p>Bowker and Star (2000) define categorical work as management of the mismatches between standards and anomalies in classification systems. DOAJ’s categorical work involves making choices about what is included and excluded in its set of indexing criteria. This section provides an overview of the development of these criteria since the directory’s inception.</p>
+<p>The concept of a directory of OA journals was first proposed at the 2002 Nordic Conference on Scholarly Communication, held at Lund University, Sweden. DOAJ was founded the following year, in 2003, by Lars Bjørnshauge, the Director of Libraries at Lund University. The directory was launched with a list of over 300 journals, curated by Bo-Christer Björk, and quickly gained interest and support from the OA community.</p>
+<p>What began as a project funded by the Open Society Institute (OSI) and Scholarly Publishing and Academic Resources Coalition (SPARC) soon evolved into a widely used service relied upon by the global academic to find trusted OA journals (Johansson and Wahlgren 2008). In its early years, journals were suggested to the directory through a form on the DOAJ website. Suggestions were manually reviewed by librarians at Lund University to ensure that the journals adhered to the definition of OA, established by the Budapest Open Access Initiative—free to access and free to reuse (Budapest Open Access Initiative 2002).</p>
+<p>Initially, most journals in DOAJ published primarily in English, reflecting the prevailing bias in global science communication that positions English as the ‘language of science’ (del Rio Riande and Lujano Vilchis 2024). Of the original list, only eleven journals accepted articles in languages other than English, and only two journals published exclusively in a non-English language.</p>
+<p>To fulfil the original vision of being a global index, DOAJ required local experts who could review journal suggestions in multiple languages. A network of global volunteers—referred to as ‘editors’—became an integral part of DOAJ’s structure, with the number of represented countries and languages steadily increasing. Today, DOAJ has over 100 volunteer editors and indexes more than 22,000 journals from 139 countries in 89 languages. The work of these editors is coordinated by Managing Editors who oversee regional or language-specific groups.</p>
+<p>DOAJ’s criteria today differ significantly from those in 2003. In its early years, DOAJ had four main criteria, 1) information coverage (subject, target group, and types of content), 2) access (free for readers, free registration, and no embargo), 3) metadata, and 4) quality (an editorial board and/or a peer-review system). By 2008, the criteria had evolved to include peer review or editorial control, ongoing publication, full-text availability for all content, and a valid International Standard Serial Number (ISSN) (Johansson and Wahlgren, 2008). By 2013, the directory had grown to include almost 10,000 journals, reflecting the rapid expansion of OA publishing (Shen and Ball 2024). That same year, the service transitioned from Lund University to a new UK-based Community Interest Company, IS4OA (Infrastructure Services for Open Access C.I.C) (Infrastructure Services for Open Access 2012). In 2025, DOAJ moved its operations to Denmark under a newly established DOAJ Foundation, a step taken to strengthen its governance structures and enhance long-term sustainability ( DOAJ 2025a).</p>
+<p>Around ten years after the launch, developments in scholarly publishing—including increasing concerns about questionable publishing practices—prompted DOAJ to revise its criteria and implement a more rigorous screening process. The emergence of different models of OA also highlighted the need to define what types of OA journals DOAJ would index. In 2013, DOAJ invited feedback from the community on a draft set of updated criteria (Wojick 2013).</p>
+<p>In 2014, following more than 200 comments from the community, the new criteria were officially launched. Due to the significant changes, the 10,000 journals already listed in the directory were asked to reapply to ensure they met the updated criteria.</p>
+<p>While the reapplication project was ongoing, DOAJ successfully applied for funding from the International Development Research Centre (IDRC) to support the improvement of OA publishing practices in the developing world (Bjørnshauge 2016). This grant enabled DOAJ to create the AP, and recruit local experts to help journals from LMICs understand and adhere to DOAJ’s criteria and good publishing practices. The goal was to encourage these journals to apply for DOAJ-indexing and to support regions experiencing challenges related to questionable practices. We will discuss the programme in more detail later in this chapter.</p>
+<p>The reapplication project began in January 2015 and concluded in December 2017. By that time, DOAJ had removed 2,058 journals from its index for failing to meet the new criteria and 2,860 journals for not reapplying ( DOAJ 2017). DOAJ’s indexing process evolved from a simple one-page suggestion form completed by members of the community to an application form comprising approximately fifty questions, to be filled out by the relevant journal editor or manager. The increased complexity of the application form, along with more clearly defined criteria, heightened the need for journals to seek support in meeting these standards.</p>
+<p>Today, DOAJ provides support to regions with specific needs, collaborating with local individuals, organisations, and institutions. A recent example is the support provided to Ukrainian journals, establishing a process to fast-track applications and collaborating with initiatives such as the Supporting Ukrainian Editorial Staff (SUES) project, the Open Ukrainian Citation Index (OUCI), and Research4Life. These efforts aim to increase the visibility, transparency, and impact of all Ukrainian OA journals (Zimba et al. 2025).</p>
+<p>The scholarly publishing landscape is complex, constantly evolving, and marked by significant regional variation. Establishing a global standard for OA journals remains a challenging task. DOAJ’s evaluation criteria continue to be developed and updated to reflect ongoing changes in scholarly publishing. For example, in 2021, new guidelines were introduced to address high endogeny rates and to limit self-promotion. In 2023, specific criteria for special issues were added to ensure adequate editorial oversight. These additional guidelines are essential both for promoting good practices in OA journals and for clarifying ambiguous cases for the DOAJ team to assess. To ensure the DOAJ criteria are equitable, the directory established an Editorial Policy Advisory Group in 2024. The group is made up of individuals representing trusted organisations working in scholarly publishing who assist the editorial team with publishing policies and practices ‘to ensure that DOAJ criteria are effective for the widest range of publishers across the globe’ ( DOAJ 2025b).</p>
+<p>In sum, DOAJ’s history illustrates the complex process of infrastructuring open knowledge. From its origins as a simple list to its current status as a global standard, DOAJ has navigated the tensions between inclusivity and quality, and between local needs and global standards. The evolution of its criteria and its commitment to multilingualism and inclusivity, reflect an ongoing effort to address the political and ethical challenges of open access. The AP is a key strategy in this ongoing process of infrastructuring inclusivity.</p>
+<h2>What Defines an Infrastructure? The Growth of DOAJ as a Community-led Infrastructure</h2>
+<p>We view the DOAJ as a living infrastructure co-constructed and maintained by a diverse global community. This perspective draws attention to the often-invisible labour, decisions, and negotiations that sustain such systems—work that becomes visible when we examine how DOAJ grows, adapts, and responds to its users. In this section we offer an overview of DOAJ through the lens of the nine key properties of infrastructures proposed by Star (1999).</p>
+<p>As a live database, DOAJ is in a constant state of change: journals are added immediately upon acceptance and removed regularly when they no longer meet the required standards. This dynamic maintenance process is a central feature of the infrastructure. The editorial team plays a key role in this ongoing work, routinely checking indexed journals to ensure continued compliance with DOAJ’s criteria. Beyond formal review, DOAJ also listens to its user community, responding to concerns by investigating journals or publishers flagged through public discourse or internal monitoring. In this way, DOAJ functions not only as an index but as a responsive system shaped by the practices and trust of its global community. Its sustained annual growth is a testament to the infrastructure’s ongoing relevance, credibility, and collaborative stewardship (see Figure 8.1 below)</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-84cb19356698062a.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">UFO 揭露、五角大廈經費與反中敘事的批評片段</span>
+</a>
+
+<a class="article-sequence-link" href="item-c773c23691901ac8.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">超越數位落差：安地斯馬鈴薯保存中的資料治理與原住民族主權</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-026bd301c0c46cde.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Politics of Open Infrastructures - 8. The Politics of Infrastructuring Inclusivity</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Ivonne Lujano Vilchis, Katrine Sundsbø, Ina Smith, and Joanna Ball（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：direct-pr-small-news / 2026-06-27T07:09:00+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-27T07:09:00+00:00 本機標記直接送 PR（小消息）；純事實項目，不進編輯台撰稿。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-026bd301c0c46cde";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

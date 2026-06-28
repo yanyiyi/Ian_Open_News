@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>從自由軟體到開源：開放知識基礎建設的術語、價值與倫理變遷 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-06-26 12:45</span></div>
+      <h1><a class="article-title-link" href="https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.02" target="_blank" rel="noreferrer" title="開啟原始連結">從自由軟體到開源：開放知識基礎建設的術語、價值與倫理變遷</a></h1>
+      <p class="lede">這是《The Politics of Open Infrastructures》中的章節，討論自由軟體到開源之間的術語、價值與倫理轉變。章節從 FLOSS 中 libre 的自由意涵談起，對照 FOSS/OSS 較政治中性的表述，以及開源如何被重新包裝成企業基礎設施與商業模式。作者透過半結構訪談與基礎設施理論，分析開發者、學者與技術實作者如何理解開放知識基礎建設中的權力、倫理與實踐。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開放資料</span><span class="tag-chip">Open Knowledge</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.openbookpublishers.com/small_obp_logo_high_res_8ad3ef43d4.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>The Politics of Open Infrastructures - 2. From Free Software to Open Source</h1>
+<h2>2. From Free Software to Open Source: Traversing the Terminologies, Values and Ethics of an Open Knowledge Infrastructure</h2>
+<h2>Renée Ridgway</h2>
+<p>©2026 Renée Ridgway, CC BY-NC 4.0 <a href="https://doi.org/10.11647/OBP.0528.02" target="_blank" rel="noreferrer">https://doi.org/10.11647/OBP.0528.02</a></p>
+<p>If, as Langdon Winner famously states, the politics of technology are about ‘ways of building order in our world,’ then hacker and geek politics are geared toward reordering the technologies and infrastructures that have become part of the fabric of everyday life ( Coleman 2011: 515).</p>
+<h2>1. Introduction</h2>
+<p>The coinage Free Software goes back to the 1980s where it was once valued for its ‘peculiar form of potentiality,’ not per se a thing or technology or license, but something that had possibility (Kelty 2013). 1 At that time, the ethics of Free Software, which is ‘open’ and not proprietary, were immanent to nascent computer science departments worldwide and people came to Free Software as the solution, enacting ‘disruption in the creation, circulation, distribution and control of knowledge’ (Kelty 2013). Simultaneously Free Software embodied a politics of liberalism, with its roots anchored in UNIX, situated within the hybrid academic-corporate culture of Bell Labs, which were critical of software development by corporations, organisations or consultancies (Kelty 2008). Eventually, this politics took form in the acronym FLOSS ( Free/Libre and Open-Source Software), articulated by Richard Stallman, who opposed proprietary software ‘hoarding’ (Kelty 2008: 99). Here, the ‘L’ signified ‘libre,’ meaning ‘free,’ not as in ‘free beer’ but ‘free speech,’ standing for the ‘free flows of information’ and taking no position on economic flows (Schneider 2021: 47). Stallman’s conception of Free Software was a pushback against the ‘piracy problem’ that Microsoft’s Bill Gates had already raised with his infamous ‘Open Letter to Hobbyists’ (1976) that complained about the sharing of software through hobbyist magazines.</p>
+<p>In 1991, a Finnish computer science student (Linus Thorvalds) developed and maintained a ‘small kernel that could run alongside free software tools’ for his personal computer at home that came to be known as Linux (Driskoll 2015: 274). This operating system eventually se... Simultaneously, Raymond focused on the rise of the internet economy and making Free Software ‘into something that made more sense to investors, venture capitalists, and the stock-buying public’ (Kelty 2008: 109).</p>
+<p>At the same time, the Free Software movement became affected by economic factors, namely the bursting of the dot-com bubble, and it morphed into many things: ‘a problem, a danger, a job, a calling, a dogma, a solution, a philosophy, a liberat... One of Kelty’s contribution was to elucidate that by 1998–1999, on the one hand ‘ Free Software’ was about rights and liberty whilst open source was concerned with ‘political agnosticism or nonideological commitments to “fun,”’ yet the practice is identical, which is an advantage as ‘they are all nonetheless contributing to the same mysterious thing’ (Kelty 2008: 112).</p>
+<p>Twenty-five years later, this chapter enquires whether these practices and politics still ring true, along with how and when F(L)OSS and open source could be considered ‘open (knowledge) infrastructures’ and what types of ethics or values are (still) embedded within them. It unfolds by first examining the historical transformations and semanti... A critical discourse analysis interweaves excerpts on empirical data gathered on ethics and values from semi-structured interviews structured by Star and Ruhleder’s ‘dimensions’ (1996) or Star’s ‘properties’ (1999) of an ‘emerging infrastructure.’ By elucidating the techno-infrastructure through the... ideology, showing how these approaches differ on an ethical, rather than technical, level. In this way, the Free Software ‘movement’ of past decades resurfaces through the makers/practitioners of today, who, according to the author, could be considered a ‘ recursive public’ (Kelty 2008). The chapter contributes to critical infrastructure studies and STS literature by demonstrating that F(L)OSS is an open (knowledge) infrastructure when it is open, political, and collectivised, not only through open-source code but through the people who enable the infrastructure to exist, enacting maintenance and care as a commons of potential.</p>
+<h2>2. The Politics (or Lack Thereof?) of FOSS Initiatives</h2>
+<p>As explained above, the social and technological practices of F /OSS exhibit certain elements of the liberal tradition, where the emphasis came to be placed on ‘knowledge, self-cultivation and self-expression as their ethical philosophy’ ( Coleman 2013: 3). However, it was through cultural positioning and the ‘rearticulation of free speech principles’ that orchestrated the dynamics of what Gabrielle Coleman describes as the ‘political agnosticism’ of FOSS (2004: 509). This denial of formal politics or lack of political intention ignited a way to reconsider intellectual property rights by directing it ‘toward the protection of free speech, instead of its “conventional use” of securing property rights’ ( Coleman 2004: 508). For many Free Software enthusiasts, code is considered speech and the ‘L’ (libre) signifies the right to access and create free information flows. Therefore ‘free speech’ was seen as ‘free code,’ and as McInerney notes, the ‘source code,’ which is the recipe for software, invites users to modify it (2009: 209). Composed of people, ‘skilled programmers, security researchers, hardware builders and system-administrators,’ FOSS opened up a window on to the liberal values of free speech, though a ‘cultural-based technical practice: that of computer hacking’ ( Coleman 2004: 508).</p>
+<p>In this way, FOSS was informed by computer techniques that constitute hacker values. Free Software programmers took pleasure in building and configuring whilst communicating and collaborating as ‘forms of value by inhabiting technology’ ( Coleman 2011: 512). Other values that came into being through Free Software included ‘competitive mutual aid, avid free speech principles, and implementation of meritocracy’ all while challenging the intellectual property establishment ( Coleman 2013: 3). The power of Free Software was to make these values, or principles, into material objects and thereby able to be ‘manipulated, reconfigured, tested and torqued’––radically open to change and promoting process over product as an infrastructural and material strategy for a new world (Kelty 2013). Creating alternative software licensing and establishing hacker values motivated their ‘commitments to freedom of information, geeky production, culture, and action,’ along with instantiating new ways for ‘collaborating, organizing, and protesting’ ( Coleman 2011: 513, 515).</p>
+<p>As shown by Ben Birkinbine’s research (2020), the revolutionary changes ignited by FLOSS and other commons-based peer production were co-opted by these corporate structures and strategies. Although Free Software was an amazing human achievement, with Liberty removed from the equation, in Raymond’s ideal ( open source), the innovative nature of software production was through the ‘development model’ that would lead to mass revenues through the stock market (Kelty 2008: 109). In his 2015 article, Birkinbine focuses on the acquisition of Sun Microsystems by Oracle and shows how corporations became increasingly involved in FLOSS projects (and nowadays even more with the development of GenAI), yet these clashed with the community ‘ethos’ of FLOSS. Coleman articulates the ethos as a ‘belief in productive freedom’ that includes the right to ‘autonomously improve upon their peer’s work, refine their technical skills, and extend craftlike engineering traditions’ (2013: 3), without a corporate infrastructure dictating the terms and licenses. Giacomo Poderi’s ethnographical study of a FOSS videogame community reflects this positioning by articulating the ‘relationship between continuous design and software development distributed infrastructure’ (2014: 78). Echoing Coleman’s ‘belief in productive freedom,’ Poderi emphasises the ‘user-driven and self-organizing construction processes’ of the FOSS commons through ‘collective and bottom-up management,’ drawing on Star (1999) and Star and Ruhleder’s (1996) ecological approach to infrastructure (2014: 80).</p>
+<h2>3. When Is an Infrastructure a Complex and Relational Ecology?</h2>
+<p>In her seminal text, ‘The Ethnography of Infrastructure,’ Susan Leigh Star proposed the ecological as a ‘methodological perversion,’ putting forth those people and things which had been neglected with the studying of ‘boring’ things, such as infrastructure (1999: 379).</p>
+<p>Star insightfully argued that infrastructures are not only ecological, but also relational and material constructs made by humans (1999: 382). Star draws on Gregory Bateson, who claimed that ‘What can be studied is always a relationship or an infinite regress of relationships. Never a “thing”’ (1978: 249), to show how infrastructures are impacted by other things. With technical systems that serve as larger infrastructures, it is often not the infrastructure as a whole that becomes visible, but the specific component that matters to a given user: the rail to the engineer; the stairs that become barriers for wheelchair users; the water system that is essential to a cook; or, for a plumber, the very same water system, understood as a ‘target for repair’ (Star 1999: 380). Often seen as the invisible infrastructure hovering in the background supporting other forms of work, Star uses the example of computers to comically state that if we were to conceive of them ‘more modestly as symbolic sewers’ instead of information highways, ‘this realm would open up a bit’ (1999: 379). Because for Star, if an information system is investigated without also exploring its ‘standards, wires, and settings,’ the researcher can overlook the ‘equally essential aspects of aesthetics, justice, and change’ (1999: 379).</p>
+<p>During the mid-1990s, with the rise of decentralised communication technologies that encompassed large swaths of land, there was a growing need for shared standards as well as ‘situated, tailorable and flexible technologies’ ( Star and Ruhleder 1996: 112). In... Worm software was designed and constructed for biologists with an intention to ‘create infrastructural tools for research’ and to ‘transform local laboratory organization,’ whilst simultaneously competing with the expansion of finding information on the internet with search browsers (Gopher and Mosaic) ( Star and Ruhleder 1996: 112). Additionally, Star and Ruhleder built upon the scholarship of Yrjö Engeström, who asked ‘When is a tool?’ to demonstrate that a thing becomes a tool in practice and when it is connected to an activity (1990). During their study, Star and Ruhleder subsequently enquired ‘When, then, is an infrastructure?’ (1996: 113).</p>
+<p>In order to map out the ‘emergence of infrastructure,’ Star and Ruhleder came up with a list of ‘dimensions,’ which are without an ‘absolute boundary on an a priori definition’ (1996: 112–113)—what Star later called ‘properties’ (1999). Star and Ruhleder’s findings showed that not many biologists ended up using Worm, but also that infrastructure does not just reside in the background but ‘emerges for people in practice, connected to activities and structures’––it is a relational concept. In her 1999 article, Star reflects back on this research, where she imparts that even though they ( Star and Ruhleder 1996) were following certain principles of participatory design, they began to ‘see infrastructure as part of human organisation, and as a problematic as any other’ (1999: 380). In the following sections, I apply these dimensions or properties to structure interviews (epistemological encounters) with a range of software developers, geeks, and hackers to find out if and when F(L)OSS emerges as an ‘ open infrastructure.’</p>
+<h2>4. Epistemological Encounters</h2>
+<p>Infrastructures are not only complex and relational ecologies. The system’s development process is also about gathering communities together who have very diverse approaches, for example regarding the values and ethics of building computing infrastructure and software. This chapter therefore draws on fourteen semi-structured interviews conducted both face-to-face and virtually from December 2023 to September 2024, each lasting approximately 1.5 hours. It also consists of historical analysis, tracing categories of infrastructures, delving into the development of technologies and reading literature (archival texts, articles, and books). During this period, these interviews were augmented by participant observations—informal and ad hoc conversations at various F(L)OSS conferences through introductions by previous ‘informants’ that adhere to the ‘snowball’ method. As with Judy Wajcman’s study on calendars in Silicon Valley, the research is located within the ‘broad ecology and cultural life’ (2018: 1280), in this case people living in F(L)OSS and open-source development communities. Also taken into consideration is that people ‘make meanings based on their circumstances’ and world experiences that are also ‘inscribed into their judgments’ concerning technology and the ‘built information environment’ (Star 1999: 383).</p>
+<p>This type of fieldwork could be considered a ‘distinctive mode of epistemological encounter’ that offers a means to reflect on the process during and after the ‘material labor of fieldwork,’ which occurred whilst engaging with the ‘material labor of writing and rewriting’ (Kelty 2008: 18, 20–21). In the beginning, the research was about the values and ethics of Free Software as ‘a kind of complex technical practice’ (Kelty 2008: 21). Echoing Kelty, who ‘could not have identified “ recursive publics” as the object of the ethnography at the outset’ (2008: 18, 20–21), during the coding of the data and writing this chapter, quite unexpectedly it came to mind whether theses informants could also be considered a ‘ recursive public,’ which this chapter will return to below. Therefore, as with much research writing, the reflection and writing process enables one to ‘reorient it into a question that will have looked deliberate and answerable in hindsight’ (Kelty 2008: 20–21).</p>
+<p>Furthermore, when choosing informants the aim was to be inclusive of professions (designer, software engineer, academic, non-profit director), gender (non-binary, women, men), continents (South American, North American, European), ethnicities (Brazilian, Indian, Finnish, Belgian, American, German, British, French) and financial interests (grant awardee, freelancer, self-employed, employee). The informants are anonymised, as agreed upon before the interview took place, and assigned a number. After conducting the epistemic encounters with the informants, the data was then ‘coded,’ based on what Star and Ruhleder (1996) define as the ‘steps toward an ecology of infrastructure’ by way of the specific dimensions/properties with small additions or adaptions (1999). Although they were not defined as values as such, (re)reading these dimensions or properties brought to mind many of the ethical considerations that the informants mentioned and that structure the content of the interviews.</p>
+<h2>5. Emerging (Open) Infrastructures</h2></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-538327d60d2cac8d.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">聯邦式協定的政治：透過數位主權組織開放性</span>
+</a>
+
+<a class="article-sequence-link" href="item-ec33641fe0a36f29.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">討厭「演算法」？RSS 是你一直在找的工具之一</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-6c208a130a0d4e0e.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Politics of Open Infrastructures - 2. From Free Software to Open Source</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Renée Ridgway（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-27T06:56:06+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-26T16:51:58+00:00 線上手動編輯全文（修正排版／補截斷，base=original）。
+2026-06-27T06:56:06+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-6c208a130a0d4e0e";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

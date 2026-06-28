@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -551,13 +551,32 @@
       <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-23 08:00</span></div>
       <h1><a class="article-title-link" href="https://thenewstack.io/can-dns-become-the-basis-for-ai-agent-identity/" target="_blank" rel="noreferrer" title="開啟原始連結">DNS 能成為 AI 代理身分識別的基礎嗎？</a></h1>
       <p class="lede">摘要只透露 Linux Foundation 宣布有意推出 Agent Name Service，並將其描述為一個與 AI 代理身分識別有關的開放標準。題目暗示文章可能討論 DNS 是否能支撐 AI agent 的命名或身分系統，但目前提供的文字太短，無法判斷技術細節、標準治理模式、參與者或潛在風險。這筆可先視為待查核的小消息，而不是直接投入整理的知識素材。</p>
-      <div class="tag-chip-list"><span class="tag-chip">AI agents</span></div>
+      <div class="tag-chip-list"><span class="tag-chip">開源 AI / OSAID</span><span class="tag-chip">AI Agents</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://cdn.thenewstack.io/media/2026/06/2f838e2e-a-c-7iptbg5y99m-unsplash-scaled.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Can DNS become the basis for AI agent identity?</h1>
+<p>Check your inbox for a confirmation email where you can adjust your preferences and even join additional groups.</p>
+<p>Follow TNS on your favorite social media networks.</p>
+<p>Become a <a href="https://www.linkedin.com/company/the-new-stack" target="_blank" rel="noreferrer">TNS follower on LinkedIn</a>.</p>
+<p>The Linux Foundation on Tuesday declared its intent to launch the Agent Name Service (ANS), an open standard that gives AI agents <a href="https://thenewstack.io/ai-agent-identity-crisis/" target="_blank" rel="noreferrer">verifiable identities</a> by tying them to the internet’s domain name system (DNS).</p>
+<p>The idea behind the ANS has actually been around for a while. It began as a research paper published in May 2025 by the <a href="https://genai.owasp.org/" target="_blank" rel="noreferrer">OWASP GenAI Security Project</a>, written by a group of application-security researchers. Its authors include Ken Huang, the CEO of security consultancy DistributedApps.ai and a co-author of the widely cited OWASP Top 10 for LLM Applications that chronicles the top security risks related to LLMs, and Akram Sheriff, an AI security engineer at Cisco.</p>
+<p>ANS is a bit of a redesign of the original idea, which has gone through a few iterations since it was published. The <a href="https://arxiv.org/abs/2505.10609" target="_blank" rel="noreferrer">2025 original</a> described ANS as a “universal directory” — basically a central registry with naming borrowed from DNS. A second version, published as an <a href="https://datatracker.ietf.org/doc/draft-narajala-courtney-ansv2/" target="_blank" rel="noreferrer">individual draft</a> at the Internet Engineering Task Force in April, takes this a step further and ties each agent instead to a real domain its operator already controls.</p>
+<h2>How it would work</h2>
+<p>The design essentially copies how websites already prove who they are today. An operator demonstrates control of a domain like example.com through ACME, the automated protocol behind Let’s Encrypt, and a registration authority issues the agent a pair of certificates. Every change to the agent’s status, from registration to renewal to revocation, is written to an append-only log. A client checking an agent can choose how much assurance it wants, from a basic certificate check to a tier that also consults the log.</p>
+<p>It’s worth noting that the ANS system separates identity from discovery and hands the job of finding agents to other services built on top.</p>
+<h2>The DNS industry and AI agents</h2>
+<p>Discovery is actually handled by <a href="https://datatracker.ietf.org/doc/draft-mozleywilliams-dnsop-dnsaid/" target="_blank" rel="noreferrer">DNS-AID</a>, a separate discovery standard the foundation took in on May 27. It lets agents publish their endpoints as DNS records so other agents can find them. DNS-AID was originally built by Infoblox, and GoDaddy, which is also involved in ANS, is among its backers.</p>
+<p>Agent identity and discovery projects based on DNS aren’t limited to these two Linux Foundation projects, though. Including those two, there are now at least four similar proposals. There is DNSid, for example, a durable-identity scheme from the registry operator Identity Digital, and AID, a minimal discovery draft that came out of the developer community.</p>
+<p>Vineeth Sai Narajala, a co-author of ANS now with OWASP, says in the announcement, “we didn’t need to reinvent the wheel, we needed to extend the foundational trust of the internet to a new generation of autonomous technology.”</p>
+<p>Not reinventing the wheel also means basing this system on the registrars and certificate authorities that come with it and the trust hierarchy they built, which security researchers have long considered <a href="https://meetcyber.net/dns-is-still-one-of-the-internets-most-fragile-control-planes-a2b89a6530ab" target="_blank" rel="noreferrer">fragile</a>.</p>
+<p>Maybe it’s no surprise that many agent identity and discovery solutions are coming out of the domain industry. GoDaddy, after all, registers domains, Identity Digital operates top-level domains, and Infoblox, which backs ANS, sells DNS infrastructure. For all of them, DNS-linked agent identity and discovery extends a (profitable) business they already run.</p>
+<h2>What about A2A and co.?</h2>
+<p>As is so often the case, the Linux Foundation is playing host to <a href="https://thenewstack.io/agentic-ai-foundation-launch/" target="_blank" rel="noreferrer">several alternative</a> systems. Google’s <a href="https://thenewstack.io/google-donates-the-agent2agent-protocol-to-the-linux-foundation/" target="_blank" rel="noreferrer">A2A protocol,</a> for example, gives agents a signed “Agent Card” they can publish at a known web address, with an agent registry on its roadmap. Cisco’s <a href="https://thenewstack.io/cisco-donates-the-agntcy-project-to-the-linux-foundation/" target="_blank" rel="noreferrer">AGNTCY</a> ships an agent directory and its own cryptographic identity service. Outside the foundation, Microsoft’s Entra Agent ID and <a href="https://thenewstack.io/okta-wants-to-secure-your-ai-agents-too/" target="_blank" rel="noreferrer">Okta for AI Agents</a>, both generally available since the spring, treat an agent as an identity managed inside the corporate directory, with short-lived tokens that tie each action back to the person who authorized it.</p>
+<p>And while Cisco is backing both ANS and AGNTCY, some names are missing here, including major players like Google, Anthropic, Microsoft, and Amazon. Given their outsized role in the agent ecosystem, it’ll be interesting to see if they’ll join in this effort or decide on their own standards (insert obligatory xkcd comic <a href="https://xkcd.com/927/" target="_blank" rel="noreferrer">here</a>).</p>
+<p>Community created roadmaps, articles, resources and journeys for developers to help you choose your path and grow in your career.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-b7428fa1a3b31166.html">
@@ -580,7 +599,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-1b3d9f062d34324c.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Can DNS become the basis for AI agent identity?</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Frederic Lardinois</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Can DNS become the basis for AI agent identity?（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Frederic Lardinois（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-23T16:53:34+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

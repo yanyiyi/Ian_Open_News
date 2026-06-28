@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>從資料到展示：開放實作中的基礎設施 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-26 12:45</span></div>
+      <h1><a class="article-title-link" href="https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.10" target="_blank" rel="noreferrer" title="開啟原始連結">從資料到展示：開放實作中的基礎設施</a></h1>
+      <p class="lede">這篇研究札記描述 SKitA 藝術研究資料庫的開發過程，特別關注 ontology 設計與資料視覺化如何成為開放知識基礎設施的一部分。專案從 1990 年代網路批判與 cyberfeminist 檔案材料出發，尤其是 Basel 的 THEswissTHING，並以女性主義與資料女性主義觀點重新理解開放性。它使用 Wikibase 建置語意資料庫，試圖讓資料展示能保留脈絡、多重性與知識位置，而不是只追求乾淨、單一、可計量的視覺呈現。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開放資料</span><span class="tag-chip">Open Knowledge</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.openbookpublishers.com/small_obp_logo_high_res_8ad3ef43d4.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>The Politics of Open Infrastructures - 10. From Data to Display</h1>
+<h2>10. From Data to Display: Infrastructures of Openness in the Making</h2>
+<h2>Lucie Kolb and Lara Kothe</h2>
+<p>©2026 L. Kolb &amp; L. Kothe, CC BY-NC 4.0 <a href="https://doi.org/10.11647/OBP.0528.10" target="_blank" rel="noreferrer">https://doi.org/10.11647/OBP.0528.10</a></p>
+<p>Knowledge sharing is never a neutral act—it requires decisions about what to include, how to structure data and access, and whose perspectives are prioritised. For us, a team of art history, media studies, and digital humanities researchers, this became evident in the development of an open art research database, where sociotechnical challenges and ethical considerations are intertwined. This chapter reflects on the complexities of creating an infrastructure to make our research data public. As a research note, it introduces the ongoing project ‘Sharing Knowledge in the Arts’ ( SKitA) and outlines the preliminary theoretical and methodological work informing our practice.</p>
+<p>Our initiative is situated at the Institute of Experimental Design and Media Culture’s Critical Media Lab (CML) of the Basel Academy of Art and Design FHNW. The CML’s research foregrounds media practices engaging with infrastructures that are integral to collective processes, sociopolitical formations, and the pursuit of common goals. Grounded in trans*feminist, queer, anti-colonial, intersectional, and materialist frameworks, the lab mobilises artistic and computational practices to develop new imaginaries, vocabularies, and methodologies—ones not yet available but necessary for envisioning equitable futures. Its approach to critique emphasises the generative reconfiguration of media and infrastructural systems toward collectivity, and solidarity, aligning with broader struggles against extraction, oppression, and institutional domination.</p>
+<p>In this context, we, art historian Lucie Kolb and design researcher Lara Kothe together with media scholar Stefanie Bräuer, archivists Philipp Messner (until Jan 2025) and Jonas von Lenthe (from Feb 2025), have been conducting the research project ‘Sharing Knowledge in the Arts’ since September 2023. <a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch10.xhtml#footnote-034" target="_blank" rel="noreferrer">1</a></p>
+<h2>Sharing Knowledge in the Arts</h2>
+<p>Starting from community-organised initiative ‘THEswissTHING’ ( TsT)—an infrastructure for creating connections, sharing knowledge, and collaborating on artistic projects via a Bulletin Board System ( BBS) and, from 1996, the internet— SKitA documents the pioneering open digital knowledge practices that emerged in Basel and beyond during the 1990s.</p>
+<p>Alongside running a digital infrastructure, TsT also maintained a physical space in Basel, which hosted an event and workshop programme. TsT was linked to the network ‘THE THING:’ Founded in 1991 in New York, it was a community of artists who initially communicated via BBS and were dedicated to artistic practices of sharing, communicating, and networking. THE THING had various nodes in the US and Europe, including one in Basel.</p>
+<p>Although short-lived, TsT provided local artists and theorists in its Basel spaces—St. Johann-Vorstadt (1995) and Bläsiring (1995–1997)—with skills-based digital literacy training and hands-on access to the internet. Through its events, it nurtured net-critical discussions among artists, theorists, and curators, many linked to nettime (1995–ongoing), an email list that encourages debate on the potentials and limits of internet media.</p>
+<p>Much of TsT’s material has been lost or is inaccessible, making it difficult to critically reflect on its practices and infrastructures today. In response, SKitA first secured data by collecting documentary and archival material... Secondly, we conducted filmed interviews to contextualise the data via oral history with artists, curators, and theorists who were involved in TsT or have participated in related activities or projects. 3 In the third phase, we have been creating an open database using the open-source tool Wikibase, a collection of extensions for the open-source software MediaWiki to make our research data accessible. Following the creation of a project-specific ontology for our Wikibase database and the integration of the processed material, we are now developing the visual interface of the database. This process is informed by a close reading of the oral history interviews and archival material through the lens of our central research question: What was the understanding of openness in TsT ? How did it manifest in its infrastructure, pedagogy, and publishing?</p>
+<p>In this process, the database is not simply a means to an end to secure and share research data on practices around TsT in Basel, but a research object in its own right. Inspired by the practices we investigate, we ask: How can we translate social and ethical community-based notions of sharing and open access into the publication of research data?</p>
+<p>This research note zooms into the creation phase of the database’s visual representation and seeks to outline preliminary answers for the translation of those notions of sharing and open access into an open research database.</p>
+<h2>Open Research Databases</h2>
+<p>In humanities research projects, research databases serve as a crucial resource for scholars to access and analyse materials. <a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch10.xhtml#footnote-031" target="_blank" rel="noreferrer">4</a> Databases provide a structured, searchable collection of information. In the context of open science ( OS), a movement associated with harnessing digital possibilities to make research more widely available, faster, cheaper, and more efficient, databases have become increasingly public (Adema and Hall 2013:... One influential technical best practice standard is the ‘ FAIR Guiding Principles for Scientific Data Management and Stewardship,’ introduced in the British scientific journal <em>Nature</em> in 2016, and which have since been widely adapted (Wilkinson et al. 2016). The acronym FAIR stands for: findable, accessible, interoperable, and reusable. FAIR proposes that scientific data have four key components: it should be easily located ( findable); readily available ( accessible), with both metadata and data retrievable by humans and computers alike; data should be compatible with multiple types of software and devices ( interoperable); and, capable of being used again for future research (reusable), thereby promoting more effective and collaborative research practices.</p>
+<p>Substantial criticism has been levelled at the foregrounding of technological solutions for achieving open data management inherent in the FAIR framework. From feminist and anti-colonial perspectives, it has been argued that FAIR’s understanding of openness overlooks the social and political factors crucial in determining how knowledge can become accessible (D’Ignazio and Klein 2020; Carroll et al. 2020; Chan 2014). While the principles focus on the properties of data and materials that facilitate data exchange and thus on technical aspects, ethical aspects and historical contexts of data production are largely ignored ( Carroll et al. 2020). This oversight leads to several issues, including the potential misuse of data, a lack of accountability for sources and methods of data collection, and an incomplete understanding of the societal impact of data practices (Staunton et al. 2021).</p>
+<p>Given the prevailing power structures in science, OS is subjected to particularly rigorous scrutiny through the lens of anti-colonial theories. At the most critical end of the spectrum, it is even seen as embodying a Western perspective that may inadvertently perpetuate colonial practices (Dutta et al. 2021). This critique suggests that OS may reinforce power imbalances and overlook non-Western epistemologies and methodologies. For example, the Global Indigenous Data Alliance (GIDA) has challenged the FAIR principles’ strong emphasis on making research data available, noting that this framing neglects to ask why and to whom data should be made available and how that availability benefits the communities from which the data originates (GIDA 2019). In response, GIDA, together with a group within the Research Data Alliance, developed an alternative yet complementary set of principles called CARE: <em>Collective Benefit,</em> <em>Authority to Control, Responsibility,</em> and <em>Ethics</em> (GIDA 2019). Whereas FAIR prioritises end-users by centring the availability and technical accessibility of data, CARE foregrounds the rights and interests of communities of origin—specifically Indigenous peoples. CARE aims to ensure that the use of data aligns with those communities’ values, supports their self-determination, and redistributes authority over their data circulation. Although our project does not involve Indigenous data or governance, it resonates with and extends the impetus of CARE by insisting that openness be understood as an ethical, contextual, and relational practice rather than a purely...</p>
+<h2>Setting the Stage</h2>
+<p>Beyond providing access to documentary and archival material, creating contextual metadata and interviews, we developed a research database that takes up the sharing practices of the 1990s and re-examines their articulation today in light of the feminist critique of OS outlined above. We conceive of the database not simply as a repository but as research in its own right—an artistic ‘small data’ experiment in feminist knowledge production. Drawing on Liu’s approach (Liu 2021), we understand this experiment as contributing through practice to the ongoing articulation, critique, and experimentation around what ‘open’ means.</p>
+<p>Starting from a critique of the narrow view of openness as merely providing technical conditions for efficient access, our project develops concrete infrastructures that embody and support a broader conception of openness informed by feminist approaches to digital technologies. For us, infrastructuring openness is a recursive and ongoing process that involves three interrelated components: contextualisation, reflexivity, and the design of open-ended systems. These components are not only technical but also deeply political, shaping how knowledge is accessed, framed, and reused.</p>
+<p>As we develop our database with a focus on TsT’s sharing practices, we first need to outline some key aspects to set the stage for discussing how we visually represent our research data: What were the social and ethical notions of sharing inherent to those practices? TsT centred on a form of knowledge sharing that emphasised access: to digital infrastructures and means of production, computers, modems, servers, the BBS and the internet, and to a network engaged in critical media discourse on knowledge sharing (Bräuer 2025). Drawing on DIY self- publishing strategies, such an understanding of knowledge production had the political aim to empower those using the infrastructure to see themselves not just as recipients of messages or posts, but as active authors. TsT established a media space that questioned who could speak and mapped what lay outside highly conventional media. It was about creating new publics by building and maintaining collective infrastructures that fostered awareness of transparency, power imbalances, and the subjection of media infrastructures, while offering agency through self-organisation. These publics were less about aggregating people than about creating community through collective action. Knowledge sharing thus went beyond sharing content and shaped the framework of production by developing and maintaining infrastructures, creating access, providing means, and generating an audience.</p>
+<p>TsT’s open, transversal, and non-outcome-related approach to knowledge sharing came with its share of conflict, which at least in part reflected the chaos and anarchy of new media at a time when it was still unclear how media would be used artistically, politically, and commercially. In this sense, considering openness means embracing divergent perspectives. Mapping the multiple perspectives and positions within the heterogeneous community in our database requires foregrounding the contexts in which data emerged: where they came from, how they were produced or collected, and under what conditions.</p>
+<p>This shift calls for moving away from viewing data as isolated objects and instead recognising them as relational and processual. It also involves acknowledging what data is present and what is missing, where gaps or biases may exist. Just as important is situating our research itself, i.e., reflecting on the research team’s narrative lens and position. Rather than claiming neutrality, we draw on the concept of <em>Situated Knowledges</em> ( Haraway 1988), recognising that all research is embedded in social, historical, and institutional contexts.</p>
+<p>By embracing this situatedness, we critically engage with the infrastructures we analyse. This includes visualising and disclosing our methodological choices, institutional affiliations, and positionalities—not as a neutral backdrop, but as integral to the research process. We view this act of disclosure as a feminist practice: one that makes visible the roles of funding, institutions, technologies, and individuals in shaping outcomes. Making these dynamics (decisions, priorities, hierarchies) legible fosters accountability. It lays the groundwork for more equitable forms of knowledge sharing by equipping users with insight into the structures that mediate access. In doing so, it opens space for diverse, even conflicting, forms of inquiry to coexist.</p>
+<h2>Contextualising through LOD, Metadata, and Ontology</h2>
+<p>In our implementation of Wikibase, beyond embedding context through descriptive metadata, we contextualise the material through the structure of the database, which is built in a Resource Description Framework (RDF) graph model. Wikibase uses ‘triples’ (subject-predicate-object) to represent semantic relationships at different levels, allowing an articulation of the processes and conditions under which data was generated. We chose Wikibase because it provides an open, flexible, and community-supported infrastructure for linked data, while remaining adaptable to small-scale, experimental projects. Unlike many proprietary or closed systems, it allows us to foreground provenance and relationality rather than enforcing rigid schemas, which is crucial for our artistic and feminist approach to data. This approach draws on principles of archiving, where documenting the circumstances of record creation is essential to enable future interpretation. One question guiding our work was how to adapt these archival methodologies for the management of research data: how can the context of origin be effectively articulated within a database?</p>
+<p>To address this, we employed unique identifiers, standardised ontologies, and controlled vocabularies, thereby producing Linked Open Data ( LOD). Wikibase supports this structure, allowing us to model the relationships and provenance of data while preserving its contextual integrity. Linked data also accommodates multiplicity. For instance, by capturing the various spellings of the project name ‘ TsT’ used by different contributors, it reflects the diversity within the community itself (Messner 2025).</p>
+<p>SKitA developed a custom data model combining CIDOC CRM, a conceptual reference model for representing cultural heritage events and their contexts, with Records in Contexts (RiC) for traditional archival structures. This hybrid ontology was implemented in Wikibase, enabling structured, machine-readable metadata. However, due to technical constraints, the Wikibase instance couldn’t be made permanently public. To contribute to the LOD ecosystem, entities such as persons and organisations were created or enriched in Wikidata, ensuring openness, interoperability, and collaborative enhancement of the data beyond the project scope.</p>
+<p>The next step is translating this structured contextualisation into the visual domain. If infrastructuring openness begins with LOD, ontology, and metadata, then visualisation is where those frameworks become legible, interpretive, and contestable. It is through visual interfaces that ambiguity can surface, absences can be acknowledged, and positionalities made visible. Our visualisation is not a passive display but an active interpretative layer, one that embodies our critique of openness by making structures transparent, surfacing epistemic standpoints, and inviting alternative engagements with the data.</p>
+<h2>Data Visualisation: Representation and Interpretation</h2>
+<p>Data visualisation is the translation of data into visual formats. This serves as a gateway for interacting with data, thereby materialising an access point for users. Data visualisation in the digital humanities depends on conventional frameworks and technologies to allow for data-centred research. Often standardised models designed primarily for statistical display (Drucker 2011), such tools (e.g. Gephi, nodegoat) rely on abstractions and simplifications to serve their purpose. Generic tools cannot capture the unique perspectives and research questions of individual projects. This is especially true when these questions address gaps, ambiguities, multi-perspectives, one-sided connections, memories, and hidden aspects like undocumented labour—in short, all that resists conventional translation into data and static visualisations of relationships, such as solid lines between two nodes.</p>
+<p>A common standardised model is the network knowledge graph, where data appears as circular nodes connected by solid lines to reveal relationships and generate new insights, often used in humanities research on business, migration, or correspondence networks. Each node’s position is determined by applying fixed layout algorithms. This process aims to produce a seemingly clear visualisation that allows the viewer to distinguish individual nodes and observe interrelated patterns within the dataset (Mertel n.d.). However, when applied uncritically to most graph-drawing algorithms, the desire to display semantic links—and as many of them as possible at once to address different research questions—leads to various visualisation issues, including the so-called ‘hairball’ phenomenon, which is often caused using technically accurate distance representations (Peixoto 2024). Here, the network datasets connections are so complex that visualisation produces a ‘hairball’ (Mertel n.d.; van Geenen and Wieringa 2020: 152). There are efforts to address this issue. One approach is to focus on specific aspects of the relationships (e.g., graph filtering) or to simplify the semantic connections (e.g., group nodes) (Williams 2023). But this requires visualisation experts, often overlooked because of budget constraints.</p>
+<p>According to Data Feminism, data visualisations as knowledge infrastructures reveal data-fact knowledge by making data accessible visually, constructing specific narratives, and facilitating insights (D’Ignazio and Klein 2016). This understanding of data visualisation is rooted in visual culture, where data visualisations are conceived as absolute, accurate, and neutral representations that allow for one singular understanding (Tufte 1990). But as with data itself, visualisations cannot be seen as objective translations of ‘raw data’ (Gitelman 2013). Data Feminism visualisation practices ‘challenge claims of objectivity, neutrality, and universalism, emphasising instead how knowledge is always constructed within the context of a specific subject position’ and propose six concrete principles, namely ‘Rethink Binaries, Embrace Pluralism, Examine Power and Aspire to Empowerment, Consider Context, Legitimize Embodiment and Affect, and Make Labor Visible’ (D’Ignazio and Klein 2016: 2–5). D’Ignazio and Klein push against seeing visualisations as objective representations, arguing instead that they should be seen as complex constructs shaped by representation choices and interpretation processes.</p>
+<p>Choices in representation, because representations are as Stuart Hall stated, an ‘active work of selecting and presenting, of structuring and shaping: not merely the transmitting of an already-existing meaning, but the more active labour of making things mean’ (Hall 1982: 60). They can be seen as a practice where power negotiations take place within decision-making frameworks, as activities such as producing, introducing, performing, and exhibiting come together and are often carried out by the person(s) creating the visualisations. In research projects, however, multiple authorship positions come into play, including those who create the underlying dataset, those who convert it into a research database, and those who visualise the underlying ontology, each bringing their own situated knowledge. The steps in this process are often not carried out in an interdisciplinary team, but independently and with standardised tools, which can lead to a lack of coherence, critical reflection, and disclosure of one’s own position in the individual phases.</p>
+<p>Processes of interpretation, because visualisations are a distinct form of knowledge production, thereby going beyond the mere depiction of something: They have the potential to facilitate the discovery of new connections and narratives as a means of knowledge. By allowing viewers to ‘see’ in a particular manner, they contribute to forming one’s reality, thereby assuming a central role in the cognitive process. Part of this process is the viewer and visualisation interplay: it involves a process of ‘reading’ and performative interpretation that leads to an individual understanding of the visualisation (Drucker 2013). When a viewer encounters a visualisation, they decipher its content by performing an act of interpretation that is influenced by their individual perspective, cultural background, and experiences. This act involves questioning, linking, and recontextualising the visual information, leading to new knowledge. The process, in turn, can be understood as performative, as the viewer transforms the visualisation from a static representation into an active site of meaning-making, where they play a crucial role in shaping its significance. Meaning is thus not given in a visualisation but depends on the engagement of the viewer, reflecting the situational nature of visualisations and making them sites of interventions.</p>
+<h2>Alternative Imaginaries</h2>
+<p>In the following, we discuss alternative imaginaries that approach visualisation as an active site of meaning-making shaped by representation choices and interpretation processes, which resist attempts at hierarchisation, embrace the coexistence of multiple narratives, and disrupt the ways conventional tools often reinforce conventional knowledge. These aspects serve as reference points for implementing our own data visualisations. We aim to identify both what they offer—strategies for non-hierarchical complexity or context—and their limits, especially with regard to openness, transparency, and ambiguity. Rather than focusing on research databases in the literal sense, we deliberately considered examples from archives, libraries, and related infrastructures. This decision reflects the nature of our own data context and the knowledge practices in which we are engaged.</p>
+<h3><em>Materialarchiv</em></h3>
+<p>The first example is the Materialarchiv<em>,</em>which is not a research data archive in the traditional sense, but an archive that resonates with our own work.</p>
+<p>The Materialarchiv is a collection of different materials and their methods of processing and use. The data visualisation was designed by the agency Astrom/Zimmer and Tereszkiewicz in 2023. Its relevance lies in the way it treats material knowledge, in its exploratory interface design, and in the way it structures access and relationships between artefacts.</p>
+<p>A closer look at the interface reveals that the individual properties of the material are semantically linked to other components such as processes, reference objects, events, etc. No hierarchy is imposed on these elements. The viewer can decide which component best suits their interests when approaching the material. Free, intuitive browsing facilitates open knowledge exchange. As in our case, the database of the Materialarchiv draws on an RDF graph model to connect data, thus enabling a shift in the interest perspective and providing news ways to explore the material world. This approach emphasises interconnectedness and enables exploration from multiple perspectives, revealing material complexity.</p>
+<p>However, certain limitations become apparent from a data feminist perspective. For instance, the section ‘Relevanz’ (relevance) lacks transparency about who determines relevance, raising questions of authority. While data contributors are listed in the metadata, attribution is limited to general institutional labels (e.g., ‘ETHZ’) or initials (e.g., ‘KB’), without clarifying who it refers to. This requires additional research in the ‘Impressum’ section to understand the context and responsibility. Although the interface is rich and non-hierarchical, it can sometimes be disorientating, particularly for nontechnical users. The multiple entry points and navigation paths require significant effort to comprehend and can leave users with a sense of ‘being lost’ in the complex web of relationships. Additionally, the lack of a participatory element is noticeable: users cannot contribute to the network, annotate existing metadata, or challenge categorisations. This limits engagement and the potential for a more inclusive, contested knowledge space. While users can create their own collections, these cannot be made visible to others through the interface, which further restricts opportunities for collaborative knowledge building and public dialogue.</p>
+<h3>Infrastructural Manœuvres in the Library</h3>
+<p>Another example is the interface of the library catalogue of the Rietveld Academie and Sandberg Instituut in Amsterdam, which experiments with the library’s technical data infrastructure through annotations. This interface is particularly interesting to us because it enables collaborative knowledge production by allowing users to contribute their own comments and corrections.</p>
+<p>Infrastructural Manœuvres in the Library is a collective project that reexamines the components of the library and rethinks their interconnections. At the heart of this is an interface that makes the library catalogue writable. Viewers can interact with the catalogue in four modes: ADD, CHANGE, REMOVE, and BUT. While the first three correspond to familiar editing actions BUT introduces a space for qualification or dissent—allowing users to register contradictions, tensions, or alternative readings without overwriting existing entries. Rather than generating preformatted annotations, viewers can individually edit, contribute to, and criticise the existing categories.</p>
+<p>This approach de-centres expert authority, fostering inclusivity, opening space for alternative or even conflicting classifications, and in the process questioning traditional hierarchical structures. It highlights issues of selection, classification systems, and authorship, while revealing the nuances, uncertainties, and grey areas within these processes. By enabling ambiguity instead of forcing simplification, the system offers multiple perspectives on the same artifact. This fosters responsibility and community accountability through ongoing dialogue around the displayed data. Through collective stewardship, alternative knowledge infrastructures are created. Despite this critical intervention, limitations remain. Meaningful participation requires time, motivation, and familiarity with the system, which can act as a barrier, especially for users outside of academic or technical contexts. Users engaging in critique, correction and classification are doing so without institutional recognition, financial compensation, or credit. This raises questions about the ethics of relying on unpaid volunteer work. While the ability to edit categories appears to disrupt hierarchical structures, the underlying metadata schema seems to remain intact and unquestioned, thereby limiting the depth of structural change. Furthermore, the process by which annotations are acknowledged and integrated into the system is not transparent to users of the interface, which may undermine contributors’ sense of agency and impact.</p>
+<h3>The Sound of Water</h3>
+<p>In terms of setting, the last example, the Sound of Water, is closest to ours, as it focuses on communicating a database for a research project involving cultural heritage data. An interesting aspect is the poetic approach, which prioritises exploration over a single narrative. Rather than using standardised data visualisation, the data is presented as storytelling—through methods such as audio recordings—which is designed to evoke certain emotions. This interface approach uses artistic means, such as sound and image patterns, to represent data, offering an alternative to conventional data visualisations.</p>
+<p>The Sound of Water is a microsite created by Mitchell Whitelaw and ecologist Dr Skye Wassens. This initiative tells the story of the NapNap Swamp in Australia, located on the land of the Nari Nari people. Whitelaw is an academic, writer, and data visualisation expert known for his work in designing ‘generous interfaces.’ These interfaces challenge the traditional approach that requires viewers to get information through a single query. Instead, Whitelaw creates visualisations that offer multiple pathways, encouraging viewers to explore, interpret, and uncover relationships and structures within the translated data, particularly in cultural heritage collections. He has designed the microsite to provide a poetic experience beyond the traditional dissemination of scientific research data. Using audio recordings, water data, and images collected over nine days in 2020, the project translates ‘hard’ data facts as well as feelings to create a vivid visualisation of life in the swamp from a dry to a wet period. Controlled environmental flows cause the wetland to change, and this change has been captured through interactive false-colour spectrograms that reveal the different rhythms. The spectrogram shows daylight hours dominated by birds as pink and orange areas, the sounds of crickets as solid horizontal bands, and rainy, windy weather as blue areas. Frog calls are represented by bright areas, mostly at night, against a black background, with the presence of the endangered Southern Bell Frog being of particular interest ( Whitelaw et al. 2024). This intervention uses visual story...</p>
+<p>Nevertheless, some issues remain unresolved. Although further details can be found in a separate academic paper (cf. Whitelaw et al., 2024), the selection process for the audio recordings prominently featured in the interface is not clearly disclosed on the website, and users must look for the context elsewhere. While the project ackno..., and Flickity, but at first glance it does not seem to disclose which training algorithm was used for bird song recognition and whether parts of the soundscape have been omitted or filtered out, which would be a key methodological detail. This lack of transparency carries the risk of reproducing technocratic authority. Finally, while the project relies heavily on auditory interaction, it does not appear to offer alternative modalities, such as transcripts or textual summaries. This could be a barrier for users with hearing impairments.</p>
+<h2>Learning from Others</h2>
+<p>A key challenge in our work within SKitA is developing a data visualisation that reflects the ambiguities and gaps in the RDF dataset, rather than presenting a rigid, oversimplified view. Instead of constructing dominant narratives, we aim to visualise the complexity of the infrastructural practices at the centre of our work and reflect the relationships represented in our dataset.</p>
+<p>The Materialarchiv’s approach to LOD offers a valuable reference, using recursive and polyphonic visual strategies that avoid highlighting a single interpretation. Relationships shift based on the user’s interactions, emphasising the contextual nature of the material. Similarly, Infrastructural Manœuvres reframes infrastructure as a participatory space—moving beyond functional cataloguing toward collaborative knowledge production and collective exploration, encouraging users to engage in distribution practices that foster a more inclusive exchange of knowledge. We also draw inspiration from The Sound of Water, where sound visualisation, linked to source audio, invites users to engage with more-than-human ecologies, encouraging interpretive openness.</p>
+<p>Developing our own interface requires integrating multisensory and cross-modal elements—such as oral history filmed interviews—to address data gaps and ambiguities and foster immersive engagement. To reflect the networked nature, the interface must offer non-linear exploration and multiple points of entry. Just as importantly, it should support collaboration by enabling comments, suggestions, and critique, with transparent moderation and fair recognition of contributions.</p>
+<p>We make decisions around LOD, metadata, and prototype versioning visible, fostering reflexivity and accountability. By addressing questions of sovereignty, transparency, labour, and access, we aim to create a just, community-oriented interface that supports inclusive, ongoing knowledge exchange.</p>
+<p>Thus, our interpretation of openness requires a visual interface that represents the underlying practices adequately—one that reveals its design choices and assumptions, and the origin of the data it represents. It is crucial, in our view, that openness allows space for ambiguity, complexity, and contradictions—as well as the limits of what can or should be visualised. We do not aim to implement a fully-fledged system that makes complex ontologies entirely visible and workable, but rather to prototype selective functions—such as exposing design choices, documenting provenance, and representing multiple or contested relations—that serve as proofs of concept. In this way, the interface itself becomes an experiment in reflexivity, foregrounding openness as an ongoing, situated practice rather than a finished technical solution.</p>
+<h2>Closing Preliminary Thoughts</h2>
+<p>Knowledge infrastructures are not passive pathways but contested, conflictual spaces shaped by access and negotiation. Attending to openness, then, involves exploring how careful and considered infrastructure design can facilitate openness without reproducing dominant norms, and instead enabling the exploration of alternative imaginaries.</p>
+<p>Through our work, we have come to understand openness not merely as a question of dissemination or digital accessibility, but as a critical and contextual practice that encourages reflection on how, by whom, and under what conditions knowledge is shared. Openness therefore is not just a technical feature but a political and ethical commitment for everyone involved.</p>
+<p>This requires a focus on interdisciplinary collaboration as a methodological principle that facilitates dialogue between different epistemologies, practices, and values. Importantly, we have learned to consider data, infrastructure, and collaboration in relation to each other: we must view them not as separate components, but as intertwined and mutually dependent. Accordingly, we can redefine the database and its visualisation as an evolving, collective process—a ‘living system’ that grows through critical engagement, participation, and care, rather than as a finished product or final repository.</p>
+<p>With this understanding, openness becomes a mode of resisting closure, disrupting extractive knowledge practices, and building more just and inclusive forms of exchange. This ongoing process requires us to rethink not only how data is accessible, but to reconsider the infrastructures through which knowledge is created, communicated, and shared, guided by questions of justice, accountability, and community.</p>
+<h2>References</h2>
+<p>Adema, Janneke, and Gary Hall. 2013. ‘The Political Nature of the Book: On Artists’ Books and Radical Open Access.’ <em>New Formations</em> 78: 138–156. <a href="https://doi.org/10.3898/NewF.78.07.2013" target="_blank" rel="noreferrer">https://doi.org/10.3898/NewF.78.07.2013</a></p>
+<p>Bräuer, Stefanie. 2025. ‘Screen Cultures in Translocal Networks around 1995: Interview with Barbara Strebel.’ In *Screen Cultures 1970s–1990s in**Basel and Beyond: Video and Net Initiatives*, edited by Stefanie Bräuer and Lucie Kolb, 110–125. Marburg: Schüren. <a href="https://doi.org/10.23799/9783741007224" target="_blank" rel="noreferrer">https://doi.org/10.23799/9783741007224</a></p>
+<p>Chan, Anita Say. 2014. *Networking Peripheries: Technological Futures and**the Myth of Digital Universalism*. Cambridge, MA: MIT Press.</p>
+<p>Chan, Leslie, Angela Okune, Rebecca Hillyer, Denisse Albornoz, and Alejandro Posada. 2019. <em>Contextualizing Openness: Situating Open Science</em>. Ottawa: University of Ottawa Press.</p>
+<p>Carroll, Stephanie Russo, Ibrahim Garba, Oscar L. Figueroa-Rodríguez, Jarita Holbrook, Raymond Lovett, Simeon Materechera, Mark Parsons, et al. 2020. ‘The CARE Principles for Indigenous Data Governance.’ *Data Science**Journal* 19 (1): 43. <a href="https://doi.org/10.5334/dsj-2020-043" target="_blank" rel="noreferrer">https://doi.org/10.5334/dsj-2020-043</a></p>
+<p>D’Ignazio, Catherine, and Lauren F. Klein. 2020. <em>Data Feminism</em>. Cambridge, MA: MIT Press. <a href="https://doi.org/10.7551/mitpress/11805.001.0001" target="_blank" rel="noreferrer">https://doi.org/10.7551/mitpress/11805.001.0001</a></p>
+<p>—. 2016. ‘Feminist Data Visualization.’ In *Workshop on Visualization for**the Digital Humanities (VIS4DH)*. <a href="https://kanarinka.com/wp-content/uploads/2015/07/IEEE_Feminist_Data_Visualization.pdf" target="_blank" rel="noreferrer">https://kanarinka.com/wp-content/uploads/2015/07/IEEE_Feminist_Data_Visualization.pdf</a></p>
+<p>Drucker, Johanna. 2011. ‘Humanities Approaches to Graphical Display.’ <em>Digital Humanities Quarterly</em> 5 (2011).</p>
+<p>—. 2013. ‘Performative Materiality and Theoretical Approaches to Interface.’ <em>Digital Humanities Quarterly</em> 7 (1): 1–20.</p>
+<p>Dutta, Mohan J., Srividya Ramasubramanian, Mereana Barrett, Christine Elers, Devina Sarwatay, Preeti Raghunath, Satveer Kaur, Debalina Dutta, Pooja Jayan, Md Mahbubur Rahman, Edwin Tallam, Sudeshna Roy, Ashwini Falnikar, Gayle Moana Johnson, Indranil Mandal, Uttaran Dutta, Iccha Basnyat, Cheryll Soriano, Vinod Pavarala, T. T. Sreekumar, Shiv Ganesh, Asha Rathina Pandi, and Dazzelyn Zapata. 2021. ‘Decolonizing Open Science: Southern Interventions.’ <em>Journal of Communication</em> 71 (5): 803–826. <a href="https://doi.org/10.1093/joc/jqab027" target="_blank" rel="noreferrer">https://doi.org/10.1093/joc/jqab027</a></p>
+<p>GIDA. 2019. ‘The CARE Principles for Indigenous Data Governance.’ <a href="https://www.gida-global.org/care" target="_blank" rel="noreferrer">https://www.gida-global.org/care</a></p>
+<p>Gitelman, Lisa. 2013. <em>‘Raw Data’ Is an Oxymoron.</em> Cambridge, MA: MIT Press, <a href="https://doi.org/10.7551/mitpress/9302.001.0001" target="_blank" rel="noreferrer">https://doi.org/10.7551/mitpress/9302.001.0001</a></p>
+<p>Hall, Stuart. 1982. ‘The Rediscovery of Ideology: Return of the Repressed in Media Studies.’ In <em>Culture, Society and the Media</em>, edited by Michael Gurevitch, Tony Bennett, James Curran, and Janet Woollacott, 56–86. London: Methuen.</p>
+<p>Haraway, Donna. 1988. ‘Situated Knowledges: The Science Question in Feminism and the Privilege of Partial Perspective.’ <em>Feminist Studies</em> 14 (3): 575–599. <a href="https://doi.org/10.2307/3178066" target="_blank" rel="noreferrer">https://doi.org/10.2307/3178066</a></p>
+<p>Liu, Alan. 2021. ‘Digital Humanities and Critical Infrastructure Studies: An Overview.’ *Digital Humanities &amp; Critical**Infrastructure Studies Workshop Series*, King’s Digital Lab, King’s College, Department of Digital Humanities and Critical Infrastructure Studies Initiative, September 26. <a href="https://www.youtube.com/watch?v=HHGZ2Ju6MXY" target="_blank" rel="noreferrer">https://www.youtube.com/watch?v=HHGZ2Ju6MXY</a></p>
+<p>Messner, Philipp. 2025. ‘Archiving Networks: The Context-Oriented Extended Description of the Private Archive of Barbara Strebel/THEswissTHING.’ In *Screen Cultures**1970s–1990s in Basel and Beyond: Video and Net Initiatives*, edited by Stefanie Bräuer and Lucie Kolb, 154–162. Marburg: Schüren.</p>
+<p>Mertel, Adam. N.d. ‘Why Is the Graph Visualisation Not Always an Ideal Way to Display Network Data?’ *Dissident Networks**Project (DISSINET)*. <a href="https://dissinet.cz/news/articles/why-is-the-graph-visualisation-not-always-an-ideal-way-to-display-network-data" target="_blank" rel="noreferrer">https://dissinet.cz/news/articles/why-is-the-graph-visualisation-not-always-an-ideal-way-to-display-network-data</a></p>
+<p>Peixoto, Tiago P. 2024. ‘Untangling the Hairball Using Statistical Inference.’ <a href="http://Skewed.de" target="_blank" rel="noreferrer">Skewed.de</a> (May 20). <a href="https://skewed.de/lab/posts/hairball/" target="_blank" rel="noreferrer">https://skewed.de/lab/posts/hairball/</a></p>
+<p>Staunton, Ciara, Carlos A. Barragán, Silvia Canali, Ching Ho, Sabina Leonelli, Melanie Mayernik, Barbara Prainsack, and Andy Wonkham. 2021. ‘Open Science, Data Sharing and Solidarity: Who Benefits?’ <em>History and Philosophy of the Life Sciences</em> 43 (115). <a href="https://doi.org/10.1007/s40656-021-00468-6" target="_blank" rel="noreferrer">https://doi.org/10.1007/s40656-021-00468-6</a></p>
+<p>Tufte, Edward R. 1990. <em>Envisioning Information</em>. Cheshire, CT: Graphics Press.</p>
+<p>UNESCO. 2023. <em>Recommendation on Open Science</em>. <a href="https://www.unesco.org/en/open-science/about#:~:text=The%20UNESCO%20Recommendation%20on%20Open%20Science%20provides%20an%20international%20framework,divides%20between%20and%20within%20countries" target="_blank" rel="noreferrer">https://www.unesco.org/en/open-science/about#:~:text=The%20UNESCO%20Recommendation%20on%20Open%20Science%20provides%20an%20international%20framework,divides%20between%20and%20within%20countries</a></p>
+<p>van Geenen, Daniela, and Maranke Wieringa. 2020. ‘Approaching Data Visualizations as Interfaces: An Empirical Demonstration of How Data Are Imag(in)Ed.’ In *Data Visualization in**Society*, edited by Martin Engebretsen and Helen Kennedy, 141–156. Amsterdam: Amsterdam University Press. <a href="https://doi.org/10.2307/j.ctvzgb8c7.15" target="_blank" rel="noreferrer">https://doi.org/10.2307/j.ctvzgb8c7.15</a></p>
+<p>Whitelaw, Mitchell, Simone Wassens, and Adrian Mackenzie. 2024. ‘The Sound of Water: Sensing a Wetland Intervention Through Interactive Environmental Audio.’ *Cultural**Geographies* 31 (4): 577–582.</p>
+<p>Wilkinson, Mark D., Michel Dumontier, IJsbrand J. Aalbersberg, Gabrielle Appleton, Myles Axton, Arie Baak, Niklas Blomberg, et al. 2016. ‘The FAIR Guiding Principles for Scientific Data Management and Stewardship.’ <em>Scientific Data</em> 3 (1). <a href="https://doi.org/10.1038/sdata.2016.18" target="_blank" rel="noreferrer">https://doi.org/10.1038/sdata.2016.18</a></p>
+<p>Williams, Dan. 2023. ‘Graph Visualization: Fixing Data Hairballs.’ <em>Cambridge Intelligence</em> (September 7). <a href="https://cambridge-intelligence.com/how-to-fix-hairballs/" target="_blank" rel="noreferrer">https://cambridge-intelligence.com/how-to-fix-hairballs/</a></p>
+<ul>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch10.xhtml#footnote-034-backlink" target="_blank" rel="noreferrer">1</a> We are collaborating with digital conservator Dragan Espenschied (Rhizome New Museum New York), digital humanities scholar Lozana Rossenova (TIB Open Science Lab Hannover), and design researcher Adrian Demleitner (University of Bern) to develop the research database. The broader team also includes artist-researcher Eva Weinmayr, who contributes a complementary reflection on classification in search interfaces, taking library catalogues as an example.</li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch10.xhtml#footnote-033-backlink" target="_blank" rel="noreferrer">2</a> SKitA includes the archive of Barbara Strebel, along with material from interview partners and collected material from Annette Schindler, Stella Händler, and Reinhard Storz.</li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch10.xhtml#footnote-032-backlink" target="_blank" rel="noreferrer">3</a> As of now, the research includes interviews with Reinhard Storz (<a href="http://xcult.org" target="_blank" rel="noreferrer">xcult.org</a>, TsT), Barbara Strebel ( TsT), Valentin Spiess (iart), Studer/van den Berg, Annette Schindler ( plug.in), Yvonne Volkart (Old Boys Network OBN), Enrique Fontanilles (Medialabor Ø.1), Catherine Walthard (HyperWerk), and Felix Stalder (nettime, TsT).</li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch10.xhtml#footnote-031-backlink" target="_blank" rel="noreferrer">4</a> The Swiss research landscape hosts a number of open research databases which were developed in various university contexts and often organised by disciplines. As of now, there is no national or international database provider for practice-based research in art and design. Moreover, research in art and design is considered part of humanities research and thus integrated in its infrastructures. DaSCH is the major research database in Switzerland for the humanities. Developed by Basel University, DaSCH provides access to research data collected or generated in a research process and shared with others for reuse. Our project will eventually be included in DaSCH.</li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch10.xhtml#footnote-030-backlink" target="_blank" rel="noreferrer">5</a> In the Swiss context, the ORD Strategy Council was formed as a national entity to coordinate the standardisation process together with the stakeholders: <a href="https://openresearchdata.swiss" target="_blank" rel="noreferrer">https://openresearchdata.swiss</a></li>
+</ul></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-6e6abba3e28db6b9.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">打開網路基礎設施：草根社群網路中的開放社會物質政治</span>
+</a>
+
+<a class="article-sequence-link" href="item-c41b75e14cb0534a.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">建設開放的基礎設施：奧地利開放政府資料的實作與政治</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-c4eca7c0f4105110.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Politics of Open Infrastructures - 10. From Data to Display</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Lucie Kolb and Lara Kothe（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-27T06:56:02+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-27T06:56:02+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-c4eca7c0f4105110";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

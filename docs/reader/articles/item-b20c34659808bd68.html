@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>網際網路基礎設施從未真正開放 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-26 12:45</span></div>
+      <h1><a class="article-title-link" href="https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.03" target="_blank" rel="noreferrer" title="開啟原始連結">網際網路基礎設施從未真正開放</a></h1>
+      <p class="lede">這章主張，網際網路的開放性從來不是中立或平均分配的設計原則，而是基礎設施權力的結果。作者從科技與社會研究、基礎設施研究出發，指出軍方、產業、情報機構與國家能在技術系統中留下結構性配置，但公民社會即使能參與治理程序，也往往只能發言、提供正當性，未必能真正改變技術架構。這使得網路同時對資料擷取與特定權力開放，卻對民主控制與公民社會有限開放。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開放資料</span><span class="tag-chip">Open Knowledge</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.openbookpublishers.com/small_obp_logo_high_res_8ad3ef43d4.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>The Politics of Open Infrastructures - 3. The Internet Infrastructure Has Never Been Open</h1>
+<h2>3. The Internet Infrastructure Has Never Been Open</h2>
+<h2>Niels ten Oever 1</h2>
+<p>©2026 Niels ten Oever, CC BY 4.0 <a href="https://doi.org/10.11647/OBP.0528.03" target="_blank" rel="noreferrer">https://doi.org/10.11647/OBP.0528.03</a></p>
+<p>In this chapter, I argue that openness offers a limited view, and surely not access, into closed systems. The following analysis demonstrates how openness is always a matter of openness for a particular group, namely, the group that can set and alter the configuration of the material infrastructure. Openness, then, is not a neutral design principle but an expression of infrastructural power, of who gets to define, design, and delimit participation. This group’s interests may coincide with those of other groups, but when these interests are at odds, the interests of one group prevail over the other. I will analyse how the internet has been open to different groups, namely the military, business, intelligence services, the state, academia, and users. I conclude by demonstrating how the internet has been particularly open to configuration by the US military and industry, and how the essence of openness is located in its limitations.</p>
+<p>Openness is liberalism’s favourite paradigm. It emerged in response to the perceived ‘closedness’ of the so-called Second World during the Cold War (Edwards 1996). In the development of the precursor to the internet, which was initiated by the agency established in response to the Soviet Union’s launch of Sputnik, openness took a central place. It stuck and became a guiding principle in the development of digital networks (Russell 2014). Openness meant many things simultaneously in the development of the internet: open protocols, open archives, open participation, and the ability to expand the internet network (ten Oever 2021). With the success of the internet, the concept of openness gained momentum. It first spread to directly related fields such as open-source software, and from there, it continued to expand. It began with concepts still closely tied to computing, such as OpenStreetMap and Wikipedia, and later expanded to broader initiatives, including open government and open-access publishing.</p>
+<p>Science and technology studies ( STS) over the past few decades have done excellent work in showing that every field, practice, and technology harbours power structures, hierarchies, and excludes people, beings, and practices. What I would like to contribute to the academic debate in STS and infrastructure studies is a reflection on how general-purpose infrastructures do not exist. I argue that openness can exist in infrastructure, but that it will always be openness for a particular group. Uses that go against that will be deprioritised, antagonised, and eventually written out.</p>
+<p>While the concept of inscription is by no means new, Akrich (1992: 208) described it as ‘the work of innovators [which] is that of “inscribing” this vision of (or prediction about) the world in the technical content of the new object’, and the idea that such inscriptions may serve the interests of particular groups over others has already been articulated by Callon (1990: 143). This perspective is crucial for understanding openness not as universal access, but as the outcome of selective inscription by powerful actors. It underlines that infrastructures are relational. They are not solely shaped by material technologies, but also by the epistemic communities, institutions, standards, practices, and protocols that co-constitute them (Star and Ruhleder 1994). Nevertheless, because of their scale, complexity, technical opacity, and deep entrenchment in everyday life, infrastructures often remain beyond the reach of public scrutiny (Peters 2015).</p>
+<p>Aside from the lack of scrutiny, infrastructures commonly undergo discursive examination through the analysis of myths (Mosco 2005; Bory 2020), narratives (Breuer and Johnston 2019; Hofmann 2020; Lambach and Oppermann 2022), and socio-technical imaginaries (Jasanoff and Kim 2015). There is, however, a risk of overly relying on discursive representations and analyses without coupling them with a careful analysis of the material ordering–potentially perpetuating a discursive image that legitimises a particular ordering without describing its technical workings and material control (ten Oever 2023).</p>
+<h2>Open for the Military</h2>
+<p>When Sputnik was launched, it was not the satellite over which the world marvelled that scared the United States; it was the intercontinental ballistic missile that carried it. Sputnik was perceived as a dummy payload to dist... This agency’s first two projects and priorities still echo today: the establishment of NASA and the ARPANET, a network that could withstand a nuclear strike.</p>
+<p>Computers had already been deeply written into the war effort: the ENIAC computer had been doing calculations for missile trajectories (much like Galileo Galilei’s gunner compass had done nearly four centuries before), and the Bombe machine was used to decipher German communications. However, all these calculations would be worthless if they were not communicated. It was already clear that a vast computer network could function not merely to send calculations, but also to work like a nervous system, connecting radars, command centres, and both conventional and nuclear weapons in a system to defend the United States against Soviet threats (Edwards 1996). In these labs, machines and scenarios were devised for possible ‘dead hand’ scenarios where the US would retaliate against a Soviet nuclear strike, even in the case of impact, to ensure mutually assured destruction. The internet had the promise to connect all efforts, increase its resilience, and allow for better coordination.</p>
+<p>Towards the end of the Cold War, military funding gave way to increased research funding, and after the fall of the Soviet Union, to commercialisation. Scholars like Madeline Carr argue that, at that moment, US military power made way for US commercial power ( Carr 2015). However, what often remains under-explored is the enormous power the US military still holds over the internet, both directly and indirectly.</p>
+<p>In earlier communication networks, such as telecommunications, connections were always tied to a particular geography due to the underlying technology, namely circuit switching. The internet functioned as an overlay network and could therefore function over all kinds of networks. The concept of the ‘borderless internet’ suddenly provided the US military with access to many places around the world through a territory it had itself co-designed. When NATO officially declared cyberspace as a domain of warfare in 2016, the United States military was back in a place it had never left. A few years later, NATO would also assign space as a domain of military warfare. The two ARPA projects had been delivered.</p>
+<p>In nearly all definitions of the internet, the internet protocol (IP) is the connecting denominator. For over twenty-five years, we have known that IPv4 addresses are running out, and the Regional Internet Registries are no longer allocating them. At the same time, the US military controls 13 /8 blocks of IPv4 addresses, in other words, 221,828,864 IPv4 addresses, which is roughly six percent of the total number of public internet addresses, most of which are never used but are kept as a strategic stockpile.</p>
+<p>To summarise, the US military has been one of the founders of the internet, has influenced its design goals, shaped the internet, sees the internet as a military domain, and still holds a significant amount of the internet’s primary resources. The military’s infrastructural authorship exemplifies how openness operates: it is open to those who design and command the system, while these options are closed to those who merely use it. In this sense, the internet’s earliest openness was an openness for military coordination, not public participation.</p>
+<h2>Open for Industry</h2>
+<p>The reconfiguration of communication infrastructures by the internet has led to a significant reshuffling of power from telecommunications providers to content providers. The erstwhile end-to-end philosophy of internet engineering transformed the network from a data control network into a data transport network: ‘[t]he network’s job is to transmit datagrams as efficiently and flexibly as possible. Everything else should be done at the fringes’ (Internet Architecture Board 1996: 2–3). The new emphasis on end-to-end connectivity took power and control over data streams from the network, and promised to give it to the end-devices, thus communication infrastructure transformed from smart networks with dumb phones, to a dumb network with intelligent computers, taking away power from network operators and handing it over to endpoints.</p>
+<p>In the tussle over control of data streams between network operators and content providers, power was never handed to end users, only to the servers of the content providers. The end-to-end connectivity turned out not to be symmetrical between all ends because not all endpoints were created equal. While people’s end-devices had sufficient capacity to run their mail servers and websites, network directionality was introduced, and third-party services for email, social media, and website hosting were offered, whereas these could architecturally just as well have been hosted on end-user devices. The concept of the user was produced through the infrastructure. That the internet infrastructure was open for business meant that the end-user became a customer and a data producer, and subject to endless varieties of data extraction.</p>
+<p>To offer content as fast as possible, whilst allowing advertisers to engage in real-time bidding and serving personalised ads with as little friction as possible, Google developed and implemented its own encrypted transport protocol called QUIC (Quick UDP Internet Connections) in 2012. Many had tried this before, but only Google was able to do so because of its ability to do experimental testing on the internet between the world’s largest browser and its extensive server network (Perarnaud and Musiani 2025). This standard was brought to the Internet Engineering Task Force ( IETF) in 2015 because if this protocol were standardised and accepted as the primary new transport protocol of the internet, no one in their right mind would block it, which might not be the case if it were ‘only’ Google’s protocol. In 2016, a working group was established in the IETF, and in 2021, the formal QUIC standard was published as RFC9000 (Iyengar and Thomson 2021).</p>
+<p>This reconfiguration of the internet infrastructure occurred quite rapidly and with minimal discussion. It was clear that Google had successfully brought together the interests of many different content providers in the development of this new protocol. What is presented as infrastructural openness through open protocols, interoperable stan... which was presented at the meeting of the Human Rights Protocol Considerations Research Group (HRPC) in 2018 in Bangkok. 4</p>
+<h2>Open for Civil Society</h2>
+<p>A couple of civil society actors from the organisations ARTICLE 19, Coding Rights, and the Association of Progressive Communications ( APC) started addressing human rights considerations in internet protocols in November 2014 by giving a presentation to the Internet Engineering Task Force ( IETF). This resulted in the establishment of a dedicated research group in the Internet Research Taskforce in 2015 (Cath 2021) and the publication of a dedicated methodology to engage in the review of internet protocols and their human rights impact (ten Oever and Cath 2017).</p>
+<p>The human rights review of the QUIC protocol was based on seven 60–90 minute elite interviews with QUIC working group leadership, main document authors, and active participants in the development of QUIC, conducted using a m... The critiques offered in the session diverged (ranging from claims that the review was conducted too early to analyze the impact of the QUIC protocol, to assertions that it cametoo late in the development process to contribute to the development meaningfully; that all issues mentioned in the review had already been discussed; that the analysis was technically incorrect; and, conversely, that it was technically correct but still irrelevant). Yet despite these shifting objections, no concrete errors in the review were identified in person or posted to the mailing lists of the QUIC working group or the HRPC research group. The review, however, did have a different impact, namely, an extensive discussion in the IAB about whether the HRPC Research Group should be closed and disbanded. This was averted by the external appointment of two technical advisors to the research group in March 2019, something that had never happened in the IRTF or IETF before.</p>
+<p>As of 2026, HRPC has organised sessions at the IRTF for ten years, 6 but participation and mailing list activity have decreased significantly. The only moment a concrete, meaningful influence on protocol development was achieved was when Verisign, the largest internet registry, most known for its management of the .com and .net domains, made a proposal. <a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-071" target="_blank" rel="noreferrer">7</a> This proposal would facilitate the alignment of the Extensible Provisioning Protocol (EPP) with a Chinese draft law 8 by offering the possibility of a Verification Service Provider (VSP) that would check the identity of someone who wanted to register a domain name. A review of the human rights impact of this proposal was made 9 and concluded that ‘the proposed extension in its implementation allows the VSP to have enormous censorship and discriminatory power. The arbitrary and opaque mechanism to “verify” compliance with local regulations gives disproportionate powers to impede freedom of expression, right to privacy,... After a lengthy discussion, the working group began to agree on adding privacy and human rights considerations to the document, but suddenly, Verisign decided to abandon further development of the document.</p>
+<p>The pattern that emerges from the example of QUIC and EPP shows that civil society engagement is tolerated when it brings up issues that do not necessarily align with US interests (in the case of EPP, which helped align the internet infrastructure with the Chinese legal system), but when it does so against the interest of the US (as happened in the case of QUIC), it is made clear that it has no place to inscribe its values.</p>
+<p>In their respective works, from very different angles, Madeline Carr ( Carr 2013), Jeanette Hofmann ( Hofmann 2020), and Corinne Cath (Cath 2021) show how the voices and interests of civil society actors are welcomed in internet infrastructure governance, as long as their stances align with those of other stakeholders and legitimise the institutional ordering, otherwise, their standpoints are disregarded. Civil society actors could participate, but not configure; they could speak, but not inscribe. Their openness was conditional and revocable, illustrating that participation without infrastructural power reproduces the very exclusions that openness claims to overcome.</p>
+<h2>Open for Intelligence</h2>
+<p>In 2013, the Snowden revelations showed the world how the United States (US) and the Five Eyes collective, comprising Australia, Canada, New Zealand, the United Kingdom, and the US, collaborate to use the internet for signals intelligence. In order to do this, they leverage both the infrastructure and its chokepoints (Tusikov 2016), as well as access to large infrastructure and service providers. Through the so-called Prism programme, the US National Security Agency (NSA) would have direct access to the servers of Google, Microsoft, Facebook, and Apple, and by weakening cryptographic standards, it would be able to decode data streams directly (Rogers and Eden 2017).</p>
+<p>The collaboration between state and corporate surveillance facilitated the production of an infrastructure of extraction (Zuboff 2020; Cohen 2019; Jung 2025). The joint redesign that optimised the internet infrastructure for extraction might be compared to the redesign of Paris by the architect Haussmann (Soppelsa 2009). The broad boulevards provide the possibility, access, and overview for police and authorities, making it easier to read and control the city, and to suppress riots. But the design would also prove to work great for trucks and commerce. One thing was certain: barricades could not be easily erected, and anonymous congregations would be nearly impossible. Intelligence agencies’ ability to repurpose the infrastructure for surveillance again demonstrates that openness serves those who command the chokepoints. The infrastructure’s supposed neutrality concealed its deep alignment with state power. The logics of security and profit both demand selective openness: enough transparency to sustain innovation and connectivity, but sufficient closure to enable monitoring and monetisation. Extraction depends on predictable, measurable flows of data, which are only possible within infrastructures that are open enough to connect but closed enough to control. In this sense, the internet’s transformation mirrors the reconfiguration of public space: what once promised a commons for exchange and assembly has become a tightly managed environment where participation is continuously monitored and monetised.</p>
+<h2>Open for the State</h2>
+<p>In the current geopolitical moment where the US is retreating from international norms, we witness something that can be compared to an infrastructural breakdown (Star 1999), but not in the sense that the internet infrastructure is not working. Rather, it is not working as many governments expected. Many governments around the world are experiencing the infrastructural anxiety that the US experienced with the launch of Sputnik. In response, states are trying to erect barriers, but are noticing it is not easy to do so on a network that ‘does not recognise borders.’ Countries and regions are dusting off old strategies of industrial policy, but are having a hard time fitting them within the neoliberal ideologies of our times, where the government is generally understood as inefficient in comparison to the market as a structuring and organising mechanism. Notions of strategic autonomy and digital sovereignty collide with the inertia of infrastructures built on the concrete foundations of the Cold War.</p>
+<p>Within the European Union, the concept of the ‘EuroStack’ is having its political moment. 11 However, as of writing, nowhere has it been significantly explicated what would differentiate a European Stack from a non-European Stack (because they should be interoperable through open standards), except that small and medium-sized enterprises would produce it. What adds insult to injury is that there seems to be no plan to prevent these European companies from being acquired by US capital, or for US Big Tech or its subsidiaries to participate, because otherwise the EU would violate its own rules for free market competition. This is precisely what was witnessed in the previous European digital sovereignty initiative, Gaia-X (Baur 2024).</p>
+<p>EuroStack aims to enhance European competitiveness by developing European supercomputers and AI factories, thereby propelling its industry into a competitive race with the US and China. It is difficult to grasp this logic: how can one be expected to win a race that others began long ago, with larger budgets and far greater industrial and societal absorption capacity? Europe is struggling with the paradox of wanting to be both open and autonomous at the same time. It is therefore not surprising that European defence contractors, such as Thales and Airbus, see a role for themselves in defending European interests.</p>
+<p>At this point, it becomes clear that alternative technological trajectories highly depend on military spending—a point also highlighted by Mazzucato (2018), who proposes developing more civil missions. Together with Eaves and Vasconcellos, Mazzucato contributes to a notion of digital public infrastructure (Eaves et al. 2024), which can be characterised at its best as uncritical. In their report, the authors equate openness with publicness, which, as we have shown before, does not at all account for power differentials in infrastructures. The critique against the digital public infrastructure project is not merely theoretical. As the critical work by Nai Lee Kalema shows, the coercive politics of digital public infrastructures have taken form (2024).</p>
+<p>The state’s renewed infrastructural anxiety exposes the contradiction at the heart of openness: to be open to all is to be vulnerable to those with greater power. The European search for ‘sovereign openness’ thus reveals that openness itself is a terrain of geopolitical struggle.</p>
+<h2>Freedom in Limitation: Demilitarised Infrastructures and Public Services</h2>
+<p>The international use of the word ‘infrastructure’ started with the communique of the NATO meeting in May 1952, which read: ‘[a]greement was reached on the financing of a further portion of the infrastructure program, for airfields, communications and headquarters.’ 12 The history of the internet and telecommunications is deeply characterised by its use by police, military, and intelligence agencies. In physical space, it is very clearly observable where the space is public, private, or military; the internet, however, is always private and military.</p>
+<p>Creating a communication network that functions as an open infrastructure would mean limiting its scale and use to protect users from coercion, control, extraction, and capture. It would mean undoing the excommunication of the user from the design and control over the network, and reintroducing them as citizens who would be able to observe, contest, and configure the network in meaningful ways (Galloway et al. 2013; ten Oever 2023).</p>
+<p>If the study of power in infrastructures teaches us one thing, it is that infrastructures cannot simultaneously be open and equally accessible to all groups at the same time. If there is a future for open and sustainable civilian infrastructures, the core property should not be abundance, but limitation and distribution (ten Oever 2025).</p>
+<p>Understanding openness as always situated and partial allows us to imagine infrastructures differently; not as systems open to everyone in the abstract, but as deliberately limited commons that protect against domination. Genuine openness, paradoxically, may lie in collective limitation: infrastructures that refuse universality to sustain equality.</p>
+<h2>References</h2>
+<p>Akrich, Madeleine. 1992. ‘The De-Scription of Technical Objects.’ In *Shaping Technology/Building Society. Studies in Sociotechnical**Change*, edited by Wiebe E. Bijker and John Law, 205–224. Cambridge, MA: MIT Press.</p>
+<p>Baur, Andreas. 2024. ‘European Dreams of the Cloud: Imagining Innovation and Political Control.’ <em>Geopolitics</em> 29 (3): 796–820. <a href="https://doi.org/10.1080/14650045.2022.2151902" target="_blank" rel="noreferrer">https://doi.org/10.1080/14650045.2022.2151902</a>.</p>
+<p>Bory, Paolo. 2020. *The Internet**Myth: From the Internet Imaginary to Network Ideologies*. London: University of Westminster Press.</p>
+<p>Breuer, Adam, and Alastair Iain Johnston. 2019. ‘Memes, Narratives and the Emergent US–China Security Dilemma.’ *Cambridge**Review of International Affairs* 32 (4): 429–455. <a href="https://doi.org/10.1080/09557571.2019.1622083" target="_blank" rel="noreferrer">https://doi.org/10.1080/09557571.2019.1622083</a>.</p>
+<p>Callon, Michel. 1990. ‘“Techno-Economic Networks and Irreversibility.”’ *The**Sociological Review* 38 (S1): 132–161.</p>
+<p>Carr, Madeline. 2013. ‘Internet Freedom, Human Rights and Power.’<em>Australian Journal of International Affairs</em>67 (5): 621–637. <a href="https://doi.org/10.1080/10357718.2013.817525" target="_blank" rel="noreferrer">https://doi.org/10.1080/10357718.2013.817525</a>.</p>
+<p>Carr, Madeline. 2015. ‘“Power Plays in Global Internet Governance.”’ <em>Millennium</em> 43 (2): 640–659. <a href="https://doi.org/10.1177/0305829814562655" target="_blank" rel="noreferrer">https://doi.org/10.1177/0305829814562655</a>.</p>
+<p>Cath, C. 2021. ‘Changing Minds and Machines: A Case Study of Human Rights Advocacy in the Internet Engineering Task Force (IETF).’ PhD Thesis, University of Oxford.</p>
+<p>Cath, Corinne. 2021. ‘“The Technology We Choose to Create: Human Rights Advocacy in the Internet Engineering Task Force.”’ *Telecommunications Policy, Norm**Entrepreneurship in Internet Governance* 45 (6): 102–144. <a href="https://doi.org/10.1016/j.telpol.2021.102144" target="_blank" rel="noreferrer">https://doi.org/10.1016/j.telpol.2021.102144</a>.</p>
+<p>Cohen, Julie E. 2019. *Between Truth**and Power: The Legal Constructions of Informational Capitalism*. Oxford: Oxford University Press.</p>
+<p>Eaves, David, Mariana Mazzucato, and Beatriz Vasconcellos. 2024. ‘Digital Public Infrastructure and Public Value: What Is “Public” about DPI?’ Working Paper Series (IIPP WP) 2024-05). <a href="https://discovery.ucl.ac.uk/id/eprint/10196645/" target="_blank" rel="noreferrer">https://discovery.ucl.ac.uk/id/eprint/10196645/</a></p>
+<p>Edwards, Paul N. 1996. *The Closed World: Computers and the Politics of Discourse in**Cold War America.*Massachusetts, MA: MIT Press.</p>
+<p>Galloway, Alexander R., Eugene Thacker, and McKenzie Wark. 2013.*Excommunication: Three Inquiries in**Media and Mediation*. Chicago, IL: University of Chicago Press.</p>
+<p>Hofmann, Jeanette. 2020. ‘The Multistakeholder Concept as Narrative: A Discourse Analytical Approach.’ In <em>Researching Internet Governance: Methods, Frameworks, Futures</em>, edited by Laura DeNardis, Derrick L. Cogburn, Nanette S. Levinson, and Francesca Musiani, 253–268 . Massachusetts, MA: MIT Press.</p>
+<p>Internet Architecture Board. 1996. *RFC1958—Architectural Principles of the Internet. RFC-Series, edited by**Brian E. Carpenter*. RFC Editor. <a href="https://tools.ietf.org/html/rfc1958" target="_blank" rel="noreferrer">https://tools.ietf.org/html/rfc1958</a></p>
+<p>Iyengar, Jana, and Martin Thomson. 2021. <em>QUIC: A UDP<strong>-Based Multiplexed and Secure Transport. Request for Comments RFC 9000</strong>.</em> Internet Engineering Task Force. <a href="https://doi.org/10.17487/RFC9000" target="_blank" rel="noreferrer">https://doi.org/10.17487/RFC9000</a></p>
+<p>Jasanoff, Sheila, and Sang-Hyun Kim. 2015. *Dreamscapes of Modernity:**Sociotechnical Imaginaries and the Fabrication of Power*. Chicago, IL: University of Chicago Press.</p>
+<p>Jung, Maximilian. 2025. ‘Digital Capitalism Is a Mine Not a Cloud.’ <em>Transnational Institute</em> (10 July). <a href="https://www.tni.org/en/article/digital-capitalism-is-a-mine-not-a-cloud" target="_blank" rel="noreferrer">https://www.tni.org/en/article/digital-capitalism-is-a-mine-not-a-cloud</a></p>
+<p>Kalema, Naigwee. 2024. ‘The “Digital Transformation for Development” (DX4D) Anti-Politics Machine.’ <em>Policy &amp; Internet</em>16 (4): 1–20.</p>
+<p>Lambach, Daniel, and Kai Oppermann. 2022. ‘Narratives of Digital Sovereignty in German Political Discourse.’ <em>Governance</em> 36 (3): 693–709. <a href="https://doi.org/10.1111/gove.12690" target="_blank" rel="noreferrer">https://doi.org/10.1111/gove.12690</a></p>
+<p>Mazzucato, Mariana. 2018. ‘Mission-Oriented Innovation Policies: Challenges and Opportunities.’ <em>Industrial and Corporate Change</em>27 (5): 803–815. <a href="https://doi.org/10.1093/icc/dty034" target="_blank" rel="noreferrer">https://doi.org/10.1093/icc/dty034</a>.</p>
+<p>Mosco, Vincent. 2005. *The**Digital Sublime: Myth, Power, and Cyberspace*. Massachusetts, MA: The MIT Press.</p>
+<p>Perarnaud, Clement, and Francesca Musiani. 2025. ‘QUIC, or the Battle That Never Was: A Case of Infrastructuring Control over Internet Traffic.’ <em>New Media &amp; Society</em>, <a href="https://doi.org/10.1177/14614448251336438" target="_blank" rel="noreferrer">https://doi.org/10.1177/14614448251336438</a></p>
+<p>Rogers, Michael, and Grace Eden. 2017. ‘The Snowden Disclosures, Technical Standards, and the Making of Surveillance Infrastructures.’ <em>International Journal of Communication</em> 11 (22): 802–823.</p>
+<p>Russell, Andrew L. 2014. *Open Standards and**the Digital Age.* Cambridge: Cambridge University Press.</p>
+<p>Soppelsa, Peter. 2009. ‘Finding Fragility in Paris: The Politics of Infrastructure after Haussmann.’ <em>Proceedings of the Western Society for French History</em> 37. <a href="http://hdl.handle.net/2027/spo.0642292.0037.016" target="_blank" rel="noreferrer">http://hdl.handle.net/2027/spo.0642292.0037.016</a></p>
+<p>Star, Susan Leigh. 1999. ‘The Ethnography of Infrastructure.’ <em>American Behavioral Scientist</em>, 3: 377–391.</p>
+<p>Star, Susan Leigh, and Karen Ruhleder. 1994. ‘Steps towards an Ecology of Infrastructure: Complex Problems in Design and Access for Large-Scale Collaborative Systems.’ <em>CSCW ’94</em>, 253–264. New York: Association for Computing Machinery. <a href="https://doi.org/10.1145/192844.193021" target="_blank" rel="noreferrer">https://doi.org/10.1145/192844.193021</a></p>
+<p>ten Oever, Niels. 2021. ‘“This Is Not How We Imagined It’—Technological Affordances, Economic Drivers and the Internet Architecture Imaginary.’ <em>New Media &amp; Society</em>23 (2): 271–288. <a href="https://doi.org/10.1177/20594364231193950" target="_blank" rel="noreferrer">https://doi.org/10.1177/20594364231193950</a></p>
+<p>ten Oever, Niels. 2023. ‘5G and the Notion of Network Ideology, or: The Limitations of Sociotechnical Imaginaries.’ <em>Telecommunications Policy</em>47 (5): 102442. <a href="https://doi.org/10.1016/j.telpol.2022.102442" target="_blank" rel="noreferrer">https://doi.org/10.1016/j.telpol.2022.102442</a></p>
+<p>ten Oever, Niels. 2025. ‘Infrastructural Futures: Transparency, Disconnectivity, and Transgressive Infrastructuring.’ In *Critical Internet Governance**: From Positions to a Field*, 73–78. Amsterdam: Critical Infrastructure Lab. https://www.criticalinfralab.net/wp-content/uploads/2025/06/CIL011.pdf#page=79</p>
+<p>ten Oever, Niels, and Corinne Cath. 2017. *RFC8280**—Research into Human Rights Protocol Considerations*. RFC-Series. RFC Editor. <a href="https://tools.ietf.org/html/rfc8280" target="_blank" rel="noreferrer">https://tools.ietf.org/html/rfc8280</a>.</p>
+<p>Tusikov, Natasha. 2016. *Chokepoints**: Global Private Regulation on the Internet.* Oakland, CA: University of California Press.</p>
+<p>Zuboff, Shoshana. 2020. <em>The Age of Surveillance<strong>Capitalism: The Fight for a Human Future at the New</strong>Frontier of Power</em>. First Trade paperback edition. New York: PublicAffairs.</p>
+<ul>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-077-backlink" target="_blank" rel="noreferrer">1</a> This research is supported by the Ford Foundation (grant 144895), the Internet Society Foundation, the Open Technology Fund, and Omidyar’s AI Collaborative.</li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-076-backlink" target="_blank" rel="noreferrer">2</a> Currently known as the Defense Advanced Research Projects Agency (DARPA).</li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-075-backlink" target="_blank" rel="noreferrer">3</a> See <a href="https://datatracker.ietf.org/doc/html/draft-martini-hrpc-quichr-00" target="_blank" rel="noreferrer">https://datatracker.ietf.org/doc/html/draft-martini-hrpc-quichr-00</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-074-backlink" target="_blank" rel="noreferrer">4</a> See <a href="https://youtu.be/Bd33Be_P-FY?si=4N-NokjnNYLNa1Jc&amp;t=5286" target="_blank" rel="noreferrer">https://youtu.be/Bd33Be_P-FY?si=4N-NokjnNYLNa1Jc&amp;t=5286</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-073-backlink" target="_blank" rel="noreferrer">5</a> See <a href="https://youtu.be/Bd33Be_P-FY?si=zy3nKBNHGviPCb2M&amp;t=6228" target="_blank" rel="noreferrer">https://youtu.be/Bd33Be_P-FY?si=zy3nKBNHGviPCb2M&amp;t=6228</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-072-backlink" target="_blank" rel="noreferrer">6</a> See <a href="https://www.ietf.org/proceedings/95/hrpc.html" target="_blank" rel="noreferrer">https://www.ietf.org/proceedings/95/hrpc.html</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-071-backlink" target="_blank" rel="noreferrer">7</a> See <a href="https://datatracker.ietf.org/doc/html/draft-ietf-regext-verificationcode-06" target="_blank" rel="noreferrer">https://datatracker.ietf.org/doc/html/draft-ietf-regext-verificationcode-06</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-070-backlink" target="_blank" rel="noreferrer">8</a> See <a href="https://chinacopyrightandmedia.wordpress.com/2016/03/25/internet-domain-name-management-rules-opinion-seeking-revision-draft/" target="_blank" rel="noreferrer">https://chinacopyrightandmedia.wordpress.com/2016/03/25/internet-domain-name-management-rules-opinion-seeking-revision-draft/</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-069-backlink" target="_blank" rel="noreferrer">9</a> See <a href="https://gitlab.com/hr-rt/documents/-/blob/master/HR-RT%20Review%20of%20draft-ietf-regext-verificationcode?ref_type=heads" target="_blank" rel="noreferrer">https://gitlab.com/hr-rt/documents/-/blob/master/HR-RT%20Review%20of%20draft-ietf-regext-verificationcode?ref_type=heads</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-068-backlink" target="_blank" rel="noreferrer">10</a> Ibid.</li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-067-backlink" target="_blank" rel="noreferrer">11</a> An in typical European fashion, the initiative already seems to be split into two camps and three documents: <a href="https://www.euro-stack.info/docs/EuroStack_2025.pdf" target="_blank" rel="noreferrer">https://www.euro-stack.info/docs/EuroStack_2025.pdf</a>, <a href="https://euro-stack.eu/a-pitch-paper/" target="_blank" rel="noreferrer">https://euro-stack.eu/a-pitch-paper/</a>, and <a href="https://euro-stack.eu/the-white-paper/" target="_blank" rel="noreferrer">https://euro-stack.eu/the-white-paper/</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch3.xhtml#footnote-066-backlink" target="_blank" rel="noreferrer">12</a> See <a href="https://www.nato.int/docu/comm/49-95/c520225a.htm" target="_blank" rel="noreferrer">https://www.nato.int/docu/comm/49-95/c520225a.htm</a></li>
+</ul></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-c773c23691901ac8.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">超越數位落差：安地斯馬鈴薯保存中的資料治理與原住民族主權</span>
+</a>
+
+<a class="article-sequence-link" href="item-1f3f4224f269e817.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">從永續運算到 Agbogbloshie：計算修復的開放知識基礎設施</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-b20c34659808bd68.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Politics of Open Infrastructures - 3. The Internet Infrastructure Has Never Been Open</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Niels ten Oever 1（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：direct-pr-small-news / 2026-06-27T06:55:56+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-27T06:55:56+00:00 本機標記直接送 PR（小消息）；純事實項目，不進編輯台撰稿。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-b20c34659808bd68";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

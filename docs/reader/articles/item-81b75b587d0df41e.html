@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -551,13 +551,39 @@
       <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-23 08:00</span></div>
       <h1><a class="article-title-link" href="https://thenewstack.io/anthropic-claude-tag-slack/" target="_blank" rel="noreferrer" title="開啟原始連結">Anthropic 讓 @Claude 成為 Slack 頻道中的常駐團隊成員</a></h1>
       <p class="lede">Anthropic 宣布 Claude Tag，讓 Claude 直接進入 Slack，成為團隊可共同互動的常駐成員。摘要未提供實際操作方式、權限設計、資料使用規則或推出範圍。</p>
-      <div class="tag-chip-list"><span class="tag-chip">AI agents</span></div>
+      <div class="tag-chip-list"><span class="tag-chip">開源 AI / OSAID</span><span class="tag-chip">AI Agents</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://cdn.thenewstack.io/media/2026/06/d843691f-mohamed-nohassi-v_uh3nbuide-unsplash-scaled.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Anthropic gives @Claude a permanent seat in your Slack channels</h1>
+<p>Check your inbox for a confirmation email where you can adjust your preferences and even join additional groups.</p>
+<p>Follow TNS on your favorite social media networks.</p>
+<p>Become a <a href="https://www.linkedin.com/company/the-new-stack" target="_blank" rel="noreferrer">TNS follower on LinkedIn</a>.</p>
+<p>Anthropic <a href="https://www.anthropic.com/news/introducing-claude-tag" target="_blank" rel="noreferrer">has announced Claude Tag</a>, a new product that embeds Claude directly into Slack as a persistent, shared team member — one that accumulates institutional knowledge over time, works asynchronously, and can act without being prompted.</p>
+<p>The product, available in beta for Enterprise and Team plan customers, replaces Anthropic’s existing Claude in Slack app, which <a href="https://claude.com/blog/claude-and-slack" target="_blank" rel="noreferrer">debuted in October 2025</a>. That original integration let users DM @Claude, invoke it via an AI assistant panel, or tag it in threads for on-demand help — useful, but somewhat transactional. Then <a href="https://claude.com/blog/claude-code-and-slack" target="_blank" rel="noreferrer">in December</a>, Anthropic added Claude Code to Slack, letting developers tag Claude in a conversation and have it spin up a full coding session on the web, posting a pull request back into the thread on completion.</p>
+<p>In that sense, Claude Tag does for Slack roughly what Cowork did for knowledge workers: it takes the agent loop that originated in Claude Code and extends it to a new surface and a broader set of tasks, rather than confining it to engineering workflows.</p>
+<p>Claude Tag, in many respects, is the next step: rather than Claude joining a conversation on request and then going quiet, it now lives in the channel full-time. Tasks can be scheduled to run over hours or days, with Claude working through them independently — accumulating context, learning the vocabulary of the work, and picking up unresolved threads that would otherwise get buried.</p>
+<p>That context isn’t necessarily confined to a single channel, either: Where administrators grant the access, Claude can draw on information from other channels to inform the work in front of it.</p>
+<h2>Sense of identity</h2>
+<p>Claude Tag effectively gives Claude its own identity in the workspace — its own accounts for every connected tool, posting to Slack as the Claude app, opening pull requests under its own GitHub app, or querying a data warehouse under a dedicated service account set up by an admin. If “ambient” behavior is enabled, Claude doesn’t need to be tagged at all — it monitors conversations, flags things it thinks the team needs to know, and follows up on threads that have gone quiet, much like the “auto” mode already familiar to Claude Code users.</p>
+<blockquote>Beyond scoping tool and data access, administrators can also set a ceiling on how many tokens each channel’s Claude is allowed to spend; it’s a guardrail against an autonomous agent running up costs while working unattended.</blockquote>
+<p>There’s one Claude per channel, shared by everyone in it, so any team member can see what’s being worked on and pick up where a colleague left off. That multiplayer dynamic is arguably one of the most significant departures from how AI assistants have hitherto worked.</p>
+<p>For instance, a task tagged to @Claude by one person can be steered, corrected, and built upon by the rest of the team in real time.</p>
+<p>Underpinning all of this is what Anthropic calls “agent identity” — the access construct that makes multiplayer AI possible without creating a security mess. <a href="https://www.linkedin.com/in/noahzweben/" target="_blank" rel="noreferrer">Noah Zweben</a>, a member of technical staff on the Claude Code team, <a href="https://claude.com/blog/agent-identity-access-model" target="_blank" rel="noreferrer">notes in a companion blog post</a> that this model is a necessary foundation for the kind of autonomous, team-wide work Claude Tag is designed to handle.</p>
+<blockquote>“The shift from single player to multiplayer AI in products like Claude Tag makes long-running, team-based work possible.”</blockquote>
+<p>“The shift from single player to multiplayer AI in products like Claude Tag makes long-running, team-based work possible,” Zweben writes. “Agent identity ensures that Claude’s access to tools is broad enough to be useful, but scoped enough to be secure at enterprise scale.”</p>
+<p>In terms of how this works, Zweben explains why the traditional model — where an AI assistant borrows the permissions of whoever invoked it — needed to be rethought. Agents now schedule tasks and respond to events long after the person who asked has logged off, and in a shared channel with multiple people steering, there’s no single user whose credentials make sense to inherit.</p>
+<p>Instead, administrators define what Claude can access at the workspace level, with each channel inheriting a baseline set of permissions that can be tightened or expanded depending on the work being done there.</p>
+<blockquote>“Agent identity replaces the question ‘what can this user do?’ with ‘what can this agent do in this compartment?&#x27;”</blockquote>
+<p>An engineering channel might get read and write access to GitHub and the data warehouse; a general channel might get read-only. Crucially, because Claude operates under its own accounts rather than anyone’s personal credentials, a shared channel can never serve as a backdoor into someone’s private documents.</p>
+<p>“Agent identity replaces the question ‘what can this user do?’ with ‘what can this agent do in this compartment?&#x27;” Zweben writes.</p>
+<h2>Race for the Slack layer</h2>
+<p>Team messaging platforms are fast becoming the primary control layer for AI agents in the enterprise — the place where work gets assigned, monitored, and reported back on. GitHub has <a href="https://github.blog/changelog/2025-09-19-work-with-copilot-coding-agent-in-microsoft-teams/" target="_blank" rel="noreferrer">brought Copilot into Microsoft Teams</a>, for instance, where OpenAI’s <a href="https://openai.com/index/codex-now-generally-available/" target="_blank" rel="noreferrer">Codex includes</a> a native Slack integration that lets teams delegate tasks directly from threads. And Cognition’s <a href="https://cognition.com/blog/devin-generally-available" target="_blank" rel="noreferrer">Devin has been built around Slack</a> from the get-go.</p>
+<p>Block, the Jack Dorsey-led company behind Square and Cash App, <a href="https://thenewstack.io/how-block-manages-its-fleet-of-ai-coding-agents-from-slack/" target="_blank" rel="noreferrer">has also spent some time building something akin to this from scratch</a>, using its open-source Goose framework to develop an agent orchestration system its engineers manage entirely from a single Slack thread.</p>
+<p>Whichever AI ends up as the default presence in the channel where work is coordinated gains both a distribution advantage and a compounding data advantage, making it progressively harder to displace. For a company already running Claude Code in its engineering org, adding Claude Tag to its Slack channels is a natural next step — and one that deepens that dependency considerably.</p>
+<p>Community created roadmaps, articles, resources and journeys for developers to help you choose your path and grow in your career.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-5b9fc43878abde0e.html">
@@ -580,7 +606,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-81b75b587d0df41e.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Anthropic gives @Claude a permanent seat in your Slack channels</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Paul Sawers</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Anthropic gives @Claude a permanent seat in your Slack channels（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Paul Sawers（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-24T05:08:37+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

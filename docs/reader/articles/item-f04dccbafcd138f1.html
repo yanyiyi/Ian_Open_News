@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>導論：開放數位知識基礎設施的政治 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-26 12:45</span></div>
+      <h1><a class="article-title-link" href="https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.00" target="_blank" rel="noreferrer" title="開啟原始連結">導論：開放數位知識基礎設施的政治</a></h1>
+      <p class="lede">這篇導論把開放數位知識基礎設施放在近年大型平台與雲端依賴的脈絡下討論。它指出，當醫院、機場、法院、大學與政府行政因共同服務層故障而受影響，問題不只是技術失靈，而是公共功能過度依賴少數私有基礎設施。文章主張，數位主權討論正在把開放標準、聯邦式協定與 commons-based software 推進政策核心，但開放若缺乏持續治理、資源與維護，只會停留在授權或透明度標籤。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開放資料</span><span class="tag-chip">Open Knowledge</span><span class="tag-chip">digital sovereignty</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.openbookpublishers.com/small_obp_logo_high_res_8ad3ef43d4.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>The Politics of Open Infrastructures - Introduction</h1>
+<h2>Introduction: The Politics of Open Digital Knowledge Infrastructures</h2>
+<h2>Astrid Mager, Katja Mayer, and Renée Ridgway</h2>
+<p>©2026 A. Mager, K. Mayer &amp; R. Ridgway, CC BY 4.0 <a href="https://doi.org/10.11647/OBP.0528.00" target="_blank" rel="noreferrer">https://doi.org/10.11647/OBP.0528.00</a></p>
+<p>In the mid-2020s, a series of infrastructural incidents made visible how deeply public authority, communication, and knowledge circulation have become entangled with privately operated digital infrastructures. Large-scale outages of cloud, identity, and content delivery services in 2024 and 2025 disrupted communication in hospitals, airports, courts, universities, and government administrations across multiple world regions. One prominent example is the ‘largest outage in history’ (Milmo et al. 2024) that was caused by the American cybersecurity company CrowdStrike, whose faulty update led to widespread problems with Microsoft Windows computers running the proprietary software worldwide. Patient records became temporarily inaccessible, air traffic systems reverted to manual procedures, and public communication channels failed not because of local malfunction, but because shared infrastructural layers ceased to operate. What appeared as technical disruption revealed a structural condition: essential public functions depended on a small number of globally integrated service providers. At the same time, disruptions did not only occur through technical failures. In a widely discussed case, access to email and cloud services used by a judge investigating war crimes of US allies at the International Criminal Court in The Hague was suspended by Microsoft following geopolitical pressure from the US (Lin 2025). In this widely discussed case, no infrastructure broke down. Instead, access to communication and institutional memory was withdrawn through contractual and technical means....</p>
+<p>As a response to the vulnerabilities made visible in recent years, calls for digital sovereignty have moved beyond narrow circles of activist communities and gained ground in policy domains across the globe, especially in Europe. The Summit on European Digital Sovereignty gathered more than nine... Policy makers and regulators have come to recognise that interoperable, collectively governed technical systems may offer pathways to infrastructural autonomy by reducing dependencies on dominant platform providers from the US or China, and embedding alternative values into the architectures that mediate communication, commerce, and public administration.  Federated protocols, open standards, and commons-based software are no longer confined to countercultural milieus; increasingly, they have entered the vocabulary of statecraft and industrial strategy. This political attention, however, remains structurally fragile. Public investment in open infrastructures is episodic and undersized in comparison to the capital concentrated in proprietary ecosystems. Political will, where it exists, tends to be orientated towards short funding cycles and project-based interventions ill-suited to the long temporal horizons that infrastructure maintenance demands. The rhetorical embrace of openness thus coexists with institutional arrangements that continually reproduce its material fragility.</p>
+<p>This tension sets the stage for a central problem addressed throughout this book: openness is widely invoked as a value, but rarely treated as an infrastructural achievement that requires sustained governance, resourcing, and collective stewardship. In much policy discourse, ‘open’ functions as a static attribute such as a licensing category, transparency claim, or formal compliance marker, rather than a dynamic socio-technical accomplishment requiring continuous maintenance, care and solidarity-oriented coordination. Such framings obscure the infrastructural work through which openness is created and preserved, including upkeep labour, institutional alignment, and the negotiation of responsibilities across heterogeneous actors. When openness is treated as a formal property rather than an ongoing practice, it easily becomes entangled with zero-sum imaginaries. Openness then appears as a loss of control or competitive advantage, rendering commons-based approaches politically fragile and economically suspect. What is overlooked is that openness does not negate value creation, but redistributes it across time, actors, and institutions. Without attention to this processual and relational character, strategies aimed at digital sovereignty risk reproducing the very logics of enclosure and extraction they seek to counter, while abandoning collaborative and distributed modes of infrastructural innovation.</p>
+<h2>Analytical Foundations: Knowledge, Infrastructure, and Politics</h2>
+<p>In this book, we approach openness through the combined lens of knowledge, infrastructure, and politics—understanding openness as a contested mode through which their relations are organised. Openness, in this context, refers not primarily to transparency or access alone, but to infrastructural arrangements based on open standards, shared governance, and the possibility of collective participation in the design, maintenance, and oversight of the systems that organise knowledge circulation. Building on science and technology studies ( STS), and infrastructure studies most importantly ( Star and Ruhleder 1996; Star 1999; Edwards et al. 2009; Bowker and Star 2000; Bowker et al. 2010; Borgman et al. 2013), we perceive knowledge not as abstract information, but as something produced, circulated, and stabilised through material and institutional arrangements. We conceptualise infrastructure as the socio-technical systems, standards, organisation, and practices that make such knowledge durable and shareable over time. Politics, finally, denotes the power relations, value commitments, and governance decisions that shape how infrastructures are designed, maintained, and made accessible, and for whom. Openness, in this perspective, is neither a fixed property nor a purely normative ideal, but an ongoing socio-technical accomplishment that structures inclusion and exclusion, participation and control, across knowledge practices and infrastructural arrangements.</p>
+<p>To attract contributions from different empirical contexts, cultural backgrounds, and situated perspectives (Haraway 1988), we posed a central guiding question in our Call for Contributions: ‘How can open digital knowledge infrastructures redistribute power and drive social change within the political, technological and cultural fabrics of society’? We invited authors to engage with this question by positioning their work at the intersection of knowledge practices, infrastructural arrangements, and political dynamics, with openness understood as a contested and ongoing accomplishment rather than a normative given. This approach resulted in a rich compilation of empirical analyses, research notes, commentaries, as well as calls for action that all engage with open digital knowledge infrastructures as living objects, continuous processes, and communities of practice rather than technical entities or consumer products. Combining concepts from diverse disciplines including STS-oriented infrastructure studies, critical data studies, organisational studies, new media scholarship, epistemic justice approaches, arts-based research, and critical making, the book’s chapters collectively paint a colourful picture of how knowledge production and circulation are shaped through infrastructural arrangements that are deeply embedded in social, cultural, economic, and political contexts. Despite their different empirical sites, methodological approaches, and cultural situatedness, all chapters conceptualise—and investigate—digital infrastructures as highly social and political endeavours th...</p>
+<h2>Crosscutting Themes: Socio-technical Complexities, Platformisation, and Infrastructural Politics</h2>
+<p>To make the diversity of case studies analytically productive, this book is structured around three interrelated aspects that cut across the contributions. First, the socio-technical complexities foreground the relational work, coordination, and care through which knowledge infrastructures are built and maintained. Second, the platformisation of infrastructures examines how open systems become entangled with platform-based ecosystems, corporate power, and logics of accumulation. Third, the politics of infrastructures addresses how struggles over openness, access, governance, and resourcing are inseparable from broader questions of power, public value, and social order. Together, these aspects provide a shared analytical vocabulary for examining how openness operates across knowledge practices and infrastructural arrangements.</p>
+<h3>Socio-technical Complexities</h3>
+<p>Ethnographic studies on large-scale knowledge infrastructures have long emphasised that infrastructure building is a complex process involving not only technical, but also social and organisational entities ( Bowker and Star 2000). Star (1999: 380) famously described infrastructure ‘as part of human organisation’ drawing attention to the often invisible, backstage work practices, conventions, and forms of coordination that allow infrastructures to function. From this perspective, infrastructures are better understood as relationships rather than a stable, technical ‘thing’ ( Bateson 1978: 249). Socio-technical complexities arise from the multi-layered and distributed nature of infrastructure work. Building and maintaining infrastructures involves heterogeneous forms of labour, including hardware and software engineering, standard-setting, data curation, and the integration of new technologies into existing organisational routines, much of which remains invisible in everyday use (Star 1999). Infrastructure building therefore takes time (Karasti et al. 2010) and requires continuous negotiation and adjustment across actors, sites, and institutional contexts. As Star put it:</p>
+<p>Because infrastructure is big, layered, and complex, and because it means different things locally, it is never changed from above. Changes take time and negotiation, and adjustment with other aspects of the systems are involved. Nobody is really in charge of infrastructure (1999: 382).</p>
+<p>Responsibility is thus distributed, control is partial, and change is incremental. Such socio-technical complexities are particularly salient for open digital knowledge infrastructures. Infrastructures are not ‘naturally’ open. They become open through historically grown political, technical, and economic dynamics. Large technical systems, ranging from electric power grids and air traffic control to transoceanic cables, data centres, and radiation-emitting technologies, are typically centrally designed and controlled, exhibiting qualities of ubiquity, reliability, and durability ( Plantin et al. 2016; Mukherjee 2020; Starosielski 2015). Their complexities often become visible only in moments of failure, breakdown, or scaling, highlighting the importance of maintenance, compatibility, and standardisation (Star 1999).</p>
+<p>Early digital networks differed in this respect. While closed systems relied on network effects and centralised control to scale globally, early internet protocols, software standards, and data formats depended on openness to function across institutional, national, and organisational boundaries. Openness was therefore not primarily a normative commitment, but a functional condition for interoperability and coordination at scale. A number of chapters in this volume, however, illustrate how power relations and cultural barriers undermine internet governance processes, the politics of open code, and how the openness of ‘the internet’ has always been partial and situated rather than universal, for example. This research foregrounds the socio-technical complexities of infrastructure building and maintenance, revealing why abstract calls for openness, transparency, or digital sovereignty often underestimate the work, coordination, and institutional transformation required to make openness function in practice.</p>
+<h3>Platformisation of Infrastructures</h3>
+<p>While infrastructure studies foreground the distributed and relational character of infrastructural work, more recent scholarship has shown how these arrangements are increasingly reorganised through processes of platformisation (Helmond 2015; Plantin et al. 2016; van Dijck et al. 2018). Platforms do not merely operate on top of infrastructures. They increasingly function as infrastructural environments that mediate access, authentication, storage, and circulation, embedding themselves deeply into the conditions under which communication and knowledge are produced and governed. This research highlights the dynamic character of infrastructures, which are in constant adaptation to the other components’ changes and can splinter, break up, or even die ( Plantin et al. 2016: 295). Van Dijck (2020) describes how corporate platforms accumulate infrastructural power in digital ecosystems by installing themselves as necessary gateways to online services. Platformisation reshapes these ecosystems by centralising control over key points of coordination, such as interfaces, standards, metrics, and data flows. This dynamic has been described as the ‘infrastructuralization of platforms’ and, conversely, the ‘ platformization of infrastructures’ ( Plantin et al. 2016). As platforms become indispensable intermediaries, they acquire the capacity to shape what forms of communication are possible, visible, or actionable.</p>
+<p>Platformisation introduces new forms of asymmetry into already complex infrastructural arrangements. As van Dijck and colleagues argue, platforms increasingly govern public and private domains by defining the rules of participation, circulation, and value creation, while remaining formally private and commercially oriented (van Dijck et al. 2018; van Dijck 2020). When platforms attain critical infrastructural status for their publics, decisions about access, continuity of service, or data retention take on quasi sovereign effects, enacted through contractual and technical mechanisms rather than public law. This reconfiguration is particularly consequential for open digital knowledge infrastructures, which often rely on platform services for hosting, dissemination, metrics, and interoperability.</p>
+<p>The growing policy interest in digital public infrastructures reflects attempts to counter these dependencies, yet it also illustrates the ambivalence of platformisation. The concept of infrastructure as a public good has gained considerable policy traction, particularly within EU institutions and the Global South, yet its relationship to open knowledge infrastructures is... articulate important normative responses, but remain limited if they do not address the infrastructural conditions under which data, communication, and knowledge circulate, as a number of chapters discuss in this volume. Taken together, this perspective shows that platformisation does not simply threaten openness from the outside. It actively reshapes the infrastructural conditions under which openness, sovereignty, and public value are negotiated, helping to explain why open digital knowledge infrastructures remain fragile under conditions of entrenched platform power.</p>
+<h3>Infrastructural Politics</h3>
+<p>The notion of politics that we adopt in this book highlights that open infrastructures are not neutral, technical artefacts but sites where values, power relations, and forms of social order are materially inscribed and enacted (Winner 1980). We therefore emphasise the role of infrastructures in creating and reinforcing social order, and vice versa, where decisions about infrastructure development and maintenance can have significant implications for social inclusion, access to resources, and the distribution of power. A political lens on infrastructural openness thus shifts the focus from declared values to sites of decision-making. It asks who can decide how infrastructures operate, who bears responsibility when they fail, and under what conditions access can be granted, limited, or withdrawn. In this sense, openness becomes a matter of equity and thus of governance and authority, rather than a technical feature or ethical aspiration, since the formal availability of open infrastructures does not by itself secure meaningful access, use, or benefit across differently positioned actors (Okune et al. 2019; Bezuidenhout 2025).</p>
+<p>Historical studies of infrastructure illustrate that such political dynamics are not new. Critical infrastructures such as railways were deeply embedded in projects of state-building, standardisation, and the constitution of publics. As with the fibre optic cables of today that follow old undersea telegraph lines, the analogy with railways is illustrative not simply for its materiality but for its embeddedness in government structures, standardisation, and public utilities. Successful ‘system builders’ of the past were those who managed to successfully connect their inventions to existing infrastructures, legal systems, and socio-political contexts (Hughes 1979). Railways, like other critical infrastructures, were described as mirroring the ‘modern infrastructural ideal’ (Graham and Marvin 2001) that originated around the middle of the nineteenth century—an ideal of cities being responsible for providing certain services such as roads, emergency services, and public transport to all citizens ( Plantin et al. 2016). From the late twentieth century onwards, however, this ideal was increasingly undermined by processes of deregulation and privatisation, resulting in more fragmented, uneven, and market oriented infrastructural landscapes ( Plantin et al. 2016).</p>
+<p>A similar trajectory can be observed in the comparatively short history of the internet, as some of the following chapters will show. While the first twenty years of internet history (1960s-1980s) were described as embodying the modern industrial ideal with heavy government investments and the impetus of providing citizens with network access as a public good, that model was abandoned in the late 1980s with the rise of neoliberalism (Abbate 1999; Lee and Schmidt 2018). The process of deregulation, privatisation, and splintering of the internet infrastructure and the rise of ubiquitous mobile computing created an environment in which corporate platforms achieved enormous scales ( Plantin et al. 2016). Open digital infrastructures today operate within this political environment, which explains persistent tensions around corporate capture, power asymmetries in standardisation, and the privatisation of governmental and research infrastructures.</p>
+<p>Politics, however, does not only act through corporate power, policy, or law, but also through mundane decisions about what data are worth maintaining, what gets fixed, what is allowed to decay, and who is expected to absorb failure. Rather than treating data as stable inputs or outputs of infrastructural systems, it is worth studying how data is continuously produced, repaired, classified, and maintained through everyday organisational practices. Zakharova and Jarke (2024: 5) conceptualise data work as ‘ care work that sustains and enables the production, processing, circulation, and use of data.’ In everyday organisational practice, Jarke and Büchner (2024) argue that ‘data care arrangements are configured through the ascription of values to (specific) data sets <em>and</em> the work of generating, maintaining, and repairing data’ (Jarke and Büchner 2024: 704, italics in original). Data work provides a valuable entry point for analysing how political choices about value, priority, and responsibility are enacted through mundane infrastructural practices rather than formal regulation alone. Numerous case studies in this book underline the political nature of data work and link it to data governance frameworks and epistemic justice approaches in the context of global publishing, artistic research projects or citizen science in the Global South.</p>
+<h2>Book Outline: From the Early Internet to the Future of Infrastructuring</h2>
+<p>Taken together, the three analytical lenses developed in this introduction clarify why openness in digital knowledge infrastructures cannot be understood from a single vantage point. Combined, these lenses—which are more or less present in all of the following chapters—allow the book to discuss openness not just as a normative ideal or technical feature, but as a fragile and contested outcome of infrastructural arrangements through which knowledge is produced, circulated, and governed. The main part of the book is made up of in-depth empirical case studies, complemented by shorter commentaries, an interview and research notes, culminating in calls for action. Taken together, the book moves from the partial openness of early internet standards and free and open-source software, through contested practices of opening government data and public infrastructures, to struggles over inclusion and governance in scholarly and cultural knowledge infrastructures. This is followed by community-driven experiments in care, repair, and alternative openness, and concludes with forward-looking contributions on how to keep infrastructures open for research, how to fund infrastructures as digital commons, and how to mobilise open infrastructures for democratic resilience and economic sovereignty. All contributions are clustered in five thematic sections that we briefly discuss now.</p>
+<h3>1. Early Days of Internet Openness</h3>
+<p>The first section revisits the early history of the internet to show that openness was never universal, but always partial, situated, and contested. It is concerned with processes of internet standardisation, free and open-source developments, and ways in which openness was unevenly distributed, enabling participation for some groups while remaining closed to others. Corinne Cath examines the cultural governance of open internet standards and the limits of formal inclusivity in the Internet Engineering Task Force ( IETF). Renée Ridgway traces the political and ethical tensions and values shaping free and open-source software as an open infrastructure. In his commentary, Niels ten Oever argues that Internet openness has always been selective, determined by the interests of specific groups rather than universal publics.</p>
+<h3>2. Opening Government Data Infrastructures</h3>
+<p>The second section focuses on government data and public infrastructures, highlighting the labour, institutional cultures, and political constraints shaping openness in practice. It explores various degrees of openness of government infrastructures by discussing practices of opening up government data in Austria, smart waste infrastructures in Poland, and the call for digital sovereignty in the European Union. Astrid Mager analyses three Austrian initiatives of opening up government data in the context of the data welfare state and bureaucratic secrecy. Celina Strzelecka examines smart waste infrastructures in Poland, showing how data driven systems reconfigure responsibility and dependency rather than delivering transparency by default. Francesca Musiani situates her commentary within European debates on digital sovereignty and shows how federated infrastructures transform alternative decentralisation into a contested tool of state governance.</p>
+<h3>3. Inclusive Governance of Digital Knowledge Infrastructures</h3>
+<p>This section addresses the governance of scholarly and cultural knowledge infrastructures, with a focus on openness, inclusion, and epistemic justice. It brings together studies that examine how openness is organised and contested across different infrastructures in research and the arts, including a platform ecosystem for open scholarly communication, a directory for open access journals, research infrastructures analysed through the lens of openness paradoxes, and an archival infrastructure for knowledge sharing in artistic research. Simon Dumas Primbault analyses scholarly communication platforms as governed ecosystems through a case study of OpenEdition. Ivonne Lujano Vilchis, Katrine Sundsbø, Ina Smith, and Joanna Ball examine the Directory of Open Access Journals ( DOAJ) as a global infrastructure negotiating inclusivity through standards and classification work. Katja Mayer explores how openness governs scholarly infrastructures while reinforcing existing power imbalances. A research note by Lucie Kolb and Lara Kothe reflects on building an open research database in the arts through feminist and anti-colonial perspectives on FAIR and CARE.</p>
+<h3>4. Community-driven Infrastructures of Care and Repair</h3>
+<p>The fourth section foregrounds counter-cultural and community-based infrastructures that experiment with alternative modes of openness, including a citizen science project indexing Andean potatoes, a grassroot community network in Italy, computational repair in the Netherlands and Ghana, to open AI image generation assemblages. Julio Sebastián Zárate Vásquez and Jason A. Delborne examine citizen science and Indigenous data governance in Andean potato conservation. Stefano Crabu analyses grassroots community networks as sites where openness is enacted through maintenance, governance, and care. Cyrus Khalatbari compares computational repair practices in Amsterdam and Accra, highlighting low tech and maintenance-driven alternatives. Nicolas Malevé discusses open AI image generation projects as infrastructural variations operating within, rather than outside of, corporate ecosystems.</p>
+<h3>5. Infrastructuring Openness in the Future</h3>
+<p>The final section explores forward-looking questions of infrastructural sustainability, governance, and resilience. An interview with Annalisa Pelizza reflects on how to keep digital knowledge infrastructures open as communities of practice. In her commentary, Katharina Meyer conceptualises resourcing as infrastructural work and argues for durable funding architectures for the digital commons. Leonhard Dobusch and Maximilian Heimstädt conclude the volume with six theses on open digital infrastructures as foundations for democratic resilience and economic sovereignty.</p>
+<h2>Concluding Remarks and Outlook</h2>
+<p>At the beginning of the introduction, we discussed open digital knowledge infrastructures through three interrelated analytical lenses: socio-technical complexity, platformisation, and infrastructural politics. Rather than treating these as separate domains, the contributions in this book demonstrate how they intersect across diverse empirical contexts and infrastructural sites. From early internet standards and free and open-source software to government data systems, scholarly communication platforms, community networks, and emerging AI assemblages, the chapters show that openness is always produced through complex socio-technical arrangements, increasingly shaped by platform logics, and continuously negotiated as a matter of governance and power. Reading across the five sections of the book, these lenses reveal three recurring patterns: the precarious socio-technical labour and coordination work required to sustain openness, the fragility of open infrastructures tightly intertwined with platformisation, as well as the situatedness of digital knowledge infrastructures linked to both political and epistemic implications.</p>
+<p>The first pattern points us to the precarious socio-technical labour and coordination work required to develop, maintain, and govern open digital knowledge infrastructures and make them sustainable in the long run. Many core digital infrastructures emerged in and around publicly funded research, where norms of sharing, reproducibility, and peer verification favoured open protocols, open code, and later open data and publications, often relying on free labour, above and beyond academic payment. The opening of government infrastructures involves a range of different types of data work including standard setting, formatting, cleaning, as well as organisational communication and coordination —sometimes hampered by a bureaucratic culture of secrecy rather than openness. While such work is needed for all infrastructures, open infrastructures are often characterised by persistent shortages of resources, labour, and infrastructural power, which constrain their ability to meet the organisational and technical requirements necessary to sustain openness over time. As Meyer (Chapter 16) argues through the notion of ‘resourcing as infrastructuring,’ what is ultimately at stake is not merely the viability of individual projects, but the long-term sustainability of the digital commons itself. What the various chapters in this book show is that socio-technical complexity should thus not be seen as a background condition but rather as the terrain on which openness succeeds or fails because openness depends on labour-intensive coordination, maintenance, standardisation, and data care rather...</p>
+<p>The second pattern reveals the fragility of open infrastructures tightly intertwined with the increasing platformisation of infrastructures that reorganises the conditions of openness by centralising control over hosting, authentication, interfaces, and metrics, along with making withdrawal and dependency governable through contracts and computation. Besides precarious labour conditions, historically grown power imbalances and systemic biases in institutions threaten to undermine normative ideals, or rhetoric, of openness and digital sovereignty. Practical constraints such as external funding structures or top-down governance frameworks additionally prevent meaningful participation and processual openness. Several chapters in this book hence challenge binary understandings of openness versus closedness by demonstrating that open infrastructures also persist through graduated forms of openness shaped by infrastructural design choices and political compromise (Chapter 4, Chapter 14). They point us to different degrees of openness, infrastructural arrangements, and compromises or ‘continuous variations’ rather than radical disruptions, as Malevé has put it in the context of computational practices of appropriation (Chapter 14). Embracing infrastructural tensions and ambiguity could thus be seen as an essential part of strengthening fragile open digital knowledge infrastructures and fostering them within the wider trends of platformisation and cloud computing.</p>
+<p>The third and final pattern refers to the situatedness of digital knowledge infrastructures that not only links to infrastructural politics and governance, but also to fundamental questions of epistemic justice. Contrary to abstract notions of openness, participation, and sovereignty, the richness of case studies assembled in this book shows how culturally and politically situated and context-driven open digital knowledge infrastructures unfold in messy, real-world contexts. It illustrates how openness has been mobilised in distinctive ways and in different moments of time: as a governance strategy to avoid state monopolies and create public value, to counter economic power and concentration, and to technically undermine centralisation and single points of failure. It further shows how carefully abstract ideals of openness and participation need to be translated into culturally diverse social practices, organisational structures, and knowledge cultures to prevent power asymmetries and epistemic injustices they hope to eliminate. A number of chapters critically engage with the FAIR and CARE data governance principles and show how to practically implement them as meaningful instruments of inclusion rather than mere lip service (see Chapter 8; Chapter 9; Chapter 10, Chapter 11). Otherwise, openness runs the risk of becoming an act of window dressing rather than an infrastructural reality; similar to purposes of ‘ ethics washing’ in the context of AI (van Maanen 2022; Mager et al. 2025).</p>
+<p>The three patterns mapped out above are nowhere more visible than in the current (and future) battlefield of AI developments. The proliferation of nominally open foundation models has been accompanied by new forms of structural closure: model weights may be released while control over training corpora, computational infrastructure, and downstream ecosystems remains concentrated among a narrow set of actors. Such configurations capture the reputational capital of openness without distributing its substantive affordances: a dynamic that was repeatedly termed ‘ open-washing’ by tech companies using open-source models and code (Liesenfeld and Dingemanse 2024). Simultaneously, the extreme capital intensity of large-scale model development accelerates concentration, foreclosing the distributed, community-governed trajectories that earlier waves of open-source software enabled. Based on interviews with developers, Ridgway proposes that free and open-source software is nowadays considered an open infrastructure, which is essential for society, yet it also needs to be regulated by society, not corporations (Chapter 2). The AI field currently illustrates that openness must be defended infrastructurally: through investment in shared resources, governance arrangements that distribute power, and institutional designs capable of resisting capture. The politics of open infrastructure, in other words, is not merely a question of licensing or disclosure but of the material and institutional conditions under which genuine openness can be produced and sustained.</p>
+<p>This book argues that openness, if it is to function as more than rhetoric, must be treated as an infrastructural project: one that requires sustained governance, shared responsibility, and long-term resourcing rather than temporary interventions or symbolic commitments. It shows that open digital knowledge infrastructures do not automatically counter concentration and dependency, but that concrete pathways are needed for redistributing control, enabling participation, and anchoring knowledge circulation in the public interest, such as those discussed in the following chapters. In an era in which cloud platforms, data-driven systems, and AI increasingly shape the horizons of public authority, the question is no longer whether openness is desirable, but under what infrastructural conditions it can be made durable. This volume is concerned with precisely those conditions. It provides a rich repertoire of suggestions on how to escape rhetorical attempts of ‘ open-washing’ and how to foster infrastructural openness rooted in meaningful participation, mutual engagement, and epistemic justice.</p>
+<h2>References</h2>
+<p>Abbate, J. 2000. <em>Inventing the Internet</em>. Cambridge, MA: MIT Press.</p>
+<p>Bateson, Gregory. 1978.<em>Steps to an Ecology of Mind</em>. New York: Ballantine Books.</p>
+<p>Bezuidenhout, L. 2025. ‘Critically Unpacking the Concept of Equity for Open Science.’ <em>Social Epistemology</em> 0(0): 1–18. https://doi.org/10.1080/02691728.2025.2475460</p>
+<p>Borgman, C. L., P. N. Edwards, S. J. Jackson, et al. 2013. <em>Knowledge Infrastructures: Intellectual Frameworks and Research Challenges</em> <a href="https://knowledgeinfrastructures.org/" target="_blank" rel="noreferrer">https://knowledgeinfrastructures.org/</a>.</p>
+<p>Bowker, G. C., K. Baker, F. Millerand, and D. Ribes. 2010. ‘Toward Information Infrastructure Studies: Ways of Knowing in a Networked Environment.’ In <em>International Handbook of Internet Research</em>, edited by J. Hunsinger, L. Klastrup, and M. Allen, 97–117. Dordrecht: Springer. <a href="https://doi.org/10.1007/978-1-4020-9789-8_5" target="_blank" rel="noreferrer">https://doi.org/10.1007/978-1-4020-9789-8_5</a></p>
+<p>Bowker, G. C., P. N. Edwards, S. J. Jackson, and C. P. Knobel. 2010. <em>The Long Now of Cyberinfrastructure</em>. Cambridge, MA: MIT Press. <a href="https://doi.org/10.7551/mitpress/9780262014397.003.0028" target="_blank" rel="noreferrer">https://doi.org/10.7551/mitpress/9780262014397.003.0028</a></p>
+<p>Bowker, G. C., and S. L. Star. 2000. <em>Sorting Things Out: Classification and Its Consequences</em>. Cambridge, MA: MIT Press.</p>
+<p>Brennan, K., A. Kak, and S. M. West. 2025. <em>Artificial Power: AI Now 2025 Landscape</em>. New York: AI Now Institute. <a href="https://ainowinstitute.org/2025-landscape" target="_blank" rel="noreferrer">https://ainowinstitute.org/2025-landscape</a></p>
+<p>Carroll, S. R., I. Garba, O. L. Figueroa-Rodríguez, et al. 2020. ‘The CARE Principles for Indigenous Data Governance.’ <em>Data Science Journal</em> 19 (1): 1–12. <a href="https://doi.org/10.5334/dsj-2020-043" target="_blank" rel="noreferrer">https://doi.org/10.5334/dsj-2020-043</a></p>
+<p>Edwards, P. N., S. J. Jackson, G. C. Bowker, and C. P. Knobel. 2009. ‘Introduction: An Agenda for Infrastructure Studies.’ <em>Journal of the Association for Information Systems</em> 10 (5): 364–374. https://doi 10.17705/1jais.00200</p>
+<p>Graham, S., and S. Marvin. 2001. <em>Splintering Urbanism: Networked Infrastructures, Technological Mobilities and the Urban Condition</em>. London and New York: Routledge.</p>
+<p>Haraway, D. 1988. ‘Situated Knowledges: The Science Question in Feminism and the Privilege of Partial Perspective.’ <em>Feminist Studies</em> 14 (3): 575–599.</p>
+<p>Helmond, A. 2015. ‘The Platformization of the Web: Making Web Data Platform Ready.’ <em>Social Media + Society</em> 1 (2). <a href="https://doi.org/10.1177/2056305115603080" target="_blank" rel="noreferrer">https://doi.org/10.1177/2056305115603080</a></p>
+<p>Hughes, T. P. 1979. ‘The Electrification of America: The System Builders.’ <em>Technology and Culture</em> 20 (1): 124–161.</p>
+<p>Jarke, J., and S. Büchner. 2024. ‘Who Cares about Data? Data Care Arrangements in Everyday Organisational Practice.’ <em>Information, Communication &amp; Society</em> 27 (4): 702–718. <a href="https://doi.org/10.1080/1369118X.2024.2320917" target="_blank" rel="noreferrer">https://doi.org/10.1080/1369118X.2024.2320917</a></p>
+<p>Karasti, H., K. Baker, and F. Millerand. 2010. ‘Infrastructure Time: Long-Term Matters in Collaborative Development.’ <em>Computer Supported Cooperative Work</em> 19: 377–415. <a href="https://doi.org/10.1007/s10606-010-9113-z" target="_blank" rel="noreferrer">https://doi.org/10.1007/s10606-010-9113-z</a></p>
+<p>Lee, C. P., and K. Schmidt. 2018. ‘A Bridge Too Far? Critical Remarks on the Concept of “Infrastructure” in CSCW and IS.’ In <em>Socio-Informatics: A Practice-Based Perspective on the Design and Use of IT Artifacts</em>, edited by V. Wulf et al., 177–217. Oxford: Oxford University Press. <a href="https://doi.org/10.1093/oso/9780198733249.003.0006" target="_blank" rel="noreferrer">https://doi.org/10.1093/oso/9780198733249.003.0006</a></p>
+<p>Liesenfeld, Andreas and Mark. 2024. ‘Dingemanse. 2024. Rethinking Open Source Generative AI: Open-Washing and the EU AI Act.’ In <em>Proceedings of the 2024 ACM Conference on Fairness, Accountability, and Transparency (FAccT ’24)</em>, 1774–1787. New York: ACM. <a href="https://doi.org/10.1145/3630106.3659005" target="_blank" rel="noreferrer">https://doi.org/10.1145/3630106.3659005</a></p>
+<p>Lin, Sophie. 2025. ‘EU Alarmed: Microsoft Suspends ICC Judge, Tech Dependence Exposed.’ <em>Archyde</em> (21 June), <a href="https://www.archyde.com/eu-alarmed-microsoft-suspends-icc-judge-tech-dependence-exposed/" target="_blank" rel="noreferrer">https://www.archyde.com/eu-alarmed-microsoft-suspends-icc-judge-tech-dependence-exposed/</a></p>
+<p>Mager, A., M. Eitenberger, J. Winter, B. Prainsack, C. Wendehorst, and P. Arora. 2025. ‘Situated Ethics: Ethical Accountability of Local Perspectives in Global AI Ethics.’ <em>Media, Culture &amp; Society</em> 47 (5): 1028–1041. <a href="https://doi.org/10.1177/01634437251328200" target="_blank" rel="noreferrer">https://doi.org/10.1177/01634437251328200</a></p>
+<p>Milmo, D., J. Kollewe, B. Quinn, J. Taylor, and M. Ibrahim. 2024. ‘Slow Recovery from IT Outage Begins as Experts Warn of Future Risks.’<em>The Guardian</em>(20 July), <a href="https://www.theguardian.com/australia-news/article/2024/jul/19/microsoft-windows-pcs-outage-blue-screen-of-death" target="_blank" rel="noreferrer">https://www.theguardian.com/australia-news/article/2024/jul/19/microsoft-windows-pcs-outage-blue-screen-of-death</a></p>
+<p>Mukherjee, R. 2020. <em>Radiant Infrastructures: Media, Environment, and Cultures of Uncertainty.</em> Durham, NC, and London: Duke University Press. <a href="https://doi.org/10.1215/9781478009016" target="_blank" rel="noreferrer">https://doi.org/10.1215/9781478009016</a></p>
+<p>Okune, A., et al. 2019. ‘Whose Infrastructure? Towards Inclusive and Collaborative Knowledge Infrastructures in Open Science.’ In <em>Connecting the Knowledge Commons—From Projects to Sustainable Infrastructure</em>, edited by L. Chan and P. Mounier. Marseille: OpenEdition Press. https://doi.org/10.4000/books.oep.9072</p>
+<p>Plantin, J.-C., C. Lagoze, P. N. Edwards, and C. Sandvig. 2016. ‘Infrastructure Studies Meet Platform Studies in the Age of Google and Facebook.’ <em>New Media &amp; Society</em> 20 (1): 293–310. https://doi.org/10.1177/1461444816661553</p>
+<p>Quell, M. 2025 ‘Trump’s Sanctions on ICC Prosecutor Have Halted Tribunal’s Work.’ <em>AP News</em> (15 May), <a href="https://apnews.com/article/icc-trump-sanctions-karim-khan-court-a4b4c02751ab84c09718b1b95cbd5db3" target="_blank" rel="noreferrer">https://apnews.com/article/icc-trump-sanctions-karim-khan-court-a4b4c02751ab84c09718b1b95cbd5db3</a></p>
+<p>Star, S. L. 1999. ‘The Ethnography of Infrastructure.’<em>American Behavioral Scientist</em> 43 (3): 377– 391.</p>
+<p>Star, S. L., and K. Ruhleder. 1996. ‘Steps Toward an Ecology of Infrastructure: Design and Access for Large Information Spaces.’<em>Information Systems Research</em> 7 (1): 111–134.</p>
+<p>Starosielski, N. 2015. <em>The Undersea Network (Sign, Storage, Transmission)</em>. Chapel Hill, NC: Duke University Press. <a href="https://doi.org/10.1215/9780822376224" target="_blank" rel="noreferrer">https://doi.org/10.1215/9780822376224</a></p>
+<p>van Dijck, J. 2020. ‘Seeing the Forest for the Trees: Visualizing Platformization and Its Governance.’ <em>New Media &amp; Society</em> 23 (9): 2801–2819. <a href="https://doi.org/10.1177/1461444820940293" target="_blank" rel="noreferrer">https://doi.org/10.1177/1461444820940293</a></p>
+<p>van Dijck, J., T. Poell, and M. de Waal. 2018. <em>The Platform Society: Public Values in a Connective World</em>. Oxford: Oxford University Press.</p>
+<p>van Maanen, G. 2022. ‘AI Ethics, Ethics Washing, and the Need to Politicize Data Ethics.’ <em>Digital Society</em> 1 (9): 1–9. <a href="https://doi.org/10.1007/s44206-022-00013-3" target="_blank" rel="noreferrer">https://doi.org/10.1007/s44206-022-00013-3</a></p>
+<p>Wilkinson, M. D., M. Dumontier, I. J. Aalbersberg, et al. 2016. ‘The FAIR Guiding Principles for Scientific Data Management and Stewardship.’ <em>Scientific Data</em> 3 (1): 1. <a href="https://doi.org/10.1038/sdata.2016.18" target="_blank" rel="noreferrer">https://doi.org/10.1038/sdata.2016.18</a></p>
+<p>Winner, Langdon. 1980. ‘Do Artifacts Have Politics?’ <em>Daedalus</em> 109 (1): 121–136.</p>
+<p>Zakharova, I., and J. Jarke. 2024. ‘Care-ful Data Studies: Or, What Do We See When We Look at Datafied Societies through the Lens of Care?’ <em>Information, Communication &amp; Society</em> 27 (4): 651–664. <a href="https://doi.org/10.1080/1369118X.2024.2316758" target="_blank" rel="noreferrer">https://doi.org/10.1080/1369118X.2024.2316758</a></p>
+<ul>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/introduction.xhtml#footnote-095-backlink" target="_blank" rel="noreferrer">1</a> See <a href="https://www.bundesregierung.de/breg-de/aktuelles/summit-on-european-digital-sovereignty-delivers-landmark-commitments-for-a-more-competitive-and-sovereign-europe-2394368" target="_blank" rel="noreferrer">https://www.bundesregierung.de/breg-de/aktuelles/summit-on-european-digital-sovereignty-delivers-landmark-commitments-for-a-more-competitive-and-sovereign-europe-2394368</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/introduction.xhtml#footnote-094-backlink" target="_blank" rel="noreferrer">2</a> The FAIR principles define standards for data management that aim to make data Findable, Accessible, Interoperable, and Reusable, primarily by focusing on technical metadata, standardisation, and machine readability in order to enhance data reuse in research and innovation contexts. The CARE principles complement FAIR by foregrounding ethical and political dimensions of data governance, especially for Indigenous and marginalised communities. CARE emphasises Collective benefit, Authority to control, Responsibility, and Ethics, highlighting questions of power, consent, and stewardship that are largely absent from purely technical approaches to openness.</li>
+</ul></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-0dab7475cfbe159d.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">建構開放，或打開基礎設施？</span>
+</a>
+
+<a class="article-sequence-link" href="item-ed9d94ace4bdb23d.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">保守送出、寬容接收：開放網際網路標準的文化治理</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-f04dccbafcd138f1.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Politics of Open Infrastructures - Introduction</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Astrid Mager, Katja Mayer, and Renée Ridgway（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-26T18:13:51+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-26T18:13:51+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-f04dccbafcd138f1";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>超越數位落差：安地斯馬鈴薯保存中的資料治理與原住民族主權 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-26 12:45</span></div>
+      <h1><a class="article-title-link" href="https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.11" target="_blank" rel="noreferrer" title="開啟原始連結">超越數位落差：安地斯馬鈴薯保存中的資料治理與原住民族主權</a></h1>
+      <p class="lede">這章討論安地斯農業生物多樣性保存中的資料治理與原住民族主權。作者分析 Wiki Papa 與 VarScout 兩個公民科學平台如何收集、整理與分類秘魯農村安地斯社群的馬鈴薯資料，並檢視 FAIR 與 CARE 原則在實作上的限制。文章指出，資料變得更容易取得，不代表社群就擁有治理權；資料整理權仍集中在受西方訓練的專家手中，而工作坊也偏重技術訓練，沒有讓使用者真正成為自身知識系統的管理者。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">法規政策</span><span class="tag-chip">開放資料</span><span class="tag-chip">資料治理</span><span class="tag-chip">Open Knowledge</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.openbookpublishers.com/small_obp_logo_high_res_8ad3ef43d4.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>The Politics of Open Infrastructures - 11. Beyond the Digital Divide</h1>
+<h2>11. Beyond the Digital Divide: Data Governance and Indigenous Sovereignty in Andean Potato Conservation</h2>
+<h2>Julio Sebastián Zárate Vásquez and Jason A. Delborne</h2>
+<p>©2026 J. S. Z. Vásquez &amp; J. A. Delborne, CC BY-NC 4.0 <a href="https://doi.org/10.11647/OBP.0528.11" target="_blank" rel="noreferrer">https://doi.org/10.11647/OBP.0528.11</a></p>
+<h2>1. Introduction</h2>
+<p>After meeting Ana during the workshop at Hermilio Valdizan University in Huánuco, I met her again to visit her village early at dawn. She was with her son, and we shared a vehicle together with a workshop facilitator that trained students like Ana how to use their phones to upload images of potatoes. Since Ana mentioned that her family has diverse potatoes and, as a student, she was thus committed to writing her dissertation based on the data collected from her village, she seemed motivated enough to use her phone to upload potato data beyond the workshop. After sharing a meal with her family, who mostly spoke Quechua, Ana showed us her potato plot. Just before meeting her in the field, I was interviewing her aunt-in-law in the kitchen. She often looked down when we spoke and, in some instances, she was non-responsive. Later, after Ana brought back a sack of potatoes, I met her brother-in-law, who mentioned that he was frustrated about the lack of education that the older women in his family had received decades ago. Even after attending the workshop the prior day, it took Ana a while to take pictures and add agronomic and morphologic data to the app. Her aunt-in-law first observed, but later joined her to classify their potatoes. Her expression changed; she was enjoying naming potatoes and recalling names in Quechua and their meaning. This pattern—enjoyment in the practice of sorting and naming potatoes, coupled with the difficulty of using phones to record data—was not unique to Ana’s aunt-in-law. Other Andean farmers who participated in citizen science workshops similarl...</p>
+<p>This chapter examines the processes of potato agrobiodiversity curation and user feedback integration within the data platforms Wiki Papa and VarScout. Wiki Papa functions as a curated website hosting records of Andean potato varieties, encompassing agronomic, geographical, and gastronomic traits. App developers and agrobiodiversity researchers act as data curators of this information. In parallel, VarScout, a smartphone application, enables its users to collect on-the-ground data—such as local names, colour, and yield—directly from potato fields and rural farms. VarScout users include custodian potato farmers, rural extension workers, and students based in rural regions. The data collected via VarScout is subsequently uploaded to Wiki Papa, forming part of a unified citizen science project led by the International Potato Centre (CIP, Spanish) dedicated to monitoring potato agrobiodiversity.</p>
+<p>Stakeholders across the potato data value chain—including data curators, app developers, and agrobiodiversity researchers—seek to support farmers’ livelihoods. Yet, as scholarship on information infrastructures demonstrates, the design of data systems inevitably embeds social assumptions and power relations—often rendering them invisible or taken for granted ( Bowker 1994; Bowker and Star 1999; Star and Bowker 2006). Potato data platforms similarly embody classificatory choices and institutional logics that structure what becomes legible and actionable as data. For instance, data practices within the Wiki Papa platform tend to favour Western standards, such as agronomic and morphological descriptors used to classify agrobiodiversity in catalogues. Digital literacy, skills, and capacity in rural Peru remain limited (MINEDU 2022; CEPLAN 2023; Rodríguez 2022; Libaque 2023). As a result, users based in rural regions that have limited digital skills may struggle to understand how their data is being used, as well as the expectations surrounding their involvement in data collection.</p>
+<p>Given these dynamics, it is important to consider how data governance principles—specifically FAIR and CARE—within Wiki Papa and VarScout are shaped by socio-technical infrastructures and design choices (Bijker, Hughes, and Pinch 2012). FAIR principles for data management (Findable, Accessible, Interoperable, Reusable) and CARE principles for data governance (Collective benefit, Authority to control, Responsibility, Ethics), are generally discussed together in deliberations about open access, community rights, and ethical considerations of data ( Carroll et al. 2020; Wilkinson et al. 2016). Whilst Wiki Papa and VarScout were designed to promote accessibility and inclusivity, they nonetheless struggle to comply fully with FAIR and CARE. These principles address ethical concerns such as what is being digitised and why, as well as how data is categorised (Chigwada and Ngulube 2025). Such concerns are situated in a broader context in which Latin American rural communities, particularly women, face persistent obstacles, including limited access to information and communication technologies (Rotondi et al. 2020).</p>
+<p>The next section explores the challenges of complying with FAIR and CARE in contexts where a strong digital divide persists—manifested not only in limited access to technology but also in the absence of digital skills. Although previous studies on rural Peru (MINEDU 2022; Rodríguez 2022) have focused on the digital divide to inform policy, the literature has not yet considered how these constraints limit compliance with data governance principles when rural communities engage in data stewardship. To address the ethical concerns surrounding their involvement in digital platforms, it is necessary to create spaces for deliberation about data governance as well as users’ experiences of these platforms.</p>
+<h2>2. Theoretical Framework: Digital Divide, Data Sovereignty and Datafication</h2>
+<p>As a consequence of rising inequalities in the digital economy, organisations, scholars, and policy-makers have brought to the public agenda the idea of reducing the digital divide, understood as the gap between people who have access to information and communication technology (ICT) and those who do not (Lythreatis et al. 2022). The digital divide is a key issue for social justice (Rogers 2016), since digital gaps can either restrict or enhance citizens’ social and financial capital as well as their participation in society ( Ragnedda 2017). Closing digital gaps by providing training and adequate infrastructure could reduce inequalities. Nevertheless, programmes such as One Laptop per Child in Peru demonstrate that inequalities persisted even after training and increased access to technology (Cueto et al. 2024).</p>
+<p>The Peruvian Ministry of Education (MINEDU) developed a policy report aiming to close digital gaps in rural areas by implementing policies that provide ‘equal access to a comprehensive education that allows for the full development of human capacities in society’ (MINEDU 2022). In this document, the digital divide is defined as the ‘distance between people, communities, states, countries, etc., who use ICTs as a routine part of their daily lives, and those who do not have access to them, or do not know how to use them’ (MINEDU 2022). This definition highlights both the access gap in relation to equipment and digital educational materials, and the usage gap involving digital skills and capacities.</p>
+<p>For the purposes of this chapter, we reviewed the literature that examines how the digital divide interacts with rural communities and Indigenous peoples in Latin America. Rotondi et al. (2020) highlight the persistence of gender gaps, providing evidence of a first-level digital gender divide related to access to ICT rather than the skills required to leverage their potential. González and Martínez (2023) point out that, although Latin America as a region has the highest proportion of Indigenous population globally, Indigenous Peoples experience a digital ethnic divide, as the development of digital infrastructure has prioritised urban areas. Ávila (2023) shows that the digital divide disproportionately affects Indigenous Peoples, who face limited access to digital services and cultural and linguistic barriers that prevent them from fully benefiting from digital technologies.</p>
+<p>In Peru, studies have examined the development and implementation of digital tools for learning Indigenous languages (Yahuarcani 2020; 2021), the use of WhatsApp as a mobile learning resource (Escobar-Mamami and Gómez-Arteta 2020), and the tensions between Indigenous communities and the implementation of digital technologies (Galla 2016). These dynamics mirror the challenges faced in initiatives such as Wiki Papa and VarScout app, where custodians’ offline stewardship practices are not always easily aligned with online stewardship and digital infrastructures.</p>
+<p>The sociotechnical issues that rural communities and Indigenous Peoples face when accessing digital technologies are not only the result of a digital divide but also reveal concerns related to the collection, ownership, and dissemination of Indigenous data. Indigenous data sovereignty has emerged as a means for Indigenous peoples to assert their rights over their data (IWGIA n.d.). Data sovereignty emphasises that Indigenous communities should have the authority to make decisions about how their data are collected, accessed, and used, aligning with their self-determination and governance structures ( Carroll et al. 2020; Garba et al. 2023; Hudson et al. 2023; Oguamanam 2020). Data management practices should respect Indigenous sovereignty, prioritising Indigenous values and knowledge systems.</p>
+<p>Indigenous data sovereignty also interacts with broader data governance principles used by experts to assess equity, user feedback, collective benefit, and situated understandings of data practices. Taken together, the FAIR and CARE principles were designed to support ethical and transparent data governance practices and collaborations. As mentioned above, FAIR stands for findable, accessible, interoperable, and reusable data (Wilkinson et al. 2016). CARE acknowledges the status and relevance of Indigenous peoples in decision-making, especially regarding the use of data about themselves, their lands, and their waters ( Carroll et al. 2020). Whilst the FAIR principles were designed to ensure the usability and accessibility of data, they do not explicitly address the needs, interests, and rights of Indigenous peoples, who have historically been marginalised in global data practices. The CARE principles emerged in response to growing concerns that global data initiatives, including the open data movement, often overlook the unique rights and cultural values of Indigenous communities ( Carroll et al. 2020).</p>
+<p>Ethical concerns about data, as well as data governance principles, have also emerged as a response to datafication. Datafication is a process defined as the ‘transformation of social lives and identities into quantified data’ (van Dijck 2014). It recognises non-expert knowledge only insofar as it can be commodified or embedded in economic relations (Mejías and Couldry 2019; Ricaurte 2019). In addition to FAIR and CARE, data audits are another method that can foster citizen empowerment in relation to their data. Data audits examine citizens’ situated affective responses to datafication ( Reilly and Morales 2023) and prioritise citizens’ perspectives and responses to information systems by focusing on how they experience datafication. This includes citizens’ participation in the production of culture, heritage, tradition, and literacy ( Reilly and Morales 2023).</p>
+<p>This section has sought to explain how the digital divide, as a by-product of the data economy, has not only generated gaps in digital skills and infrastructure but also concerns about the limited spaces for public deliberation on ethics and data sovereignty. Whilst there is significant awareness of the digital divide among rural communities and Indigenous Peoples, there is less awareness and knowledge about why data are being collected, by whom, and how they will be used. This makes it possible to critically examine Wiki Papa and VarScout, not only as technical tools but also as sites where questions of data sovereignty, ethics, and equity come to the fore.</p>
+<h2>3. Methodology and Methods</h2>
+<p>This study combined semistructured interviews, participatory observation in workshops, and documentary analysis to examine how data platforms interact with agrobiodiversity data, and how data sovereignty intersects with questions of data stewardship.</p>
+<p>This chapter adopts a multi-sited approach (Marcus 1995; Hannerz 2003) that follows the interplay of online and offline interactions around Wiki Papa and VarScout. Online platforms and face-to-face encounters are not separate domains, but rather interwoven spaces through which participants construct identities, communities, and practices (Watson 1997; Miller and Slater 2000). In this sense, Andean communities uploading potato data offline due to limited internet access are part of the same community as extension workers or students who engage with the platforms online.</p>
+<p>Fieldwork involved ten semi-structured interviews with key actors in the Wiki Papa data chain: three developers and data curators, two representatives of Miski Papa (an online delivery platform for Andean potatoes in Lima), two members of the technology consultant team who organized citizen science workshops, and three researchers from Grupo Yanapai, a local NGO that works with Andean farmers. These interviews provided insights into how different actors conceptualize potato agrobiodiversity, the challenges of integrating local knowledge into digital infrastructures, and the expectations attached to Wiki Papa.</p>
+<p>In addition, J.S.Z.V. collaborated with the consultant team to facilitate three citizen science workshops in the regions of Junín and Huánuco. These workshops brought together three distinct groups: farmers from AGUAPAN, the Peruvian Association of Native Potato Guardians (fourteen participants across six regions, slightly familiar with smartphones); extension workers from NGOs and government agencies (eleven participants, all smartphone users with moderate app use); and university students (ten participants, aged 20–30, with high engagement with smartphones). This comparative design offered a lens on digital skills, access, and expectations across user groups, while also highlighting gaps in participation and the ways data stewardship practices unfolded.</p>
+<p>To complement these data, J.S.Z.V. analysed the most recent regional potato agrobiodiversity catalogues (La Libertad 2023; Huancavelica 2021; Junín 2017) incorporated into Wiki Papa. Using Python, we transformed catalogue information into Excel tables while preserving their descriptors (names, synonyms, morphological traits, nutritional value, agronomic features, culinary uses). This approach enabled us to examine how Western scientific categories mediate the representation of agrobiodiversity in digital infrastructures, and how such classifications intersect with Indigenous knowledge systems and data stewardship practices.</p>
+<p>The analysis followed the principles of grounded theory (Charmaz 2014), emphasizing iterative coding, constant comparison, and memo-writing. The open-source software Taguette was used to code interviews, workshops, and documentary materials. Analytical categories included: data science, data justice, citizen science, digital literacy, e-commerce, Western classification, value chains, technology acceptance, local potato names, and internet access.</p>
+<p>The second author, J.A.D., contributed to drafting the initial reports derived from this research, offering guidance on how to better present its central arguments and organise paragraphs and sections coherently, while maintaining a clear focus on the interview analysis and qualitative coding.</p>
+<h2>4. Background: Cataloguing Andean Potatoes</h2>
+<p>CIP has been working alongside custodian potato farmers to increase potato agrobiodiversity conservation efforts in situ and ex situ. Founded in 1971 as a research-for-development centre (CIP website n.d.), CIP is an important organization for conducting reintroduction of potato varieties that are in danger of disappearing or that are no longer available (Westengen et al. 2018). CIP is recognized as the largest in vitro gene bank in the world, housing one of the most extensive herbarium collections and prominent plant cryopreservation programs (CIP Genebank website n.d.). Concerns about the long-term security of CIP’s plant material collection, alongside technologies like cryopreservation, reflect ongoing efforts to adapt and improve gene bank practices (Vollmer et al. 2022).</p>
+<p>CIP is part of the Consultative Group on International Agricultural Research (CGIAR) network, a global partnership of research centres like the International Rice Research Institute (IRRI) and the International Maize and Wheat Improvement Center (CYMMYT). CGIAR’s work focuses on multidisciplinary research on specific commodity crops and ecoregions, aiming to reduce hunger (Byerlee and Lynam 2020). CGIAR’s network centres sought to create efficiencies through economies of scale and scope (Byerlee and Lynam 2020), generating efficiencies and spillovers through applied research networks that freely shared materials and knowledge. CIP’s genebank operates within a global collaborative network of genebanks (Engels et al. 2024). In Peru, CIP collaborates with Peruvian research agencies like the National Institute of Agrarian Innovation (INIA, Spanish) in Peru (CIP 2018). Beyond research and capacity, CGIAR’s centres aimed to reduce political and bureaucratic interference in science and secure long-term funding through foreign aid and philanthropic organizations (Byerlee and Lynam 2020). With the arrival of the Sustainable Development Goals (SDGs) in 2012 (UN General Assembly 2012), CIP adapted its organizational structure to address goals such as reducing poverty and hunger, particularly in Africa (CIP 2019). To fulfill those goals, CIP mediates between the policy-making, regulatory and social dimensions of international agriculture. This mediation is generally defined as boundary work defined as the ‘interface between science and policy’ (Clark et al. 2016) and the ‘activities of...</p>
+<p>CIP cataloguing activities can be thought of as a continuation of CGIAR’s efforts to gather plant genetic resources since the 1950s (Montenegro 2016). Potato collections at private and public facilities began before CIP’s foundation in 1971, with expeditions led by Peruvian scientists such as Carlos Ochoa (Ringle 1992). More recently, in 2021, CIP collaborated with AGUAPAN, an association of custodian potato farmers, to identify new cultivars not previously included in its collection (CIP 2021). The first CIP potato catalog was developed in 2006 in the region of Huancavelica, featuring 144 varieties and 21 households. Fifteen years later, another catalog from the same region was elaborated, featuring 185 varieties and 16 households. Other catalogs include Apurímac in 2014, La Libertad in 2015 and 2023, and Junin in 2017 ( Wiki Papa 2024).</p>
+<p>Wiki Papa uses data from VarScout, a biodiversity app developed by Resonanz Group, a Swiss tech company (CIP 2024; VarScout 2024). VarScout is the main tool that stewards possess to upload data to Wiki Papa. VarScout was designed to collect data for purposes other than potato conservation, such as real-time decision-making on investments in crop breeding and seed systems (MacMillan 2024). VarScout’s partners are working with the Ministry of Agriculture in Kenya to train extension officers to use VarScout to collect varietal data from bean, maize, and potato farmers to determine the abundance, turnover, and performance of crop varieties and mitigate climate change (CGIAR 2024). In Peru, VarScout operates as a citizen science project that fosters potato conservation. In this context, citizen science refers to the active participation of non-professional actors in generating and sharing knowledge for conservation and broader scientific goals (Cooper 2016; Hine 2020; Strasser et al. 2018).</p>
+<p>This section has reviewed the role and activities of CIP as a research-for-development organisation, not only committed to protecting potato germplasm collection, but also to helping reduce poverty and hunger. To achieve this, CIP mediates with public and private partners, as well as with donors and international aid to secure funding for its research and development programs in Peru and other regions. Additionally, as a result of these activities, CIP developed catalogues to close data gaps in its collection, as well as to engage farmers in potato conservation. Thus, Wiki Papa and VarScout, should be seen as a continuation of CIP cataloguing efforts to gather Andean potato data. However, these digital platforms raise questions about whose knowledge is represented, how it is categorised, and how rural and Indigenous farmers benefit from online data practices.</p>
+<h2>5. Analysis: Data Curation and Data Collection Practices</h2>
+<p>This section examines two activities central to CIP’s online cataloguing efforts to address data gaps in agrobiodiversity research: data curation and data collection. Both practices have long been embedded in CIP’s research and development programmes, carried out in collaboration with rural communities.</p>
+<p>The introduction of digital platforms such as Wiki Papa and VarScout has altered the ways in which curation and collection are undertaken. Through Wiki Papa, data curators now operate in a digital environment, while students, farmers, and extension workers upload their own data to the platform. Although local knowledge is valued as a key source of information, Western-trained experts continue to exercise authority in deciding which data are incorporated. Similar to Wiki Papa, VarScout was also conceived as a citizen science platform to enable Andean communities to contribute to reducing knowledge gaps. Rather than integrating their feedback into its design, however, workshop sessions only focused on training participants to operate the app. The following section explores how these tensions between expertise, participation, and authority in data practices intersect, and why they remain problematic for agrobiodiversity conservation and Indigenous data sovereignty.</p>
+<h3>5.1 Arbiters of Agrobiodiversity</h3>
+<p>This section explores the views that Wiki Papa developers have about agrobiodiversity data curation and the role that curators play in formalising and validating the data collected by Wiki Papa users. Curators, who are Western-trained potato agrobiodiversity experts, act as arbiters of agrobiodiversity when they formalise and validate VarScout users’ field observations (images, potato names, as well as morphological, agronomical descriptors). During the interviews and the workshops, scientific expertise played an important role in deciding which data is included in Wiki Papa. Whilst examining the Wiki Papa online catalogue, we noticed that Western descriptors such as agronomic and morphologic potato traits were very detailed. Curators’ decisions have a direct impact on how users’ data is treated and ultimately, what counts (and does not count) as data. Given that Wiki Papa is a citizen science project, it is worth examining how it complies with FAIR and CARE principles, since decisions about potato data should respect the rights and self-determination of Andean communities.</p>
+<p>Even though FAIR and CARE were not explicitly mentioned during fieldwork, they are used in this chapter as a way to analyse the limits of Indigenous data sovereignty. FAIR has positively influenced the accessibility and findability of Andean potato agrobiodiversity data, especially for experienced VarScout users. Wiki Papa developers knew that they needed to include data from past potato agrobiodiversity catalogues, since their goal was to make the information collected in those catalogues available online. The effort to organise data from previous catalogues aligns with FAIR principles and shows a commitment to open and make accessible potato agrobiodiversity data. By 2022, Wiki Papa developers and curators started to develop a database of potato varieties from regional potato catalogues. The diversity of potato cultivars and the identification of atypical names were examined using statistics and processing algorithms.</p>
+<p>Wiki Papa’s developers placed significant focus on data curation, often called the ‘cleaning’ process, indicating a commitment to high-quality standards. This process seeks to guarantee that the data provided is accurate and reliable—a requirement for FAIR compliance. This process ran concurrently with the development of Wiki Papa over three months. The resulting database expanded with the addition of photos that accompanied the curated metadata. Since then, Wiki Papa has been integrating more information, such as tuber skin colour, tuber size, culinary uses, and yield. The way the information is presented in Wiki Papa is similar to how data and Western standards are included in the regional agrobiodiversity catalogues that are published in physical form. As mentioned before, these publications tend to provide detailed information of Western descriptors of potato agrobiodiversity that may not resonate with Andean communities’ stewardship practices.</p>
+<p>Nevertheless, Wiki Papa developers acknowledged that ‘you cannot force, nor can you change the way farmers think’ (Interview with Wiki Papa developer 2, 21 March 2023). As such, efforts were made to incorporate synonyms for varieties used in regional potato catalogues in hopes of making the platform more accessible to Andean farmers and allowing them to identify local potato varieties using colloquial terms. The incorporation of synonyms shows sensitivity towards names of Andean potatoes in Quechua. This acknowledges the relevance of Indigenous classification for potato conservation, respecting CARE. However, a developer admitted that there is a risk that users ‘may not find it (the potato) with the name they know,’ as potato naming practices vary across regions, with some varieties having up to eight synonyms, according to the Wiki Papa catalogue (Interview with Wiki Papa developer 2, 21 March 2023).</p>
+<p>In an effort to standardise diversity, curators play a crucial role in ‘formalising’ data and building trust between VarScout users and Wiki Papa, contributing to the accessibility and reliability of the information, aligning with FAIR. From the perspective of the Wiki Papa developers, the role that curators play in formalising data ensures reliability and integrity of the data provided, which makes sense from a citizen science approach to data collection. For them, there is a need to include farmers and local communities’ observations to close the data gaps and maximise the varieties registered, since even expert curators might not find all the native potatoes in ‘one or even one hundred trips’ (Interview with Wiki Papa developer 2, 21 March 2023). Wiki Papa developers consider that citizen science platforms should help mitigate agrobiodiversity loss and need to be used as a supportive tool to in situ conservation practices, aligning with CARE.</p>
+<p>Wiki Papa developers mentioned that curation does not imply the loss or alteration of VarScout users’ observations. Rather, they argue that users will benefit from expert knowledge who would assist them in identifying novel potato varieties. Western-trained data curators, according to the developers, help ‘formalise’ users’ observations. When asked about what it is like to formalise observations, they mentioned that it would be similar to giving them a ‘birth certificate.’ Deciding which observations are ‘correct’ would imbue curators with power over Indigenous data, since VarScout users are Indigenous people or engage with them to collect potato data. This implies that decisions about Indigenous data, even in cases where new varieties are identified, remain in the hands of curators. This challenges CARE, since ‘formalising’ users’ observations are not formally included until data is verified by the Western-trained experts. Data science, in practice, favours Western arbiters’ decisions on what to include, when and how data should be included.</p>
+<p>The discussion about the formalisation of users’ data, the prevalence of Western expertise over Indigenous data, and the reduction of Indigenous knowledge to verifiable data, aligns with the notion of top-down citizen science projects. This concept describes projects where the authority to determine the criteria for what counts as knowledge resides with developers (Hine 2020). At the same time, the good intentions behind Wiki Papa developers’ belief that digital platforms would provide supportive tools for Andean communities seems logical from this perspective. However, placing emphasis on Western expertise to decide which data is included limits bottom-up data stewardship practices rooted in data sovereignty.</p>
+<p>Looking at the future, Wiki Papa developers argue that the involvement of curators will allow users to engage in discussions about data validation. They predict that VarScout users will follow these discussions online, interacting with curators whilst retaining the ownership of their data. However, developers did not provide specific details on how that could be achieved in practice. Whilst it is not clear how VarScout users will interact with potato curators, Wiki Papa developers have optimistic attitudes about the future of curation. Tech-optimism, understood as the view that technology is ‘the key to unlocking a better world’ (Danaher 2022), can raise the user’s expectations about the future of emerging technologies such as Wiki Papa and VarScout. Raising expectations in a context where it is not clear how users will retain ownership and have control over their data challenges Indigenous data sovereignty. Having active control of how data is handled and whether Indigenous data stewards have a say in that process is imperative for empowering local contributors and community members.</p>
+<p>In the context of FAIR and CARE, there is tension between user autonomy and expert data curation. Whilst FAIR advocates for making data accessible and reusable through community contributions, CARE principles emphasise Collective Benefit and Authority to Control, which should ensure that users maintain control over their data. However, in practice, Wiki Papa curators act as gatekeepers, filtering incomplete observations and determining which data is included, which can undermine Indigenous data sovereignty. This dynamic reflects a challenge in balancing data reliability with empowerment, signalling a disconnect between the intended goals of FAIR and CARE and the realities of platform design and implementation.</p>
+<h3>5.2 Workshops as Training Sessions</h3>
+<p>Building on CIP’s long-standing use of participatory methods, Wiki Papa workshops introduced VarScout as a citizen science tool for collecting potato data. VarScout users’ contributions were expected to play a central role in building the Wiki Papa catalogue and improving the VarScout app. In practice, however, workshops emphasised training users to operate VarScout rather than eliciting feedback to contextualise and redesign its interface. This section examines VarScout users’ experiences during the workshops, the barriers they encountered, and the implications for FAIR, CARE, and Indigenous data sovereignty.</p>
+<p>During the workshops, VarScout was presented as a citizen science app for data collection. Not all VarScout users were aware of the Wiki Papa platform, nor of its interaction with Wiki Papa as a unified citizen science project. Wiki Papa developers believe that VarScout can become more user-friendly and adapted to different users, not just Andean farmers. Wiki Papa developers and their partners at CIP can request VarScout developers to modify the app, integrating feedback as new versions of it are developed. This represents an opportunity for conducting early ethical assessment of open knowledge infrastructures, via frameworks such as responsible innovation (Stilgoe et al. 2013).</p>
+<p>User experience plays a vital role in the successful implementation of data collection platforms like VarScout, especially in ensuring user engagement and data quality. Realising that users might experience difficulties using this type of platform, developers pointed out that VarScout and Wiki Papa need to be simpler and more intuitive. According to them, users must have an ‘intuitive experience’ and should feel motivated to upload data themselves rather than perceive it as an imposition. However, users’ experiences often contradicted this statement. Most farmers identified issues with the interface, such as the app’s intense brightness, difficulty reading small fonts, and challenges with sun reflection and colour. During the workshops, farmers expressed that whilst they enjoyed taking photos of their potatoes, they had trouble locating images within the app. Additionally, they struggled to re-log into VarScout after taking pictures or using other apps.</p>
+<p>Understanding the experiences of farmers is crucial for assessing the effectiveness of the FAIR and CARE principles in the context of agricultural technology regarding their interactions with tools like VarScout. During the workshops, many farmers faced some challenges using the app. Facilitators linked those challenges to poor or lack of digital literacy skills as well as absence of proper infrastructure such as reliable internet. Furthermore, farmers were only introduced to VarScout, which was considered disrespectful by some workshop facilitators due to potential concerns about treating farmers as data collectors. As noted in the methodology section, farmers recruited for the workshops were already slightly familiar with smartphones, which partly explains their initial disposition to participate in the workshops but also highlights the challenges that less digitally skilled farmers could face whilst accessing VarScout.</p>
+<p>Regarding VarScout’s operability, farmers stated that ‘it should not be mandatory to fill out everything, but it could be important to have the knowledge [to use VarScout].’ This is in reference to the forms required by the app to set up their user profiles and background information, as well as Western categories such as morphological and agronomic descriptors. Often, farmers felt overwhelmed by the level of detail of the information required by VarScout. For them, the most exciting feature of VarScout is that it allows them to take pictures of their potatoes and then locate them on the app’s map. During the workshops, potato farmers were asked about the amount of observations each of them could provide per week to estimate their interest in the app. Nevertheless, after several months of the workshop, few of them uploaded images via VarScout.</p>
+<p>Most of VarScout users’ experiences focus on direct interaction with the app, and how it appeals to them in terms of sensoriality. Sensoriality is defined as the ‘act of signifying the world from our senses,’ including biological perception and sociocultural standing (Valquiria, Regiane, and Gerson 2019). Thus, they should not be relegated to mere opinions on how new technology operates, but instead they should be examined as situated understandings of agrobiodiversity knowledge infrastructures. At the same time, it is relevant to acknowledge the complex power dynamics between experts, non-experts and participants in citizen science, and how that can lead to interventions that validate the data collection practices that do not emphasise CARE.</p>
+<p>Data audits help us to examine users’ experiences, senses, and perspectives by recognising their agency in the production of culture ( Reilly and Morales 2023). Although workshops were framed as opportunities for deliberation, in practice they became training sessions. This dynamic limited critical feedback, left some farmers feeling evaluated, and reinforced the top-down emphasis on data collection over ethical reflection. This was an issue since it was challenging to elicit honest user feedback. Some users felt evaluated, whilst others felt compelled to agree with workshop facilitators. Those who voiced their concerns mainly focused on VarScout’s interface, especially on problems with its design and accessibility for users scarcely familiar with smartphones.</p>
+<p>These challenges indicate potential barriers that may disproportionately affect users who lack familiarity with smartphone use, emphasising the need for an inclusive platform design more tailored to their practical needs. To examine FAIR and CARE compliance, users require more resources to engage in data governance, such as having a comprehensive knowledge of how the platform collects, shares and stores data. Nevertheless, during the VarScout workshops, deliberation and critique were not actively encouraged. Without meaningful opportunities for critique, workshops risked validating a narrow conception of participation: farmers as data collectors rather than stewards of agrobiodiversity knowledge infrastructures.</p>
+<h2>6. Discussion</h2>
+<p>Building on the findings from the analysis of the workshops and Wiki Papa implementation, this discussion addresses three interrelated themes: a) the digital divide, b) data sovereignty, and c) datafication. The aim is to examine how tensions between expertise, curation, participation, and data collection shape knowledge infrastructures and why this is problematic for non-Western users, particularly Andean farmers.</p>
+<p>The digital divide in rural areas and amongst Indigenous peoples is often framed as a problem of limited infrastructure or lack of digital literacy. Yet, as Rotondi et al. (2020) and Ávila (2023) argue, inequalities are not only about access but also about cultural and linguistic barriers. Our analysis of the workshops shows that even when infrastructure and training were provided, inequalities in participation persisted. Farmers often perceived workshops as training sessions rather than deliberative spaces, which limited their agency and positioned participation as compliance rather than co-creation. This suggests that reducing the digital divide through investments in connectivity and digital skills is insufficient. Participation depends on whether technologies are introduced in ways that are meaningful. As Ragnedda (2017) argues, the digital divide is as much about social justice as about access.</p>
+<p>Data sovereignty further illustrates these tensions. Wiki Papa emphasises FAIR compliance by ensuring that data are findable and reusable, but the authority to decide which data are included remains with Western-trained experts. Indigenous categories and knowledge systems are not fully integrated, thereby limiting CARE compliance and Indigenous data sovereignty. As Carroll et al. (2020) and Hudson et al. (2023) highlight, FAIR principles alone cannot safeguard Indigenous interests. Wiki Papa exemplifies how sovereignty is limited when descriptors and measurement units privilege Western science over local categories. Asking ‘who benefits from Wiki Papa, and what does that look like in practice?‘ becomes central, since Indigenous Peoples are asked to share their data without being guaranteed authority over how that data is represented or used. Sovereignty, as Oguamanam (2020) emphasises, must extend beyond participation to include decision-making power and recognition of Indigenous values.</p>
+<p>Wiki Papa and VarScout reveal how participation can be viewed as data provision, aligning with critiques of datafication (van Dijck 2014; Mejías and Couldry 2019). During workshops, users with limited digital skills were not always asked why or under what conditions they would want to use these platforms. Instead, participation was structured around how to supply standardised data, often framed in Western categories. Citizen audits, as proposed by Reilly and Morales (2023), offer a counterbalance by examining affective and situated responses to data infrastructures. Yet in practice, workshops emphasised training over deliberation, leaving little room for critique of interface design, accessibility, or ethical concerns.</p>
+<p>Without spaces for early ethical assessment, knowledge infrastructures such as Wiki Papa and VarScout risk limiting Andean communities’ engagement in online stewardship. To move beyond this, citizen science in agrobiodiversity must integrate deliberation, recognition, and incentives that affirm Indigenous stewardship and sovereignty, ensuring that participation is not only about supplying data but also about shaping how knowledge is governed and used.</p>
+<h2>7. Conclusions</h2>
+<p>FAIR and CARE principles were partially implemented in Wiki Papa, but significant challenges remain in understanding what users’ contributions mean for them and how their involvement actually supports closing data gaps. The case of Wiki Papa and VarScout underscores the need to distinguish between online and offline stewardship, and to recognise how data stewardship practices shift when mediated by digital infrastructures.</p>
+<p>The findings point to three persistent challenges. The digital divide continues to shape who can meaningfully participate, extending beyond connectivity to include socio-cultural and linguistic barriers. Second, data sovereignty remains limited when decision-making power rests with Western-trained curators rather than with Andean communities themselves. Third, datafication risks reducing participation to data provision, limiting deliberation and the situated ways in which Andean stewards engage with potato agrobiodiversity.</p>
+<p>There is potential for Wiki Papa to positively impact farmers’ livelihoods. Greater compliance with CARE could be achieved if community members were included as arbiters of their own knowledge. Likewise, workshops should extend beyond technical training to deliberate on the broader implications of digital participation, including whether user engagement yields tangible and meaningful benefits for participants.</p>
+<p>Moving towards equitable agrobiodiversity data governance requires embedding Indigenous data sovereignty in practice, not just principle, and ensuring that stewardship is not reduced to data provision but expanded to include authority, deliberation, and recognition of Indigenous knowledge systems.</p>
+<h2>Acknowledgments</h2>
+<p>The authors thank AGUAPAN, Grupo Yanapai, and the International Potato Centre. Los autores agradecen a AGUAPAN, el Grupo Yanapai y al Centro Internacional de la Papa. This work was supported by the SEEKCommons project (Grant 2226425) with funding from the US National Science Foundation. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of the US National Science Foundation.</p>
+<h2>References</h2>
+<p>Asociación Pataz, Centro Internacional de la Papa (CIP), Instituto Nacional de Innovación Agraria (INIA), and AGUAPAN. 2023. *Catálogo de**variedades de papa nativa de Tayabamba.* Lima: CIP.</p>
+<p>Ávila, Renata. 2023. ‘La brecha digital en América Latina como barrera para el ejercicio pleno de derechos.’ In *Derechos digitales en Iberoamérica**: situación y perspectivas*, edited by Rafael Correa, María E. Suárez, and Juan A. Zaldívar, 147–161. Lisbon: Fundación Fronteiras.</p>
+<p>Bijker, W. E., T. P. Hughes, and T. J. Pinch, eds. 2012. *The Social Construction of Technological Systems: New Directions in the**Sociology and History of Technology*. Massachusetts, MA: MIT Press.</p>
+<p>Bowker, Geoffrey C. 1994. S*cience on the Run: Information Management**and Industrial Geophysics at Schlumberger, 1920–1940*. Massachusetts, MA: MIT Press.</p>
+<p>Bowker, Geoffrey C., and Susan Leigh Star. 1999. *Sorting Things**Out: Classification and Its Consequences.*Massachusetts, MA: MIT Press.</p>
+<p>Byerlee, Derek, and John K. Lynam. 2020. ‘The Development of the International Center Model for Agricultural Research: A Prehistory of the CGIAR.’ <em>World Development</em> 135: 105080. <a href="https://doi.org/10.1016/j.worlddev.2020.105080" target="_blank" rel="noreferrer">https://doi.org/10.1016/j.worlddev.2020.105080</a></p>
+<p>Carroll, Stephanie R., Ibrahim Garba, Oscar L. Figueroa-Rodríguez, Jarita Holbrook, Raymond Lovett, Simeon Materechera, Mark Parsons, et al. 2020. ‘The CARE Principles for Indigenous Data Governance.’ *Data**Science Journal*19 (43): 1–12. <a href="https://doi.org/10.5334/dsj-2020-043" target="_blank" rel="noreferrer">https://doi.org/10.5334/dsj-2020-043</a></p>
+<p>Centro Internacional de la Papa (CIP). n.d. ‘About—International Potato Center.’ <a href="https://cipotato.org/about/" target="_blank" rel="noreferrer">https://cipotato.org/about/</a></p>
+<p>—. n.d. ‘Genebank.’ Accessed September 9, 2025. <a href="https://cipotato.org/genebankcip" target="_blank" rel="noreferrer">https://cipotato.org/genebankcip</a></p>
+<p>—. 2018. ‘CIP Helps Partners Improve Access and Tracking of Plant Genetic Resources.’ <a href="https://cipotato.org/blog/cip-helps-partners-improve-access-tracking-plant-genetic-resources/" target="_blank" rel="noreferrer">https://cipotato.org/blog/cip-helps-partners-improve-access-tracking-plant-genetic-resources/</a></p>
+<p>—. 2019. *CIP Revised Strategy and**Corporate Plan 2014–23*. Lima: CIP.</p>
+<p>—. 2021. ‘Monitoreo de la diversidad in situ y análisis de brechas genéticas de papas nativas en Perú para la conservación complementaria ex situ.’ Accessed September 9, 2025. <a href="https://cipotato.org/es/eventos/monitoreo-diversidad-in-situ/" target="_blank" rel="noreferrer">https://cipotato.org/es/eventos/monitoreo-diversidad-in-situ/</a></p>
+<p>—. 2024. ‘A Digital Ecosystem to Collect, Store, and Visualise Crop Varietal Data.’ *International Potato Center. Accessed September 9, 2025**.* <a href="https://farmingfirst.org/2024/08/varscout-a-digital-ecosystem-to-visualise-crop-varietal-data/" target="_blank" rel="noreferrer">https://farmingfirst.org/2024/08/varscout-a-digital-ecosystem-to-visualise-crop-varietal-data/</a></p>
+<p>Centro Internacional de la Papa (CIP), Asociación Pataz, and Instituto Nacional de Innovación Agraria (INIA). 2015. <em>Catálogo de variedades de papa nativa de Chugay, La Libertad—<strong>Perú: Catalog of Ancestral Potato Varieties from Chugay, La Libertad—</strong>Perú</em>. Lima: CIP.</p>
+<p>Centro Internacional de la Papa (CIP), Grupo Yanapai, Gobierno Regional de Huancavelica, and Asociación de Guardianes de Papa Nativa del Centro del Perú (AGUAPAN). 2021. <em>Catálogo Línea<strong>de Base de la Diversidad de Papa Nativa del Microcentro</strong>Yauli—Paucará, Huancavelica, Perú.</em> Lima: CIP.</p>
+<p>Centro Nacional de Planeamiento Estratégico (CEPLAN). 2023*. Cierre de la brecha digital para la**inclusión tecnológica.*Lima: Presidencia del Consejo de Ministros. <a href="https://observatorio.ceplan.gob.pe/ficha/o9_lamb" target="_blank" rel="noreferrer">https://observatorio.ceplan.gob.pe/ficha/o9_lamb</a></p>
+<p>CGIAR. 2024. ‘Meet This Year’s Winners of CGIAR’s Scaling Fund: A Look at Three Promising Innovations for Africa’s Agrifood System.’ *CGIAR**News* (10 June). <a href="https://www.cgiar.org/news-events/news/meet-this-years-winners-of-cgiars-scaling-fund/" target="_blank" rel="noreferrer">https://www.cgiar.org/news-events/news/meet-this-years-winners-of-cgiars-scaling-fund/</a></p>
+<p>Chigwada, Josiline, and Patrick Ngulube. 2025. ‘Integrating CARE and FAIR Principles in the Digital Preservation of Indigenous Knowledge to Achieve the Sustainable Development Goals.’ In<em>Harnessing Indigenous Epistemologies for Sustainable Progress</em>, edited by Patrick Ngulube, 197–230. Hershey, PA: IGI Global Scientific Publishing. <a href="https://doi.org/10.4018/979-8-3693-8447-3.ch010" target="_blank" rel="noreferrer">https://doi.org/10.4018/979-8-3693-8447-3.ch010</a></p>
+<p>Clark, William C., Thomas P. Tomich, Meine van Noordwijk, David Guston, Delia Catacutan, Nancy M. Dickson, and Elizabeth McNie. 2016. ‘Boundary Work for Sustainable Development: Natural Resource Management at the Consultative Group on International Agricultural Research (CGIAR).’ <em>Proceedings of the National Academy of Sciences</em> 113 (17): 4615–4622. <a href="https://doi.org/10.1073/pnas.0900231108" target="_blank" rel="noreferrer">https://doi.org/10.1073/pnas.0900231108</a></p>
+<p>Cooper, Caren. 2016. *Citizen Science: How Ordinary People Are Changing the Face**of Discovery*. New York, NY: Overlook Press.</p>
+<p>Cueto, Santiago, Diether Beuermann, Julian Cristia, Ofer Malamud, and Francisco Pardo. 2024. ‘Laptops in the Long-Run: Evidence from the One Laptop per Child Program in Rural Peru.’ <em>Working Paper</em>No. IDB-WP-1614. Inter-American Development Bank.</p>
+<p>Danaher, John. 2022. ‘Techno-Optimism: An Analysis, an Evaluation and a Modest Defence.’*Philosophy &amp;**Technology*35: 54. <a href="https://doi.org/10.1007/s13347-022-00550-2" target="_blank" rel="noreferrer">https://doi.org/10.1007/s13347-022-00550-2</a></p>
+<p>Escobar-Mamami, Fortunato, and Indira Gómez-Arteta. 2020. ‘WhatsApp for the Development of Oral and Written Communication Skills in Peruvian Adolescents.’ <em>Comunicar</em> 28 (65): 111–120. <a href="https://doi.org/10.3916/C65-2020-10" target="_blank" rel="noreferrer">https://doi.org/10.3916/C65-2020-10</a></p>
+<p>Galla, Candace Kaleimamoowahinekapu. 2016. ‘Indigenous Language Revitalization, Promotion, and Education: Function of Digital Technology.’ <em>Computer Assisted Language Learning</em> 29 (7): 1137–1151. <a href="https://doi.org/10.1080/09588221.2016.1166137" target="_blank" rel="noreferrer">https://doi.org/10.1080/09588221.2016.1166137</a></p>
+<p>Garba, Ibrahim, Rogena Sterling, Rebecca Plevel, William Carson, Felina M. Cordova-Marks, Jewel Cummins, Caleigh Curley, et al. 2023. ‘Indigenous Peoples and Research: Self-Determination in Research Governance.’ <em>Frontiers in Research Metrics and Analytics</em> 8: 1272318. <a href="https://doi.org/10.3389/frma.2023.1272318" target="_blank" rel="noreferrer">https://doi.org/10.3389/frma.2023.1272318</a></p>
+<p>González Zepeda, Luz Elena, and Cristina Elena Martínez Pinto. 2023. *Inteligencia artificial centrada en los**pueblos indígenas: Perspectivas desde América Latina y el Caribe.* Paris : UNESCO. <a href="https://unesdoc.unesco.org/ark:/48223/pf0000387814" target="_blank" rel="noreferrer">https://unesdoc.unesco.org/ark:/48223/pf0000387814</a></p>
+<p>Hannerz, Ulf. 2003. “‘Being There... and There... and There! Reflections on Multi-Site Ethnography.’ <em>Ethnography</em> 4 (2): 201–216. <a href="http://www.jstor.org/stable/24047809" target="_blank" rel="noreferrer">http://www.jstor.org/stable/24047809</a></p>
+<p>Hine, Christine. 2020. ‘Knowledge Infrastructures for Citizen Science.’ In <em>A History of Participation in Museums and Archives</em>, edited by Per Hetland, Palmyre Pierroux, and Line Esborg, 93–108. London: Routledge.</p>
+<p>Hudson, Maui, Stephanie R. Carroll, Jane Anderson, Darah Blackwater, Felina M. Cordova-Marks, Jewel Cummins, Dominique David-Chavez, et al. 2023. ‘Indigenous Peoples’ Rights in Data: A Contribution toward Indigenous Research Sovereignty.’ <em>Frontiers in Research Metrics and Analytics</em> 8: 1173805. <a href="https://doi.org/10.3389/frma.2023.1173805" target="_blank" rel="noreferrer">https://doi.org/10.3389/frma.2023.1173805</a></p>
+<p>International Work Group for Indigenous Affairs (IWGIA). n.d. ‘Indigenous Data Sovereignty.’ <a href="https://iwgia.org/en/indigenous-data-sovereignty.html" target="_blank" rel="noreferrer">https://iwgia.org/en/indigenous-data-sovereignty.html</a></p>
+<p>KoboCollect. 2024. <em>Google Play Store</em>. <a href="https://play.google.com/store/apps/details?id=org.koboc.collect.android&amp;hl=es_PE" target="_blank" rel="noreferrer">https://play.google.com/store/apps/details?id=org.koboc.collect.android&amp;hl=es_PE</a></p>
+<p>Kukutai, Tahu, and John Taylor, eds. 2016. <em>Indigenous Data Sovereignty</em>. Canberra: ANU Press.</p>
+<p>Libaque-Saenz, Christian F. 2023. ‘Estrategias para reducir la brecha digital en el Perú: lecciones de la República de Corea.’<em>Política Internacional</em> 133: 184–197. <a href="https://doi.org/10.61249/pi.vi133.71" target="_blank" rel="noreferrer">https://doi.org/10.61249/pi.vi133.71</a></p>
+<p>Lythreatis, Sophie, Sanjay Kumar Singh, and Abdul-Nasser El-Kassar. 2022. ‘The Digital Divide: A Review and Future Research Agenda.’ <em>Technological Forecasting and Social Change</em> 175: 121–139. <a href="https://doi.org/10.1016/j.techfore.2021.121359" target="_blank" rel="noreferrer">https://doi.org/10.1016/j.techfore.2021.121359</a></p>
+<p>MacMillan, Susan. 2024. ‘Announcing the Winners of a First Round of Funding to Take Agricultural Innovations to Scale in Africa.’ *CGIAR Initiative on Diversification in**East and Southern Africa.* <a href="https://www.cgiar.org/news-events/news/announcing-the-winners-of-a-first-round-of-funding-to-take-agricultural-innovations-to-scale-in-africa/" target="_blank" rel="noreferrer">https://www.cgiar.org/news-events/news/announcing-the-winners-of-a-first-round-of-funding-to-take-agricultural-innovations-to-scale-in-africa/</a></p>
+<p>Marcus, George E. 1995. ‘Ethnography in/Of the World System: The Emergence of Multi-Sited Ethnography.’ <em>Annual Review of Anthropology</em> 24: 95–117. <a href="https://doi.org/10.1146/annurev.an.24.100195.000523" target="_blank" rel="noreferrer">https://doi.org/10.1146/annurev.an.24.100195.000523</a></p>
+<p>Mejías, Ulises A., and Nick Couldry. 2019. ‘Datafication.’ <em>Internet Policy Review</em> 8 (4): 1–10. <a href="https://doi.org/10.14763/2019.4.1428" target="_blank" rel="noreferrer">https://doi.org/10.14763/2019.4.1428</a></p>
+<p>Miller, Daniel, and Don Slater. 2000. <em>The Internet: An Ethnographic Approach.</em> Oxford: Berg.</p>
+<p>Ministerio de Educación (MINEDU). 2022. *Plan de Cierre de Brecha Digital**.*Lima: Ministerio de Educación. <a href="https://hdl.handle.net/20.500.12799/8622" target="_blank" rel="noreferrer">https://hdl.handle.net/20.500.12799/8622</a></p>
+<p>Ministerio de Agricultura y Riego (MINAGRI), Grupo Yanapai, Instituto Nacional de Innovación Agraria (INIA), and Centro Internacional de la Papa (CIP). 2017. *Catálogo de Variedades de Papa Nativa del Sureste del**Departamento de Junín—Perú.*Lima: Centro Internacional de la Papa.</p>
+<p>Montenegro de Wit, Maywa. 2016. ‘Are We Losing Diversity? Navigating Ecological, Political, and Epistemic Dimensions of Agrobiodiversity Conservation.’ *Agriculture and**Human Values* 33 (3): 625–640. <a href="https://doi.org/10.1007/s10460-015-9642-7" target="_blank" rel="noreferrer">https://doi.org/10.1007/s10460-015-9642-7</a></p>
+<p>Oguamanam, Chidi. 2020. ‘Indigenous Peoples, Data Sovereignty and Self-Determination: Current Realities and Imperatives.’ *African Journal of Information and Communication**(AJIC)* 26: 1–20. <a href="https://doi.org/10.23962/10539/30360" target="_blank" rel="noreferrer">https://doi.org/10.23962/10539/30360</a></p>
+<p>Ragnedda, Massimo. 2017. *The Third Digital Divide: A Weberian Approach to Digital**Inequalities.*Abingdon: Routledge.</p>
+<p>Reilly, Katherine, and Esteban Morales. 2023. ‘Citizen Data Audits in the Contemporary Sensorium.’ <em>International Journal of Communication</em> 17: 3582–3599. <a href="https://ijoc.org/index.php/ijoc/article/view/18832" target="_blank" rel="noreferrer">https://ijoc.org/index.php/ijoc/article/view/18832</a></p>
+<p>Ricaurte, Paola. 2019. ‘Data Epistemologies, the Coloniality of Power, and Resistance.’ <em>Television &amp; New Media</em>20 (4): 350–365. <a href="https://doi.org/10.1177/1527476419831640" target="_blank" rel="noreferrer">https://doi.org/10.1177/1527476419831640</a></p>
+<p>Ringle, Ken. 1992. ‘Raider of the Lost Spud: For Peru’s Carlos Ochoa, the Search of New Species Never Ends.’ <em>The Washington Post</em> (1 December). <a href="https://www.washingtonpost.com/archive/lifestyle/1992/12/01/raider-of-the-lost-spud/9f04ead5-6891-42a9-b7b9-d00664f47db6/" target="_blank" rel="noreferrer">https://www.washingtonpost.com/archive/lifestyle/1992/12/01/raider-of-the-lost-spud/9f04ead5-6891-42a9-b7b9-d00664f47db6/</a></p>
+<p>Rodríguez, Maria Fernanda. 2022.*Educación. Balance de investigación**2016–2021 y agenda de investigación 2021–2026.*Lima: CIES.</p>
+<p>Rogers, Sylvia E. 2016. ‘Bridging the 21st Century Digital Divide.’ <em>TechTrends</em> 60 (3): 197–199. <a href="https://doi.org/10.1007/s11528-016-0057-0" target="_blank" rel="noreferrer">https://doi.org/10.1007/s11528-016-0057-0</a></p>
+<p>Rotondi, Valentina, Francesco Billari, Luca Maria Pesando, and Ridhi Kashyap. 2020. *Digital Rural**Gender Divide in Latin America and the Caribbean.* San José, Costa Rica: Inter-American Institute for Cooperation on Agriculture (IICA).</p>
+<p>Snipp, C. Matthew. 2016. ‘What Does Data Sovereignty Imply: What Does It Look Like?’ In *Indigenous Data Sovereignty: Toward**an Agenda*, edited by Tahu Kukutai and John Taylor, 39–55. Canberra: ANU Press.</p>
+<p>Star, Susan Leigh, and Geoffrey C. Bowker. 2006. ‘How to Infrastructure.’ In *Handbook of New Media: Social**Shaping and Social Consequences of ICTs*, edited by Leah Lievrouw and Sonia Livingstone, 230–245. London: SAGE.</p>
+<p>Stilgoe, Jack, Richard Owen, and Phil Macnaghten. 2013. ‘Developing a Framework for Responsible Innovation.’ <em>Research Policy</em> 42 (9): 1568–1580. <a href="https://doi.org/10.1016/j.respol.2013.05.008" target="_blank" rel="noreferrer">https://doi.org/10.1016/j.respol.2013.05.008</a></p>
+<p>Strasser, Bruno J., Jérôme Baudry, Dana Mahr, Gabriela Sanchez, and Elise Tancoigne. 2018. ‘Citizen Science? Rethinking Science and Public Participation.’<em>Science &amp; Technology Studies</em> 31 (2): 52–76. <a href="https://doi.org/10.23987/sts.60425" target="_blank" rel="noreferrer">https://doi.org/10.23987/sts.60425</a></p>
+<p>United Nations General Assembly. 2012.*Resolution Adopted by the General Assembly on 27 July 2012 (**66th Session, A/RES/66/288)*. New York: United Nations.</p>
+<p>Valquiria, Michela J., Regiane Regina R., and Gerson H. da Silva. 2019. ‘Sensorialidad, la Mediación que Siempre Estuvo Presente.’ In <em>Un<strong>Nuevo Mapa para Investigar la Mutación Cultural: Diálogo con la</strong>Propuesta de Jesús Martín-Barbero</em>, edited by Omar Rincón, 117–136. Quito: CIESPAL.</p>
+<p>van Dijck, José. 2014. ‘Datafication, Dataism and Dataveillance: Big Data between Scientific Paradigm and Ideology.’ <em>Surveillance &amp; Society</em> 12 (2): 197–208. <a href="https://doi.org/10.24908/ss.v12i2.4776" target="_blank" rel="noreferrer">https://doi.org/10.24908/ss.v12i2.4776</a></p>
+<p>VarScout. 2024. ‘Discover a New World of Varieties: Your Digital Tool for Mapping and Sharing Crop Variety Data.’ <a href="https://www.varscout.org/" target="_blank" rel="noreferrer">https://www.varscout.org/</a></p>
+<p>Vollmer, Rainer, Rosalva Villagaray, Mario Castro, Jorge Cárdenas, Sandra Pineda, Janeth Espirilla, Noelle Anglin, Dave Ellis, and Vania C. Rennó Azevedo. 2022. ‘The World’s Largest Potato Cryobank at the International Potato Center (CIP): Status Quo, Protocol Improvement through Large-Scale Experiments and Long-Term Viability Monitoring.’ *Frontiers in Plant**Science* 13: 1059817. <a href="https://doi.org/10.3389/fpls.2022.1059817" target="_blank" rel="noreferrer">https://doi.org/10.3389/fpls.2022.1059817</a></p>
+<p>Watson, Nessim. 1997. ‘Why We Argue about Virtual Community: A Case Study of the Phish.Net Fan Community.’ In *Virtual Culture**: Identity and Communication in Cybersociety*, edited by Steven Jones, 102–132. London: SAGE. <a href="https://doi.org/10.4135/9781446250303.n6" target="_blank" rel="noreferrer">https://doi.org/10.4135/9781446250303.n6</a></p>
+<p>Westengen, Ola T., Kristine Skarbø, Teshome H. Mulesa, and Trygve Berg. 2018. ‘Access to Genes: Linkages between Genebanks and Farmers’ Seed Systems.’ *Food**Security* 10 (1): 9–25. <a href="https://doi.org/10.1007/s12571-017-0751-6" target="_blank" rel="noreferrer">https://doi.org/10.1007/s12571-017-0751-6</a></p>
+<p>Wilkinson, Mark D., Michel Dumontier, IJsbrand Jan Aalbersberg, Gabrielle Appleton, Myles Axton, Arie Baak, Niklas Blomberg, et al. 2016. ‘The FAIR Guiding Principles for Scientific Data Management and Stewardship.’ <em>Scientific Data</em> 3 (1): 160018. <a href="https://doi.org/10.1038/sdata.2016.18" target="_blank" rel="noreferrer">https://doi.org/10.1038/sdata.2016.18</a></p>
+<p>WikiPapa. 2024. ‘Monitoreo de la Biodiversidad de las Papas Nativas.‘ <a href="https://www.wikipapa.org/inicio" target="_blank" rel="noreferrer">https://www.wikipapa.org/inicio</a></p>
+<p>Yahuarcani, Isaac O., Luis E. Campos Baca, Edgar Gutierrez Gomez, Kay D. Jeri Lagos, Mario Meza Hidalgo, and Juan Gamarra Moreno. 2020. ‘Design, Development and Validation of a Mobile Application to Prevent the Extinction of the Taushiro Language in Loreto, Peru.’ *2020 XLVI Latin American Computing**Conference (CLEI), Loja, Ecuador*, 437–444. <a href="https://doi.org/10.1109/CLEI52000.2020.00057" target="_blank" rel="noreferrer">https://doi.org/10.1109/CLEI52000.2020.00057</a></p>
+<p>Yahuarcani, Isaac O., Lelis A. Saravia Llaja, Angela M. Nunez Satalaya, Alejandro Reategui Pezo, Jose E. Garcia Diaz, and Jorge A. Ayarza Rengifo. 2021. ‘Perception of the Quality of Virtual Educational Services during the COVID-19 Pandemic at the National University of the Peruvian Amazon (UNAP).’*2021 4th International Conference**on Inclusive Technology and Education (CONTIE), La Paz, Mexico*, 96–101. <a href="https://doi.org/10.1109/CONTIE54684.2021.00025" target="_blank" rel="noreferrer">https://doi.org/10.1109/CONTIE54684.2021.00025</a></p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-026bd301c0c46cde.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">開放基礎設施中的包容政治：DOAJ 與大使計畫</span>
+</a>
+
+<a class="article-sequence-link" href="item-b20c34659808bd68.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">網際網路基礎設施從未真正開放</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-c773c23691901ac8.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Politics of Open Infrastructures - 11. Beyond the Digital Divide</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Julio Sebastián Zárate Vásquez and Jason A. Delborne（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：direct-pr-small-news / 2026-06-27T06:55:49+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-27T06:55:49+00:00 本機標記直接送 PR（小消息）；純事實項目，不進編輯台撰稿。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-c773c23691901ac8";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

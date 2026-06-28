@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>開放的悖論：權力、互惠與學術基礎設施治理 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-26 12:45</span></div>
+      <h1><a class="article-title-link" href="https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.09" target="_blank" rel="noreferrer" title="開啟原始連結">開放的悖論：權力、互惠與學術基礎設施治理</a></h1>
+      <p class="lede">這章討論開放學術基礎設施的矛盾：開放原本要降低知識參與門檻、讓公共資助研究回饋社會，但在平台化與大型 AI 系統崛起後，公開資料、倉儲、metadata、標準與 benchmark 可能被最有算力與資料整合能力的企業大規模利用。公共機構與社群承擔長期維護、策展、文件與治理成本，收益卻可能集中到私人平台手中。文章因此主張，開放不能只看存取自由，也必須看互惠、治理與長期 stewardship。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開放資料</span><span class="tag-chip">Open Knowledge</span><span class="tag-chip">digital sovereignty</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.openbookpublishers.com/small_obp_logo_high_res_8ad3ef43d4.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>The Politics of Open Infrastructures - 9. Paradoxes of Openness</h1>
+<h2>9. Paradoxes of Openness: Power, Reciprocity, and the Governance of Scholarly Infrastructures</h2>
+<h2>Katja Mayer 1</h2>
+<p>©2026 Katja Mayer, CC BY 4.0 <a href="https://doi.org/10.11647/OBP.0528.09" target="_blank" rel="noreferrer">https://doi.org/10.11647/OBP.0528.09</a></p>
+<h2>1. Introduction</h2>
+<p>Scholarly infrastructures are the shared technical, organisational, and governance systems through which knowledge is produced, circulated, evaluated, and preserved. Open scholarly infrastructures form a specific subset of these arrangements: they are infrastructures whose operation is explicitly organised around principles of openness, including transparent governance, community accountability, open standards, and, where possible, non-restrictive forms of access, reuse, and interoperability. In this sense, openness does not refer only to access as an end state, but to the practical and institutional conditions under which knowledge can circulate, be reused, and be collectively stewarded. As articulated in the Principles of Open Scholarly Infrastructure, such infrastructures should be defined not by novelty or efficiency alone, but by their capacity to remain reliable, trustworthy, and accountable to the communities that depend on them (POSI Adopters 2025). In the terms of the UNESCO Recommendation on Open Science, open infrastructures could be both virtual or physical,</p>
+<p>including major scientific equipment or sets of instruments, knowledge-based resources such as collections, journals and open access publication platforms, repositories, archives and scientific data, current research information systems, open bibliometrics and scientometrics systems for assessing and analysing scientific domains, open computational and data manipulation service infrastructures that enable collaborative and multidisciplinary data analysis and digital infrastructures (UNESCO 2021: 8).</p>
+<p>Open science infrastructures are also normatively expected to support a democratising and equity-oriented vision of knowledge circulation (Okune et al. 2019; Bezuidenhout 2025). While they are often relied upon by entire communities and expected to endure beyond individual projects, funding cycles, or technological fashions, much of the labour that sustains them, such as curation, documentation, governance, technical maintenance, is continuous, collective, and typically largely invisible—unless the infrastructure breaks ( Bowker and Star 1999; Edwards et al. 2009).</p>
+<p>From its early articulations, what is often called open science was never a unified movement in any simple sense, but rather a loose assemblage of policy agendas, advocacy efforts, infrastructural projects, and scholarly reform initiatives. What connected these otherwise diverse strands was a political promise: that publicly funded research should generate benefits for the societies that finance it. Openness was framed as radically enabling, lowering barriers to participation, fostering innovation, and allowing knowledge to circulate into education, policy-making, and economic activity (Fecher and Friesike 2014). This promise was articulated primarily against traditional information intermediaries—commercial publishers who controlled access through intellectual property regimes and subscription models. The implicit assumption was that removing barriers would diffuse benefits across a plurality of actors rather than concentrating them among those already powerful.</p>
+<p>It is this assumption that has been unsettled: opening up informational resources means exposing them to the power structures governing the networked information ecosystem. Where the ‘open movement’ initially constituted itself against exclusive control by publishers and copyright holders (Willinsky 2005), the dominant intermediaries have shifted. The central issue is no longer only access to scholarly outputs, but who controls the infrastructures through which scholarly communication is organised (Moore 2025). Platform corporations and, more recently, firms developing large-scale artificial intelligence systems now possess the infrastructural capacity, such as compute, integrated data pipelines and technical expertise to exploit open resources at scales and speeds unavailable to other actors. Under these conditions, openness no longer predominantly enables a diffusion of benefits; it risks contributing disproportionately to the power of those best positioned to make use of open resources.</p>
+<p>This is the paradox of openness: openness remains a challenge to exclusive control, yet simultaneously becomes an enabler of new concentrations of power (Keller and Tarkowski 2021). Open scholarly infrastructures are caught within this paradox. Repositories, datasets, metadata standards, and benchmarks designed to support collective knowledge production are increasingly mobilised as upstream resources for AI development. The consequences are unevenly distributed: while the labour and costs of maintenance remain anchored in publicly funded institutions, the benefits of large-scale reuse are captured by concentrated private actors. Reciprocity is attenuated; stewardship intensifies without commensurate support. These are not failures of openness, but consequences of openness operating within a political economy of concentrated infrastructural power.</p>
+<p>This chapter examines how the paradox of openness unfolds within open scholarly infrastructures under conditions of AI-driven extraction. The analysis is guided by the question: Under what conditions can open scholarly infrastructures be organised and governed to address the power asymmetries that their openness makes possible?</p>
+<p>The chapter proceeds as follows. Section 2 situates open scholarly infrastructures within the landscape of knowledge infrastructures, tracing how openness has shifted from access to machine-actionable reuse. Section 3 develops the paradox through three domains— open access publishing, research data infrastructures, and benchmarking—showing how each exposes open resources to asymmetric exploitation. Section 4 interprets these developments through the lenses of power, reciprocity, and infrastructural dependency. The conclusion specifies what the analysis reveals about the contemporary politics of open knowledge infrastructures.</p>
+<h2>2. Situating Openness in Knowledge Infrastructures</h2>
+<p>Open scholarly infrastructures are best understood as a specific configuration within the broader landscape of knowledge infrastructures. In science and technology studies, knowledge infrastructures refer to the socio-technical systems through which knowledge is produced, stabilised, circulated, and made authoritative over time (Borgman et al. 2013; Edwards et al. 2009; Bowker et al. 2010; Bowker and Star 1994). They comprise not only technical components—databases, repositories, standards, platforms—but also organisational arrangements, professional practices, legal frameworks, and governance regimes. Knowledge infrastructures are long-term achievements: built incrementally, reliant on sustained coordination and care, and visible primarily when they are stretched, contested, or begin to fail. Crucially, they are political not because they regulate knowledge from the outside, but because they shape the conditions under which knowledge can exist, circulate, and be acted upon.</p>
+<p>Within this literature, scholarly infrastructures appear as a subset anchored in academic institutions: publication platforms, repositories, persistent identifier systems, metadata standards, indexing services, benchmark datasets, and the organisations that maintain them. Their purpose is to support scholarly practices—research, teaching, peer review, evaluation—across disciplinary and institutional boundaries (Borgman et al. 2020; POSI Adopters 2025). What distinguishes them is their commitment to durability, reliability, and trust, providing stable conditions for collective knowledge production (Karasti et al. 2016; Star and Bowker 2002; Gregory et al. 2025). As Bowker and Star (1999) have shown, the standards and classifications embedded in such infrastructures are never merely technical; they encode particular values and render alternative arrangements invisible.</p>
+<p>The emergence of scholarly infrastructures predates contemporary commitments to open science. Early infrastructures were oriented toward coordination, standardisation, and epistemic authority within scholarly communities, often reinforcing disciplinary boundaries and institutional hierarchies. With the widespread adoption of networked digital technologies from the 1990s onward, questions of openness were increasingly reframed in relation to the affordances of digital information—its capacity to be copied, distributed, and recombined at scale. Debates on the science commons and knowledge commons emerged in this context, conceptualising scientific knowledge as a shared resource whose public value depended on legal, institutional, and normative protections against enclosure (Hess and Ostrom 2007; Lessig 1999). Scholarship on the digital commons extended this perspective to networked forms of collective production, emphasising peer production, community governance, and open licensing as ways of sustaining shared digital resources (Dulong de Rosnay and Stalder 2020).</p>
+<p>Open science entered this landscape initially framed as a problem of access. Early open access initiatives articulated openness as a moral and epistemic imperative: publicly funded research should be publicly available, and barriers to reading scholarly literature should be removed (Chan et al. 2002; Suber 2012). In this phase, openness was largely understood as a property of content, and infrastructures were treated as technical means to deliver access. The political target was clear: commercial publishers and gatekeepers who controlled scholarly communication through intellectual property regimes and subscription models. Openness, in this framing, was a strategy for challenging exclusive control and redistributing the capacity to access knowledge.</p>
+<p>Over time, openness became increasingly entangled with questions of reuse. The expansion of digital data production shifted attention from access alone to interoperability, discoverability, and machine-actionability. The FAIR principles— findable, accessible, interoperable, reusable—reframed openness as something that must be actively engineered through standards, metadata, and protocols (Wilkinson et al. 2016). Enabling reuse requires extensive infrastructural labour: metadata production, documentation, curation, and the alignment of heterogeneous epistemic practices across communities (Tempini 2020; Pasquetto et al. 2017). Openness ceased to be a simple attribute of outputs and became an infrastructural achievement dependent on sustained investment and care.</p>
+<p>This shift brought the vulnerabilities of openness into sharper focus. Maintaining repositories, updating standards, and ensuring interoperability proved to be resource-intensive and unevenly distributed. The benefits of reuse, meanwhile, were increasingly decou...</p>
+<p>At the same time, the politics of open scholarly infrastructures cannot be understood without attending to the growing role of large information service providers. Over the past two decades, commercial actors have expanded from publishing and indexing into data analytics, research evaluation, workflow management, and infrastructure provision, offering platforms that span the entire knowledge production process (Mirowski 2018; Posada and Chen 2018). This expansion is not merely market concentration; it is a shift in epistemic power. By controlling the technical and organisational conditions under which research is produced, circulated, and evaluated, these providers shape what counts as valuable knowledge and how it can be acted upon. Open scholarly infrastructures are often incorporated selectively into these arrangements, for example as data sources, interoperability layers, or legitimacy anchors, while decision-making authority and value extraction are centralised elsewhere.</p>
+<p>It is against this backdrop that open scholarly infrastructure emerged as an explicit object of reflection and governance. The Principles of Open Scholarly Infrastructure articulate openness not as a guarantee of access, but as a condition that must be governed, sustained, and protected over time (Bilder et al. 2015; Neylon 2015; POSI Adopters 2025). Recent assessments indicate that many such infrastructures have achieved substantial uptake, operational maturity, and community embedding (Skinner et al. 2025). Yet critical scholarship has highlighted that openness is unevenly experienced: participation depends on institutional capacity, funding regimes, and geopolitical positioning; requirements to share openly often redistribute labour and costs rather than eliminating barriers (Bezuidenhout et al. 2017; Chan et al. 2019).</p>
+<p>Recent open science discourse increasingly frames openness in terms of AI-readiness, extending the FAIR principles toward machine-actionable standardisation, interoperability, and large-scale automation (Hosseini et al. 2025; Brewer et al. 2025). This literature emphasises structured metadata, controlled vocabularies, and persistent identifiers as prerequisites for integrating research outputs into data-intensive and AI-driven workflows. Openness is thereby rearticulated not only as access for human reuse, but as infrastructural preparedness for automated processing. This shift carries the risk of reorienting open science toward integration into computational ecosystems where infrastructural power is concentrated—whether this represents capture, adaptation, or a more ambivalent transformation remains an open question.</p>
+<p>Situating openness in this way makes it possible to approach contemporary developments not as external disruptions, but as continuous transformations that intensify existing infrastructural tensions. The following section examines how the paradox of openness unfolds when open scholarly infrastructures are exposed to actors whose capacity to exploit openness far exceeds that of the communities who sustain it.</p>
+<h2>3. The Paradoxes of Openness in Scholarly Infrastructures</h2>
+<p>The paradox of openness—the insight that openness simultaneously challenges exclusive control and enables new concentrations of power—materialises in multiple ways. Three particular domains of open scholarly infrastructure are chosen to illustrate that openness has not failed, but to explore how it exposes infrastructures to exploitation by actors whose capacity to benefit far exceeds that of the communities who sustain them.</p>
+<h3>3.1 Open Access Publishing: From Challenging Publishers to Supplying Platforms</h3>
+<p>Open- access publishing infrastructures were developed to remove economic barriers to scholarly literature and ensure that publicly funded research is freely accessible. Repositories, open-access journals, persistent identifiers, and indexing services were designed to support citation, discovery, and long-term access within scholarly communities. Openness was oriented toward visibility, accountability, and the circulation of knowledge as a public good—and was articulated explicitly against the subscription models and paywalls maintained by commercial publishers (Suber 2012). Yet, the same openness that dismantled subscription barriers also created conditions under which scholarly content could be recomposed as a scalable input for platform economies.</p>
+<p>The politics of access have always been contested. When researchers and advocacy groups pushed for text and data mining ( TDM) exceptions in European copyright law, commercial publishers resisted, favouring contractual solutions that would allow them to control and monetise any computational reuse of scholarly content (Jondet 2018; Geiger et al. 2019). The resulting EU Directive on Copyright in the Digital Single Market (2019/790) reflects this tension: while it created a mandatory TDM exception for research organisations, it also permitted rightsholders to opt out of commercial TDM, leaving for-profit miners reliant on the permission of content owners (Geiger et al. 2019). Publishers thus retained significant control over the conditions under which their archives could be computationally exploited.</p>
+<p>The irony of this position has become apparent. The same publishers who fought to restrict researchers’ TDM rights have since entered into lucrative licensing agreements with AI developers. Taylor and Francis reportedly earned seventy-five million dollars from AI partnerships with Microsoft and other firms; Wiley disclosed forty-four million dollars in revenue from licensing its archives for large-language-model training—with no opt-out offered to authors (Kwon 2024; Battersby 2024). Content that researchers were discouraged from mining is now sold in bulk to train commercial AI systems, while the scholars who produced it receive nothing. The publishers’ earlier insistence on contractual control was not a defence of authors’ rights, but a strategy for capturing the value of computational reuse.</p>
+<p>The paradox of openness becomes visible here: firstly, open-access content that bypassed publisher paywalls is now harvested as undifferentiated corpora, stripped of epistemic and institutional context, and processed by actors with the infrastructural capacity to operate at industrial scale. The same openness that challenged publisher gatekeeping now supplies platform intermediaries with raw material for extraction. Secondly, even where content remains formally closed, publishers have positioned themselves as intermediaries who profit from AI training while contributing nothing to the infrastructures of open scholarship. The power asymmetry is structural: while the costs of publishing, curating, and maintaining open access infrastructures are borne by authors, libraries, and public institutions, the value generated through large-scale aggregation accrues to actors who contribute nothing to infrastructural maintenance (Mirowski 2018; Posada and Chen 2018).</p>
+<h3>3.2 Research Data Infrastructures: The Labour of Machine-Readiness</h3>
+<p>Open data infrastructures and the FAIR principles were introduced to enhance findability, accessibility, interoperability, reuse but also reproducibility of research data across disciplinary boundaries (Wilkinson et al. 2016; Peer et al. 2021). Data repositories, metadata standards, and documentation practices were designed to make data interpretable and reusable beyond their original contexts, presupposing that reuse would occur within scholarly communities with shared norms of attribution and reciprocity. Enabling such reuse not only requires extensive infrastructural labour, but also ‘infrastructure literacy’ (Gray et al. 2018). As data infrastructures are increasingly oriented toward AI applications, the demands on this labour intensify. AI-readiness refers to the technical preparation of data for ingestion into machine learning pipelines: not only metadata for discovery, but labelling, class balancing, format standardisation, and optimisation for specific model architectures. Critical literature on the intersection of FAIR and AI-readiness has identified a structural gap: FAIR was designed for human-mediated discovery, not for the machine-actionable precision required by large-scale model training (Neil Majithia et al. 2025; Verhulst et al. 2025). FAIR ensures that data can be found and accessed; it does not ensure that data are labelled, balanced, or technically optimised for machine learning pipelines.</p>
+<p>The power asymmetry becomes visible in the distribution of costs for closing this gap. The push to make data ‘ AI-ready’ shifts the labour of technical curation, that is labelling, formatting, contextual stripping, from well-resourced technology firms to under-funded public institutions and research communities (Paullada et al. 2021; Newlands 2021). Data providers are asked to prepare data for forms of reuse that primarily benefit actors with the capacity to exploit machine-readable content at scale. Moreover, making data AI-ready often means removing even more the contextual specificity that makes scientific data meaningful to disciplinary communities, in favour of standardised formats optimised for automated processing (Leonelli 2016).</p>
+<p>Here, the paradox of openness lies in the fact that infrastructures designed to enable scholarly reuse increasingly serve industrial-scale content generation, while the labour and costs of readiness remain with under-resourced public institutions. None of this negates the value these infrastructures provide; open data repositories serve researchers, educators, and publics across the world. Yet AI-readiness is also a matter of infrastructural power. Many smaller data infrastructures now find themselves overwhelmed by automated scraping requests, forced to absorb the operational costs of large-scale harvesting while lacking the resources to govern, limit, or benefit from such use. The labour of openness expands; control over its terms does not.</p>
+<h3>3.3 Open Benchmarking Infrastructures: Evaluation as Competitive Resource</h3>
+<p>Benchmarks are standardised evaluation infrastructures that measure and compare the performance of computational models against defined tasks and datasets. A benchmark typically comprises a curated dataset, defined metrics, and protocols for reporting results. Benchmarks like ImageNet for computer vision or GLUE for natural language processing have functioned as shared reference points, enabling researchers to compare methods and track progress (Wang et al. 2018; Deng et al. 2009). In benchmarking infrastructures, openness functions paradoxically: shared evaluation resources meant to enable independent scrutiny become the very means through which proprietary systems gain legitimacy and competitive advantage.</p>
+<p>Creating and maintaining such benchmarks requires substantial labour. Datasets must be assembled, cleaned, and annotated through large-scale human labelling. Tasks must capture meaningful capabilities without being trivially solvable. When benchmarks become widely adopted, they require ongoing maintenance: detecting contamination, responding to saturation, and updating tasks as capabilities advance (Orr and Kang 2024; Hardy et al. 2025; Castaño et al. 2024). This work is largely performed within publicly funded research institutions and rarely recognised as the important scholarly infrastructural contribution it represents.</p>
+<p>Benchmarks also function as audit infrastructures and, increasingly, as openness proxies. For proprietary large language models for instance, whose architectures, training data, and weights remain undisclosed, benchmark performance often constitutes the only standardised information available about their capabilities. Platforms like Hugging Face have become central here, hosting leaderboards that enable comparison across open and proprietary systems (Fourrier et al. 2025). The paradox of openness is sharp here: evaluation infrastructures created and maintained by open communities become essential for legitimating closed commercial products—yet the labour of producing these benchmarks remains uncompensated by the actors who benefit most.</p>
+<p>The asymmetry deepens when benchmarks are absorbed into competitive pipelines. Leaderboard rankings now shape investment decisions, publication outcomes, and market perception (Eriksson et al. 2025). Actors with access to large-scale computational power can iterate faster, optimise more aggressively, and saturate benchmarks more quickly than publicly funded researchers. As benchmarks saturate often within months of release, they lose their capacity to differentiate, prompting continuous cycles of benchmark creation that further advantage well-resourced actors.</p>
+<p>Critical scholarship has noted that data-intensive benchmarking especially advantages industry actors, whose computational infrastructure and engineering capacity now vastly exceed academic resources (Koch and Peterson 2024). The independent audit space contracts even as its importance grows: benchmarks designed for independent evaluation become arenas in which concentrated power determines outcomes (Birhane et al. 2024). While openness enables comparability, comparability under asymmetric conditions reinforces rather than challenges concentrations of epistemic and economic power.</p>
+<h2>4. Discussion: From Diagnosis to Governance</h2>
+<p>The previous sections have shown that the paradoxes of openness appear not as a failure of open scholarly infrastructures, but as a consequence of their success under conditions of concentrated infrastructural power. Each case reveals a similar pattern: openness enables access and reuse; actors with asymmetric capacity exploit this openness at scale; the benefits of exploitation accrue elsewhere while the costs of maintenance remain locally anchored. What differs across domains are the specific mechanisms, such as aggregation, extraction, competition, and the particular governance gaps they expose. This diagnosis raises the question that animates the remainder of this chapter: if openness, as currently organised, exposes scholarly infrastructures to power asymmetries that undermine the conditions of their sustainability, then under what conditions might openness be organised differently? Which constraints limit the options available to scholarly communities, and what arrangements might address the asymmetries that openness enables?</p>
+<p>I would thus like to highlight three structural conditions that shape the political field within which governance must operate: a temporal mismatch between the rhythms of stewardship and extraction; a pattern of infrastructural dependency that subordinates open scholarly infrastructures to concentrated computational power; and a sovereignty gap that leaves these infrastructures absent from debates about digital autonomy and public infrastructure.</p>
+<h3>4.1 The Problems of Endurance, Infrastructural Dependency and the Sovereignty Gap</h3>
+<p>Open scholarly infrastructures are designed for long-term reliability. Repositories, metadata standards, persistent identifiers, and data services are built to endure beyond individual projects, funding cycles, and careers. Their legitimacy depends on sustained institutional commitment over extended time horizons (Star and Bowker 2002). On the one hand stewardship is slow, cumulative, and anchored in institutions whose temporalities are measured in decades. On the other hand, automated extraction operates on a different temporal register. AI-driven reuse is continuous, fast, and oriented toward rapid iteration: training pipelines ingest data at scale; benchmarks are saturated within months; models are updated in cycles far shorter than the institutional processes that govern scholarly infrastructures. What emerges is a deep asynchronicity between the temporal regimes of open infrastructure maintenance and those of extractive reuse, whereas the labour required to align, coordinate, and sustain institutional temporalities in the face of accelerating demands remains invisible (Felt 2025). The more openness is mobilised for rapid extraction, the more stewardship work is demanded, yet this labour remains tied to slow-moving funding regimes and institutional rhythms that cannot keep pace. Open scholarly infrastructures depend on such care work, while AI-driven extraction intensifies the burden without contributing to its costs. Therefore the stakes of ‘infrastructured openness’ are better often captured by the term ‘endurance’ than by ‘ sustainability’. Sustainability frames the...</p>
+<p>The temporal constraint is compounded by a structural dependency. Contemporary AI development is shaped not only by data availability, but by access to computational power, integrated platforms, and proprietary infrastructures. These resources are highly concentrated among a small number of technology firms, creating dependencies that extend well beyond data reuse to encompass tooling, storage, and the capacity to participate in AI-driven research at all (Ahmed et al. 2023; Whittaker 2021; Widder et al. 2023). Open scholarly infrastructures occupy an ambivalent position within this configuration. On the one hand, they provide essential inputs, open publications, datasets, benchmarks, that feed AI development. On the other hand, scholarly communities increasingly depend on the infrastructures of large technology providers for the computational resources required to conduct research. Capture thus operates at multiple levels: not only content and data, but personnel, expertise, and infrastructural capacity itself. Scholarly openness becomes entangled in a political economy where public knowledge infrastructures are structurally subordinate to privately controlled computational ecosystems.</p>
+<p>This dependency exposes a notable gap in current debates on digital sovereignty. Across Europe and elsewhere, sovereignty discourse has framed digital infrastructure as a matter of strategic autonomy, emphasising data localisation, platform regulation, and investment in public computational capacity. Generally, sovereignty discourses that are not anchored in openness and shared governance risk drifting toward enclosure and fragmentation (Komaitis 2025). Yet, open scholarly infrastructures remain largely absent from these debates. Digital sovereignty is articulated primarily in terms of market logic and economic competitiveness, security, and citizen data protection, not in terms of the public purpose of the epistemic infrastructures through which public knowledge is produced, circulated, and valued (Warso et al. 2025).</p>
+<p>This absence is consequential. If open scholarly infrastructures are foundational to contemporary knowledge production and AI-driven innovation, their governance and resourcing are matters of public interest that sovereignty frameworks ought to address. The extractive dynamics traced in this chapter suggest that without deliberate political intervention, open scholarly infrastructures risk functioning as upstream subsidies for concentrated private actors. Sovereignty, in this sense, concerns not only data flows and platform regulation, but the collective capacity to sustain the infrastructures through which knowledge is produced, shared, and acted upon.</p>
+<h3>4.2 Emerging Arrangements and Their Conditions</h3>
+<p>These constraints—temporal mismatch, infrastructural dependency, and the sovereignty gap—delimit the space within which governance of openness must operate. They do not foreclose action, but they shape what forms of response become thinkable and practicable. Significant conceptual resources exist across adjacent scholarly and practitioner discourses. From the perspective of open scholarly infrastructure, digital sovereignty is less likely to be located at the state level but in community governance and control over the tools mediating research. The Principles of Open Scholarly Infrastructure address the loss of sovereignty of the scholarly communities precipitated by commercial acquisitions of research platforms, proposing stakeholder governance, open licensing, and ‘living wills’ mandating asset transfer to community successors should an infrastructure fail (Bilder et al. 2015). Indigenous data sovereignty scholarship offers a parallel critique: Western open science frameworks can reproduce colonial extraction when they disregard the sovereignty of communities whose knowledge is at stake (Kukutai and Taylor 2016; Carroll et al. 2021). The CARE principles—collective benefit, authority to control, responsibility, ethics—insist on the rights of communities to refuse sharing where openness would violate cultural sovereignty.</p>
+<p>Expertise on infrastructuring sovereignty treats sovereignty not as legal status but as ongoing technical practice. Musiani (see Chapter 6) argues that sovereignty is ‘co-constructed’ through situated technical choices: adopting decentralised or federated architectures constitutes ‘sovereignty-making’ because it prevents concentration of power in central nodes. This perspective—examining how ‘humans and organizations build, develop, use, co-opt, and resist digital infrastructures’ (Musiani 2022)—opens analytical space for understanding how open scholarly infrastructures might be governed differently. We can distinguish between state sovereignty (control over territory) and popular sovereignty (control by users and communities), a distinction directly applicable to debates over who governs research tools (Couture and Toupin 2019). Recent interventions on university digital sovereignty provide frameworks for how research institutions might deploy regulatory instruments to reclaim control over data generated on commercial platforms (Meiring et al. 2023), while scholar-led publishing initiatives argue that organisational sovereignty must remain with scientific communities rather than being outsourced to commercial intermediaries (Adema et al. 2017). This concern is reflected in community-led publishing infrastructures such as COPIM and the Open Book Collective, both of which foreground community stewardship, stakeholder accountability, and collective governance as infrastructural conditions for non-commercial open publishing (Hart and Adema 2022; Sanders 2024). This broader ori...</p>
+<p>These discourses offer normative orientations and practical models. Several governance arrangements are under consideration: differentiated access regimes distinguishing scholarly reuse from commercial extraction; ‘asymmetric interoperability,’ where obligations, costs, and benefits of interconnection are unevenly allocated to counter structural power imbalances; further redistributive mechanisms such as levies on AI systems channelling proceeds to knowledge producers (Keller 2025; Blankertz and Windwehr 2025); collective funding reconstituting maintenance as shared responsibility ( IOI 2024); data trusts or cooperatives introducing fiduciary obligations into stewardship (Ada Lovelace Institute and UK AI Council 2021); and federated architectures embedding community control into technical design. Drawing on traditions of knowledge commons governance (Hess and Ostrom 2007; Frischmann et al. 2014), these arrangements attempt to reintroduce reciprocity where openness decouples value from the communities sustaining it. However, all of this requires regulatory support that stabilises these governance arrangements by conditioning openness through differentiated access, asymmetric interoperability, and redistributive obligations on commercial AI use.</p>
+<p>Amongst many, in particular three conditions appear consequential for their viability: firstly, infrastructures must become visible as sites of governance, not merely technical substrates. Secondly, governance requires institutional capacity—mechanisms for classification, monitoring and enforcement, which many infrastructures lack. Thirdly, effective contestation may require alliance-building beyond scholarly communities, connecting infrastructure governance to broader mobilisations around digital sovereignty and platform regulation. The question this chapter has posed thus points toward a politics of infrastructure that is only beginning to take shape. The conceptual resources exist; what remains is the slower work of learning how to reconstitute relations of reciprocity adequate to the scale and speed of extraction that openness now enables.</p>
+<h2>5. Conclusion</h2>
+<p>This chapter began with the radically enabling promise of openness: that removing barriers to access would democratise knowledge and challenge concentrations of power. The paradox of openness names what this promise obscures. Openness does not operate in a vacuum; it is always situated within existing structures of power. Under conditions of concentrated computational capacity and platform dominance, open resources flow disproportionately to those best positioned to exploit them at scale.</p>
+<p>Generative AI renders this dynamic visible with particular clarity. When large language models are trained on the accumulated outputs of open scholarship, such as publications, datasets, annotations, metadata, they do not merely use these resources but transform them into proprietary products that reshape the very conditions of knowledge production. Knowledge becomes automated, extracted from the often slow temporalities of scholarly labour and redeployed through infrastructures that scholarly communities neither control nor, in many cases, comprehend or can compete with. What was contributed under implicit norms of reciprocity is returned as a service, often at a price, by actors with no obligations to the communities that made their systems possible.</p>
+<p>This is why the politics of open infrastructures cannot be reduced to questions of sustainability or funding, important as these are. What is at stake is the governance of ‘infrastructured openness’ itself: the terms under which knowledge circulates, who captures the value it generates, and whether the communities that produce and maintain open resources retain any capacity to shape their use.</p>
+<p>Taken together, the analysis suggests that open scholarly infrastructures can address the power asymmetries enabled by openness only when openness itself becomes an object of governance, structured through reciprocity, differentiated access, and infrastructural self-determination. The analysis presented here might raise uncomfortable questions for communities whose founding commitments were defined against enclosure and institutional control. Addressing the power asymmetries openness enables may require precisely what the discourse of radical openness has historically resisted: governance arrangements that differentiate between forms of access and use; legal frameworks and case law that establish enforceable boundaries; institutional mechanisms capable of monitoring and sanctioning; and political alliances willing to mobilise regulatory instruments in defence of knowledge infrastructures. It may also require redistributive mechanisms, such as taxes, levies or obligations attached to commercial extraction that channel value back to those who sustain the knowledge commons. What emerges is the contours of governed openness: openness that is not unconditional but structured by reciprocal obligations, maintained through enforceable arrangements, attentive to equity in the distribution of capacities, costs, and benefits, and embedded in relations of accountability. Whether such arrangements mark a departure from earlier imaginaries of openness or a necessary maturation of open scholarly infrastructures ultimately depends on how scholarly communities, public institutions, and regu...</p>
+<p>Yet governance does not need to take on only juridical or regulatory form. Research that considers infrastructuring sovereignty as openness suggests an alternative trajectory: embedding community control into technical architectures themselves through federation, decentralisation, and protocol design that resists conc... in this book; Tarkowski 2025). Here, governance operates not through external enforcement but through the material configuration of infrastructures: sovereignty as ongoing technical practice rather than legal status. These trajectories are not mutually exclusive; they may prove complementary. What seems clear is that unconditional openness, that is openness without governance, without redistribution, without infrastructural self-determination, has proved to be openness available for capture. The question that remains is whether scholarly communities can seize the opportunity to govern their infrastructures on their own terms, before those terms are settled elsewhere.</p>
+<h2>Bibliography</h2>
+<p>Ada Lovelace Institute, and UK AI Council. 2021. *Exploring Legal**Mechanisms for Data Stewardship.*<a href="https://www.adalovelaceinstitute.org/report/legal-mechanisms-data-stewardship/" target="_blank" rel="noreferrer">https://www.adalovelaceinstitute.org/report/legal-mechanisms-data-stewardship/</a></p>
+<p>Adema, Janneke, Graham Stone, and Chris Keene. 2017. ‘Changing Publishing Ecologies: A Landscape Study of New University Presses and Academic-Led Publishing: A Report to JISC.’ Copyright, Fair Use, Scholarly Communication, Etc. <em>Digital Commons</em> (6 June). <a href="https://digitalcommons.unl.edu/scholcom/80" target="_blank" rel="noreferrer">https://digitalcommons.unl.edu/scholcom/80</a></p>
+<p>Adema, Janneke, and Samuel A. Moore. 2021. ‘Scaling Small; Or How to Envision New Relationalities for Knowledge Production.’ <em>Westminster Papers in Communication and Culture</em> 16 (1). <a href="https://doi.org/10.16997/wpcc.918" target="_blank" rel="noreferrer">https://doi.org/10.16997/wpcc.918</a></p>
+<p>Ahmed, Nur, Muntasir Wahed, and Neil C. Thompson. 2023. ‘The Growing Influence of Industry in AI Research.’ <em>Science</em> 379 (6635): 884–886. <a href="https://doi.org/10.1126/science.ade2420" target="_blank" rel="noreferrer">https://doi.org/10.1126/science.ade2420</a></p>
+<p>Barry, Andrew. 2020. ‘The Material Politics of Infrastructure.’ In *TechnoScienceSociety: Technological Reconfigurations of Science and**Society*, edited by Sabine Maasen, Sascha Dickel, and Christoph Schneider, 91–109. Cham: Springer International Publishing. <a href="https://doi.org/10.1007/978-3-030-43965-1_6" target="_blank" rel="noreferrer">https://doi.org/10.1007/978-3-030-43965-1_6</a></p>
+<p>Battersby, Matilda. 2024. ‘Academic Authors “shocked” after Taylor &amp; Francis Sells Access to Their Research to Microsoft AI.’ <em>The Bookseller</em> (19 July). <a href="https://www.thebookseller.com/news/academic-authors-shocked-after-taylor--francis-sells-access-to-their-research-to-microsoft-ai" target="_blank" rel="noreferrer">https://www.thebookseller.com/news/academic-authors-shocked-after-taylor--francis-sells-access-to-their-research-to-microsoft-ai</a></p>
+<p>Bezuidenhout, L. 2025. ‘Critically Unpacking the Concept of Equity for Open Science.’ <em>Social Epistemology</em> 0(0): 1–18. https://doi.org/10.1080/02691728.2025.2475460</p>
+<p>Bezuidenhout, Louise, Ann H. Kelly, Sabina Leonelli, and Brian Rappert. 2017. ‘$100 Is Not Much To You: Open Science and Neglected Accessibilities for Scientific Research in Africa.’ <em>CRITICAL PUBLIC HEALTH</em> 27 (1): 39–49. <a href="https://doi.org/10.1080/09581596.2016.1252832" target="_blank" rel="noreferrer">https://doi.org/10.1080/09581596.2016.1252832</a></p>
+<p>Bilder, Geoffrey, Jennifer Lin, and Cameron Neylon. 2015. ‘Principles for Open Scholarly Infrastructures-V1.’ February 23. <a href="https://doi.org/10.6084/m9.figshare.1314859.v1" target="_blank" rel="noreferrer">https://doi.org/10.6084/m9.figshare.1314859.v1</a></p>
+<p>Birhane, Abeba, Ryan Steed, Victor Ojewale, Briana Vecchione, and Inioluwa Deborah Raji. 2024. ‘AI Auditing: The Broken Bus on the Road to AI Accountability.’ arXiv:2401.14462. <a href="https://doi.org/10.48550/arXiv.2401.14462" target="_blank" rel="noreferrer">https://doi.org/10.48550/arXiv.2401.14462</a></p>
+<p>Blankertz, Aline, and Svea Windwehr. 2025. ‘Interoperability and Openness between Different Governance Models: The Dynamics of Mastodon/Threads and Wikipedia/Google.’ <em>SSRN Scholarly Paper</em>No. 5238447. Social Science Research Network, April 1. <a href="https://doi.org/10.2139/ssrn.5238447" target="_blank" rel="noreferrer">https://doi.org/10.2139/ssrn.5238447</a>.</p>
+<p>Borgman, Christine, Peter Darch, Irene Pasquetto, and Morgan Wofford. 2020. *Our Knowledge of Knowledge Infrastructures: Lessons Learned and Future Directions.**Report of Knowledge Infrastructures Workshop, 27 No. 27*. UCLA: Center for Knowledge Infrastructures.</p>
+<p>Borgman, Christine L, Paul N Edwards, Steven J Jackson, et al. 2013. *Knowledge Infrastructures: Intellectual Frameworks and**Research Challenges*. <a href="http://knowledgeinfrastructures.org/" target="_blank" rel="noreferrer">http://knowledgeinfrastructures.org/</a>.</p>
+<p>Bowker, Geoffrey C, Paul N Edwards, Steven J Jackson, and Cory P Knobel. 2010. ‘The Long Now of Cyberinfrastructure.’*World Wide Research: Reshaping the Sciences**and Humanities* 40.</p>
+<p>Bowker, Geoffrey C., and Susan Leigh Star. 1999. <em>Sorting Things Out: Classification and Its Consequences.</em> Cambridge, MA: MIT Press.</p>
+<p>Bowker, Geoffrey, and Susan Leigh Star. 1994. ‘Knowledge and Infrastructure in International Information Management: Problems of Classification and Coding.’ In*Information Acumen: The Understanding and Use of**Knowledge in Modern Business*, edited by L. Bud-Frierman, 187–216. London: Routledge.</p>
+<p>Brewer, Wesley, Patrick Widener, Valentine Anantharaj, et al. 2025. ‘Data Readiness for Scientific AI at Scale.’ <em>Workshop Proceedings<strong>of the 54th International Conference on Parallel Processing (New York,</strong>NY, USA), ICPP Workshops ’25</em>, 18–24. <a href="https://doi.org/10.1145/3750720.3757282" target="_blank" rel="noreferrer">https://doi.org/10.1145/3750720.3757282</a></p>
+<p>Carroll, Stephanie Russo, Edit Herczog, Maui Hudson, Keith Russell, and Shelley Stall. 2021. ‘Operationalizing the CARE and FAIR Principles for Indigenous Data Futures.’ <em>Scientific Data</em> 8 (1): 1. <a href="https://doi.org/10.1038/s41597-021-00892-0" target="_blank" rel="noreferrer">https://doi.org/10.1038/s41597-021-00892-0</a></p>
+<p>Castaño, Joel, Silverio Martínez-Fernández, Xavier Franch, and Justus Bogner. 2024. ‘Analyzing the Evolution and Maintenance of ML Models on Hugging Face.’ <em>Proceedings of the 21st International<strong>Conference on Mining Software Repositories (New York, NY, USA), MSR ’</strong>24, July 2,</em> 607–618. <a href="https://doi.org/10.1145/3643991.3644898" target="_blank" rel="noreferrer">https://doi.org/10.1145/3643991.3644898</a></p>
+<p>Chan, Leslie, Darius Cuplinskas, Michael Eisen, and Yana Genova. 2002. ‘Budapest Open Access Initiative.’ <a href="https://www.budapestopenaccessinitiative.org/read" target="_blank" rel="noreferrer">https://www.budapestopenaccessinitiative.org/read</a></p>
+<p>Chan, Leslie, Angela Okune, Rebecca Hillyer, Alejandro Posada, and Denisse Albornoz. 2019. *Contextualizing**Openness: Situating Open Science.* Ottawa: University of Ottawa Press.</p>
+<p>Couture, Stephane, and Sophie Toupin. 2019. ‘What Does the Notion of ‘Sovereignty’ Mean When Referring to the Digital?’ *New Media &amp;**Society* 21 (10): 2305–2322. <a href="https://doi.org/10.1177/1461444819865984" target="_blank" rel="noreferrer">https://doi.org/10.1177/1461444819865984</a></p>
+<p>Deng, Jia, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei. 2009. ‘ImageNet: A Large-Scale Hierarchical Image Database.’ <em>2009 IEEE Conference on Computer Vision and Pattern Recognition</em>, 248–255. <a href="https://doi.org/10.1109/CVPR.2009.5206848" target="_blank" rel="noreferrer">https://doi.org/10.1109/CVPR.2009.5206848</a></p>
+<p>Dulong de Rosnay, Mélanie, and Felix Stalder. 2020. ‘Digital Commons.’ <em>Internet Policy Review</em>9 (4). <a href="https://policyreview.info/concepts/digital-commons" target="_blank" rel="noreferrer">https://policyreview.info/concepts/digital-commons</a></p>
+<p>Edwards, Paul, Geoffrey Bowker, Steven Jackson, and Robin Williams. 2009. ‘Introduction: An Agenda for Infrastructure Studies.’ <em>Journal of the Association for Information Systems</em>10 (5). <a href="https://doi.org/10.17705/1jais.00200" target="_blank" rel="noreferrer">https://doi.org/10.17705/1jais.00200</a></p>
+<p>Edwards, Paul N., Steven J. Jackson, Geoffrey C. Bowker, and Cory P. Knobel. 2007. <em>Understanding Infrastructure: Dynamics, Tensions, and Design</em>. Ann Arbor, MI: DeepBlue.</p>
+<p>Eriksson, Maria, Erasmo Purificato, Arman Noroozian, et al. 2025. ‘Can We Trust AI Benchmarks? An Interdisciplinary Review of Current Issues in AI Evaluation.’ *Proceedings of the AAAI/ACM Conference**on AI, Ethics, and Society* 8 (1): 850–864. <a href="https://doi.org/10.1609/aies.v8i1.36595" target="_blank" rel="noreferrer">https://doi.org/10.1609/aies.v8i1.36595</a></p>
+<p>Fecher, B., and S. Friesike. 2014. ‘Open Science: One term, Five Schools of Thought.’ In *Opening**Science*, edited by S. Bartling and S. Friesike, 17–47. Cham: Springer. <a href="http://link.springer.com/chapter/10.1007/978-3-319-00026-8_2" target="_blank" rel="noreferrer">http://link.springer.com/chapter/10.1007/978-3-319-00026-8_2</a></p>
+<p>Felt, Ulrike. 2025.<em>Academic Times: Contesting the Chronopolitics of Research</em>. Singapore: Palgrave MacMillan. <a href="https://doi.org/10.1007/978-981-96-4609-8" target="_blank" rel="noreferrer">https://doi.org/10.1007/978-981-96-4609-8</a></p>
+<p>Fourrier, Clémentine, Thibaud Frere, Guilherme Penedo, and Thomas Wolf. 2025. ‘The Evaluation Guidebook: A Comprehensive Guide to Benchmarking LLMs in 2025.’ <em>Hugging Face.</em><a href="https://huggingface.co/spaces/OpenEvals/evaluation-guidebook" target="_blank" rel="noreferrer">https://huggingface.co/spaces/OpenEvals/evaluation-guidebook</a></p>
+<p>Frischmann, Brett M., Michael J. Madison, and Katherine Jo Strandburg. 2014. <em>Governing Knowledge Commons.</em>Oxford: Oxford University Press.</p>
+<p>Geiger, Christophe, Giancarlo Frosio, and Oleksandr Bulayenko. 2019. ‘Text and Data Mining: Articles 3 and 4 of the Directive 2019/790/EU.’ In *Propiedad Intelectual y Mercado Único Digital**Europeo*, edited by Concepción Saiz García and Raquel Evangelio Llorca, 27–71. Valencia: Tirant lo Blanch. <a href="https://doi.org/10.2139/ssrn.3470653" target="_blank" rel="noreferrer">https://doi.org/10.2139/ssrn.3470653</a></p>
+<p>Gray, Jonathan, Carolin Gerlitz, and Liliana Bounegru. 2018. ‘Data Infrastructure Literacy.’ <em>Big Data &amp; Society</em> 5 (2): 2053951718786316. <a href="https://doi.org/10.1177/2053951718786316" target="_blank" rel="noreferrer">https://doi.org/10.1177/2053951718786316</a></p>
+<p>Gregory, Kathleen, Jonathan Zurbach, Kalpana Shankar, Matthew Mayernik, and Andrew Treloar. 2025. ‘Sustaining Knowledge Infrastructures: Asking Questions and Listening for Answers.’ arXiv:2502.19360. <a href="https://doi.org/10.48550/arXiv.2502.19360" target="_blank" rel="noreferrer">https://doi.org/10.48550/arXiv.2502.19360</a>.</p>
+<p>Hardy, Amelia, Anka Reuel, Kiana Jafari Meimandi, et al. 2025. ‘More than Marketing? On the Information Value of AI Benchmarks for Practitioners.’ *Proceedings of the 30th International Conference**on Intelligent User Interfaces (New York, NY, USA), IUI ’25*, 1032–47. <a href="https://doi.org/10.1145/3708359.3712152" target="_blank" rel="noreferrer">https://doi.org/10.1145/3708359.3712152</a></p>
+<p>Hart, Patrick, Janneke Adema, and Copim, eds. 2022. *Towards Better Practices for the Community Governance**of Open Infrastructures*. 1st edn. Copim. <a href="https://doi.org/10.21428/785a6451.34150ea2" target="_blank" rel="noreferrer">https://doi.org/10.21428/785a6451.34150ea2</a></p>
+<p>Henke, Christopher R., and Benjamin Sims. 2020. *Repairing Infrastructures: The**Maintenance of Materiality and Power*. Cambridge, MA: MIT Press.</p>
+<p>Hess, Charlotte, and Elinor Ostrom. 2007. <em>Understanding Knowledge as a Commons</em>. Cambridge, MA: MIT Press.</p>
+<p>Hosseini, Mohammad, Serge P. J. M. Horbach, Kristi Holmes, and Tony Ross-Hellauer. 2025. ‘Open Science at the Generative AI Turn: An Exploratory Analysis of Challenges and Opportunities.’ <em>Quantitative Science Studies</em>6: 22–45. <a href="https://doi.org/10.1162/qss_a_00337" target="_blank" rel="noreferrer">https://doi.org/10.1162/qss_a_00337</a>.</p>
+<p>IOI. 2024. ‘State of Open Infrastructure.’<em>Invest in Open Infrastructures</em>. <a href="https://investinopen.org/data-room/state-of-oi/" target="_blank" rel="noreferrer">https://investinopen.org/data-room/state-of-oi/</a></p>
+<p>Jackson, Steven, Jen Liu, Ranjit Singh, and Samir Passi. 2025. ‘Maintaining Data Infrastructures.’ In *The Sage Handbook**of Data and Society*, edited by Tommaso Venturini, Amelia Acker, Jean-Christophe Plantin, and Tone Walford, 19–35. London: Sage Publications Ltd. <a href="https://doi.org/10.4135/9781529674699.n2" target="_blank" rel="noreferrer">https://doi.org/10.4135/9781529674699.n2</a></p>
+<p>Jondet, Nicolas. 2018. ‘The Text and Data Mining Exception in the Proposal for a Directive on Copyright: Why the European Union Needs to Go Further than the Laws of Member States.’ <em>SSRN Scholarly Paper</em> No. 3245840. Social Science Research Network. <a href="https://papers.ssrn.com/abstract=3245840" target="_blank" rel="noreferrer">https://papers.ssrn.com/abstract=3245840</a></p>
+<p>Karasti, Helena, Florence Millerand, Christine M. Hine, and Geoffrey C. Bowker. 2016. ‘Knowledge Infrastructures: Part I.’ *Science &amp; Technology**Studies* 29 (1): 1. <a href="https://doi.org/10.23987/sts.55406" target="_blank" rel="noreferrer">https://doi.org/10.23987/sts.55406</a></p>
+<p>Keller, Paul. 2025. ‘Beyond AI and Copyright.’ <em>Open Future</em>. <a href="https://openfuture.eu/publication/beyond-ai-and-copyright" target="_blank" rel="noreferrer">https://openfuture.eu/publication/beyond-ai-and-copyright</a></p>
+<p>Keller, Paul, and Alek Tarkowski. 2021. ‘Paradox of Open: Policies for the Digital Commons.’ <em>Open Future.</em><a href="https://paradox.openfuture.eu/" target="_blank" rel="noreferrer">https://paradox.openfuture.eu/</a></p>
+<p>Koch, Bernard J., and David Peterson. 2024. ‘From Protoscience to Epistemic Monoculture: How Benchmarking Set the Stage for the Deep Learning Revolution.’ arXiv:2404.06647. <a href="https://doi.org/10.48550/arXiv.2404.06647" target="_blank" rel="noreferrer">https://doi.org/10.48550/arXiv.2404.06647</a></p>
+<p>Komaitis, Konstantinos. 2025. ‘The Case for Open Sovereignty in a Fragmenting Internet.’ <a href="http://www.komaitis.org/1/post/2025/10/the-case-for-open-sovereignty-in-a-fragmenting-internet.html" target="_blank" rel="noreferrer">http://www.komaitis.org/1/post/2025/10/the-case-for-open-sovereignty-in-a-fragmenting-internet.html</a></p>
+<p>Kukutai, Tahu, and John Taylor, eds. 2016. <em>Indigenous Data Sovereignty: Toward an Agenda</em>. Centre for Aboriginal Economic Policy Research (CAEPR). Canberra: ANU Press.</p>
+<p>Kwon, Diana. 2024. ‘Publishers Are Selling Papers to Train AIs—and Making Millions of Dollars.’ <em>Nature</em> 636 (8043): 529–530. <a href="https://doi.org/10.1038/d41586-024-04018-5" target="_blank" rel="noreferrer">https://doi.org/10.1038/d41586-024-04018-5</a></p>
+<p>Leonelli, Sabina. 2016. *Data-Centric Biology: A**Philosophical Study*. Chicago, IL: University of Chicago Press.</p>
+<p>Lessig, Lawrence. 1999. <em>Code and Other Laws of Cyberspace.</em> Cambridge, MA: MIT Press.</p>
+<p>Mayer, Katja. 2026. ‘AI, Open Science, and the Extraction Imperative: A Situated Approach to the Normativities of Open Research Data.’ <em>Cambridge Forum on AI: Culture and Society</em>. Empirical AI Ethics.</p>
+<p>Meiring, A., S. Yakovleva, K. Irion, J. van Hoboken, and M. van Eechoud. 2023. *Information Law and the**Digital Transformation of the University. Part I: Digital Sovereignty.* Amsterdam: Amsterdam University Press. <a href="https://dare.uva.nl/search?identifier=226c4ad8-f17d-466f-a47e-d76cbef9da63" target="_blank" rel="noreferrer">https://dare.uva.nl/search?identifier=226c4ad8-f17d-466f-a47e-d76cbef9da63</a>.</p>
+<p>Mirowski, Philip. 2018. ‘The Future(s) of Open Science.’ <em>Social Studies of Science</em> 48 (2): 171–203. <a href="https://doi.org/10.1177/0306312718772086" target="_blank" rel="noreferrer">https://doi.org/10.1177/0306312718772086</a></p>
+<p>Moore, Samuel. 2025. *Publishing Beyond the**Market: Open Access, Care, and the Commons.* Ann Arbor, MI: University of Michigan Press. <a href="https://doi.org/10.3998/mpub.11781635" target="_blank" rel="noreferrer">https://doi.org/10.3998/mpub.11781635</a></p>
+<p>Musiani, Francesca. 2022. ‘Infrastructuring Digital Sovereignty: A Research Agenda for an Infrastructure-Based Sociology of Digital Self-Determination Practices.’ <em>Information, Communication &amp; Society</em> 25 (6): 785–800. <a href="https://doi.org/10.1080/1369118X.2022.2049850" target="_blank" rel="noreferrer">https://doi.org/10.1080/1369118X.2022.2049850</a></p>
+<p>Neil Majithia, Thomas Carey-Wilson, and Elena Simperl. 2025. ‘A Framework for AI-Ready Data.’ <em>ODI Research.</em><a href="https://theodi.hacdn.io/media/documents/A_framework_for_AI-ready_data.pdf" target="_blank" rel="noreferrer">https://theodi.hacdn.io/media/documents/A_framework_for_AI-ready_data.pdf</a></p>
+<p>Newlands, Gemma. 2021. ‘Lifting the Curtain: Strategic Visibility of Human Labour in AI-as-a-Service.’ B<em>ig Data &amp; Society</em> 8 (1): 20539517211016026. <a href="https://doi.org/10.1177/20539517211016026" target="_blank" rel="noreferrer">https://doi.org/10.1177/20539517211016026</a></p>
+<p>Neylon, Cameron. 2015. ‘Principles for Open Scholarly Infrastructures.’ <em>Science in the Open</em> (23 February). <a href="http://cameronneylon.net/blog/principles-for-open-scholarly-infrastructures/" target="_blank" rel="noreferrer">http://cameronneylon.net/blog/principles-for-open-scholarly-infrastructures/</a></p>
+<p>Okune, Angela, Rebecca Hillyer, Leslie Chan, Denisse Albornoz, and Alejandro Posada. 2019. ‘Whose Infrastructure? Towards Inclusive and Collaborative Knowledge Infrastructures in Open Science.’ In <em>Connecting the Knowledge Commons—From Projects<strong>to Sustainable Infrastructure: The 22nd International Conference on Electronic Publishing</strong>—Revised Selected Papers</em>, edited by Pierre Mounier. Laboratoire d’idées. Marseille: OpenEdition Press. <a href="http://books.openedition.org/oep/9072" target="_blank" rel="noreferrer">http://books.openedition.org/oep/9072</a></p>
+<p>Orr, Will, and Edward B. Kang. 2024. ‘AI as a Sport: On the Competitive Epistemologies of Benchmarking.’ *The 2024**ACM Conference on Fairness, Accountability, and Transparency*, June 3, 1875–1884. <a href="https://doi.org/10.1145/3630106.3659012" target="_blank" rel="noreferrer">https://doi.org/10.1145/3630106.3659012</a></p>
+<p>Pasquetto, Irene V., Bernadette M. Randles, and Christine L. Borgman. 2017. On the Reuse of Scientific Data. <em>Data Science Journal</em>16. <a href="https://doi.org/10.5334/dsj-2017-008" target="_blank" rel="noreferrer">https://doi.org/10.5334/dsj-2017-008</a></p>
+<p>Paullada, Amandalynne, Inioluwa Deborah Raji, Emily M. Bender, Emily Denton, and Alex Hanna. 2021. ‘Data and Its (Dis)Contents: A Survey of Dataset Development and Use in Machine Learning Research.’ <em>Patterns</em> 2 (11): 100336. <a href="https://doi.org/10.1016/j.patter.2021.100336" target="_blank" rel="noreferrer">https://doi.org/10.1016/j.patter.2021.100336</a></p>
+<p>Peer, Limor, Florio Arguillas, Tom Honeyman, Nadica Miljković, and Karsten Peters-von Gehlen. 2021. ‘Challenges of Curating for Reproducible and FAIR Research Output. Research Data Alliance.’ <a href="https://www.rd-alliance.org/system/files/CURE-FAIR%20WG%20output%20for%20community%20review%20(v2.0" target="_blank" rel="noreferrer">https://www.rd-alliance.org/system/files/CURE-FAIR%20WG%20output%20for%20community%20review%20(v2.0).pdf</a>.pdf)</p>
+<p>Posada, Alejandro, and George Chen. 2018. ‘Inequality in Knowledge Production: The Integration of Academic Infrastructure by Big Publishers.’ <em>ELPUB</em> 2018 . <a href="https://doi.org/10.4000/proceedings.elpub.2018.30" target="_blank" rel="noreferrer">https://doi.org/10.4000/proceedings.elpub.2018.30</a></p>
+<p>POSI Adopters. 2025. *The Principles of Open Scholarly**Infrastructure v2.0*. <a href="https://doi.org/10.14454/G8WV-VM65" target="_blank" rel="noreferrer">https://doi.org/10.14454/G8WV-VM65</a></p>
+<p>Ribes, David, and Geoffrey C. Bowker. 2009. ‘Between Meaning and Machine: Learning to Represent the Knowledge of Communities.’ <em>Information and Organization</em> 19 (4): 199–217.</p>
+<p>Ribes, David, and Thomas A. Finholt. 2009. ‘The Long Now of Technology Infrastructure: Articulating Tensions in Development.’ *Journal**of the Association for Information Systems* 10 (10): 5. <a href="https://doi.org/10.17705/1jais.00209" target="_blank" rel="noreferrer">https://doi.org/10.17705/1jais.00209</a></p>
+<p>Sanders, Kevin. 2024. ‘The Open Book Collective Governance.’ <em>OBC Information Hub.</em><a href="https://doi.org/10.21428/41ca814e.caf1d303" target="_blank" rel="noreferrer">https://doi.org/10.21428/41ca814e.caf1d303</a></p>
+<p>Skinner, Katherine, Lauren Collister, Chun-Kai (Karl) Huang, et al. 2025. ‘2025 State of Open Infrastructure: Trends in Characteristics, Funding, Policy, and Community Health.’ <em>Zenodo</em>. <a href="https://doi.org/10.5281/ZENODO.15198873" target="_blank" rel="noreferrer">https://doi.org/10.5281/ZENODO.15198873</a></p>
+<p>Star, S. L., and G. C. Bowker. 2002. ‘How to Infrastructure?’ In *The Handbook of New Media. Social**Shaping and Social Consequences of ICTs*, edited by L. A. Lievrouw and S. Livingstone, 230–245, London: SAGE Publications.</p>
+<p>Steinhart, Gail, Lauren Collister, Chun-Kai (Karl) Huang, et al. 2024. ‘2024 State of Open Infrastructure: Trends in Characteristics, Funding, Governance, Adoption, and Policy.’ <em>Invest in Open Infrastructure.</em><a href="https://doi.org/10.5281/ZENODO.10934089" target="_blank" rel="noreferrer">https://doi.org/10.5281/ZENODO.10934089</a></p>
+<p>Suber, Peter. 2012. <em>Open Access</em>. Cambridge, MA: The MIT Press.</p>
+<p>Tarkowski, Alek. 2025. ‘Why Wikimedia Needs a Seat at the Agentic AI Foundation.’ <em>Open Future.</em><a href="https://openfuture.eu/blog/why-wikimedia-needs-a-seat-at-the-agentic-ai-foundation" target="_blank" rel="noreferrer">https://openfuture.eu/blog/why-wikimedia-needs-a-seat-at-the-agentic-ai-foundation</a></p>
+<p>Tempini, Niccolò. 2020. ‘The Reuse of Digital Computer Data: Transformation, Recombination and Generation of Data Mixes in Big Data Science.’ In <em>Data Journeys in the Sciences</em>, edited by Sabina Leonelli and Niccolò Tempini,  239–263. Cham: Springer International Publishing. <a href="https://doi.org/10.1007/978-3-030-37177-7_13" target="_blank" rel="noreferrer">https://doi.org/10.1007/978-3-030-37177-7_13</a></p>
+<p>UNESCO. 2021. ‘UNESCO Recommendation on Open Science.’ <a href="https://unesdoc.unesco.org/ark:/48223/pf0000379949" target="_blank" rel="noreferrer">https://unesdoc.unesco.org/ark:/48223/pf0000379949</a></p>
+<p>Verhulst, Stefaan, Andrew J. Zahuranec, and Hannah Chafetz. 2025. ‘Moving Toward the FAIR-R Principles: Advancing AI-Ready Data.’ <em>SSRN Scholarly Paper</em>No. 5164337. Social Science Research Network, March 4. <a href="https://doi.org/10.2139/ssrn.5164337" target="_blank" rel="noreferrer">https://doi.org/10.2139/ssrn.5164337</a></p>
+<p>Wang, Alex, Amanpreet Singh, Julian Michael, Felix Hill, Omer Levy, and Samuel Bowman. 2018. ‘GLUE: A Multi-Task Benchmark and Analysis Platform for Natural Language Understanding.’ In *Proceedings of the 2018 EMNLP Workshop BlackboxNLP: Analyzing and Interpreting**Neural Networks for NLP*, edited by Tal Linzen, Grzegorz Chrupała, and Afra Alishahi, 353–355. Brussels: Association for Computational Linguistics. <a href="https://doi.org/10.18653/v1/W18-5446" target="_blank" rel="noreferrer">https://doi.org/10.18653/v1/W18-5446</a></p>
+<p>Warso, Zuzanna, Aditya Singh, and Paul Keller. 2025. ‘A Strategic Agenda for Digital Commons. Advancing Public Digital Infrastructure in the Next MFF.’ <em>Open Future</em>. [https://openfuture.e...</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-06c5269a45ea54e5.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">拉脫維亞試辦讓公民參與研究補助評審</span>
+</a>
+
+<a class="article-sequence-link" href="item-6e6abba3e28db6b9.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">打開網路基礎設施：草根社群網路中的開放社會物質政治</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-51803b4eb4edb65f.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Politics of Open Infrastructures - 9. Paradoxes of Openness</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Katja Mayer 1（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-26T18:13:57+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-26T18:13:57+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-51803b4eb4edb65f";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

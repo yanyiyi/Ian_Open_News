@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -551,13 +551,50 @@
       <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-23 08:00</span></div>
       <h1><a class="article-title-link" href="https://thenewstack.io/openclaw-hermes-agent-harness/" target="_blank" rel="noreferrer" title="開啟原始連結">OpenClaw 與 Hermes 對 AI 代理人的定義一致，控制方式卻不同</a></h1>
       <p class="lede">文章似乎以 AI 代理人平台的控制機制為主題，並以 OpenClaw 與 Hermes 作比較。摘要僅提到 Satya Nadella 對作業系統與應用程式之外新平台轉型的描述，尚不足以重建文章的核心分析。</p>
-
+      <div class="tag-chip-list"><span class="tag-chip">開源 AI / OSAID</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://cdn.thenewstack.io/media/2026/06/9228c0d6-logan-voss-v0sixwyivly-unsplash-scaled.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>OpenClaw and Hermes agree on what an agent is. They disagree on what controls it.</h1>
+<p>Check your inbox for a confirmation email where you can adjust your preferences and even join additional groups.</p>
+<p>Follow TNS on your favorite social media networks.</p>
+<p>Become a <a href="https://www.linkedin.com/company/the-new-stack" target="_blank" rel="noreferrer">TNS follower on LinkedIn</a>.</p>
+<p>At Microsoft’s Build keynote this month, CEO Satya Nadella described a platform shift away from operating systems and apps, and toward agentic AI that doesn’t wait to be opened by a user. Then he showed the layer that makes the shift possible: <a href="https://github.com/openclaw/openclaw" target="_blank" rel="noreferrer">OpenClaw</a>, an open-source harness and independent project released only months earlier, running natively on Windows inside Microsoft’s new execution containers. Built on top of it was <a href="https://thenewstack.io/microsoft-scout-openclaw-runtime/" target="_blank" rel="noreferrer">Scout, Microsoft’s always-on enterprise agent</a>. A harness barely a year old, onstage as governed infrastructure.</p>
+<p>Nvidia had made the case more bluntly at its <a href="https://thenewstack.io/nemoclaw-openclaw-with-guardrails/" target="_blank" rel="noreferrer">GTC conference</a> in March, where Jensen Huang called OpenClaw “the operating system for personal AI.” The analogy sticks: A harness does for a language model what an OS does for a processor. A model can independently answer questions while a harness enables it to run continuously, remember what it learns, and call tools to act.</p>
+<p>Two open projects have built that layer this year from different starting points. <strong>OpenClaw</strong> is built around the gateway, the part that connects an agent to the channels people already use. <strong>Hermes Agent</strong>, from Nous Research, is built around memory, the part that lets an agent learn a developer’s work and improve at it. The contest between them is over the control layer, not the model either one calls.</p>
+<h2>The agent harness in plain English</h2>
+<p>At its core, an agent harness is the software that turns a model into a system capable of operating autonomously. It brings together a runtime that keeps the agent alive between tasks, a gateway that carries messages in and out, and a memory that persists across sessions. On top of those sit the tools the agent calls to act, the identity it runs under, the skills it can extend, and the policy and observability controls that decide what it may touch and what it must record. A coding assistant such as <a href="https://docs.claude.com/en/docs/claude-code" target="_blank" rel="noreferrer">Claude Code</a> or <a href="https://openai.com/index/introducing-codex/" target="_blank" rel="noreferrer">Codex</a> covers only part of this. It runs inside an interactive session and loses most of its working context once that session ends. A harness keeps the runtime, memory, and governance in place so the agent can run unattended.</p>
+<blockquote>A harness keeps the runtime, memory, and governance in place so the agent can run unattended.</blockquote>
+<p>Nous Research and OpenClaw agree on that anatomy. They differ on which part they treat as the primary control point. OpenClaw starts with the gateway, so one agent can answer on WhatsApp, Discord, Slack, and other channels from a single place. Hermes starts with memory, so one agent can carry a developer’s context across weeks and refine its own skills.</p>
+<h2>OpenClaw&#x27;s gateway-first design</h2>
+<p>OpenClaw began as an independent open-source project from Peter Steinberger, a developer known for his earlier work in PDF tooling, who released an early version late in 2025 and renamed it twice before settling on OpenClaw in January. It is built for breadth, centered on a central gateway that connects the agent to dozens of messaging channels. <a href="https://github.com/openclaw/clawhub" target="_blank" rel="noreferrer">ClawHub</a>, its public skills marketplace, holds thousands of community skills that extend what the agent can do. The open-source momentum was real, with the repository near 380,000 GitHub stars by late June, though stars measure visibility rather than production use.</p>
+<p>The more important development is who adopted that gateway. Steinberger <a href="https://techcrunch.com/2026/03/16/nvidias-version-of-openclaw-could-solve-its-biggest-problem-security/" target="_blank" rel="noreferrer">joined</a> OpenAI in February, and the project moved to an independent foundation with OpenAI as a sponsor rather than an owner.</p>
+<p>At GTC in March, <a href="https://thenewstack.io/nemoclaw-openclaw-with-guardrails/" target="_blank" rel="noreferrer">Nvidia wrapped OpenClaw in NemoClaw</a>, an OpenShell runtime that sandboxes each agent and enforces policy from outside the agent’s reach.</p>
+<p>At Build in June, Microsoft made OpenClaw native to Windows execution containers and shipped Scout, an agent on the OpenClaw gateway with its own Entra identity and connections into Teams, Outlook, and SharePoint. In each case, the platform vendor kept OpenClaw’s breadth and added the governance and identity the original project lacked.</p>
+<blockquote>A security team can now scope which folders an agent reads and which stay hidden, rather than granting the broad access that made early OpenClaw deployments risky.</blockquote>
+<p>For enterprises, that changes the calculus. A security team can now scope which folders an agent reads and which stay hidden, rather than granting the broad access that made early OpenClaw deployments risky. Platform teams can offer a single governed agent that staff can access from the tools they already use. Breadth gave OpenClaw distribution, and the platform vendors supplied the controls that distribution needed to enter production.</p>
+<h2>Hermes’ memory-first design</h2>
+<p><a href="https://github.com/nousresearch/hermes-agent" target="_blank" rel="noreferrer">Hermes Agent</a> takes the other path. Nous Research, the lab behind the Hermes, Nomos, and Psyche model families, released it on February 25 under an MIT license, written in Python and built to run persistently on infrastructure the team owns: a VPS, a home server, or a laptop.</p>
+<p>The defining capability of Hermes is persistent memory across sessions. It keeps a layered memory, develops new skills after a hard task, and refines those skills as it uses them. It also builds a profile of the developer it works for, so each session starts with more context than the last. The skills follow the <a href="https://agentskills.io" target="_blank" rel="noreferrer">agentskills.io</a> standard, which keeps them portable across agents rather than locked to one.</p>
+<p>That depth has translated into measurable usage. Hermes surpassed 100,000 GitHub stars by mid-May and reached roughly 160,000 by late in the month. It overtook OpenClaw in OpenRouter’s daily token rankings on May 10, with the day’s total reported at 224 billion tokens, up from 186 billion, and placed Hermes first by total tokens.</p>
+<p>By late June, OpenRouter’s app rankings also placed Hermes first by total tokens, past 22 trillion. GitHub stars, token volume, and platform endorsements measure different kinds of adoption, and they rarely move together. Nous has also made portability part of the pitch, shipping a <code>hermes claw migrate</code> command that imports an OpenClaw user’s settings, memories, skills, and keys in one step.</p>
+<p>Developers can keep an agent that holds a codebase, its conventions, and prior decisions across weeks, instead of rebuilding that context each morning. Teams can move the agent between providers with a single command, since Hermes remains model-agnostic across hundreds of models. The tradeoff is operational, since the team that runs Hermes also has to secure and maintain the infrastructure it lives on.</p>
+<h2>Breadth, depth, and where each fits</h2>
+<p>The choice resembles the familiar tradeoff between a managed cloud service and self-managed infrastructure. A managed service is convenient and vendor-governed, while self-managed infrastructure offers full control and operational responsibility.</p>
+<p>Many enterprises will run both, depending on the workload. Neither project is limited to a single capability. OpenClaw includes memory and skills, and Hermes speaks across twenty-odd channels, so the distinction is one of emphasis rather than exclusivity. The table below maps the common cases, with the caveat that both are emerging platforms rather than finished products.</p>
+<p>Real deployments will not standardize on one approach. Nvidia’s NemoClaw blueprints already run Hermes agents under OpenShell as readily as they run OpenClaw. The governance layer is being built to sit beneath multiple agent projects rather than to pick one.</p>
+<h2>Why the harness layer matters</h2>
+<p>Enterprise buyers should slow down on two questions before either agent touches production systems. The first question is one of accountability. When an agent can rewrite its own memory and skills between sessions, as Hermes does, the team needs to know who can explain a change in behavior and where that change is logged. The second question concerns ownership. When governance and identity come from a platform vendor, as they do with NemoClaw and Scout, the policy engine and the identity belong to that vendor, not to the team running the agent.</p>
+<blockquote>Nvidia and Microsoft are competing to place governance, identity, and observability around whichever agent a customer chooses.</blockquote>
+<p>For the platform vendors, the prize is the runtime layer, which will outlast any single foundation model. Nvidia and Microsoft are competing to place governance, identity, and observability around whichever agent a customer chooses, which is why NemoClaw supports Hermes alongside OpenClaw.</p>
+<p>Security is part of the same logic. Audits of OpenClaw’s <a href="https://thenewstack.io/openclaw-github-stars-security/" target="_blank" rel="noreferrer">skill marketplace</a> flagged 341 malicious entries among the skills they scanned, and security firms reported tens of thousands of exposed instances earlier this year – the gap that governed runtimes are meant to close.</p>
+<h2>What&#x27;s next</h2>
+<p>The agent market is moving past model selection into the runtime, governance, and memory layers. OpenClaw showed that a broad gateway and a large skills ecosystem can attract developers and draw in OpenAI, Nvidia, and Microsoft. Hermes showed that persistent memory and self-improving skills can drive heavy daily usage without the same platform backing. Whether breadth and depth will remain in separate projects is already uncertain, since NemoClaw runs under a single set of controls and Hermes can import an OpenClaw setup.</p>
+<h3>The next phase will turn on ownership.</h3>
+<p>Enterprises will need to know who controls the memory an agent accumulates, who governs the tools it can call, and who owns the runtime that keeps it alive. An agent that has learned a year’s worth of a developer’s habits creates a higher switching cost than one that merely connects to many applications. Memory, more than channel reach, is becoming the durable form of lock-in, which is why the runtime, governance, and memory layers are where the platform vendors will compete as they settle in beneath both projects.</p>
+<p>Community created roadmaps, articles, resources and journeys for developers to help you choose your path and grow in your career.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-61a71b2ff280f609.html">
@@ -580,7 +617,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-f8c3bfb8d498cc4a.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：OpenClaw and Hermes agree on what an agent is. They disagree on what controls it.</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Janakiram MSV</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：OpenClaw and Hermes agree on what an agent is. They disagree on what controls it.（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Janakiram MSV（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：direct-pr-small-news / 2026-06-24T06:36:42+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

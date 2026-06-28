@@ -519,7 +519,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-06-26T18:11:37+00:00</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -551,13 +551,67 @@
       <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-24 08:00</span></div>
       <h1><a class="article-title-link" href="https://www.cncf.io/blog/2026/06/24/from-awareness-to-engineered-accessibility-in-open-source/" target="_blank" rel="noreferrer" title="開啟原始連結">從倡議走向工程實作：如何在開源社群落實無障礙參與</a></h1>
       <p class="lede">文章從「任何人都能參與開源」的承諾出發，指出社群流程在邊緣情境下仍可能排除部分貢獻者，例如需要先取得書面資訊才能參與同步討論的人。標題顯示作者主張將無障礙納入實際工程與協作設計，但提供的摘要在論述展開前即中斷，尚無法確定文章提出哪些具體作法。</p>
-      <div class="tag-chip-list"><span class="tag-chip">open source</span><span class="tag-chip">開放原始碼</span></div>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://www.cncf.io/wp-content/uploads/2026/06/Awareness-to-Engineered-Accessibility-in-OSS.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>From Awareness to Engineered Accessibility in Open Source</h1>
+<p>Posted on June 24, 2026 by Diana Todea (DevRel Engineer at VictoriaMetrics and Merge-Forward Neurodiversity chapter lead), and Ryan Etten (Senior Architect &amp; Team Lead at Red Hat and Wisconsin CNCF chapter community organizer)</p>
+<p>The open-source ecosystem thrives on a deceptively simple premise: anyone, anywhere, can show up and contribute. But that promise quietly breaks down at the edges. A contributor who needs written context before a synchronous call, or who reads a terse PR comment as hostility, or who simply can’t parse an issue template that assumes you already know the codebase – each of these people hits a barrier that no one designed on purpose, and that no one can see. These invisible assumptions embedded in documentation, communication norms, and project governance structures add up to real cognitive friction.</p>
+<p><a href="https://ocgroups.dev/cncf/group/merge-forward" target="_blank" rel="noreferrer">Merge Forward</a> <a href="https://ocgroups.dev/cncf/group/qdxcz2d" target="_blank" rel="noreferrer">Neurodiversity</a> group is a growing cloud-native community focused on neurodivergent (ND) open-source contributors and their allies. Originally formed as a space for people navigating the unspoken social and operational codes of the tech landscape, the community’s focus has steadily evolved.</p>
+<p>That shift borrows a framing our cloud native audience will recognize. In operations, “Day 1” is launch – getting something running – and “Day 2” is the long, harder work of running it well over time. We’ve found the same distinction applies to accessibility. Over the past year, the conversation has expanded from Day 1 accessibility, centered on awareness and individual strategies for navigating existing systems, to Day 2 universal design, where the emphasis shifts toward reducing cognitive friction at the system level. This reframes accessibility not as an individual adaptation challenge, but as an architectural responsibility shared by maintainers, contributors, and ecosystem designers.</p>
+<p>This post traces that evolution across three conferences over the past year: from foundational awareness at KubeCon + CloudNativeCon North America 2025 in Atlanta, to community-building at KubeCon + CloudNativeCon EU 2026 in Amsterdam and multiple other conferences, to the turn toward system-level design at Open Source Summit NA 2026 in Minneapolis. Each stop moved us further from “help individuals cope” toward “redesign the system.”</p>
+<h2>The Baseline: KubeCon + CloudNativeCon North America 2025 – “<a href="https://kccncna2025.sched.com/event/2Azc4/agile-for-every-brain" target="_blank" rel="noreferrer">Agile for Every Brain</a>”</h2>
+<p>The initial roadmap toward universal design began taking shape at KubeCon + CloudNativeCon North America 2025 in Atlanta, where foundational concepts around neurodiversity in engineering teams were introduced.</p>
+<h3>Focus Areas</h3>
+<p><strong>Demystifying Neurodiversity in Cloud Native:</strong>Moving beyond clinical framing to explore how cognitive differences such as ADHD, autism, dyslexia, and dyspraxia may surface in distributed engineering environments.</p>
+<p><strong>Identifying Communication Anchors:</strong>Highlighting asynchronous communication patterns—such as written specifications and structured RFCs—as potential equalizers when expectations around responsiveness and tone are explicit.</p>
+<p><strong>Reducing Cognitive Overload:</strong>Offering approaches for restructuring high-pressure synchronous rituals (for example, fast-paced stand-ups) into more flexible, multi-modal update systems.</p>
+<h3>Takeaway</h3>
+<p>Inclusion at this stage was framed less as a compliance goal and more as a systems-thinking opportunity. Diverse cognitive styles can strengthen engineering outcomes by exposing edge cases and alternative problem-solving approaches that may be missed in more uniform working models.</p>
+<h2>Growing the Community: KubeCon + CloudNativeCon Europe 2026</h2>
+<p>As the conversation matured, the focus shifted toward scale, peer support structures, and shared practices across the broader ecosystem, including KubeCon + CloudNativeCon Europe Amsterdam 2026 and multiple other conferences. The ND <a href="https://kccnceu2026.sched.com/event/2IWqL/neurodiversity-at-work-practical-tools-open-source-paths-and-inclusive-community-building" target="_blank" rel="noreferrer">community hub session</a> was particularly well received, and we gathered excellent feedback from the on-site participants.</p>
+<h3>Focus Areas</h3>
+<p><strong>Peer Mentorship Networks:</strong>Connecting experienced neurodivergent maintainers with newer contributors to share practical approaches to burnout management, focus strategies, and navigating rejection sensitivity in open-source contexts.</p>
+<p><strong>Allyship Practices:</strong>Supporting maintainers and community managers with actionable ways to reduce ambiguity in feedback, improve PR review clarity, and manage high-volume asynchronous communication.</p>
+<p><strong>Working-Style Readmes:</strong>Encouraging contributors to document collaboration preferences (“How to Work With Me” guides) to reduce social ambiguity in distributed teams.</p>
+<h3>Takeaway</h3>
+<p>These efforts demonstrated that structured community support can reduce isolation and improve participation. But this stage also exposed a persistent gap. We kept hearing two things at once. From contributors: <em>I don’t see myself as having a superpower—I just see myself struggling with anxiety, or just trying to get by.</em> And from managers and leaders, a steady stream of the same practical question: How do I start raising awareness for my teams? How do I onboard people around this? What are the best practices, and do you have any advice?  This highlighted a key limitation: much of the adaptation burden still rested on individuals navigating existing system constraints rather than on systems evolving to reduce friction by design. This realization has increasingly shaped the shift toward a “Day 2” approach.</p>
+<h2><strong>Maturing the Movement: Open Source Summit NA 2026 – “Day 2 &amp; Engineered Accessibility”</strong></h2>
+<p>At Open Source Summit North America 2026 in Minneapolis, we hosted a Birds of a Feather <a href="https://osselcna2026.sched.com/event/2JQyi/day-2-neurodiversity-moving-beyond-fundamentals-with-merge-forward-ryan-etten-rhca-red-hat-diana-todea-victoriametrics" target="_blank" rel="noreferrer">session</a> focused on this transition from individual adaptation to system-level accessibility. We ran it as an open, informal discussion, and the room did most of the talking.</p>
+<p>A central theme was the need to critically examine the narrative of “neurotalent”: the framing of neurodivergent individuals as inherently exceptional or “gifted.” While often well-intentioned, this framing can create unrealistic expectations, obscure the breadth of neurodivergent experiences, and unintentionally marginalize those whose challenges are less visible or less compatible with high-output norms.</p>
+<p>One attendee, a system administrator with ADHD and autism, described how those traits became a genuine strength in his role—but only because his manager had built a direct, transparent, two-way relationship from day one. He could say plainly, “here’s how my brain works, tell me straight when something doesn’t make sense,” and trust that the candor went both ways. In a previous environment without that culture, the right move would have been to say nothing. To him, the “superpower” wasn’t an innate gift to be extracted. It was downstream of an environment that let him stop masking.</p>
+<p>Neurodivergence is not a single profile but an umbrella term encompassing a wide range of cognitive differences, each with different strengths, constraints, and support needs.</p>
+<p>A key talking point raised during the session was how organizations can define “best practices” when lived neurodivergent experience is so heterogeneous. Rather than searching for a single standardized model, participants emphasized the need for adaptable systems that reduce ambiguity, clarify expectations, and allow for variation in execution style.</p>
+<p>Another recurring insight, particularly from engineering managers in attendance, was the strong demand for practical guidance on onboarding, management, and team design. This marked a clear shift from awareness-building toward operational implementation.</p>
+<h3>Focus Areas</h3>
+<p><strong>Governance and Participation Models:</strong>Examining how maintainership structures and governance processes can unintentionally privilege highly synchronous, verbally assertive, or continuously available contributors.</p>
+<p><strong>Reducing “Blank Page” Friction:</strong>Improving issue templates, contribution guidelines, and documentation structures to make contribution paths more explicit, bounded, and navigable.</p>
+<p><strong>Strength-Based Contribution Mapping:</strong>Exploring ways to align work with cognitive diversity (for example, pairing deep-focus contributors with complex refactoring tasks, or visual thinkers with system design mapping), without rigid categorization or exclusion.</p>
+<h3><strong>Takeaway</strong></h3>
+<p>The session surfaced a broader structural concern: many open-source systems implicitly assume an “ideal contributor” profile—always available, highly responsive, and socially fluent in synchronous environments. Moving beyond this requires intentional redesign of workflows, expectations, and governance models toward more asynchronous and inclusive defaults.</p>
+<p>It also reinforced that both contributors and maintainers are often under-equipped in this space. There is a shared skills gap: awareness alone is not sufficient without concrete operational patterns, training, and shared vocabulary that can be consistently applied across projects.</p>
+<h2><strong>Where Do We Go From Here? Scaling Practice, Not Just Awareness</strong></h2>
+<p>One clear signal from recent discussions is a growing demand, especially from engineering managers and maintainers, for structured, practical guidance on supporting neurodivergent professionals in real organizational contexts.</p>
+<p>This marks a shift in the conversation from awareness toward systemic enablement and operational design. Key questions emerging across the ecosystem include:</p>
+<ul>
+<li>How do we support individuals when neurodivergence is highly variable and often invisible?</li>
+<li>How can “best practices” exist without flattening a wide range of lived experiences into oversimplified models?</li>
+</ul>
+<p>There is also increasing interest in structured, recurring training approaches—similar in cadence to ethics or compliance training—so that teams and managers build a shared baseline understanding rather than relying on individual familiarity.</p>
+<p>Alongside this, a concrete idea gaining traction is the development of Open Practice Library (OPL) practices for neurodiversity-aware collaboration patterns. This would serve as a living, community-driven repository of practical approaches for documentation, onboarding, feedback, and team design.</p>
+<p>All of this answers the same underlying question we heard again and again: how do organizations move from awareness to consistent, ethical, practical application? No one has fully solved it—but the demand is now concrete enough that the next phase of work is building these tools, not arguing for their necessity. A reflection from the Minneapolis session has stayed with us: the value of revisiting past collaborations through this lens, and recognizing how differently things might have gone if communication norms and cognitive diversity had been better understood at the time.</p>
+<h2><strong>Conclusion</strong></h2>
+<p>Merge Forward Neurodiversity has evolved from a community focused on individual navigation strategies into a broader effort to influence how accessibility is understood and implemented across open-source ecosystems. True inclusion does not ask individuals to bend themselves around legacy systems. It builds systems that reduce unnecessary cognitive friction from the start.</p>
+<p>Moving from intention to engineered accessibility is not a single initiative. It’s an ongoing redesign of how we communicate, collaborate, and govern—and it’s already underway. What it needs now is sustained participation from contributors, maintainers, and organizations across the ecosystem.</p>
+<h2><strong>Join the Movement</strong></h2>
+<p>Connect with the community on CNCF Slack channels (#<a href="https://cloud-native.slack.com/archives/C09714J67U7" target="_blank" rel="noreferrer">merge-forward</a>, #<a href="https://cloud-native.slack.com/archives/C096UH0U9RS" target="_blank" rel="noreferrer">neurodiversity</a>), participate in upcoming working groups, and stay tuned for local meetup chapters focused on practical, low-friction collaboration practices. You don’t have to identify with any of the groups to take part. We’ll be running multiple community hub sessions at KubeCon + CloudNativeCon NA 2026 in Salt Lake City this November; come find us.</p>
+<h2>The latest from our blog</h2>
+<h3>Security Profiles Operator v1: Stable APIs, Security Hardened, and Shaping Upstream Kubernetes</h3>
+<h3>Securing CI/CD for an open source project, part 3: Credentials, verification, and what&#x27;s next</h3>
+<h3>Building a Cluster-Aware AI Agent with Kubernetes, Argo CD, and GitOps</h3></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
 <a class="article-sequence-link" href="item-490968be52e7fc07.html">
@@ -580,7 +634,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-49a7dcb1b5fe8631.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：From Awareness to Engineered Accessibility in Open Source</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Diana Todea (DevRel Engineer at VictoriaMetrics and Merge-Forward Neurodiversity chapter lead), and Ryan Etten (Senior Architect &amp; Team Lead at Red Hat and Wisc...</li><li><strong>原始網站授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：From Awareness to Engineered Accessibility in Open Source（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Diana Todea (DevRel Engineer at VictoriaMetrics and Merge-Forward Neurodiversity chapter lead), and Ryan Etten (Senior Architect &amp; Team Lead at Red Hat and Wisc...（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-24T16:18:03+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

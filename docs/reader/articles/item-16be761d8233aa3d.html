@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>為什麼年齡保障法會影響開發者 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-05-08 08:00</span></div>
+      <h1><a class="article-title-link" href="https://github.blog/news-insights/policy-news-and-insights/why-age-assurance-laws-matter-for-developers/" target="_blank" rel="noreferrer" title="開啟原始連結">為什麼年齡保障法會影響開發者</a></h1>
+      <p class="lede">GitHub 說明各國年齡保障與年齡驗證法案如何可能影響開發者與開源社群。文章指出，保護兒少免於網路危害是正當目標，但若法規要求作業系統、app store 或軟體發布者集中蒐集年齡資訊、傳遞年齡訊號，可能會壓縮使用者自主安裝軟體、開源作業系統再散布、小型社群維護專案的空間。文章也列出澳洲、法國、加州、科羅拉多等案例，主張政策應把開源協作平台與一般消費型社群平台區分開來。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">年齡認證</span><span class="tag-chip">開發者權利</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://github.blog/wp-content/uploads/2026/01/4ba0cd42388a255e04c78e5143548f22e577d68e0f15f68e6a3c76c18b927981-1920x1080-1.png" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Why age assurance laws matter for developers</h1>
+<p>Youth safety requirements are moving down the tech stack to operating systems and app stores—raising new questions for open source developers.</p>
+<p>Policymakers around the world are advancing age assurance proposals to protect children and teens online. Some approaches restrict minors’ access to certain services or content, while others would require devices, operating systems, or app stores to collect age information and pass age signals to apps and websites. These proposals are driven by serious concerns, but without appropriate scoping, they risk imposing burdensome requirements on open source software and developer infrastructure services that do not present the same risks to minors as consumer-facing platforms. In this blog post, we’ll provide an overview of what developers should know and how to engage.</p>
+<p>The harms these laws aim to address are serious and deserve attention. Grooming for sexual purposes, exposure to violent content, and online bullying are just some of the risks young people are facing online. At the same time, participation in online communities, including open source software development, can be an important part of a young person’s education and social life. When trying to strike a balance between freedom and protection, policymakers are not always aware of how their proposals could affect developers or how the open source ecosystem operates.</p>
+<p>“Age assurance” refers to a range of approaches used to determine or estimate a user’s age. It is sometimes used interchangeably with “age verification,” which typically refers to higher-confidence methods like photo ID matching or checks against financial or identity systems. Age assurance also includes self-attestation (where users report their age) and age estimation (where age is inferred from signals, facial scanning, or behavior). These approaches span a wide spectrum, with ongoing debate about tradeoffs between accuracy, privacy, security, interoperability, and accessibility. Proposals also vary in what age thresholds trigger restrictions, the services or content covered, how parental consent should factor in, and how access is limited. While we do not discuss each approach in detail here, we encourage readers to engage with the legislation, consider different technical and policy perspectives, and think about how to protect young people online while preserving access to the knowledge, learning opportunities, and creative potential the internet enables—including opportunities to learn to code and participate in the global open source ecosystem.</p>
+<p>A poorly designed age assurance law could have significant unintended impacts for open source projects. For example, requirements that operating systems centrally collect and manage user data, or that restrict users from installing software outside of centralized app stores, would conflict with the decentralized, user-controlled norms of the open source ecosystem.</p>
+<p>Another potential pitfall is placing age assurance requirements on “publishers” of operating systems, regardless of whether they are individuals or companies. Open source operating systems are frequently iterated on, reused, and redistributed by individual contributors and small communities, many of which have limited resources and small user bases. The diversity of the software ecosystem is worth preserving.</p>
+<p>GitHub has engaged with governments on age‑related online safety proposals for several years. In some cases, including <a href="https://www.esafety.gov.au/about-us/industry-regulation/social-media-age-restrictions" target="_blank" rel="noreferrer">Australia’s Social Media Minimum Age</a> legislation, we worked with policymakers to explain why open source code collaboration platforms <a href="https://www.esafety.gov.au/about-us/industry-regulation/social-media-age-restrictions/faqs#which-platforms-have-been-excluded-from-the-age-restrictions" target="_blank" rel="noreferrer">should not be in scope.</a> Similar exemptions appear elsewhere. <a href="https://www.reuters.com/technology/french-senate-debates-social-media-ban-children-under-15-2026-03-31/" target="_blank" rel="noreferrer">France’s current Social Media Minimum Age proposal</a>, for example, includes the same exclusions for open source code collaboration sites and online encyclopedias that appear in the EU Copyright Directive.</p>
+<p>Many policymakers recognize that access to the open source software development ecosystem delivers significant public benefits, including education, innovation, and security, and that the risks young people face from participating in open source development communities are materially different by comparison. At the same time, a growing number of laws are seeking to advance child safety goals at varying levels of the tech stack, including through operating systems and application distribution layers. This has raised new questions for developers about how these requirements apply in practice, and whether open source operating systems and developer infrastructure like GitHub could be impacted.</p>
+<h2>Legislation to know</h2>
+<ul>
+<li><strong>California</strong><a href="https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202520260AB1043" target="_blank" rel="noreferrer">AB 1043</a><strong>Digital Age Assurance Act and 2026 amending bill</strong> <a href="https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202520260AB1856" target="_blank" rel="noreferrer">AB 1856:</a> Requires operating system providers (in coordination with covered app stores) to collect self‑declared age at account setup and transmit an age‑range signal to applications via a real‑time API.</li>
+<li><strong>Colorado</strong><a href="https://leg.colorado.gov/bills/SB26-051" target="_blank" rel="noreferrer">SB 26-051</a><strong>Age Attestation on Computing Devices:</strong> Requires operating systems and covered app stores to generate and share an age‑bracket signal with applications via a real‑time interface, with evolving definitions of “covered application” and “covered application store” shaping scope.</li>
+<li><strong>Illinois</strong><a href="https://hb4140/" target="_blank" rel="noreferrer">HB 4140</a><strong>Digital Age Assurance Act:</strong> Applies to operating system providers and requires collection of age data and transmission of an age‑category signal to developers via a real‑time API, closely mirroring California’s model.</li>
+<li><strong>New York</strong><a href="https://www.nysenate.gov/legislation/bills/2025/S8102/amendment/original" target="_blank" rel="noreferrer">S 8102</a><strong>/</strong><a href="https://www.nysenate.gov/legislation/bills/2025/A8893" target="_blank" rel="noreferrer">A 8893</a><strong>Device</strong>‑<strong>Level Age Assurance:</strong> Applies broadly to device manufacturers, operating systems, and app stores, requiring “commercially reasonable” age assurance (not just self‑reporting) at device activation and transmission of a verified age signal to apps and websites.</li>
+</ul>
+<p>This is just a selection of operating system and app store age assurance legislation in the United States. There have also been related but distinct laws focused on app stores passed in <a href="https://capitol.texas.gov/BillLookup/History.aspx?LegSess=89R&amp;Bill=SB2420" target="_blank" rel="noreferrer">Texas (SB 2420),</a> <a href="https://www.legis.la.gov/Legis/BillInfo.aspx?i=248616" target="_blank" rel="noreferrer">Louisiana (HB 570),</a> and <a href="https://le.utah.gov/~2025/bills/static/SB0142.html" target="_blank" rel="noreferrer">Utah (SB 142)</a>.</p>
+<p>These proposals are actively evolving. In Colorado, SB 26‑051 recently had a <a href="https://sg001-harmony.sliq.net/00327/Harmony/en/PowerBrowser/PowerBrowserV2/20260424/25/18672#agenda_" target="_blank" rel="noreferrer">committee hearing on April 23, 2026</a>, as part of ongoing legislative consideration. The hearing reflected the complexity of balancing child safety, privacy, and feasibility, and included strong engagement from open source developers and organizations. Committee members also signaled that the intent is not to bring open source operating systems or developer infrastructure into scope, and the latest amended text clarified that software installed outside of app stores, including software downloaded from public repositories, is not in scope.</p>
+<p>In Brazil, the <a href="https://github.com/github/developer-policy/blob/main/Brazil%20Digital%20ECA%20English.pdf" target="_blank" rel="noreferrer">Digital Statute for Children and Adolescents (Digital ECA)</a>, enforceable as of March 2026, applies broadly to digital services “likely to be accessed by children and adolescents” including operating systems, app stores, and platforms, and excludes essential internet functionalities such as open technical protocols and standards. Although the Brazilian National Data Protection Agency (ANPD) has not yet formally clarified whether or how the law applies to free and open source software, its regulatory agenda has <a href="https://www.gov.br/anpd/pt-br/assuntos/eca-digital" target="_blank" rel="noreferrer">initially prioritized</a> “app stores and proprietary operating systems,” and <a href="https://brasilparticipativo.presidencia.gov.br/processes/Guia-orientativo-fonecedores-eca-digital/f/4356/" target="_blank" rel="noreferrer">recent draft guidance</a> under <a href="https://brasilparticipativo.presidencia.gov.br/processes/Guia-orientativo-fonecedores-eca-digital/f/4355/" target="_blank" rel="noreferrer">public consultation</a> indicates that systems based on collaborative models and free software should not be subject to the same obligations as proprietary services.</p>
+<p>Despite this, legal uncertainty has already driven some open source projects to restrict access in Brazil, reflecting concerns about the feasibility of compliance for non-commercial, volunteer-driven ecosystems. While the law was primarily designed for commercial actors, key questions about scope remain unresolved, making it critical for open source developers to actively participate in the ongoing public consultation to ensure implementation reflects decentralized development models and avoids unintended restrictions on access and innovation.</p>
+<h2>What is an app store, really?</h2>
+<p>While much of the open source community’s concern has focused on the risk that these proposals could present to open source operating systems, an equally important open question is how “application store” and “application” are defined. As drafted, some definitions of “application store” are broad enough to capture developer infrastructure—such as code collaboration platforms, package managers, and open source indexing services—simply because they allow users to access or download software.</p>
+<p>Making software available for download is not the same as operating the kind of centralized, consumer-facing marketplace that most people would understand to be an app store. It is also important to define “application” precisely. Downloading software components like source code, libraries, frameworks, models, and utilities is fundamentally different from offering a standalone executable application through a consumer app marketplace. These components are upstream building blocks, not end‑user products, and the services that host or index them do not control consumer distribution or presentation in the way traditional app stores do.</p>
+<p>Recent amendments and discussions across jurisdictions suggest regulators intend to focus on consumer‑facing distribution and services that control end‑user access. Clear statutory distinctions are needed to ensure laws align with that intent. This reflects a familiar challenge in technology policymaking. Frameworks aimed at youth safety and age assurance are typically responding to risks associated with consumer-facing services that collect and monetize user data, distribute content at scale, and rely on engagement-driven systems to shape user behavior.</p>
+<p>By contrast, platforms that support collaborative software development serve a fundamentally different function—they are built to help users create, share, and maintain code, not to attract mass audiences, amplify content, or drive passive or excessive consumption—resulting in a materially lower risk profile. Open source communities operating on services like GitHub are organized around shared technical goals and guided by norms of collaboration, reuse, and transparency, further underscoring why these developer-focused services should be distinguished from consumer-facing platforms in regulatory design.</p>
+<p>Open source software is also a <a href="https://github.blog/news-insights/policy-news-and-insights/how-researchers-are-using-github-innovation-graph-data-to-reveal-the-digital-complexity-of-nations/" target="_blank" rel="noreferrer">key driver of economic development and innovation</a> and functions as critical digital infrastructure. Ensuring that policies accurately reflect how open source is built and maintained is essential to preserving these benefits. When policymakers engage directly with open source developers and civil society, they are often able to refine definitions, clarify scope, and better align laws with technical realities.</p>
+<p>Uncertainty around compliance requirements can be challenging for open source developers, many of whom contribute on a voluntary basis. At the same time, there are positive examples of policymakers engaging with the open source community to strike a balanced approach. The <a href="https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act" target="_blank" rel="noreferrer">EU Cyber Resilience Act</a>, for example, was refined through an iterative process to <a href="https://github.blog/open-source/maintainers/what-the-eus-new-software-legislation-means-for-developers/" target="_blank" rel="noreferrer">get the balance right for open source</a>. Across U.S. states, these bills continue to evolve and policymakers have shown a willingness to engage with the open source community and consider changes to align with regulatory intent and technical feasibility.</p>
+<h2>An opportunity for engagement</h2>
+<p>The window for constructive engagement remains open—and developer voices can make a meaningful difference.</p>
+<p>Whether through contacting elected representatives in states considering these proposals like California, Colorado, Illinois, and New York, contributing to Brazil’s Digital ECA <a href="https://brasilparticipativo.presidencia.gov.br/processes/Guia-orientativo-fonecedores-eca-digital/f/4355/" target="_blank" rel="noreferrer">public consultation,</a> or engaging with organizations like the <a href="https://opensource.org/" target="_blank" rel="noreferrer">Open Source Initiative,</a> or through foundations that steward projects that may be impacted like the <a href="https://freebsdfoundation.org/" target="_blank" rel="noreferrer">FreeBSD Foundation</a> and <a href="https://www.debian.org/" target="_blank" rel="noreferrer">Debian</a>, there are concrete ways for developers to share their perspectives—helping ensure these policies both support children’s digital safety and reflect technical realities, align with regulatory intent, and avoid unintended harm to the open source ecosystem.</p>
+<p>GitHub will continue working with policymakers and the open source community to support balanced approaches that protect young people while preserving open development. We encourage developers to stay informed, connect with open source policy organizations, and <a href="https://github.com/github/developer-policy" target="_blank" rel="noreferrer">reach out to us</a> with questions or concerns. We’ll also continue this conversation with a <a href="https://maintainermonth.github.com/schedule/2026-05-22-age-assurance-laws-and-open-source" target="_blank" rel="noreferrer">Maintainer Month livestream on May 22</a> with panelists from the FreeBSD Foundation and the Open Source Initiative to discuss the broader issues raised by these proposals and how technology policy can be designed with open source in mind.</p>
+<h2>Tags</h2>
+<ul>
+<li><a href="https://github.blog/tag/maintainers/" target="_blank" rel="noreferrer">maintainers</a></li>
+<li><a href="https://github.blog/tag/open-source/" target="_blank" rel="noreferrer">open source</a></li>
+<li><a href="https://github.blog/tag/policy/" target="_blank" rel="noreferrer">policy</a></li>
+</ul>
+<h2>Written by</h2>
+<h3><a href="https://github.blog/author/margarettucker/" target="_blank" rel="noreferrer">Margaret Tucker</a></h3>
+<p><a href="https://github.com/margaret-tucker" target="_blank" rel="noreferrer">@margaret-tucker</a></p>
+<ul>
+<li><a href="https://github.blog/tag/maintainers/" target="_blank" rel="noreferrer">maintainers</a></li>
+<li><a href="https://github.blog/tag/open-source/" target="_blank" rel="noreferrer">open source</a></li>
+<li><a href="https://github.blog/tag/policy/" target="_blank" rel="noreferrer">policy</a></li>
+</ul>
+<h2>Table of Contents</h2>
+<ul>
+<li><a href="https://github.blog/news-insights/policy-news-and-insights/why-age-assurance-laws-matter-for-developers/#h-legislation-nbsp-to-nbsp-know-nbsp" target="_blank" rel="noreferrer">Legislation to know</a></li>
+<li><a href="https://github.blog/news-insights/policy-news-and-insights/why-age-assurance-laws-matter-for-developers/#h-what-is-an-app-store-really" target="_blank" rel="noreferrer">What is an app store, really?</a></li>
+<li><a href="https://github.blog/news-insights/policy-news-and-insights/why-age-assurance-laws-matter-for-developers/#h-an-opportunity-for-engagement-nbsp" target="_blank" rel="noreferrer">An opportunity for engagement</a></li>
+</ul>
+<h2>More on <a href="https://github.blog/tag/maintainers/" target="_blank" rel="noreferrer">maintainers</a></h2>
+<h3><a href="https://github.blog/open-source/maintainers/how-pull-request-limits-are-cutting-down-the-noise/" target="_blank" rel="noreferrer">How pull request limits are cutting down the noise</a></h3>
+<p>Learn how pull request limits can help manage contribution volume in your repositories, and see what’s next on the roadmap.</p>
+<h3><a href="https://github.blog/open-source/gaming/beyond-the-engine-10-open-source-projects-shaping-how-games-actually-get-made/" target="_blank" rel="noreferrer">Beyond the engine: 10 open source projects shaping how games actually get made</a></h3>
+<p>Check out these 10 open source tools that help game developers create art, animation, levels, audio, dialogue, debug UIs, and engine-ready assets.</p>
+<h3><a href="https://github.blog/news-insights/policy-news-and-insights/github-joins-coalition-advocating-for-fixes-to-california-ai-transparency-act-to-protect-open-source/" target="_blank" rel="noreferrer">GitHub joins coalition advocating for fixes to California AI Transparency Act to protect open source</a></h3>
+<p>We’re calling for targeted amendments to resolve conflicts with open source licensing and align with international transparency frameworks while preserving regulatory intent.</p>
+<h3><a href="https://github.blog/news-insights/company-news/github-availability-report-may-2026/" target="_blank" rel="noreferrer">GitHub availability report: May 2026</a></h3>
+<p>In May, we experienced nine incidents that resulted in degraded performance across GitHub services.</p>
+<h3><a href="https://github.blog/news-insights/company-news/github-universe-is-back-all-together-now-in-the-agentic-era/" target="_blank" rel="noreferrer">GitHub Universe is back: All together now, in the agentic era</a></h3>
+<p>GitHub Universe is back: returning to the historic Fort Mason Center in San Francisco on October 28–29, 2026.</p>
+<h2>Explore more from GitHub</h2>
+<h3>Docs</h3>
+<p>Everything you need to master GitHub, all in one place.</p>
+<h3>GitHub</h3>
+<p>Build what’s next on GitHub, the place for anyone from anywhere to build anything.</p>
+<h3>Customer stories</h3>
+<p>Meet the companies and engineering teams that build with GitHub.</p>
+<h3>GitHub Universe 2026</h3>
+<p>Join us October 28-29 in San Francisco or online for GitHub Universe, our flagship developer event uniting people, agents, and the world’s code.</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-dd402ea9402432fd.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">OSI 的傾聽、學習與共同建設</span>
+</a>
+
+<a class="article-sequence-link" href="item-c10d9098ef7388d5.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">從破壞式創新到基礎設施</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-16be761d8233aa3d.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Why age assurance laws matter for developers</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Margaret Tucker（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-27T16:19:04+00:00</li><li>審稿備註：初步值得追：符合主線或既有收錄線索，可人工判斷是否作為小消息。
+可能形式：純事實新聞 / 小消息
+命中線索：open source
+判斷理由：命中「開放科技與開放產業發展」關鍵字：open source。
+判斷理由：和過去已收錄來源或標籤的相似度不高，適合先快速掃讀。
+下一步：先做事實查核；如果只是短訊，可標記直接送 PR（小消息）。
+2026-06-27T16:19:04+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-16be761d8233aa3d";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

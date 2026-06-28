@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>聯邦式協定的政治：透過數位主權組織開放性 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-06-26 12:45</span></div>
+      <h1><a class="article-title-link" href="https://www.openbookpublishers.com/books/10.11647/obp.0528/chapters/10.11647/obp.0528.06" target="_blank" rel="noreferrer" title="開啟原始連結">聯邦式協定的政治：透過數位主權組織開放性</a></h1>
+      <p class="lede">這篇評論分析聯邦式數位架構如何在歐洲數位主權討論中變得重要。作者指出，去中心化、互通性、自主託管與開源開發等原本常見於替代網路與社群工具的特性，正被歐洲國家與機構重新挪用，成為降低對美國數位服務依賴的基礎設施策略。文章特別關注安全通訊與 Matrix 等協定的政府實作，並提醒當這些工具從倡議者、記者與高風險使用者場景移入國家治理時，會產生開放、主權與控制之間的矛盾。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開放資料</span><span class="tag-chip">Open Knowledge</span><span class="tag-chip">digital sovereignty</span><span class="tag-chip">interoperability</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.openbookpublishers.com/small_obp_logo_high_res_8ad3ef43d4.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>The Politics of Open Infrastructures - 6. The Politics of Federated Protocols</h1>
+<h2>6. The Politics of Federated Protocols: Openness Organised through Digital Sovereignty</h2>
+<h2>Francesca Musiani 1</h2>
+<p>©2026 Francesca Musiani, CC BY-NC 4.0 <a href="https://doi.org/10.11647/OBP.0528.06" target="_blank" rel="noreferrer">https://doi.org/10.11647/OBP.0528.06</a></p>
+<p>‘Sovereignty necessarily means decentralisation’: with this seemingly paradoxical statement, D., a Belgian technology entrepreneur, began the ‘Messaging for Government’ workshop held on 31 January 2025 in Brussels as part of FOSDEM, the international...</p>
+<p>This observation may surprise longtime observers of decentralised networks, like my colleague Ksenia Ermoshina and I. Why is decentralisation, often associated with ‘alternative internets’ (Dulong de Rosnay and Musiani 2017), and so highly valued by communities identified as ‘resistant’ or even subversive, such as hackers and cypherpunks, now considered fundamental to European technological sovereignty? While interest in federated architectures has been growing steadily since the late 2010s, it now seems to be moving beyond the circles of techno-enthusiasts and invading the public sphere. In the context of the profound techno-political upheavals brought about by Donald Trump’s second term as US president, the issue of hosting digital communication services in European territories is beginning to take on unprecedented importance in discussions among experts and policy makers. My current research with Ksenia aims to understand how federated solutions are being mobilised in the context of debates on European digital sovereignty and self-determination.</p>
+<p>Federated or decentralised social networks and messaging services are often perceived by the general public (and even analysed by some specialists) as technological utopias used by audiences with very specific characteristics, relatively marginal, and few in number. However, the Fediverse is currently experiencing a surge in popularity (La Cava et al. 2021; Rozenshtein 2023) that coincides with the development of digital sovereignty strategies on the part of many European states, and European institutions themselves (Roberts et al. 2021). Indeed, faced with the dominance of US-hosted services (such as WhatsApp or Signal) in the secure messaging market, Europe is seeking to deploy alternatives. Our research aims to explore how the various technical properties of federated solutions (such as interoperability, self-hosting, portability, modularity) are currently being invoked and mobilised by certain internet regulators in order to serve the objectives of digital and infrastructural autonomy. The more general question we seek to address concerns the controversy surrounding the reuse, or even co-optation, by different institutional and regulatory actors, of alternative tools and protocols developed by free software communities, often carrying libertarian and/or anti-authoritarian values.</p>
+<p>As the label ‘ digital sovereignty’ (see e.g., Couture and Toupin 2019; Pohle and Thiel 2020) is increasingly mobilised by practitioners and researchers of the internet and digital governance, a perspective based on science and technology studies ( STS) and more specifically on infrastructure studies enables us to examine the co-development of the material, institutional and territorial components of digital sovereignty (Easterling 2014; Amoore 2018; Möllers 2021). Approaches embedded in infrastructure studies allow us to show that ‘ digital sovereignty’ is woven through situated and contextualised devices; they open the way to an understanding of the ‘situated practices’ embedded in the infrastructures of various political and economic projects that aim to establish autonomous digital infrastructures in a hyperconnected world. They also demonstrate the scalability and ontology of digital infrastructures as ‘processes’ rather than ‘objects,’ leading a body of recent work to speak of ‘infrastructuring’ (Blok et al. 2016; Karasti and Blomberg 2018; Musiani 2022 on the relation of this concept to digital sovereignty studies).</p>
+<p>To shed light on how digital sovereignty strategies are embedded in infrastructures, and to understand what this reveals about the transformations of institutions and territories, two main ‘gestures,’ both theoretical and methodological, are desirable (see Musiani 2022). Firstly, to track the systems and arrangements, based on digital infrastructures, where sovereignty as a founding principle of the nation-state is promised, desired, constructed, and co-opted. Secondly, to focus on the technical components of digital infrastructures as strategic sites to trace the inscription of particular visions of sovereignty. This commentary adopts this theoretical and methodological position by analysing digital sovereignty as a set of social practices, intimately linked to the way humans and organisations build, develop, use, co-opt, and resist digital infrastructures.</p>
+<p>The specificities of European digital and technological sovereignty are most often examined through the prism of political and legal science, notably by analysing the set of ambitious legislative initiatives that the EU has implemented in the last ten years, fro...</p>
+<p>Aware of its numerous digital dependencies at both the software and hardware levels, Europe is striving to build its own digital industry and strengthen its competitiveness by supporting innovation in semiconductors, artificial intelligence, and emerging technologies. The Open Source Observatory ( OSOR) tracks and documents open-source initiatives across Europe, providing resources to administrations and businesses wishing to adopt sovereign solutions. Events such as FOSDEM and platforms such as Sovereign Tech facilitate networking among stakeholders engaged in this digital transition. Among these solutions for ‘infrastructuring’ European digital sovereignty—arguably the most prominent and controversial of the last five years has been the Gaia-X ‘sovereign cloud’ project (Adler-Nissen and Eggeling 2024)—digital services supported by federated technical architectures are gaining ground.</p>
+<h2>Federated Architectures</h2>
+<p>With the growing popularity of the Fediverse, primarily known for its flagship project, Mastodon, but also with the popularisation of the Matrix protocol and chat-over-email solutions like Delta Chat, federated solutions are currently experiencing a phase of increased development and use. As evidenced by the massive exodus of users from the ‘X’ platform to decentralised and interoperable alternatives, user trust in centralised platforms is in crisis. ‘ Federation’ is increasingly seen as an alternative, on the one hand, to centralised applications that introduce a central point of vulnerability into the system, and on the other hand, to peer-to-peer (p2p) applications, which often require higher levels of commitment, expertise, and responsibility from the user (and their device). The Fediverse advocates’ slogan, ‘Protocols instead of platforms,’ signals the promise of a major shift in the balance of technological, as well as political and social, power between the owners of major digital platforms and the administrators of decentralised local servers.</p>
+<p>Federated architectures mobilise a new type of actor, sysadmins, responsible for maintaining the server cluster required for federated networks. By distributing the workload, federation is supposed to help mitigate the responsibility of a centralised service provider, while also distributing this responsibility and the ‘computational resources’—that is, the hardware and logistical resources necessary for the network’s proper functioning—with varying degrees of possible commitment, while promoting users’ freedom to choose between different solutions and servers.</p>
+<p>The secure messaging developer community is engaged in lively debates about the limitations and potential of decentralised protocols—debates that Ksenia Ermoshina and I documented online and during our field observations at professional conferences. Discussions about the tensions between centralisation and more distributed architectural forms, such as federation, go hand in hand with debates about standards. Proponents of federated solutions argue that reusing existing standardised protocols or developing new standards can improve interoperability and resolve the problem of ‘messaging silos’ (Kent 2019).</p>
+<p>Federated projects promote interoperability as a solution to the ‘walled gardens’ of secure messaging applications. Building a system that is potentially open and modifiable according to the needs of a community also means taking some of the work away from the development team and delegating it to local entities. Indeed, federated architectures seem well suited to promoting localism and small, community-driven solutions, whose business model does not depend on the number of users and the availability of their data for collection and aggregation.</p>
+<p>On the other hand, according to advocates of centralised solutions, federation can pose security challenges, as it is more difficult to audit all the different implementations of a federated protocol and ensure that all servers are properly configured. Indeed, federated messaging solutions add a layer of complexity to the governance of the socio-technical networks they structure, as they introduce the need for decentralised administration of servers (or ‘instances’).</p>
+<p>Federation is understood as an infrastructural and social experiment, seeking a compromise between distributing responsibilities across a larger number of actors, high levels of security, and improved usability. In this sense, federation becomes a political and technical project that recognises the inherent dangers of centralised solutions, but offers an intermediate solution between centralisation and full-fledged distribution, as in the case of peer-to-peer tools, the latter of which are considered to require a steeper learning curve. Federation is also a means of making messaging applications censorship-resistant, a factor that plays an increasingly important role for users living in repressive contexts.</p>
+<p>While the developers we interviewed for this study agree that decentralised systems are more difficult to design, their motivation to work on federated systems seems to be based on the political and technical aspects of federation, primarily the autonomy it can offer users by empowering them to control their own data and enabling better metadata protection. A developer of the ChatSecure application told us:</p>
+<p>I would like to allow people to manage their own infrastructure around their own data as much as possible. There are other great tools that provide encryption, like Signal, and you can, of course, use WhatsApp or Facebook Messenger, which use the same Signal protocol. But [in WhatsApp and Facebook Messenger] you still don’t own your data; all metadata is controlled by a centralised system, which knows all your contacts, who you message, and at what time.</p>
+<p>Another argument in favour of federated architectures, as opposed to centralised and purely peer-to-peer architectures, emphasises users’ freedom to choose between different services, as the lead developer of Matrix explains:</p>
+<p>I had a long conflict with Moxie Marlinspike [ Signal’s head developer] about [ decentralisation versus centralisation], mainly because Matrix is clearly an interoperable decentralised network, and he considers it a privacy risk because you can’t control the entire network, there may be insecure implementations, there may be bugs that you can’t control, which leak sensitive information, and it’s a privacy issue. However, I would say that decentralisation is also important for the user’s freedom and ability to choose which service they want to use.</p>
+<h2>The Politics of Federated Protocols</h2>
+<p>In this sense, federated protocols are often compared to political systems, where users can ‘vote with their feet’ by leaving one server in favour of another that better suits them. Federated protocols are supposed to enable greater accountability and control over service providers. Furthermore, the ease of migration offered by interoperable environments allows users to choose a better option without losing their social graphs. LEAP developer Elijah Sparrow told us: ‘There’s no way to establish any accountability for centralised services that lock people in. It’s very easy, with federated services, to choose and leave a provider that does something you don’t like. So, tomorrow, Signal starts doing something that people criticise, it will be very difficult to get people to leave Signal and use something else.’</p>
+<p>The ability to develop a client based on an open federated protocol, with the features needed by a specific user community, was also highlighted as a positive aspect of federation, even if it limits the use of these solutions to a more technically savvy audience or requires localisation efforts.</p>
+<p>Some developers and digital security trainers we interviewed over the years justify federation as reflecting the organisation of anti-authoritarian social movements, which echoes Nathan Schneider’s (2019) conceptual analysis of the sociotechnical meanings of decentralisation. However, decentralisation is now beginning to be instrumentalised in discourses on European technological sovereignty. In this context, “decentralising” means shaping one’s independence from foreign powers and their infrastructures.</p>
+<p>However, our research shows that the adoption of federated solutions by public institutions is slowed by major contradictions inherent in the tools themselves, their functionalities, and the basic technological choices made by the protocol authors. Indeed, developers of decentralised encrypted messaging solutions make their design and implementation choices by imagining certain user profiles for their tools, particularly by anticipating their threat models ( Ermoshina and Musiani 2022). Projects such as Delta Chat, Riot (the former name of Element messaging), Conversations, Briar, Session, Quiet, SimpleX, and other encrypted and decentralised messaging services initially targeted activists, rights defenders, journalists, and other high-risk users. Having the ambition to offer maximum protected communication spaces, and being conditioned by very specific funding (such as DRL, Open Technology Fund, NED and other programs that emphasise ‘technologies for social good’), these projects have invested considerable efforts in anonymity or at least pseudonymity, extreme protection of metadata, ephemeral messages, ease of migration and change of accounts, etc. While high-level encryption represents an asset for governments, and the open-source model represents an indisputable economic attractiveness, other features and dynamics specific to these usually ‘alternative’ devices, such as anonymisation, ephemeral messages, ‘blind’ servers and other advanced security parameters, on the contrary, become a set of constraints for states and institutions, because they conflict with the demands...</p>
+<h2>How Digital Sovereignty Strategies Are Embedded in Infrastructures</h2>
+<p>Long considered by both specialists and practitioners as technological solutions that are both a decentralised utopian dream and a niche use case, federated solutions are now being used as leverage in the development of digital sovereignty strategies by many European states, as well as by European institutions themselves.</p>
+<p>As Ksenia Ermoshina and I delve into the ‘infrastructure-based’ digital sovereignty strategies deployed by Europe and European states, and then into the role of federated systems within this strategy, we are looking in particular at the development of the Matrix protocol and its implementations in ‘generic’ messaging tools, such as Element, but also, increasingly, in projects designed by and for governments, such as (in France) Tchap. We examine, in particular, how the developers and administrators of these platforms approach the issue of reuse of their services by state institutions, and what the implications of these shifts and reconfigurations are for the definition and implementation of digital sovereignty.</p>
+<p>In a context of numerous digital dependencies, at both the software and hardware levels, European institutional digital technology is choosing to ‘become an alternative internet.’ The technical properties of federated architectures, marked by visions of interoperability and technological autonomy and governance, have long found an almost natural resonance with communities of activists, users with advanced technical skills, or niche needs. These same properties are now being reappropriated, mobilised, and ‘made its own’ by a public authority that wishes to free itself from the technological and economic barriers imposed by the quasi- monopolies of Big Tech. However, these efforts at adaptation and reconfiguration reveal or lead to a certain number of constraints that are also intrinsic to the federation’s functionalities. For public stakeholders—and for developers of technical solutions adapted to the specific context of the public sector—it is a matter of imagining workarounds and compromises likely to institutionalise the ‘alternative,’ while avoiding compromising its founding model linked to encryption, open source, digital freedoms, and sometimes obfuscation.</p>
+<p>By making these design and technological development choices, the digital sovereignty of Europe and European states is taking shape. Alongside the significant legislative arsenal that Europe has been putting in place over the past decade to position itself as a ‘pioneering regulator’ of the digital industry, European public sector stakeholders are pursuing digital sovereignty solutions forged ‘through infrastructure,’ by embedding specific visions of the digital Europe of tomorrow into architectures and technical infrastructures. Additionally to government ambitions, digital sovereignty projects are being spearheaded by organisations that are adopting federated solutions to deploy semi-autonomous zones, protected both from the surveillance of large corporations and from the influence of states in their efforts to control connectivity.</p>
+<p>Given the evolution of digital geopolitics, particularly the growing politicisation of large American technology companies, the mobilisation and institutionalisation of ‘alternative internets’ to promote the self-determination of communities and states is certainly only in its infancy—as is the research that will examine these phenomena in the future.</p>
+<h2>Acknowledgements</h2>
+<p>The author wishes to acknowledge the joint work with Ksenia Ermoshina (Centre for Internet and Society, CNRS) that led to this commentary, and the support of the French National Agency for Research (ANR) in the frame of the DIGISOV project (<a href="https://digisov.org" target="_blank" rel="noreferrer">https://digisov.org</a>). A full peer-reviewed article in the French language was published in January 2026 on this research in the <em>Réseaux</em> academic journal: Ksenia Ermoshina, Francesca Musiani, 2026, ‘Vers une souveraineté fédérée ? Mobilisation de plateformes décentralisées pour l’autonomie numérique européenne.’ <em>Réseaux</em> 254 : 77–112.</p>
+<h2>References</h2>
+<p>Adler-Nissen, Rebecca, and Kristoffer A. Eggeling. 2024. ‘The Discursive Struggle for Digital Sovereignty: Security, Economy Rights and the Cloud Project Gaia-X.’ *JCMS: Journal of Common**Market Studies* 62: 784–800. <a href="https://doi.org/10.1111/jcms.13533" target="_blank" rel="noreferrer">https://doi.org/10.1111/jcms.13533</a></p>
+<p>Amoore, Louise. 2018. ‘Cloud Geographies: Computing, Data, Sovereignty.’ *Progress in**Human Geography* 42 (1): 4–24. <a href="https://doi.org/10.1177/0309132516662147" target="_blank" rel="noreferrer">https://doi.org/10.1177/0309132516662147</a></p>
+<p>Blok, Anders, Miho Nakazora, and Brit Ross Winthereik. 2016. ‘Infrastructuring Environments.’ <em>Science as Culture</em> 25 (1): 1–22. <a href="https://doi.org/10.1080/09505431.2015.1081500" target="_blank" rel="noreferrer">https://doi.org/10.1080/09505431.2015.1081500</a></p>
+<p>Couture, Stéphane, and Sophie Toupin. 2019. ‘What Does the Notion of ‘Sovereignty’ Mean When Referring to the Digital?’ <em>New Media &amp; Society</em> 21 (10): 2305–2322. <a href="https://doi.org/10.1177/1461444819865984" target="_blank" rel="noreferrer">https://doi.org/10.1177/1461444819865984</a></p>
+<p>Dulong de Rosnay, Mélanie, and Francesca Musiani. 2017. ‘Internet Alternatif.’ In <em>Abécédaire des Architectures Distribuées</em>, edited by Cécile Méadel and Francesca Musiani, 117–121. Paris: Presses des Mines.</p>
+<p>Easterling, Keller. 2014. <em>Extrastatecraft: The Power of Infrastructure Space</em>. London: Verso Books.</p>
+<p>Ermoshina, Ksenia, and Francesca Musiani. 2022. *Concealing for Freedom:**The Making of Encryption, Secure Messaging and Digital Liberties*. Manchester: Mattering Press.</p>
+<p>Karasti, Helena, and Jeanette Blomberg. 2018. ‘Studying Infrastructuring Ethnographically.’ <em>Computer Supported Cooperative Work (CSCW)</em> 27 (2018): 233–265. <a href="https://doi.org/10.1007/s10606-017-9296-7" target="_blank" rel="noreferrer">https://doi.org/10.1007/s10606-017-9296-7</a></p>
+<p>La Cava, Laura, Sebastiano Greco, and Andrea Tagarelli. 2021. ‘Understanding the Growth of the Fediverse through the Lens of Mastodon.’ <em>Applied Network Science</em> 6: 1. <a href="https://doi.org/10.1007/s41109-021-00377-5" target="_blank" rel="noreferrer">https://doi.org/10.1007/s41109-021-00377-5</a></p>
+<p>Möllers, Norma. 2021. ‘Making Digital Territory: Cybersecurity, Techno-Nationalism, and the Moral Boundaries of the State.’ <em>Science, Technology, &amp; Human Values</em> 46 (1): 112–138. <a href="https://doi.org/10.1177/0162243919884286" target="_blank" rel="noreferrer">https://doi.org/10.1177/0162243919884286</a></p>
+<p>Musiani, Francesca. 2022. ‘Infrastructuring Digital Sovereignty: A Research Agenda for an Infrastructure-Based Sociology of Digital Self-Determination Practices.’ <em>Information, Communication &amp; Society</em> 25 (6): 785–800. <a href="https://doi.org/10.1080/1369118X.2021.1886414" target="_blank" rel="noreferrer">https://doi.org/10.1080/1369118X.2021.1886414</a></p>
+<p>Pohle, Julia, and Thorsten Thiel. 2020. ‘Digital Sovereignty.’ <em>Internet Policy Review</em> 9 (4). <a href="https://doi.org/10.14763/2020.4.1532" target="_blank" rel="noreferrer">https://doi.org/10.14763/2020.4.1532</a></p>
+<p>Roberts, Huw, Josh Cowls, Federica Casolari, Jessica Morley, Mariarosaria Taddeo, and Luciano Floridi. 2021. ‘Safeguarding European Values with Digital Sovereignty: An Analysis of Statements and Policies.’ <em>Internet Policy Review</em> 10 (3). <a href="https://doi.org/10.14763/2021.3.1575" target="_blank" rel="noreferrer">https://doi.org/10.14763/2021.3.1575</a></p>
+<p>Rozenshtein, Alan Z. 2023. ‘Moderating the Fediverse: Content Moderation on Distributed Social Media.’ <em>Journal of Free Speech Law</em> 3: 217–236.</p>
+<p>Schneider, Nathan. 2019. ‘Decentralization: An Incomplete Ambition.’ *Journal of Cultural**Economy* 12 (4): 265–285. <a href="https://doi.org/10.1080/17530350.2019.1645637" target="_blank" rel="noreferrer">https://doi.org/10.1080/17530350.2019.1645637</a></p>
+<ul>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch6.xhtml#footnote-054-backlink" target="_blank" rel="noreferrer">1</a> This chapter draws on work carried out with Ksenia Ermoshina as part of the DIGISOV project: https://digisov.org</li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch6.xhtml#footnote-053-backlink" target="_blank" rel="noreferrer">2</a> See further <a href="https://archive.fosdem.org/2025/schedule/track/government-collaboration/" target="_blank" rel="noreferrer">https://archive.fosdem.org/2025/schedule/track/government-collaboration/</a></li>
+<li><a href="https://books.openbookpublishers.com/10.11647/obp.0528/ch6.xhtml#footnote-052-backlink" target="_blank" rel="noreferrer">3</a> See <a href="https://archive.fosdem.org/2025/schedule/event/fosdem-2025-5572-opendesk-on-opencode-developing-a-secure-office-suite-and-sdlc/" target="_blank" rel="noreferrer">https://archive.fosdem.org/2025/schedule/event/fosdem-2025-5572-opendesk-on-opencode-developing-a-secure-office-suite-and-sdlc/</a></li>
+</ul></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-dc95d7895b6cb458.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">開放數位基礎建設如何支撐民主韌性與經濟主權</span>
+</a>
+
+<a class="article-sequence-link" href="item-6c208a130a0d4e0e.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">從自由軟體到開源：開放知識基礎建設的術語、價值與倫理變遷</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-538327d60d2cac8d.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Politics of Open Infrastructures - 6. The Politics of Federated Protocols</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Francesca Musiani 1（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-27T06:55:52+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-27T06:55:52+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-538327d60d2cac8d";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

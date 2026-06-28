@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>譚鐵牛：完善全球數據治理，讓數據紅利更好造福各國人民 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover {
+      text-decoration: underline;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-28T09:40:21+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-25 08:00</span></div>
+      <h1><a class="article-title-link" href="https://bau.com.hk/web/article/1519773587436007424/web/content_1519773587436007424.html" target="_blank" rel="noreferrer" title="開啟原始連結">譚鐵牛：完善全球數據治理，讓數據紅利更好造福各國人民</a></h1>
+      <p class="lede">文章以中國官方政策語言主張完善全球數據治理，將數據視為智能時代的核心資源，並把全球治理問題歸納為規則碎片化、南北數字鴻溝、跨境流動不順、合規成本高與數據安全風險上升。文中提出以人為本、開放協同、普惠包容與安全向善等原則，倡議透過多邊協商、數據流通生態、跨境安全保障、人才培養與世界數據組織來建立更具中國立場的全球數據治理秩序。它的新聞性不強，但可作為中國數據治理外交與數位主權敘事的完整樣本。</p>
+      <div class="tag-chip-list"><span class="tag-chip">資料治理</span><span class="tag-chip">AI治理</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://res.bauhk.com/contentcloud/44/REPRINT/MEDIA/PICTURE/2026/6/25/e1f6a876cd0e42ef959df99051255537_wh1200x627.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><blockquote><strong>6月8日，《人民日報》理論版刊登了南京大學黨委書記、中國科學院院士、世界數據組織理事長譚鐵牛的署名文章《完善全球數據治理讓數據紅利更好造福各國人民》。以下為全文內容：</strong></blockquote>
+<p>習近平總書記指出：“當今世界正在加速邁入智能時代，數據的基礎資源作用和創新引擎作用日漸顯現。”作為智能時代的“新石油”，數據日益成為支撐數字經濟發展的核心生產要素和重要戰略資源，正以前所未有的速度和規模重塑全球經濟社會發展格局，深刻影響著世界的發展、安全、文明與治理。與之相較，數據治理體系的調整速度明顯滯後於數字技術的突破性進展，全球數據治理問題日益凸顯，嚴重製約了數據價值的充分釋放。為此，要完善全球數據治理，推動構建更加公平、開放、安全、包容的全球數據治理體系，讓數據紅利更好造福各國人民。 習近平總書記指出：“讓數字文明造福各國人民，推動構建人類命運共同體。”完善全球數據治理是有效應對數字時代面臨的一系列重大挑戰的重要途徑，有助於推動數據真正供得出、流得動、用得好，從而在推動構建人類命運共同體的實踐中更好發揮數據的賦能發展、價值倍增作用。 彌合數據鴻溝的必然要求。習近平總書記指出：“更好彌合南北發展鴻溝，更好維護世界各國共同利益。”當今時代，促進和保護“數字發展權”、反對“數字排斥”已成為各國的核心關切，廣大發展中國家期盼享有平等的數據獲取權、公平的數據利用權。完善全球數據治理，有助於打破國際社會既有的數據藩籬，推動數據資源、技術能力和發展機會在更大範圍開放共享，縮小南北數字差距，擯棄“小院高牆”，防範數據霸權和“數據殖民主義”，推動各國特別是發展中國家提升數據利用能力、共享數字發展成果。 釋放數據價值的題中應有之義。習近平總書記指出：“誰能把握大數據、人工智能等新經濟發展機遇，誰就把準了時代脈搏。”完善全球數據治理，建立健全涵蓋數據共享交換、安全認證、合規評估等全生命周期的制度體系，有助於激活全球用數活力，為各國政府與企業深化跨國、跨領域數據合作與業務協同營造可信生態，從而進一步優化全球數據資源配置，破除數據跨境流動壁壘，加速數據驅動的融合創新，最大限度地挖掘數據潛能、創造數據價值。 繁榮數字經濟的關鍵舉措。習近平總書記指出：“發揮數據的基礎資源作用和創新引擎作用，加快形成以創新為主要引領和支撐的數字經濟。”完善全球數據治理，以數據流匯聚技術流、人才流、資金流，實現知識全球擴散，有助於重塑價值鏈布局，推動全球經濟向智能化、一體化躍升。隨著大數據、人工智能技術與應用的創新迭代，“以模引數”“用數賦模”的良性循環與雙向賦能，既帶動了商業模式與產業業態的優化，也促使全球在數智化供給與需求的新錨點形成再平衡，為各國生產力變革和數字經濟健康發展提供了新動能。 確保數據安全的重要抓手。習近平總書記指出：“規範數據資源利用，防範大數據等新技術帶來的風險。”隨著應用場景的持續拓展，數據在跨境傳輸、存儲和應用等環節發生泄露、濫用、篡改、偽造等的安全風險日益加劇。完善全球數據治理，有助於凝聚全球數據安全共識，推動各國加強技術合作與經驗共享，提升跨國數據安全風險的協同應對能力，促進全球數據資源在安全、合規、可信的前提下實現開放合作共享。 踐行全球治理倡議的生動實踐。習近平總書記指出：“我提出全球治理倡議，旨在推動構建更加公正合理的全球治理體系。”全球數據治理是全球治理的重要組成部分。完善全球數據治理，有助於深入踐行全球治理倡議，推動全球治理體系向數字空間延伸，有效填補數字領域治理空白，解決數據治理失範、數字鴻溝等全球治理突出問題，進一步完善全球治理規則體系、豐富全球治理內涵、提升協同治理效能，消除全球治理赤字，推動國際秩序朝著更加公正合理的方向發展。 數據的爆炸式增長既帶來前所未有的發展機遇，也帶來前所未有的風險挑戰。當今世界，全球數據發展不平衡不充分的問題十分突出，數據治理規則碎片化、南北數字鴻溝持續拉大、數據流動不暢、安全風險頻发等現實挑戰交織，給國際社會帶來諸多風險隱患。 合作交流不充分，全球治理共識缺失。數據治理關乎國家主權、科技創新、市場競爭等，各國在數據的開放流動、主權控制、風險規制之間持續博弈。例如，美國以“數字自由”為名試圖維持數字霸權地位，歐盟通過嚴格數據立法放大“布魯塞爾效應”，差異化的治理取向催生了不同的合作圈層，全球數據治理格局的分化與失衡進一步加劇。 規則體系不兼容，數據合規成本高企。隨著全球數據制度博弈持續加劇，數據規則碎片化加深，多邊協調機制缺位，合規壁壘問題突出。當下，單邊主義思維與“數據殖民主義”不斷強化規則外溢與制度對抗，各國普遍藉助單邊立法、區域協定和數字同盟等方式維護自身規則、力求主導優勢。在多元規則並行之下，企業進入不同市場時需要應對多套合規要求，重複部署數據存儲、跨境傳輸、內部共享、外部披露和審查響應等合規安排，跨境經營成本與合規摩擦風險攀升。 資源配置不均衡，南北發展失衡加劇。全球數據資源與價值收益高度集中於少數國家和頭部企業，發展中國家在能力建設和價值分配中的弱勢地位被進一步固化。以美國為代表的“數字北方”及少數跨國企業憑藉技術、資本和平台優勢，壟斷數據採集、算法訓練、平台分發和價值變現等核心鏈條，集聚全球數據資源，獲取高附加值收益，並牢牢掌控數據規則制定權。相比之下，廣大發展中國家受制於基礎設施、資金技術和人才儲備等短板，長期停留在原始數據供給和低附加值環節，只能被動適應外部規則，南北發展失衡持續加劇。 流動共享不便捷，數據價值釋放有限。全球數據資源的高效匯聚、流通和協同利用面臨多重障礙，數據價值釋放受到明顯制約。當前，數據跨境流動的互操作性顯著不足，現有標準和技術規範難以自然形成穩定銜接，加之本地監管、平台封閉和商業鎖定等多重因素影響，數據標準採用、制度安排與協同實施之間存在明顯脫節，無法在不同國家、平台和場景之間實現順暢匯聚、共享調用和持續開發，數據的規模效應、協同效應與增值效應未能得到充分釋放。 治理機制不適配，數據安全風險凸顯。隨著數據流動加快、平台深度介入和生成式人工智能的廣泛部署，數據安全風險形態持續變化，呈現跨境擴散和疊加外溢的顯著特徵。算法偏差、深度偽造、模型濫用、數據污染、數據投毒等新型風險不再侷限於單一環節和主體，正沿著數據、模型、服務、平台和供應鏈在全球範圍快速傳導，致使責任邊界、損害認定和處置鏈條更加複雜。現有治理機制主要建立在傳統數據保護和本地監管基礎上，在跨境風險識別、責任劃分、協同處置、證據追溯和權益救濟等方面存在明顯滯後，難以有效防控和應對新型數據安全風險。 <strong>牢固樹立全球數據治理的正確理念，推動全球數據治理向善向好發展</strong> 習近平總書記強調：“中國將秉持共商共建共享理念，支持世界數據組織發揮作用，同各方一道凝聚數據治理規則共識，推動數智技術創新，促進數據安全有序流動和高效開發利用，服務全球數字經濟健康發展，讓數據紅利更好造福各國人民。”面對數字化浪潮帶來的機遇與挑戰，要以開放包容、胸懷天下的全球視野，將人類命運共同體理念的核心要義融入全球數據治理的基本原則，堅持以人為本、堅持開放協同、堅持普惠包容、堅持安全為基，樹立全球數據秩序的價值遵循，夯實全球數據生態的制度保障，促進全球數據紅利充分釋放，守牢全球數據賦能的向善底線，為進一步完善全球數據治理格局錨定正確航向，推動全球數據治理向善向好發展。 廣泛凝聚全球數據治理共識。凝聚治理共識是深化全球數據合作的首要前提。要增強以人為本、開放協同、普惠包容、安全向善的治理共識，充分發揮聯合國等多邊平台作用，尋求全球數據治理的最大公約數。通過發布聯合聲明、行動計劃、合作倡議等方式，持續強化數據治理共識，加快構建各國共謀數據話語體系、共築數據信任生態、共享數據開發紅利的全球數據治理新秩序。 構建數據治理高效協商機制。高效協商是構建新型數據關係的關鍵支點。要立足數據要素流動關聯、相互依存的客觀現實，尊重各國數據治理傳統與自主發展道路，持續拓展全球數據合作伙伴關係網絡，擴大數據共享共贏“朋友圈”。堅決摒棄“本國優先”的單邊主義思維，反對數據封閉和排他性聯盟，提升全球數據治理話語表達的代表性與包容性，加快構建開放協同高效的多邊對話協商機制。 塑造數據要素流通良好生態。數據要素的高效流通是數據賦能發展、激活價值創造的動力源泉。要增強數據治理的戰略主動，強化大國責任擔當，堅持務實行動導向，優化全球合作布局，聚焦數據基礎設施建設、數智技術創新、高價值數據產品開發等重大議題，深入開展全球多層次數據合作，著力補齊發展中國家數據能力短板，合力塑造開放、包容、安全、合作、非歧視的數據流通生態。 築牢跨境數據安全保障體系。維護安全穩定是全球數據治理的底線要求。要順應人工智能演進、數據跨境流動深化和全球供應鏈重組等發展新態勢，推動數據安全治理實現從被動防禦向主動塑造、從單一監管向協同共治、從靜態防護向動態保障的轉變。凝聚全球數據安全治理合力，統籌隱私保護、安全技術、風險預警、安全審查、快速響應等環節，健全跨境數據合作保障體系，全面夯實全球數據安全底座。 推進全球數據人才協同培養。培養創新人才是提升全球數據治理能力的一項基礎工程。要緊扣數據合規、數據安全、數據開發利用等能力需求，統籌高校、科研機構、企業、國際組織和行業平台資源，完善產學研用協同培養機制，構建課程共建、聯合研究、專題培訓、項目實訓相銜接的國際協同培養體系，加快培養兼具技術應用、治理水平、法律素養和國際協作能力的複合型人才，築牢全球數據治理的人才基礎。 充分發揮世界數據組織平台作用。世界數據組織是推動全球數據治理機制化、常態化的國際組織和重要平台。要建立常態化議題設置和專題研討機制，廣泛匯聚各方關切，形成規則協調、標準協同、研發協作和能力協進等工作機制，推動將階段性合作轉化為更具連續性和執行力的國際合作安排，切實把平台優勢轉化為議題組織、規則協調、項目承接和公共服務能力，加快構建開放協同、互利共贏的全球數據合作新格局。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-17884a6e23b11e61.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">警方密錄器揭露男子因在資料中心會議發言過久遭逮捕</span>
+</a>
+
+<a class="article-sequence-link" href="item-57124c27681c5665.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">範本式資料萃取已死？Amazon Bedrock Data Automation 的下一步</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-b128d336ae631068.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：譚鐵牛：完善全球數據治理 讓數據紅利更好造福各國人民</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：譚鐵牛：完善全球 數據治理 讓數據紅利更好造福各國人民 - 紫荊網（Codex）</li><li><strong>原始作者</strong>：未標示</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未明確標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：direct-pr-small-news / 2026-06-27T14:17:12+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-27T14:17:12+00:00 本機標記直接送 PR（小消息）；純事實項目，不進編輯台撰稿。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-b128d336ae631068";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
