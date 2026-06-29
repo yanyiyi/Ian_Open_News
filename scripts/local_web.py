@@ -3633,6 +3633,66 @@ def item_tag_text_haystack(item: dict) -> str:
     return "\n".join(clean_text(part, 3000) for part in parts if part).casefold()
 
 
+def item_workflow_search_haystack(item: dict) -> str:
+    metadata = item_reading_metadata(item)
+    triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
+    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    model_parts: list[object] = []
+    for provider, review in record_model_reviews(item):
+        model_parts.extend([
+            ai_provider_label(provider),
+            review.get("one_line_recommendation"),
+            review.get("summary"),
+            model_recommendation_label(review),
+            " ".join(clean_text(reason, 240) for reason in (review.get("reasons") or [])),
+        ])
+    parts: list[object] = [
+        item.get("id"),
+        item_display_title(item),
+        item_original_title(item),
+        item_zh_summary(item, 800),
+        item.get("title"),
+        item.get("summary"),
+        item.get("source_name"),
+        item.get("source_id"),
+        item.get("author"),
+        item.get("url"),
+        item.get("published_at"),
+        item.get("captured_at"),
+        item_license_name(item),
+        metadata.get("title"),
+        metadata.get("description"),
+        metadata.get("original_site_title"),
+        metadata.get("translated_zh_title"),
+        metadata.get("original_author"),
+        metadata.get("site_name"),
+        metadata.get("final_url"),
+        metadata.get("canonical_url"),
+        " ".join(item_visible_tags(item, 20)),
+        " ".join(triage.get("matched_keywords") or []),
+        " ".join(triage.get("skip_keywords") or []),
+        triage.get("reason"),
+        editorial.get("summary_reason"),
+        editorial.get("next_step_hint"),
+        editorial.get("zh_summary"),
+        editorial.get("content_kind_label"),
+        *model_parts,
+    ]
+    return "\n".join(clean_text(part, 1000) for part in parts if part).casefold()
+
+
+def item_matches_text_filter(item: dict, query: object) -> bool:
+    terms = [
+        clean_text(term, 80).casefold()
+        for term in re.split(r"[\s,，]+", clean_text(query, 180))
+        if clean_text(term, 80)
+    ]
+    if not terms:
+        return True
+    haystack = item_workflow_search_haystack(item)
+    return all(term in haystack for term in terms)
+
+
 def taxonomy_beats(track: str) -> list[str]:
     taxonomy = load_json(DATABASE / "taxonomy.json")
     tracks = taxonomy.get("tracks") if isinstance(taxonomy.get("tracks"), dict) else {}
@@ -6927,36 +6987,148 @@ def page(title: str, body: str) -> bytes:
     }}
     .workspace-sidebar .filter-panel,
     .workspace-sidebar .batch-panel,
-    .workspace-sidebar .auto-batch-panel {{
+    .workspace-sidebar .auto-batch-panel,
+    .workspace-sidebar .workspace-tool-panel {{
       margin: 0;
       padding: 14px;
     }}
+    .workspace-sidebar .filter-panel {{
+      display: grid;
+      gap: 8px;
+    }}
+    .sidebar-field-group {{
+      display: grid;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+    }}
+    .sidebar-field-group:first-child {{
+      padding-top: 0;
+      border-top: 0;
+    }}
+    .sidebar-field-group > h3 {{
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0;
+    }}
     .workspace-sidebar .form-grid {{
       grid-template-columns: 1fr;
+      gap: 8px;
+    }}
+    .workspace-sidebar label,
+    .article-action-dock label {{
+      margin: 6px 0 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }}
+    .workspace-sidebar input,
+    .workspace-sidebar select,
+    .article-action-dock input,
+    .article-action-dock select {{
+      padding: 7px 9px;
+      font-size: 13px;
+      line-height: 1.25;
     }}
     .workspace-sidebar .auto-batch-panel {{
       align-items: stretch;
     }}
     .workspace-sidebar .button-row {{
-      gap: 8px;
+      gap: 6px;
+    }}
+    .workspace-sidebar .button-row > form,
+    .article-action-dock .button-row > form {{
+      display: inline-flex;
+      margin: 0;
     }}
     .workspace-sidebar .button-row .button,
-    .workspace-sidebar .button-row button {{
-      padding: 8px 10px;
-      font-size: 13px;
+    .workspace-sidebar .button-row button,
+    .workspace-sidebar .auto-batch-panel button,
+    .article-action-dock .button-row .button,
+    .article-action-dock .button-row button,
+    .article-action-dock .card > form > button,
+    .article-action-dock .metadata-dock form > button {{
+      min-height: 30px;
+      padding: 6px 8px;
+      gap: 6px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.2;
+      box-shadow: none;
+    }}
+    .workspace-sidebar button svg,
+    .workspace-sidebar .button svg,
+    .article-action-dock button svg,
+    .article-action-dock .button svg {{
+      width: 14px;
+      height: 14px;
+    }}
+    .workspace-sidebar .icon,
+    .article-action-dock .icon {{
+      width: 19px;
+      height: 18px;
+      border-radius: 4px;
+      font-size: 10px;
+    }}
+    .batch-panel {{
+      display: grid;
+      gap: 10px;
+    }}
+    .batch-selection-line {{
+      display: grid;
+      gap: 2px;
+    }}
+    .batch-panel > p,
+    .batch-selection-line > p,
+    .batch-ai-review p {{
+      margin: 0;
+    }}
+    #items-batch-form,
+    .batch-ai-review {{
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }}
+    .batch-panel .button-row > button,
+    .batch-panel .button-row > .button,
+    .batch-panel .button-row > form {{
+      flex: 0 1 auto;
+    }}
+    .batch-panel .button-row > form > button {{
+      width: 100%;
+    }}
+    .workspace-tool-panel {{
+      display: grid;
+      gap: 8px;
+    }}
+    .batch-ai-review .button-row {{
+      align-items: center;
+    }}
+    .batch-ai-review select {{
+      flex: 1 1 120px;
+      min-height: 30px;
+      padding: 6px 28px 6px 8px;
+      font-size: 12px;
+    }}
+    .button-row .reason-chip,
+    .workspace-sidebar .button-row .reason-chip,
+    .article-action-dock .button-row .reason-chip {{
+      min-height: 28px;
+      padding: 5px 7px;
+      font-size: 12px;
     }}
     .keyword-filters {{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }}
     .keyword-option {{
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 8px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #fff;
-      color: var(--ocf-dark);
-      font-size: 12px;
-      font-weight: 750;
+      padding: 4px 6px;
+      border: 1px solid #dce3f1;
+      border-radius: 5px;
+      background: #f8fafc;
+      color: #647084;
+      font-size: 11px;
+      font-weight: 700;
     }}
     .select-item {{
       display: inline-flex;
@@ -8046,6 +8218,13 @@ def page(title: str, body: str) -> bytes:
       form.querySelectorAll(".auto-filter, input[type='checkbox'], input[type='date']").forEach((field) => {{
         if (field.dataset.instantFieldBound === "1") return;
         field.dataset.instantFieldBound = "1";
+        if (field.matches("input[type='search']")) {{
+          let searchTimer = 0;
+          field.addEventListener("input", () => {{
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(() => submitInstantFilter(form), 320);
+          }});
+        }}
         field.addEventListener("change", () => {{
           if (form.id === "reader-filter-form" && field.id === "reader-time-filter") {{
             if (typeof window.syncReaderTimeFields === "function") window.syncReaderTimeFields();
@@ -13881,6 +14060,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         track_filter = (query.get("track") or ["all"])[0]
         recommendation_filter = (query.get("recommendation") or ["all"])[0]
         license_filter = clean_text((query.get("license") or ["all"])[0]) or "all"
+        text_filter = clean_text((query.get("q") or [""])[0], 180)
         selected_keywords = {keyword for keyword in (query.get("keyword") or []) if keyword}
         show_all = (query.get("show") or [""])[0] == "all"
 
@@ -13890,6 +14070,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             if recommendation_filter != "all" and candidate_recommendation(record) != recommendation_filter:
                 return False
             if license_filter != "all" and item_license_name(record) != license_filter:
+                return False
+            if text_filter and not item_matches_text_filter(record, text_filter):
                 return False
             return True
 
@@ -13915,6 +14097,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             for entry in pending_entries
             if (track_filter == "all" or entry[1].get("track") == track_filter)
             and (license_filter == "all" or item_license_name(entry[1]) == license_filter)
+            and (not text_filter or item_matches_text_filter(entry[1], text_filter))
             and (not selected_keywords or bool(item_triage_keywords(entry[1]) & selected_keywords))
         ]
         counts = Counter(candidate_recommendation(record) for _, record in summary_entries)
@@ -13928,6 +14111,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 params.append(("recommendation", recommendation))
             if license_filter != "all":
                 params.append(("license", license_filter))
+            if text_filter:
+                params.append(("q", text_filter))
             for keyword in sorted(selected_keywords):
                 params.append(("keyword", keyword))
             return href_with_query("/items", params)
@@ -14104,6 +14289,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 parts.append(f"recommendation={quote(recommendation_filter)}")
             if license_filter != "all":
                 parts.append(f"license={quote(license_filter)}")
+            if text_filter:
+                parts.append(f"q={quote(text_filter)}")
             for keyword in sorted(selected_keywords):
                 parts.append(f"keyword={quote(keyword)}")
             parts.append("show=all")
@@ -14138,6 +14325,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             ]
             if license_filter != "all":
                 hidden_inputs.append(f'<input type="hidden" name="license" value="{h(license_filter)}">')
+            if text_filter:
+                hidden_inputs.append(f'<input type="hidden" name="q" value="{h(text_filter)}">')
             if show_all:
                 hidden_inputs.append('<input type="hidden" name="show" value="all">')
             for keyword in sorted(selected_keywords):
@@ -14204,21 +14393,20 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <form class="filter-panel" method="get" action="/items" id="items-filter-form"
         data-instant-filter data-instant-filter-targets=".grid,#items-workspace .workspace-main,#items-sidebar">
         {'<input type="hidden" name="show" value="all">' if show_all else ''}
+        <label>搜尋</label>
+        <input type="search" name="q" class="auto-filter" value="{h(text_filter)}" placeholder="標題、來源、URL、摘要、tag">
         <div class="form-grid">
           <div>
             <label>主線</label>
             <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
-            <p class="help">開放科技 {track_counts.get('open-tech-open-industry', 0)}、人文 {track_counts.get('digital-humanities-local-knowledge', 0)}、未分類 {track_counts.get('unclassified', 0)}。</p>
           </div>
           <div>
             <label>系統建議</label>
             <select name="recommendation" class="auto-filter">{option_list(recommendation_options, recommendation_filter)}</select>
-            <p class="help">優先採用已產生的模型判斷，否則使用關鍵字初篩。</p>
           </div>
           <div>
             <label>授權</label>
             <select name="license" class="auto-filter">{option_list(license_options, license_filter)}</select>
-            <p class="help">依正規化授權欄位篩選；未回填的 RSS 新進不會出現在特定授權下。</p>
           </div>
         </div>
         <label>關鍵字 / tag</label>
@@ -14227,14 +14415,17 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
           <a class="button secondary" href="/items">清除篩選</a>
           <a class="button quiet" href="/keywords">調整關鍵字</a>
         </div>
-        <p class="help">變更條件會自動更新；多個關鍵字採任一命中。</p>
+        <p class="help">搜尋與篩選會同步套用到左側清單、統計與批次處理。</p>
       </form>
     </section>
     <section class="workspace-sidebar-section">
       <h2>批次處理</h2>
       {auto_batch_panel}
       <div class="card batch-panel">
-        <p><strong id="selected-count">已選取 0 則</strong></p>
+        <div class="batch-selection-line">
+          <strong id="selected-count">已選取 0 則</strong>
+          <p class="help" id="batch-selection-help">勾選左側項目，或按「全選目前顯示」。</p>
+        </div>
         <div class="button-row">
           <button type="button" class="secondary" id="select-visible">{button_content("全選目前顯示", "select", "A")}</button>
           <button type="button" class="quiet" id="clear-selection">{button_content("清除選取", "clear", "L")}</button>
@@ -14278,16 +14469,38 @@ const batchIds = document.getElementById("batch-ids");
 const batchReason = document.getElementById("batch-reason");
 const selectedCount = document.getElementById("selected-count");
 const customReason = document.getElementById("batch-custom-reason");
+const selectionHelp = document.getElementById("batch-selection-help");
+const selectVisibleButton = document.getElementById("select-visible");
+const clearSelectionButton = document.getElementById("clear-selection");
+const aiBatchBtn = document.getElementById("batch-ai-review");
+const aiBatchEngine = document.getElementById("batch-ai-engine");
 if (!batchIds || !batchReason || !selectedCount) return;
 
 function liveCheckboxes() {{
-  return itemCheckboxes.filter((box) => box.isConnected);
+  return Array.from(document.querySelectorAll(".item-select"))
+    .filter((box) => box.isConnected && !box.closest(".candidate-card")?.classList.contains("is-removing"));
 }}
 
 function syncSelection() {{
   const ids = liveCheckboxes().filter((box) => box.checked).map((box) => box.value);
+  const visibleCount = liveCheckboxes().length;
   batchIds.value = ids.join(",");
   selectedCount.textContent = `已選取 ${{ids.length}} 則`;
+  document.querySelectorAll("#items-batch-form button[type='submit']").forEach((button) => {{
+    button.disabled = ids.length === 0;
+  }});
+  if (selectVisibleButton) selectVisibleButton.disabled = visibleCount === 0;
+  if (clearSelectionButton) clearSelectionButton.disabled = ids.length === 0;
+  if (aiBatchBtn && aiBatchBtn.dataset.running !== "1") aiBatchBtn.disabled = ids.length === 0;
+  if (selectionHelp) {{
+    if (visibleCount === 0) {{
+      selectionHelp.textContent = "這個篩選沒有可批次處理的項目；可以先調整搜尋或篩選。";
+    }} else if (ids.length === 0) {{
+      selectionHelp.textContent = `目前有 ${{visibleCount}} 則可處理；勾選左側項目，或按「全選目前顯示」。`;
+    }} else {{
+      selectionHelp.textContent = `下方動作只會處理這 ${{ids.length}} 則。`;
+    }}
+  }}
   return ids;
 }}
 
@@ -14296,7 +14509,6 @@ itemCheckboxes.forEach((box) => {{
   box.dataset.selectionBound = "1";
   box.addEventListener("change", syncSelection);
 }});
-const selectVisibleButton = document.getElementById("select-visible");
 if (selectVisibleButton && selectVisibleButton.dataset.selectionBound !== "1") {{
 selectVisibleButton.dataset.selectionBound = "1";
 selectVisibleButton.addEventListener("click", () => {{
@@ -14304,7 +14516,6 @@ selectVisibleButton.addEventListener("click", () => {{
   syncSelection();
 }});
 }}
-const clearSelectionButton = document.getElementById("clear-selection");
 if (clearSelectionButton && clearSelectionButton.dataset.selectionBound !== "1") {{
 clearSelectionButton.dataset.selectionBound = "1";
 clearSelectionButton.addEventListener("click", () => {{
@@ -14314,8 +14525,6 @@ clearSelectionButton.addEventListener("click", () => {{
 }}
 
 // 批次 AI 閱讀建議：用選定引擎對勾選項目逐筆生成，走右下角狀態列（runEngineJob）。
-const aiBatchBtn = document.getElementById("batch-ai-review");
-const aiBatchEngine = document.getElementById("batch-ai-engine");
 if (aiBatchBtn && aiBatchBtn.dataset.aiBatchBound !== "1") {{
   aiBatchBtn.dataset.aiBatchBound = "1";
   aiBatchBtn.addEventListener("click", async () => {{
@@ -14397,6 +14606,7 @@ async function submitWithoutLeaving(form, submitter, idsToRemove) {{
   const body = buildRequestBody(form, submitter);
   const fields = Array.from(form.querySelectorAll("button, input, select, textarea"));
   fields.forEach((field) => {{ field.disabled = true; }});
+  let ok = false;
   try {{
     const targetUrl = form.getAttribute("action") || form.action;
     const method = form.getAttribute("method") || form.method || "POST";
@@ -14410,10 +14620,20 @@ async function submitWithoutLeaving(form, submitter, idsToRemove) {{
     if (!response.ok) {{
       throw new Error(`HTTP ${{response.status}}`);
     }}
+    if (form.id === "items-batch-form") {{
+      idsToRemove.forEach((id) => {{
+        const card = findItemCard(id);
+        const checkbox = card?.querySelector(".item-select");
+        if (checkbox) checkbox.checked = false;
+      }});
+    }}
+    ok = true;
     removeCards(idsToRemove);
   }} catch (error) {{
-    fields.forEach((field) => {{ field.disabled = false; }});
     alert("剛剛沒有送成功，畫面先保留。可以再按一次。");
+  }} finally {{
+    fields.forEach((field) => {{ field.disabled = false; }});
+    if (ok && form.id === "items-batch-form") syncSelection();
   }}
 }}
 
@@ -14460,6 +14680,7 @@ itemsBatchForm.addEventListener("submit", (event) => {{
   submitWithoutLeaving(event.currentTarget, submitter, ids);
 }});
 }}
+syncSelection();
 }}
 if (document.readyState === "loading") {{
   document.addEventListener("DOMContentLoaded", window.initItemsPage, {{once: true}});
@@ -14772,10 +14993,15 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
         items = load_jsonl(ITEMS)
         skill_candidates = [item for item in items if is_skill_candidate(item)]
         track_filter = (query.get("track") or ["all"])[0]
+        text_filter = clean_text((query.get("q") or [""])[0], 180)
         selected_keywords = {keyword for keyword in (query.get("keyword") or []) if keyword}
 
         def matches_basic(item: dict) -> bool:
-            return track_filter == "all" or item.get("track") == track_filter
+            if track_filter != "all" and item.get("track") != track_filter:
+                return False
+            if text_filter and not item_matches_text_filter(item, text_filter):
+                return False
+            return True
 
         def matches(item: dict) -> bool:
             if not matches_basic(item):
@@ -14796,7 +15022,13 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
             reverse=True,
         )
         filtered_skill.sort(key=lambda item: item_skill_priority_tuple(item)[0])
-        track_counts = Counter(item.get("track", "unclassified") for item in skill_candidates)
+        metric_source_items = [
+            item
+            for item in skill_candidates
+            if (not text_filter or item_matches_text_filter(item, text_filter))
+            and (not selected_keywords or (item_triage_keywords(item) & selected_keywords))
+        ]
+        track_counts = Counter(item.get("track", "unclassified") for item in metric_source_items)
         skill_rows = []
         for item in filtered_skill:
             triage = item.get("triage") or {}
@@ -14852,6 +15084,8 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
             params = []
             if track:
                 params.append(("track", track))
+            if text_filter:
+                params.append(("q", text_filter))
             for keyword in sorted(selected_keywords):
                 params.append(("keyword", keyword))
             return href_with_query("/candidates", params)
@@ -14860,7 +15094,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
 <h1>可用材料區</h1>
 <p class="lede">這裡只放你已確認收下、可以拖進編輯台草稿庫的材料。還沒判斷的新資料請先回入庫建檔區處理。</p>
 <div class="grid">
-  {metric_card(len(skill_candidates), "可進編輯台", candidate_metric_href(), "看全部", "is-active" if track_filter == "all" else "")}
+  {metric_card(len(metric_source_items), "可進編輯台", candidate_metric_href(), "看全部", "is-active" if track_filter == "all" else "")}
   {metric_card(track_counts.get("open-tech-open-industry", 0), "開放科技", candidate_metric_href("open-tech-open-industry"), "只看開放科技", "is-active" if track_filter == "open-tech-open-industry" else "")}
   {metric_card(track_counts.get("digital-humanities-local-knowledge", 0), "人文知識", candidate_metric_href("digital-humanities-local-knowledge"), "只看人文知識", "is-active" if track_filter == "digital-humanities-local-knowledge" else "")}
   {metric_card(track_counts.get("unclassified", 0), "未分類", candidate_metric_href("unclassified"), "只看未分類", "is-active" if track_filter == "unclassified" else "")}
@@ -14880,17 +15114,27 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
       <h2>篩選可用材料</h2>
       <form class="filter-panel" method="get" action="/candidates" id="candidate-filter-form"
         data-instant-filter data-instant-filter-targets=".grid,#candidates-workspace .workspace-main,#candidates-sidebar">
-        <label>主線</label>
-        <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
-        <p class="help">選完會自動更新。進編輯台後產出的內容才會成為 article 草稿。</p>
+        <label>搜尋</label>
+        <input type="search" name="q" class="auto-filter" value="{h(text_filter)}" placeholder="標題、來源、URL、摘要、tag">
+        <div class="sidebar-field-group">
+          <h3>範圍</h3>
+          <label>主線</label>
+          <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
+        </div>
         <label>關鍵字 / tag</label>
         <div class="keyword-filters">{keyword_filter_html}</div>
-        <div class="button-row">
-          <a class="button secondary" href="/items">回入庫建檔區</a>
-          <a class="button" href="/editor">打開編輯台</a>
-        </div>
-        <p class="help">多個條件採任一命中。</p>
+        <p class="help">搜尋與篩選會同步套用到左側清單與統計。</p>
       </form>
+    </section>
+    <section class="workspace-sidebar-section">
+      <h2>常用動作</h2>
+      <div class="card workspace-tool-panel">
+        <div class="button-row">
+          <a class="button" href="/editor">打開編輯台</a>
+          <a class="button secondary" href="/items">回入庫建檔區</a>
+        </div>
+        <p class="help">確認收後的材料先在這裡整理，再送進編輯台。</p>
+      </div>
     </section>
   </aside>
 </div>
@@ -15079,6 +15323,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
         kind_filter = (query.get("kind") or ["all"])[0]
         reading_filter = (query.get("reading") or ["all"])[0]
         license_filter = clean_text((query.get("license") or ["all"])[0]) or "all"
+        text_filter = clean_text((query.get("q") or [""])[0], 180)
         if reading_filter not in {"all", "current"}:
             reading_filter = "all"
         view_mode = (query.get("view") or ["auto"])[0]
@@ -15106,6 +15351,8 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
                 return False
             if license_filter != "all" and item_license_name(item) != license_filter:
                 return False
+            if text_filter and not item_matches_text_filter(item, text_filter):
+                return False
             return True
 
         def matches_scope(item: dict) -> bool:
@@ -15132,8 +15379,15 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
         if kind_filter == "all":
             kind_priority = {"featured-article": 0, "opinion-article": 1, "small-news": 2, "needs-review": 3}
             filtered.sort(key=lambda item: kind_priority.get(item_display_kind(item), 9))
-        track_counts = Counter(item.get("track", "unclassified") for item in items)
-        kind_counts = Counter(item_display_kind(item) for item in items)
+        metric_source_items = [
+            item
+            for item in items
+            if (not text_filter or item_matches_text_filter(item, text_filter))
+            and (license_filter == "all" or item_license_name(item) == license_filter)
+            and (not selected_keywords or (item_triage_keywords(item) & selected_keywords))
+        ]
+        track_counts = Counter(item.get("track", "unclassified") for item in metric_source_items)
+        kind_counts = Counter(item_display_kind(item) for item in metric_source_items)
         notice = ""
         if (query.get("saved") or [""])[0] == "read_more":
             notice = '<div class="notice">已嘗試載入原始主文與頁面資料；若抓到全文，已寫進閱讀資料庫。</div>'
@@ -15150,6 +15404,8 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
             redirect_parts.append(f"reading={quote(reading_filter)}")
         if license_filter != "all":
             redirect_parts.append(f"license={quote(license_filter)}")
+        if text_filter:
+            redirect_parts.append(f"q={quote(text_filter)}")
         if view_mode != "auto":
             redirect_parts.append(f"view={quote(view_mode)}")
         if time_filter != "all":
@@ -15383,18 +15639,31 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
                 params.append(("track", track))
             if kind:
                 params.append(("kind", kind))
+            if license_filter != "all":
+                params.append(("license", license_filter))
+            if text_filter:
+                params.append(("q", text_filter))
+            for keyword in sorted(selected_keywords):
+                params.append(("keyword", keyword))
             return href_with_query("/reader", params)
 
         def reader_reading_href() -> str:
-            return href_with_query("/reader", [("time", "all"), ("reading", "current")])
+            params = [("time", "all"), ("reading", "current")]
+            if license_filter != "all":
+                params.append(("license", license_filter))
+            if text_filter:
+                params.append(("q", text_filter))
+            for keyword in sorted(selected_keywords):
+                params.append(("keyword", keyword))
+            return href_with_query("/reader", params)
 
         body = f"""
 <h1>閱讀區</h1>
 <p class="lede">這裡放已確認收下的精選文章與小消息。你可以像讀線上報一樣瀏覽，也可以在單篇頁留下「我的關鍵紀錄」，再把文章依你的觀點重新送回 skill。</p>
 {notice}
 <div class="grid">
-  {metric_card(len(items), "可閱讀項目", reader_metric_href(), "看全部", "is-active" if track_filter == "all" and kind_filter == "all" and reading_filter == "all" and time_filter == "all" else "")}
-  {metric_card(sum(1 for item in items if item_is_current_reading(item)), "優先正在閱讀", reader_reading_href(), "看正在讀", "is-active" if reading_filter == "current" else "")}
+  {metric_card(len(metric_source_items), "可閱讀項目", reader_metric_href(), "看全部", "is-active" if track_filter == "all" and kind_filter == "all" and reading_filter == "all" and time_filter == "all" else "")}
+  {metric_card(sum(1 for item in metric_source_items if item_is_current_reading(item)), "優先正在閱讀", reader_reading_href(), "看正在讀", "is-active" if reading_filter == "current" else "")}
   {metric_card(track_counts.get("open-tech-open-industry", 0), "開放科技", reader_metric_href(track="open-tech-open-industry"), "只看開放科技", "is-active" if track_filter == "open-tech-open-industry" else "")}
   {metric_card(track_counts.get("digital-humanities-local-knowledge", 0), "人文知識", reader_metric_href(track="digital-humanities-local-knowledge"), "只看人文知識", "is-active" if track_filter == "digital-humanities-local-knowledge" else "")}
   {metric_card(kind_counts.get("small-news", 0), "小消息", reader_metric_href(kind="small-news"), "只看小消息", "is-active" if kind_filter == "small-news" else "")}
@@ -15414,30 +15683,40 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
       <h2>篩選閱讀</h2>
       <form class="filter-panel" method="get" action="/reader" id="reader-filter-form"
         data-instant-filter data-instant-filter-targets=".grid,#reader-workspace .workspace-main,#reader-sidebar">
-        <div class="form-grid">
-          <div>
-            <label>主線</label>
-            <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
+        <label>搜尋</label>
+        <input type="search" name="q" class="auto-filter" value="{h(text_filter)}" placeholder="標題、來源、URL、摘要、tag">
+        <div class="sidebar-field-group">
+          <h3>內容</h3>
+          <div class="form-grid">
+            <div>
+              <label>主線</label>
+              <select name="track" class="auto-filter">{option_list(track_options, track_filter)}</select>
+            </div>
+            <div>
+              <label>文章類型</label>
+              <select name="kind" class="auto-filter">{option_list(kind_options, kind_filter)}</select>
+            </div>
+            <div>
+              <label>閱讀標記</label>
+              <select name="reading" class="auto-filter">{option_list(reading_options, reading_filter)}</select>
+            </div>
+            <div>
+              <label>授權</label>
+              <select name="license" class="auto-filter">{option_list(license_options, license_filter)}</select>
+            </div>
           </div>
-          <div>
-            <label>文章類型</label>
-            <select name="kind" class="auto-filter">{option_list(kind_options, kind_filter)}</select>
-          </div>
-          <div>
-            <label>閱讀標記</label>
-            <select name="reading" class="auto-filter">{option_list(reading_options, reading_filter)}</select>
-          </div>
-          <div>
-            <label>授權</label>
-            <select name="license" class="auto-filter">{option_list(license_options, license_filter)}</select>
-          </div>
-          <div>
-            <label>顯示格式</label>
-            <select name="view" class="auto-filter">{option_list(view_options, view_mode)}</select>
-          </div>
-          <div>
-            <label>時間</label>
-            <select name="time" class="auto-filter" id="reader-time-filter">{option_list(time_options, time_filter)}</select>
+        </div>
+        <div class="sidebar-field-group">
+          <h3>顯示</h3>
+          <div class="form-grid">
+            <div>
+              <label>顯示格式</label>
+              <select name="view" class="auto-filter">{option_list(view_options, view_mode)}</select>
+            </div>
+            <div>
+              <label>時間</label>
+              <select name="time" class="auto-filter" id="reader-time-filter">{option_list(time_options, time_filter)}</select>
+            </div>
           </div>
           <div class="date-range-fields" data-time-custom-fields{custom_hidden}>
             <div>
@@ -15456,7 +15735,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
           <a class="button secondary" href="/reader">清除篩選</a>
           <a class="button quiet" href="/items">回入庫建檔區</a>
         </div>
-        <p class="help">變更條件會自動更新；多個關鍵字採任一命中。</p>
+        <p class="help">搜尋與篩選會同步套用到左側閱讀清單與統計。</p>
       </form>
     </section>
   </aside>
@@ -16510,6 +16789,8 @@ if (document.readyState === "loading") {{
 
     def auto_batch_skip_items(self, data: dict[str, list[str]]) -> None:
         track_filter = form_value(data, "track", "all")
+        license_filter = form_value(data, "license", "all")
+        text_filter = clean_text(form_value(data, "q"), 180)
         selected_keywords = {keyword for keyword in (data.get("keyword") or []) if keyword}
         show_all = form_value(data, "show") == "all"
         candidates = load_jsonl(CANDIDATES)
@@ -16521,6 +16802,10 @@ if (document.readyState === "loading") {{
             if track_filter != "all" and record.get("track") != track_filter:
                 return False
             if candidate_recommendation(record) != "suggest-skip":
+                return False
+            if license_filter != "all" and item_license_name(record) != license_filter:
+                return False
+            if text_filter and not item_matches_text_filter(record, text_filter):
                 return False
             if selected_keywords and not (item_triage_keywords(record) & selected_keywords):
                 return False
@@ -16539,6 +16824,10 @@ if (document.readyState === "loading") {{
         if track_filter != "all":
             params.append(("track", track_filter))
         params.append(("recommendation", "suggest-skip"))
+        if license_filter != "all":
+            params.append(("license", license_filter))
+        if text_filter:
+            params.append(("q", text_filter))
         for keyword in sorted(selected_keywords):
             params.append(("keyword", keyword))
         if show_all:
@@ -16548,6 +16837,8 @@ if (document.readyState === "loading") {{
 
     def auto_batch_keep_items(self, data: dict[str, list[str]]) -> None:
         track_filter = form_value(data, "track", "all")
+        license_filter = form_value(data, "license", "all")
+        text_filter = clean_text(form_value(data, "q"), 180)
         selected_keywords = {keyword for keyword in (data.get("keyword") or []) if keyword}
         show_all = form_value(data, "show") == "all"
         mode = form_value(data, "mode", "accept_all")
@@ -16564,6 +16855,10 @@ if (document.readyState === "loading") {{
             if track_filter != "all" and record.get("track") != track_filter:
                 return False
             if candidate_recommendation(record) != "suggest-keep":
+                return False
+            if license_filter != "all" and item_license_name(record) != license_filter:
+                return False
+            if text_filter and not item_matches_text_filter(record, text_filter):
                 return False
             if selected_keywords and not (item_triage_keywords(record) & selected_keywords):
                 return False
@@ -16591,6 +16886,10 @@ if (document.readyState === "loading") {{
         if track_filter != "all":
             params.append(("track", track_filter))
         params.append(("recommendation", "suggest-keep"))
+        if license_filter != "all":
+            params.append(("license", license_filter))
+        if text_filter:
+            params.append(("q", text_filter))
         for keyword in sorted(selected_keywords):
             params.append(("keyword", keyword))
         if show_all:
