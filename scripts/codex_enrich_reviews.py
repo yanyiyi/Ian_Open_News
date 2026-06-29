@@ -818,7 +818,15 @@ def formatted_summary(review: dict[str, Any]) -> str:
     ).strip()
 
 
-def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]], provider: str) -> int:
+def clear_existing_model_reviews(editorial: dict[str, Any]) -> None:
+    for meta in AI_PROVIDERS.values():
+        editorial.pop(meta["review_key"], None)
+        editorial.pop(meta["generated_key"], None)
+    for key in ["zh_title", "zh_summary", "summary_reason"]:
+        editorial.pop(key, None)
+
+
+def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]], provider: str, replace_existing: bool = False) -> int:
     meta = provider_meta(provider)
     by_id = {str(review.get("id")): review for review in reviews if review.get("id")}
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -831,6 +839,8 @@ def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]], 
         editorial = record.get("editorial_triage")
         if not isinstance(editorial, dict):
             editorial = {}
+        if replace_existing:
+            clear_existing_model_reviews(editorial)
         reasons = review.get("reasons") if isinstance(review.get("reasons"), list) else []
         reasons = [clean_text(reason) for reason in reasons[:3]]
         while len(reasons) < 3:
@@ -994,7 +1004,7 @@ def process_file(
             )
             batch_input = [review_input(record) for record in batch_records]
             reviews = run_provider(batch_input, args, provider)
-            batch_changed = apply_reviews(records, reviews, provider)
+            batch_changed = apply_reviews(records, reviews, provider, replace_existing=args.replace_existing)
             changed += batch_changed
             progress["index"] = end_index
             progress["end_index"] = end_index
@@ -1032,6 +1042,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=6)
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--missing-only", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--replace-existing", action="store_true", help="After a successful run, clear existing model reviews on selected records before writing the new review.")
     parser.add_argument("--prepare-only", action="store_true", help="Only count records that would be sent to the selected AI CLI.")
     parser.add_argument("--dry-run", action="store_true", help="Call the selected AI CLI but do not write JSONL.")
     parser.add_argument("--report", type=Path, default=REPORT)

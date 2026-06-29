@@ -3207,13 +3207,18 @@ def record_codex_review(record: dict) -> dict:
     return record_model_review(record, "codex")
 
 
-def normalize_ai_provider(provider: object) -> str:
+def normalize_ai_provider(provider: object, allow_random: bool = False) -> str:
     text = clean_text(provider).casefold()
+    if allow_random and text == "random":
+        return "random"
     return text if text in AI_PROVIDER_META else "codex"
 
 
 def ai_provider_label(provider: object) -> str:
-    return AI_PROVIDER_META[normalize_ai_provider(provider)]["label"]
+    normalized = normalize_ai_provider(provider, allow_random=True)
+    if normalized == "random":
+        return "隨機 CLI"
+    return AI_PROVIDER_META[normalized]["label"]
 
 
 def record_model_review(record: dict, provider: str) -> dict:
@@ -7588,6 +7593,17 @@ def page(title: str, body: str) -> bytes:
       display: grid;
       gap: 10px;
     }}
+    .article-tool-section {{
+      display: grid;
+      gap: 8px;
+    }}
+    .article-tool-section-title {{
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.25;
+    }}
     .article-action-dock h2 {{
       font-size: 17px;
       margin: 0;
@@ -7596,9 +7612,16 @@ def page(title: str, body: str) -> bytes:
       gap: 8px;
     }}
     .article-action-dock .button-row .button,
-    .article-action-dock .button-row button {{
-      padding: 8px 10px;
-      font-size: 13px;
+    .article-action-dock .button-row button,
+    .article-action-dock form > button {{
+      min-height: 30px;
+      padding: 6px 8px;
+      gap: 6px;
+      font-size: 12px;
+      line-height: 1.2;
+    }}
+    .article-action-dock textarea {{
+      min-height: 88px;
     }}
     .article-action-dock details.card summary {{
       cursor: pointer;
@@ -9497,11 +9520,14 @@ def page(title: str, body: str) -> bytes:
       const id = (form.querySelector("input[name='id']") || {{}}).value || "";
       const redirect = (form.querySelector("input[name='redirect']") || {{}}).value || (window.location.pathname + window.location.search);
       const provider = (form.querySelector("input[name='provider']") || {{}}).value || "codex";
-      const withFulltext = (form.querySelector("input[name='with_fulltext']") || {{}}).value || "1";
+      const formBody = new URLSearchParams(new FormData(form));
+      formBody.set("id", id);
+      formBody.set("redirect", redirect);
+      if (!formBody.get("with_fulltext")) formBody.set("with_fulltext", "1");
       window.runEngineJob({{
         label: "生成閱讀建議",
         url: form.getAttribute("action") || "/items/codex-review",
-        baseBody: {{ id: id, redirect: redirect, with_fulltext: withFulltext }},
+        baseBody: formBody,
         engine: provider,
         onSuccess: (payload) => {{ window.location.href = (payload && payload.redirect) || redirect; }}
       }});
@@ -16232,7 +16258,7 @@ if (document.readyState === "loading") {{
 """
             )
         fulltext_panel = ""
-        if item_has_fulltext_signal(item) and not is_rss_candidate:
+        if not is_rss_candidate:
             suggested_fulltext_url = clean_text(
                 article_meta.get("fulltext_source_url")
                 or article_meta.get("preferred_fulltext_url")
@@ -16244,10 +16270,16 @@ if (document.readyState === "loading") {{
                 if fulltext_issue
                 else ""
             )
+            fulltext_help = (
+                "如果自動抓文只抓到摘要、相關文章卡片，或原站還有更多正文，就用這裡補全文。"
+                if not fulltext_issue
+                else "可以改貼全文頁、手動貼文，或上傳 PDF 來補完整材料。"
+            )
             fulltext_panel = f"""
   <details class="card">
-    <summary><h2>補全文 <span class="help-dot" title="這篇材料出現「全文 / full text」線索時，從這裡補上你已找到的完整來源。">?</span></h2></summary>
+    <summary><h2>補全文 <span class="help-dot" title="自動抓文不完整或抓錯段落時，從這裡補上完整來源。">?</span></h2></summary>
     {fulltext_issue_html}
+    <p class="help">{h(fulltext_help)}</p>
     <form method="post" action="/items/fulltext-link">
       <input type="hidden" name="id" value="{h(item_id)}">
       <label>貼全文連結</label>
@@ -16263,6 +16295,24 @@ if (document.readyState === "loading") {{
     <a class="button quiet" href="/items/upload-pdf?parent_item_id={quote(item_id)}&relation=full-source&track={quote(clean_text(item.get('track')))}">{button_content("上傳全文 PDF", "text-lines")}</a>
     <p class="help">全文會清楚標記來源；上傳 PDF 會建立新的材料並以 full-source 關聯連回這篇。</p>
   </details>
+"""
+        ai_toolbox = ""
+        review_redirect = item_detail_href(item)
+        review_button_label = "AI 建議有事實錯誤，重跑覆蓋" if record_model_reviews(item) else "隨機補 AI 閱讀建議"
+        ai_toolbox = f"""
+  <div class="card">
+    <h2>AI 工具箱 <span class="help-dot" title="針對這一篇重跑模型閱讀建議，不影響分流狀態。">?</span></h2>
+    <form method="post" action="/items/codex-review" data-codex-review-form>
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <input type="hidden" name="redirect" value="{h(review_redirect)}">
+      <input type="hidden" name="with_fulltext" value="1">
+      <input type="hidden" name="provider" value="random">
+      <input type="hidden" name="force" value="1">
+      <input type="hidden" name="replace_reviews" value="1">
+      <button type="submit" class="secondary">{button_content(review_button_label, "sparkle")}</button>
+    </form>
+    <p class="help">看到模型硬塞台灣關聯、摘要抓錯或理由怪怪的，就按這裡。會先重新抓一次全文，再用隨機可用 CLI 重跑；新結果成功後會取代既有模型閱讀建議與摘要。</p>
+  </div>
 """
         derived_toolbox = ""
         if derived_actions:
@@ -16383,21 +16433,33 @@ if (document.readyState === "loading") {{
 """
         action_dock = f"""
 <aside class="article-action-dock" id="article-detail-sidebar">
-  {inbox_actions}
-  <div class="card">
-    <h2>閱讀操作 <span class="help-dot" title="這個面板會跟著畫面停在右側，讀到哪裡都能操作。">?</span></h2>
-    <div class="button-row article-dock-actions">
-      {read_more_actions}
-      {edit_fulltext_button}
-      {reading_priority_actions}
+  <section class="article-tool-section">
+    {inbox_actions}
+  </section>
+  <section class="article-tool-section">
+    <div class="article-tool-section-title">閱讀與紀錄</div>
+    <div class="card">
+      <h2>閱讀操作 <span class="help-dot" title="這個面板會跟著畫面停在右側，讀到哪裡都能操作。">?</span></h2>
+      <div class="button-row article-dock-actions">
+        {read_more_actions}
+        {edit_fulltext_button}
+        {reading_priority_actions}
+      </div>
     </div>
-  </div>
-  {fulltext_panel}
-  {derived_toolbox}
-  {tag_panel}
-  {metadata_form}
-  {personal_note_panel}
-  {editor_panel}
+    {personal_note_panel}
+  </section>
+  <section class="article-tool-section">
+    <div class="article-tool-section-title">整理與編輯</div>
+    {tag_panel}
+    {editor_panel}
+  </section>
+  <section class="article-tool-section">
+    <div class="article-tool-section-title">補資料與輔助工具</div>
+    {fulltext_panel}
+    {ai_toolbox}
+    {derived_toolbox}
+    {metadata_form}
+  </section>
 </aside>
 """
         split_proposals = pdf_split_proposals_html(item) if item_is_pdf_like(item) else ""
@@ -17899,7 +17961,9 @@ if (document.readyState === "loading") {{
 
     def codex_review_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
-        provider = normalize_ai_provider(form_value(data, "provider", "codex"))
+        provider = normalize_ai_provider(form_value(data, "provider", "codex"), allow_random=True)
+        force_review = form_value(data, "force", "") == "1"
+        replace_reviews = form_value(data, "replace_reviews", "") == "1"
         redirect_to = form_value(data, "redirect", f"/items/view?id={quote(item_id)}")
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
         if not redirect_to.startswith("/") or redirect_to.startswith("//"):
@@ -17937,6 +18001,10 @@ if (document.readyState === "loading") {{
             "--batch-size",
             "1",
         ]
+        if force_review:
+            command.append("--no-missing-only")
+        if replace_reviews:
+            command.append("--replace-existing")
         try:
             result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=960)
             output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
