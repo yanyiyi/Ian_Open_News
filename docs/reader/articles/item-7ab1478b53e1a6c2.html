@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>判決航空公司 AI 聊天機器人須賠償乘客，恐成先例
+AI 客服失誤責任歸屬：Air Canada 被判賠 $812.02 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; text-align: left; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-30T10:35:58+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--small-news">純新聞 / 小消息</span><span class="badge badge--date">2026-06-29 12:15</span></div>
+      <h1><a class="article-title-link" href="https://www.brookings.edu/articles/back-to-the-future-for-section-230-reform" target="_blank" rel="noreferrer" title="開啟原始連結">判決航空公司 AI 聊天機器人須賠償乘客，恐成先例
+AI 客服失誤責任歸屬：Air Canada 被判賠 $812.02</a></h1>
+      <p class="lede">Air Canada 因其 AI 聊天機器人提供的錯誤資訊導致乘客損失，遭加拿大民事解決程序裁定須賠償。法院認為航空公司對網站上的所有資訊負有責任，AI 不應成為推卸責任之藉口。</p>
+      <div class="tag-chip-list"><span class="tag-chip">平台治理</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://www.brookings.edu/wp-content/uploads/2019/12/RTR3EEAG.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><h1>回到未來：第 230 條改革 | 布魯金斯學會</h1>
+<h2>回到未來：第 230 條改革</h2>
+<h4><a href="https://www.brookings.edu/people/mark-maccarthy/" target="_blank" rel="noreferrer">Mark MacCarthy</a></h4>
+<p><a href="https://www.brookings.edu/people/mark-maccarthy/" target="_blank" rel="noreferrer">Mark MacCarthy</a> 非駐會資深研究員</p>
+<ul>
+<li><a href="https://www.brookings.edu/programs/governance-studies/" target="_blank" rel="noreferrer">治理研究</a>、<a href="https://www.brookings.edu/centers/center-for-technology-innovation/" target="_blank" rel="noreferrer">科技創新中心（CTI）</a></li>
+</ul>
+<ul>
+<li>[Bluesky Streamline 圖示：https://streamlinehq.com Bluesky](https://bsky.app/intent/compose?text=Back+to+the+future+for+Section+230+reform https%3A%2F%2Fwww.brookings.edu%2Farticles%2Fback-to-the-future-for-section-230-reform%2F%3Fb%3D1)</li>
+<li>Mark MacCarthy</li>
+</ul>
+<p><a href="https://bsky.app/profile/markmaccarthy.bsky.social" target="_blank" rel="noreferrer">Bluesky Streamline 圖示：https://streamlinehq.com Bluesky</a></p>
+<h4>更多相關主題</h4>
+<p><a href="https://www.brookings.edu/topics/telecommunications-internet/" target="_blank" rel="noreferrer">網際網路與電信</a></p>
+<p><a href="https://www.brookings.edu/topics/courts-law/" target="_blank" rel="noreferrer">法院與法律</a></p>
+<p><a href="https://www.brookings.edu/programs/governance-studies/" target="_blank" rel="noreferrer">治理研究</a></p>
+<p><a href="https://www.brookings.edu/centers/center-for-technology-innovation/" target="_blank" rel="noreferrer">科技創新中心（CTI）</a></p>
+<p><a href="https://www.brookings.edu/projects/the-section-230-project/" target="_blank" rel="noreferrer">第 230 條專案</a></p>
+<p>本文的另一版本原先刊登於 <a href="https://www.lawfareblog.com/back-future-section-230-reform" target="_blank" rel="noreferrer">Lawfare 部落格</a>。</p>
+<p>今年，改革《通訊端正法》（Communications Decency Act）第 230 條已被美國國會與拜登政府列入議程；在美國國會大廈暴動引發外界重新討論科技平台，以及川普總統隨後遭主要社群媒體平台停權之後，這項改革更顯迫切。就在最近，國會議員與國會幕僚<a href="https://www.reuters.com/article/us-usa-tech-white-house-exclusive/exclusive-big-techs-democratic-critics-discuss-ways-to-strike-back-with-white-house-idUSKBN2AH1A4?mkt_tok=eyJpIjoiT0RJd01UTTRNVE01WkdNMiIsInQiOiI2YjlaWEEyV1dQSXJncG1HV1AzVkkwZVwvZFFyb0pqVmFaVzBPaENiNStVRTVFWVJBcW1LUE5LcUlnTWZaVjdEamdyZHBCcURmYjJQcU1XWGYxMFU1NzJXN2NMcXNPRFV3d2twcVg5anRZWW9ldlRPeThxaG51elBVcGpxcjk3K28ifQ%3D%3D" target="_blank" rel="noreferrer">表示</a>，他們已與白宮討論如何監管科技巨頭，其中包括改革第 230 條。</p>
+<p>Section 230（第 230 條）在平台扮演其使用者發布內容的發布者時，為平台提供免責保護；這也包括平台編輯或未編輯這些內容的情況。一些主張修法的保守派倡議者，希望限制平台的編輯裁量權，為他們的政治觀點創造更有利的環境。但他們也希望將某些特別有害的非法活動排除在 Section 230 免責保護之外，例如性販運與兒童性虐待影像資料。另一方面，推動修法的進步派人士則希望，平台不要對那些為社會、經濟與種族正義奮鬥的邊緣化群體言論抱持敵意。但他們也希望平台對仇恨言論與白人至上主義採取行動。目前尚不清楚雙方是否能達成一致的改革方案。</p>
+<p>如果政策制定者無法達成共識，法院可能會代替國會採取行動。2020 年，最高法院駁回一件涉及 Section 230 主張的移審令聲請；Clarence Thomas 大法官在一份同意異議意見的聲明中<a href="https://www.supremecourt.gov/orders/courtorders/101320zor_8m58.pdf" target="_blank" rel="noreferrer">主張</a>，法官已經把 Section 230 擴張到遠超出國會原意的程度，並提出一種對 Section 230 的重新詮釋，將會「削減法院讀進 §230 的廣泛免責」。而最高法院可能很快又會有一次重新審視 Section 230 的機會，因為德州最高法院審理中的<a href="https://law.justia.com/cases/texas/fourteenth-court-of-appeals/2020/14-19-00845-cv.html" target="_blank" rel="noreferrer">一件案件</a>，正走在可能上達聯邦最高法院大法官面前的路上。如果國會沒有制定 Section 230 改革，最高法院很可能會以某種方式出手「削減」Section 230 免責，即使不一定完全依照 Thomas 大法官所希望的方式。</p>
+<p>新的責任制度即將到來。與其讓最高法院把新制度包裝成對一部 25 年前法條文字的解釋，由國會重新思考這些問題會更好。</p>
+<p>但最好的前進方向是什麼？有時候，檢視一條當初沒有走上的路會很有價值。在這個案例中，法院於 1997 年否定的通知與下架責任制度，或許值得重新考慮，也可能是敵對的黨派陣營能夠達成共識的方案。</p>
+<h2>目前有哪些改革方案正在被考慮？</h2>
+<p>一種常見且獲跨黨派支持的第 230 條改革做法，是針對特別嚴重的網路危害與違法行為，逐項排除其適用。國會在 2018 年通過<a href="https://www.congress.gov/115/plaws/publ164/PLAW-115publ164.pdf" target="_blank" rel="noreferrer">《允許各州與受害者打擊網路性販運法》（FOSTA）</a>時就是這麼做的，讓協助或促進性販運的網路公司須負法律責任。該法案在參議院以 97 票對 2 票的壓倒性跨黨派票數通過。由共和黨參議員 Lindsey Graham 主提，並有包括民主黨參議員 Richard Blumenthal 在內的跨黨派共同提案人支持的 <a href="https://www.congress.gov/bill/116th-congress/senate-bill/3398/text" target="_blank" rel="noreferrer">Earn It Act</a>，則會針對違反兒童性虐待相關法律的情形，撤回第 230 條保護。民主黨眾議員 Anna Eshoo 也提出<a href="https://eshoo.house.gov/media/press-releases/reps-eshoo-and-malinowski-introduce-bill-hold-tech-platforms-liable-algorithmic" target="_blank" rel="noreferrer">法案</a>，針對放大傳播與公民權侵害相關、或涉及國際恐怖主義行為的內容，撤回第 230 條豁免。</p>
+<p>由民主黨參議員 Mark R. Warner、Mazie Hirono 與 Amy Klobuchar 提出的<a href="https://www.warner.senate.gov/public/_cache/files/4/f/4fa9c9ba-2b34-4854-8c19-59a0a9676a31/66DECFBC0D6E6958C2520C3A6A69EAF6.safe-tech-act---final.pdf" target="_blank" rel="noreferrer">《防範詐欺、剝削、威脅、極端主義與消費者傷害法案》（Safe Tech）</a>，將確保第 230 條不適用於廣告或其他付費內容、不會阻卻禁制令救濟、不會妨礙民權法的執行、不會干擾處理跟蹤與網路跟蹤，或基於受保護身分別的騷擾與恐嚇相關法律、不會阻卻過失致死訴訟，也不會阻卻依《外國人侵權請求法》（Alien Tort Claims Act）提出的訴訟。與 Safe Tech Act 法案文本一同發布的<a href="https://www.warner.senate.gov/public/index.cfm/2021/2/warner-hirono-klobuchar-announce-the-safe-tech-act-to-reform-section-230" target="_blank" rel="noreferrer">說明</a>，指出多數第 230 條改革提案中的一個關鍵元素。也就是說，這些改革「並不保證平台會在所有案件，甚至多數案件中被認定負有責任……相反地，這些改革是為了確保受害者有機會提出請求，不會因為第 230 條成為絕對障礙，而無法為其所受傷害尋求法律救濟，即使這些傷害是由平台的行動或設計直接促成。」FOSTA 則是例外；它創設了一項新的罪名，處罰促進或便利賣淫的行為。</p>
+<p>有時，這些措施會針對特定的第 230 條法院判決。Eshoo 提議在涉及恐怖主義的訴訟中，移除演算法放大的免責，正是針對 <a href="https://law.justia.com/cases/federal/appellate-courts/ca2/18-397/18-397-2019-07-31.html" target="_blank" rel="noreferrer">Force v. Facebook, Inc</a><em>.</em> 案的判決；在該案中，美國第二巡迴上訴法院給予 Facebook 免責，即使 Facebook 曾推薦恐怖分子閱讀彼此的貼文並彼此見面。Safe Tech Act 回應的案例之一，是 <a href="http://www.cagoldberglaw.com/wp-content/uploads/2018/09/Second-Circuit-Decision.pdf" target="_blank" rel="noreferrer">Herrick v. Grindr</a> 案；在該案中，美國第二巡迴上訴法院發布簡易命令，維持地方法院的判決，使這款交友 app 免於產品瑕疵請求的責任。該請求主張，這款 app 並沒有有效系統來防止騷擾與對人身安全的威脅。</p>
+<p>透過在可能對社群媒體公司提起訴訟的各種來源之間挑選取捨，這種排除適用的作法，必然會增加社群媒體公司的法律分析負擔，讓它們必須判斷自己在個別案件中是否享有免責。此外，正如 <a href="https://scholarship.law.bu.edu/cgi/viewcontent.cgi?article=1833&amp;context=faculty_scholarship" target="_blank" rel="noreferrer">Danielle Citron 和 Mary Anne Franks</a> 所指出的，零碎式改革「必然涵蓋不足」。每當對第 230 條作出特別寬泛的解釋，導致某種新的嚴重損害也獲得免責時，這種作法就會製造一股沒有明確終點的壓力，要求國會更新第 230 條的例外規定。零碎式提案也會讓跨黨派更難就特定措施中哪些免責應該取消、哪些應該保留達成共識。</p>
+<p>保守派人士有時會把他們的<a href="https://www.justice.gov/file/1286331/download" target="_blank" rel="noreferrer">改革提案</a>集中在修改第 230(c)(2) 條，也就是平台在移除內容時必須出於「善意」的要求。但這項提案是建立在對第 230 條實務運作方式的誤解上。正如第 230 條最優秀、也最熟悉相關細節的捍衛者 Eric Goldman 所<a href="https://poseidon01.ssrn.com/delivery.php?ID=626090113083010006112124087000000104014031023082031066109095074127121000106118078089099038000101119039109113030109100125016089015059068041031113010064102012104108064081094091074100102123025127000098029091077123105066120076083116090110112095065069104&amp;EXT=pdf&amp;INDEX=TRUE" target="_blank" rel="noreferrer">指出</a>，平台很少使用第 230(c)(2) 條來逃避其內容移除決定所帶來的責任。這是因為第 230(c)(2) 條要求證明善意，會帶來很高的訴訟負擔，包括昂貴又耗時的證據開示負擔。第 230 條賦予免責對平台的主要好處，並不是平台一定能在漫長的法院程序後勝訴，而是它們往往可以在案件繼續推進之前就讓案件中止。因此在實務上，平台會透過援引第 230(c)(1) 條，在無須經歷冗長法院程序的情況下取得免責；法院對該條款的解釋相當寬泛，將平台作為出版者（publisher）行事時的任何行為都納入免責範圍，包括內容移除或過濾，而且不要求平台證明這類移除行為出於善意。</p>
+<p>有些保守派人士希望把 Section 230 的免責保護，設定為取決於監管機關是否認定平台具備<a href="https://www.hawley.senate.gov/sites/default/files/2019-06/Ending-Support-Internet-Censorship-Act-Bill-Text.pdf" target="_blank" rel="noreferrer">政治中立</a>。相對地，有些進步派與溫和派人士則希望，Section 230 的免責保護必須以法院認定平台採取了<a href="https://ir.lawnet.fordham.edu/flr/vol86/iss2/3/" target="_blank" rel="noreferrer">合理的內容審核作法</a>為前提。但這些良好行為的要求，並不一定得和 Section 230 綁在一起。如果這些作法是好的政策構想，國會可以直接強制要求，並交由監管機關負責解釋與執行這些規則。舉例來說，我曾經<a href="https://www.brookings.edu/research/a-dispute-resolution-program-for-social-media-companies/" target="_blank" rel="noreferrer">提議</a>設立一項獨立要求，規定平台必須一致地遵守自己的內容規則，並透過一套爭議解決機制來執行；這套機制可仿照金融業監管局為證券經紀自營商維持的仲裁制度。把 Section 230 的免責保護設定為必須履行這些義務，會是一種低效且間接的合規機制。</p>
+<p>Section 230 改革真正討論的是，平台應該在多大程度上為其系統上的非法言論與活動負責，而不是這些性質很不同的監管議題。進步派與保守派大致同意，社群媒體平台上的非法與有害內容太多，而改革現行責任制度，可能會對消除其中許多問題有很大幫助。</p>
+<h2><strong>社群媒體的通知與下架制度</strong></h2>
+<p>但過去也有一些事，可以給今天的政策制定者借鏡。早在 1997 年，美國第四巡迴上訴法院在 <a href="https://www.eff.org/files/zeran-v-aol.pdf" target="_blank" rel="noreferrer">Zeran</a> 案中，就曾有機會讓第 230 條之下發展出一套通知與下架制度。法院當時審查的想法是：如果服務提供者收到充分通知，得知其系統上有違法內容，卻未採取行動，就不適用第 230 條的豁免。但法院駁回了這個想法，認為它不符合第 230 條的目的，也就是鼓勵平台進行自律式內容審核。法官也認為，通知責任會導致過度移除內容：平台面對雪片般飛來的通知，又不會因移除內容而承擔任何責任，自然會有「一收到通知就直接移除訊息」的誘因。</p>
+<p>這如今已成為第 230 條的既定法理。但這在當時就是個錯誤，對今天的網路世界來說也是糟糕的政策。相較於讓公司因不作為而獲得豁免，也就是第 230 條目前的作法，通知與下架制度在治理違法內容上會有效得多。而對言論自由的風險，是可以管理的。</p>
+<p>美國在 1998 年的<a href="https://www.law.cornell.edu/uscode/text/17/512" target="_blank" rel="noreferrer">數位千禧年著作權法</a>（Digital Millennium Copyright Act, DMCA）中建立了通知與下架制度，至今已有 20 多年的經驗。該法為平台提供著作權侵權的避風港，只要平台在收到通知後移除侵權內容即可。雖然內容權利人與平台都不完全滿意，但這部法律建立了一套可運作的制度，同時保護著作權利益與言論自由。它對合格通知設下嚴格條件，例如必須指明遭侵權的特定作品、提出善意聲明，並在承擔偽證責任的前提下聲明申訴人有權代表著作權人行事。DMCA 也要求平台讓被指稱侵權者有機會提出反通知；如果被指稱侵權者這麼做，除非申訴方在 10 天內向法院主張著作權侵權，否則平台必須恢復被移除的內容。</p>
+<p>歐盟監管機關近年來也複製了 DMCA 的模式。在 2000 年的<a href="https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:32000L0031&amp;from=EN" target="_blank" rel="noreferrer">《電子商務指令》</a>中，歐盟規定，線上服務提供者只有在實際知悉內容違法後，迅速移除非法素材，才能享有免責保障。這為成員國建立一般性的通知與下架機制提供了法律基礎，但真正這麼做的國家並不多。</p>
+<p>2020 年 12 月，歐盟執委會提出新的<a href="https://ec.europa.eu/info/sites/info/files/proposal_for_a_regulation_on_a_single_market_for_digital_services.pdf" target="_blank" rel="noreferrer">《數位服務法》</a>，其中包括建立一套泛歐洲的通知與下架制度。依照這項新制度的提案，平台一旦收到關於非法素材的合格通知，就必須迅速移除該素材，才能維持免責保障。此外，該法也要求申訴必須包含對所指違法性的說明、識別資訊，以及確認善意提出的聲明。平台也必須為內容遭移除的使用者建立救濟機制，包括內部申訴處理機制、庭外爭端解決，以及司法救濟。</p>
+<p>如同對第 230 條採取零碎修法一樣，DSA 下的這些新規則，並不是在認定平台若未依申訴移除素材，就必須負損害賠償責任。這些規則只是說，如果平台未採取行動，就會失去在其他法律下原本可能享有的免責保障，也就是對於讓這類素材繼續存在而已經成立的責任不再免責。正如 DSA 前言第 17 點所說，這些新規則「不應被理解為提供一個積極基礎，用來判定何時可以認定提供者負有責任；這應由適用的歐盟或各國法律規則來決定。」</p>
+<p>國會應該檢視建立一套平台通知與下架制度的利弊，這套制度可參考《數位千禧年著作權法》（DMCA）與《數位服務法》（Digital Services Act）中的機制。這樣的制度不會要求平台在內容發布前先行審查。它會建立在大型社群媒體公司既有的申訴系統之上，並仰賴這些申訴來提醒平台：有人可能已經發布了違法且有害的內容。以 Grindr 的情況來說，這個交友網站在冒名與騷擾的受害者通知公司之前，仍會繼續享有免責；若公司迅速採取行動阻擋有害行為，也仍會維持免責。</p>
+<p>為了控制過度移除的風險，這套新制度應納入這些示範法律中的所有保障，包括反通知與在未啟動法院程序時恢復上架的規定、要求申訴必須詳盡且具體並引用相關法規，以及要求申訴人出於善意並設有偽證處罰。也可以考慮其他措施，包括對不當移除負責，讓完全合法的內容遭誤刪時，可能有途徑訴諸法院。法律也可以要求平台對累犯與濫用申訴程序的團體採取行動，並建立可信審查者計畫，優先處理已驗證使用者的申訴。此外，新的要求也可以限於最大型的平台，因為這些平台造成違法行為的風險最高，也有資源管理通知責任。</p>
+<p>任何施加通知責任的制度，都無法避免產生某種過度移除的誘因；但現行制度的錯誤方向正好相反，讓太多違法且有害的內容得以存在。上述這類防止濫用的措施，已讓 DMCA 在過去數十年的運作尚可承受，也應能降低把它延伸到更廣泛責任範圍時的風險。</p>
+<p>進步派與保守派應該都能同意：作為 Section 230（第 230 條）的改革，「通知與移除」制度值得進一步考慮。雙方都想減少在現行制度下過於頻繁出現在平台上的非法與有害內容。他們在其他議題上意見不一，例如平台是否移除了太多合法的保守派內容。但像政治中立性，以及所有政治觀點都能合理使用平台服務這類議題，並不屬於 Section 230 改革的範圍，可以透過其他途徑推動。內容審查中的公平性、問責與透明度要求也是如此。</p>
+<p>如果政策制定者想合作減少非法與有害的線上內容，他們將面臨一個選擇：要採取像 EARN IT Act 或 Safe Tech Act 這樣的零散式 Section 230 改革，還是採取更根本的改革，例如「通知與選擇」制度。零散式改革有幾個問題：它無法解決根本議題，會讓任何具體措施都可能陷入黨派僵局的陰影浮現，也會打開無止境例外條款的大門。相較之下，彼此交鋒的黨派陣營應該仔細看待「通知與移除」制度。若要取得進展，有時政策制定者需要回頭檢視那條未曾走上的路。</p>
+<p>David Morar, Bruna Martins dos Santos</p>
+<p><strong>布魯金斯學會致力於品質、獨立性與影響力。</strong>我們由<a href="https://www.brookings.edu/about-us/annual-report/" target="_blank" rel="noreferrer">多元的資助者</a>支持。依循我們的<a href="https://www.brookings.edu/about-us/research-independence-and-integrity-policies/" target="_blank" rel="noreferrer">價值與政策</a>，每一篇布魯金斯出版品都僅代表其作者的觀點。</p>
+<ul>
+<li><a href="https://www.brookings.edu/articles/back-to-the-future-for-section-230-reform/#" target="_blank" rel="noreferrer">科技與資訊</a></li>
+</ul>
+<p>子主題 <a href="https://www.brookings.edu/topics/telecommunications-internet/" target="_blank" rel="noreferrer">網際網路與電信</a></p>
+<ul>
+<li><a href="https://www.brookings.edu/articles/back-to-the-future-for-section-230-reform/#" target="_blank" rel="noreferrer">美國政府與政治</a></li>
+</ul>
+<p>子主題 <a href="https://www.brookings.edu/topics/courts-law/" target="_blank" rel="noreferrer">法院與法律</a></p>
+<p><a href="https://www.brookings.edu/programs/governance-studies/" target="_blank" rel="noreferrer">治理研究</a></p>
+<p><a href="https://www.brookings.edu/centers/center-for-technology-innovation/" target="_blank" rel="noreferrer">科技創新中心（CTI）</a></p>
+<p><a href="https://www.brookings.edu/projects/the-section-230-project/" target="_blank" rel="noreferrer">Section 230 專案</a></p>
+<p>James S. Denford、Gregory S. Dawson、Kevin C. Desouza</p>
+<p>Darrell M. West、Beth Simone Noveck</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-0bd6e965a8204876.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">川普政府推動 AI 醫生進入美國醫療體系 引發專業倫理爭議</span>
+</a>
+
+<a class="article-sequence-link" href="item-e2b2e92ef4c450a8.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">Google AI誤將歌手Ashley MacIsaac標為性犯罪者：數位人權與平台責任的新考驗</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-7ab1478b53e1a6c2.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Back to the future for Section 230 reform | Brookings</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：回到未來：第 230 條改革 | 布魯金斯學會（Codex）</li><li><strong>原始作者</strong>：Mark MacCarthy（json-ld）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：direct-pr-small-news / 2026-06-30T02:59:51+00:00</li><li>審稿備註：從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。
+2026-06-30T02:59:51+00:00 本機標記直接送 PR（小消息）；純事實項目，不進編輯台撰稿。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-7ab1478b53e1a6c2";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

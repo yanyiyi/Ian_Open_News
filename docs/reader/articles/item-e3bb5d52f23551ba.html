@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Model Openness Framework: Promoting Completeness and Openness for Reproducibility, Transparency, and Usability in Artificial Intelligence - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; text-align: left; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-30T10:35:57+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-29 18:30</span></div>
+      <h1><a class="article-title-link" href="https://arxiv.org/abs/2403.13784" target="_blank" rel="noreferrer" title="開啟原始連結">The Model Openness Framework: Promoting Completeness and Openness for Reproducibility, Transparency, and Usability in Artificial Intelligence</a></h1>
+      <p class="lede">Model Openness Framework 原始研究論文；可核對 RedMonk 對 MOF 分級方法與生命週期元件的描述。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開放授權</span><span class="tag-chip">開放資料</span><span class="tag-chip">responsible AI</span></div>
+    </article>
+
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h4>Abstract</h4>
+<p>Generative artificial intelligence (AI) offers numerous opportunities for research and innovation, but its commercialization has raised concerns about the transparency and safety of frontier AI models. Most models lack the necessary components for full understanding, auditing, and reproducibility, and some model producers use restrictive licenses whilst claiming that their models are “open source”. To address these concerns, we introduce the Model Openness Framework (MOF), a three-tiered ranked classification system that rates machine learning models based on their completeness and openness, following open science principles. For each MOF class, we specify code, data, and documentation components of the model development lifecycle that must be released and under which open licenses. In addition, the Model Openness Tool (MOT) provides a user-friendly reference implementation to evaluate the openness and completeness of models against the MOF classification system. Together, the MOF and MOT provide timely practical guidance for (i) model producers to enhance the openness and completeness of their publicly-released models, and (ii) model consumers to identify open models and their constituent components that can be permissively used, studied, modified, and redistributed. Through the MOF, we seek to establish completeness and openness as core tenets of responsible AI research and development, and to promote best practices in the burgeoning open AI ecosystem.</p>
+<p><em>K</em> eywords  Artificial intelligence ⋅ \cdot machine learning ⋅ \cdot open science ⋅ \cdot open source software ⋅ \cdot open data</p>
+<h2>1 Introduction</h2>
+<p>Artificial intelligence (AI) has seen remarkable advances in recent years <a href="https://arxiv.org/html/2403.13784v6#bib.bib1" target="_blank" rel="noreferrer">[1</a>] , driven by the growth in computational capabilities <a href="https://arxiv.org/html/2403.13784v6#bib.bib2" target="_blank" rel="noreferrer">[2</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib3" target="_blank" rel="noreferrer">3</a>] , available training data <a href="https://arxiv.org/html/2403.13784v6#bib.bib4" target="_blank" rel="noreferrer">[4</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib5" target="_blank" rel="noreferrer">5</a>] , and improved deep learning algorithms <a href="https://arxiv.org/html/2403.13784v6#bib.bib6" target="_blank" rel="noreferrer">[6</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib7" target="_blank" rel="noreferrer">7</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib8" target="_blank" rel="noreferrer">8</a>] . However, as AI systems have become more advanced, concerns have also grown regarding their transparency, reproducibility, and safety <a href="https://arxiv.org/html/2403.13784v6#bib.bib9" target="_blank" rel="noreferrer">[9</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib10" target="_blank" rel="noreferrer">10</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib11" target="_blank" rel="noreferrer">11</a>] . Most state-of-the-art (SOTA) models are black boxes, making it hard to explain their internal logic or to ensure fairness <a href="https://arxiv.org/html/2403.13784v6#bib.bib12" target="_blank" rel="noreferrer">[12</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib13" target="_blank" rel="noreferrer">13</a>] . While the number of publicly available models has been growing, many of these models are falsely being promoted as “open-source”, a practice that has been characterized as “openwashing” <a href="https://arxiv.org/html/2403.13784v6#bib.bib14" target="_blank" rel="noreferrer">[14</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib15" target="_blank" rel="noreferrer">15</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib16" target="_blank" rel="noreferrer">16</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib17" target="_blank" rel="noreferrer">17</a>] . The lack of transparency and reproducibility in AI models hinders sc...</p>
+<p>To address these concerns, we introduce the Model Openness Framework (MOF) for evaluating and classifying the completeness and openness of machine learning (ML) models across their development process. Model producers must go beyond releasing models and trained weights; they should include all artifacts involved in the model development lifecycle. The MOF contributes to broader efforts that seek to promote transparency, reproducibility, and responsibility in AI R&amp;D, including reproducibility checklists <a href="https://arxiv.org/html/2403.13784v6#bib.bib19" target="_blank" rel="noreferrer">[19</a>] , ethical AI guidelines <a href="https://arxiv.org/html/2403.13784v6#bib.bib20" target="_blank" rel="noreferrer">[20</a>] , model and data cards <a href="https://arxiv.org/html/2403.13784v6#bib.bib21" target="_blank" rel="noreferrer">[21</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib22" target="_blank" rel="noreferrer">22</a>] . By adopting the MOF, the AI community can create a more open, accountable, and trustworthy ecosystem.</p>
+<p>For the sake of simplicity in nomenclature, this paper refers to any person or entity that develops and trains a first-generation model as a “model producer” or simply a “producer”. This encompasses AI researchers, developers, AI hobbyists, or anyone who trains a model in some form or fashion, including fine-tuning and alignment, as long as they are the originator of the (foundation) model. Similarly, any person or entity that adopts, consumes, alters, or uses a model and corresponding artifacts for any purpose including modifying weights through fine-tuning is referred to as a “model consumer” or simply a “consumer”. This includes end users, researchers, developers, or anyone that uses an ML model and is not its producer. We also use the terms “ML” and “ML model” to broadly describe any model, whether classical machine learning or deep learning and both generative and discriminative.</p>
+<p>The paper has the following structure. It begins with a discussion of related work and how the MOF builds on prior approaches to evaluating the openness of models (Section <a href="https://arxiv.org/html/2403.13784v6#S2" target="_blank" rel="noreferrer">2</a>). Next, it reviews the concepts of openness and completeness in science and technology (Section <a href="https://arxiv.org/html/2403.13784v6#S3" target="_blank" rel="noreferrer">3</a>). Then, it introduces the three classes of the MOF classification system (Section <a href="https://arxiv.org/html/2403.13784v6#S4" target="_blank" rel="noreferrer">4</a>), as well as the 17 components (Section <a href="https://arxiv.org/html/2403.13784v6#S5" target="_blank" rel="noreferrer">5</a>) and acceptable licenses per component (Section <a href="https://arxiv.org/html/2403.13784v6#S6" target="_blank" rel="noreferrer">6</a>). Then, it discusses how to adopt the framework in practice (Section <a href="https://arxiv.org/html/2403.13784v6#S7" target="_blank" rel="noreferrer">7</a>), as well as the benefits (Section <a href="https://arxiv.org/html/2403.13784v6#S8" target="_blank" rel="noreferrer">8</a>) and limitations (Section <a href="https://arxiv.org/html/2403.13784v6#S9" target="_blank" rel="noreferrer">9</a>) of the MOF. Finally, it concludes with a summary of the key contributions for both model producers and consumers (Section <a href="https://arxiv.org/html/2403.13784v6#S10" target="_blank" rel="noreferrer">10</a>).</p>
+<h2>2 Related Work</h2>
+<h3>2.1 Opening the Black Box: Benefits and Risks of Openness in AI</h3>
+<p>While AI has seen remarkable advances in recent years <a href="https://arxiv.org/html/2403.13784v6#bib.bib1" target="_blank" rel="noreferrer">[1</a>] , most SOTA foundation models are black boxes, making it hard to audit or explain their logic or behavior <a href="https://arxiv.org/html/2403.13784v6#bib.bib12" target="_blank" rel="noreferrer">[12</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib13" target="_blank" rel="noreferrer">13</a>] . Large language model services like OpenAI’s GPT-4 hide opaque models behind cloud-based APIs, providing no insight into the inner workings <a href="https://arxiv.org/html/2403.13784v6#bib.bib23" target="_blank" rel="noreferrer">[23</a>] . To address these concerns, there has been a growing movement towards the openness of models with companies, research organizations, and individuals sharing models on platforms like Hugging Face Hub, GitHub, and Kaggle <a href="https://arxiv.org/html/2403.13784v6#bib.bib24" target="_blank" rel="noreferrer">[24</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib25" target="_blank" rel="noreferrer">25</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib26" target="_blank" rel="noreferrer">26</a>] . Furthermore, grassroots initiatives have emerged as the early leaders in the open development of open foundation models <a href="https://arxiv.org/html/2403.13784v6#bib.bib27" target="_blank" rel="noreferrer">[27</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib28" target="_blank" rel="noreferrer">28</a>] , such as GPT-Neo by EleutherAI <a href="https://arxiv.org/html/2403.13784v6#bib.bib29" target="_blank" rel="noreferrer">[29</a>] , BLOOM by BigScience <a href="https://arxiv.org/html/2403.13784v6#bib.bib30" target="_blank" rel="noreferrer">[30</a>] , and SantaCoder by BigCode <a href="https://arxiv.org/html/2403.13784v6#bib.bib31" target="_blank" rel="noreferrer">[31</a>] . This shift towards the open development of AI models is increasingly viewed as a credible alternative to closed-source development <a href="https://arxiv.org/html/2403.13784v6#bib.bib32" target="_blank" rel="noreferrer">[32</a>] .</p>
+<p>There has been much debate about the benefits and risks of releasing models <a href="https://arxiv.org/html/2403.13784v6#bib.bib33" target="_blank" rel="noreferrer">[33</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib34" target="_blank" rel="noreferrer">34</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib35" target="_blank" rel="noreferrer">35</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib36" target="_blank" rel="noreferrer">36</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib37" target="_blank" rel="noreferrer">37</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib38" target="_blank" rel="noreferrer">38</a>] . On the one hand, the accessibility and transparency of open models can concurrently deliver advantages over closed source models, including security and performance advantages through distributed development and auditing <a href="https://arxiv.org/html/2403.13784v6#bib.bib39" target="_blank" rel="noreferrer">[39</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib40" target="_blank" rel="noreferrer">40</a>] , adaptability and customization for diverse domains and languages <a href="https://arxiv.org/html/2403.13784v6#bib.bib35" target="_blank" rel="noreferrer">[35</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib41" target="_blank" rel="noreferrer">41</a>] , as well as advances in science <a href="https://arxiv.org/html/2403.13784v6#bib.bib42" target="_blank" rel="noreferrer">[42</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib43" target="_blank" rel="noreferrer">43</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib44" target="_blank" rel="noreferrer">44</a>] . On the other hand, the openness of models introduces a number of risks, such as the generation of disinformation <a href="https://arxiv.org/html/2403.13784v6#bib.bib45" target="_blank" rel="noreferrer">[45</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib46" target="_blank" rel="noreferrer">46</a>] , illegal content <a href="https://arxiv.org/html/2403.13784v6#bib.bib47" target="_blank" rel="noreferrer">[47</a>] , as well as security vulnerabilities <a href="https://arxiv.org/html/2403.13784v6#bib.bib48" target="_blank" rel="noreferrer">[48</a>] . Open foundational models are understood to have five distinctive properties that present both benefits and risks: broade...</p>
+<h3>2.2 Lack of Openness in “Open Source” AI</h3>
+<p>ML models whose weights are made publicly-available for download and downstream use are being falsely promoted as “open-source” <a href="https://arxiv.org/html/2403.13784v6#bib.bib15" target="_blank" rel="noreferrer">[15</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib49" target="_blank" rel="noreferrer">49</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib16" target="_blank" rel="noreferrer">16</a>] . Such models may more accurately be described as “open-weight models” <a href="https://arxiv.org/html/2403.13784v6#bib.bib17" target="_blank" rel="noreferrer">[17</a>] . While there is a fast-growing number of open models and open datasets shared on online platforms, a concerning number of models and datasets are shared either without licenses—for example, 64.67% of models and 72.13% of datasets on Hugging Face Hub are unlicensed <a href="https://arxiv.org/html/2403.13784v6#bib.bib26" target="_blank" rel="noreferrer">[26</a>] —or with restrictive licenses that do not meet the standards required of open licenses <a href="https://arxiv.org/html/2403.13784v6#bib.bib15" target="_blank" rel="noreferrer">[15</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib49" target="_blank" rel="noreferrer">49</a>] . In most cases, pretraining data or human feedback data collected from usage of models in, for example, chatbots are not released <a href="https://arxiv.org/html/2403.13784v6#bib.bib50" target="_blank" rel="noreferrer">[50</a>] . Some model producers even add conditions that stipulate that their model outputs cannot be used to train subsequent models or add trigger conditions that would require a model consumer to negotiate a new license when some condition is met. In addition, fine-tuned models based on foundation models with restrictive licenses are being released with open-source licenses, such as Apache 2.0, even though altering the original license is not legally permitted. This creates confusion in th...</p>
+<p>Many open (foundation) models are released with technical reports and model cards that provide limited information on the source and treatment of their training data, fine-tuning, or alignment methods <a href="https://arxiv.org/html/2403.13784v6#bib.bib23" target="_blank" rel="noreferrer">[23</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib51" target="_blank" rel="noreferrer">51</a>] , and evaluation results often cannot be reproduced independently due to the lack of their disclosure <a href="https://arxiv.org/html/2403.13784v6#bib.bib52" target="_blank" rel="noreferrer">[52</a>] . Furthermore, few disclosures are made about guardrails and if prompts and outputs are altered, filtered, or replaced <a href="https://arxiv.org/html/2403.13784v6#bib.bib53" target="_blank" rel="noreferrer">[53</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib54" target="_blank" rel="noreferrer">54</a>] . Overall, the lack of openness leaves downstream model consumers to rely on limited claims reported by the model producers.</p>
+<p>The misrepresentation of models as “open source” is in part due to confusion about the appropriate use of open-source licenses. Many developers do not realize that open-source licenses were designed to cover conventional software code and are not appropriate for the intricacies of ML models <a href="https://arxiv.org/html/2403.13784v6#bib.bib55" target="_blank" rel="noreferrer">[55</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib56" target="_blank" rel="noreferrer">56</a>] . As we discuss in Section <a href="https://arxiv.org/html/2403.13784v6#S6" target="_blank" rel="noreferrer">6</a>, open-source licenses cover the model architecture, which is defined in software code, but not the corresponding model parameters. By contrast, model parameters are data and are more aptly governed by open-data licenses than by open-source licenses <a href="https://arxiv.org/html/2403.13784v6#bib.bib57" target="_blank" rel="noreferrer">[57</a>] . Meanwhile the misrepresentation of models as “open source” by companies has also been characterized as “openwashing” <a href="https://arxiv.org/html/2403.13784v6#bib.bib15" target="_blank" rel="noreferrer">[15</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib16" target="_blank" rel="noreferrer">16</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib17" target="_blank" rel="noreferrer">17</a>] , where “open” has been used imprecisely and loosely to describe “systems that offer minimal transparency or reusability…alongside those that offer maximal transparency, reusability, and extensibility” <a href="https://arxiv.org/html/2403.13784v6#bib.bib14" target="_blank" rel="noreferrer">[14</a>] . This problem motivates our creation of a ranking system to promote openness and completeness.</p>
+<p>Another challenge is that most models have fallen short in their completeness (i.e. the full availability of components from the model development lifecycle, see list in Section <a href="https://arxiv.org/html/2403.13784v6#S5" target="_blank" rel="noreferrer">5</a>), only releasing model architectures and final trained parameters. To achieve full transparency, reproducibility, and extensibility, we argue that model producers must go beyond just releasing their model and the trained weights and biases, which is currently the norm. Instead, they should include all artifacts of their work, including datasets for training, validation, testing, and benchmarking, as well as detailed documentation, such as research papers, model cards, data cards, and any usage documentation. Completeness also requires all code used to parse and process data, the code used for training and inference, and any code used in benchmark tests, along with any libraries or other code artifacts that were a part of the model development lifecycle.</p>
+<h3>2.3 MOF: A Novel Approach to Evaluating Model Openness &amp; Completeness</h3>
+<p>There is not yet a formally agreed-upon definition of “open source AI” <a href="https://arxiv.org/html/2403.13784v6#bib.bib56" target="_blank" rel="noreferrer">[56</a>] . Broadly, open AI refers to the concept of transparency and accessibility in AI R&amp;D. It entails the sharing of key artifacts associated with the development of models, including data, code, models, and publications, under both open and restrictive licenses, which allow access, inspection, modification, or distribution of models. As mentioned above, open AI also entails grassroots initiatives that have used open collaboration approaches to develop open-weight models <a href="https://arxiv.org/html/2403.13784v6#bib.bib27" target="_blank" rel="noreferrer">[27</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib28" target="_blank" rel="noreferrer">28</a>] . The sharing of models grants the community the freedoms to transparently review capabilities and limitations, identify issues, reuse or extend functionality, and participate in collective advancement. This is enabled through open licenses applied judiciously to key model components, including datasets, model architectures, and trained parameters, which facilitates attribution, safeguards model consumers, and maintains community norms while removing barriers to adoption <a href="https://arxiv.org/html/2403.13784v6#bib.bib58" target="_blank" rel="noreferrer">[58</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib59" target="_blank" rel="noreferrer">59</a>] .</p>
+<p>The combination of open source, open data, open access, and open science is a powerful and effective way of solving the most pressing issues in AI R&amp;D, including access, explainability, transparency, reproducibility, and safety. The goals of open AI are to accelerate progress through open collaboration, establish trust by allowing system inspection, enable diverse perspectives, and align AI advancement with social benefits <a href="https://arxiv.org/html/2403.13784v6#bib.bib24" target="_blank" rel="noreferrer">[24</a>] . Due to the nascent nature of the open AI movement, new standards are being developed to address shortcomings, including the draft Open Source AI Definition <a href="https://arxiv.org/html/2403.13784v6#bib.bib56" target="_blank" rel="noreferrer">[56</a>] ; tools for auditing model explainability, fairness, and robustness <a href="https://arxiv.org/html/2403.13784v6#bib.bib60" target="_blank" rel="noreferrer">[60</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib61" target="_blank" rel="noreferrer">61</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib62" target="_blank" rel="noreferrer">62</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib63" target="_blank" rel="noreferrer">63</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib64" target="_blank" rel="noreferrer">64</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib65" target="_blank" rel="noreferrer">65</a>] ; frameworks to evaluate model openness, such as the AAAI Reproducibility Checklist <a href="https://arxiv.org/html/2403.13784v6#bib.bib66" target="_blank" rel="noreferrer">[66</a>] and the NeurIPS 2019 ML Reproducibility Checklist <a href="https://arxiv.org/html/2403.13784v6#bib.bib19" target="_blank" rel="noreferrer">[19</a>] ; the establishment of ethics review boards in AI research labs <a href="https://arxiv.org/html/2403.13784v6#bib.bib67" target="_blank" rel="noreferrer">[67</a>] ; as well as work by government agencies, including NIST and NTIA in the USA <a href="https://arxiv.org/html/2403.13784v6#bib.bib68" target="_blank" rel="noreferrer">[68</a>] and the AI Safety Institute i...</p>
+<p>However, prior approaches do not evaluate both the completeness and openness of models. The MOF reinforces existing approaches by objectively evaluating and classifying models based on which components of the development lifecycle are released under open-source licenses. It codifies openness across model development pipelines with informative guidelines, a classification system, and a method for assigning badges to qualified models. Models with licenses that do not impose downstream restrictions are considered open, while restrictive ones are source-available. This differs from the gradient approach to model openness <a href="https://arxiv.org/html/2403.13784v6#bib.bib36" target="_blank" rel="noreferrer">[36</a>] , which classifies BLOOM by BigScience <a href="https://arxiv.org/html/2403.13784v6#bib.bib30" target="_blank" rel="noreferrer">[30</a>] and GPT-J by EleutherAI <a href="https://arxiv.org/html/2403.13784v6#bib.bib70" target="_blank" rel="noreferrer">[70</a>] as open. We would classify GPT-J as open because it was released under the OSI-approved Apache 2.0 license, while BLOOM is source-available due to its restrictive, non-OSI-approved OpenRAIL license <a href="https://arxiv.org/html/2403.13784v6#bib.bib71" target="_blank" rel="noreferrer">[71</a>] . Overall, the MOF encourages model producers to strive for complete transparency and usability without restrictions.</p>
+<h2>3 Understanding the Concepts and Culture of Openness and Completeness</h2>
+<p>Before presenting the details of the MOF, we review the concepts of openness and completeness in science and technology. These core tenets form the basis of open science, open source, open data, and open access, which enable transparency, reproducibility, and collaboration in research, and are part of the wider open knowledge movement that believes all knowledge should be shared freely <a href="https://arxiv.org/html/2403.13784v6#bib.bib72" target="_blank" rel="noreferrer">[72</a>] . This section provides an overview of each domain and how they connect to the framework’s goals. Understanding the motivations behind openness clarifies why it is vital to extend these concepts to AI R&amp;D: it facilitates the democratization of AI, which is essential for advancing AI research and innovation, as well as responsibility in AI R&amp;D, including transparency, accessibility, and inclusivity <a href="https://arxiv.org/html/2403.13784v6#bib.bib73" target="_blank" rel="noreferrer">[73</a>] .</p>
+<h3>3.1 Openness</h3>
+<p>Openness is the practice of freely sharing the methodology, progress, and products of R&amp;D with the public without restrictions on access, inspection, modification, or distribution <a href="https://arxiv.org/html/2403.13784v6#bib.bib74" target="_blank" rel="noreferrer">[74</a>] . Instead of limiting transparency through proprietary terms, openness concerns the release of materials under permissive open licenses tailored to the type of content. This upholds scientific ideals around reproducibility, accountability, and cumulative innovation, while empowering research and developer communities to meaningfully review, discuss, reuse, and extend upon prior work <a href="https://arxiv.org/html/2403.13784v6#bib.bib75" target="_blank" rel="noreferrer">[75</a>] . As we elaborate in Section <a href="https://arxiv.org/html/2403.13784v6#S3.SS10" target="_blank" rel="noreferrer">3.10</a>, the careful selection of appropriate open licenses facilitates attribution, protects downstream consumers, maintains community ethical norms, and facilitates adoption and impact <a href="https://arxiv.org/html/2403.13784v6#bib.bib76" target="_blank" rel="noreferrer">[76</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib59" target="_blank" rel="noreferrer">59</a>] .</p>
+<p>We also seek to differentiate between the terms “open” and “complete” in order to make it clear to model consumers exactly what model producers are providing and under what conditions when they say their model is open. Openness is not just about what is included, but importantly under what license each component is released. We believe opening the “black box” of AI will be crucial for continued advances and responsible use <a href="https://arxiv.org/html/2403.13784v6#bib.bib77" target="_blank" rel="noreferrer">[77</a>] . Although open-source licensing is imperative for the code components that are provided for the MOF, our approach to the MOF aligns with wider open science principles and the vision of open AI that requires more than open-source licenses for code components for models to be considered open. For example, non-code elements like datasets and research papers need an appropriate license that suits its format, such as open-data or open-content licenses, which are not currently OSI-approved licenses.</p>
+<h3>3.2 Completeness</h3>
+<p>Completeness is a core tenet of open science <a href="https://arxiv.org/html/2403.13784v6#bib.bib75" target="_blank" rel="noreferrer">[75</a>] . We define completeness as the availability of key artifacts produced during the full lifecycle of conducting research or the engineering of a technical product, enabling comprehensive transparency, inspection, evaluation, and reproducibility. In the context of ML, completeness entails releasing all the key components associated with developing an ML model rather than just selected artifacts. It entails sharing the full pipeline that produced a model in a usable form. Comprehensive releases empower unfettered scrutiny into model genetics: curation and treatment of training data, feature engineering, neural architectures, weight evolution, training configurations, model performance across diverse benchmarks, replication of model producer claims, and other byproducts of the model development lifecycle. The MOF encourages model producers to exhibit full completeness, providing all artifacts involved in the model development lifecycle when distributing models. It defines an ascending hierarchy of criteria for releasing key artifacts with the highest bar aligned with open science paradigms. Completeness combined with openness (open licensing) accelerates collective advancement of trustworthy and innovative AI.</p>
+<p>We use the term “completeness” borrowed from open science to disambiguate from the multiple uses of the word “openness”, which has unfortunately become a vague and confusing term <a href="https://arxiv.org/html/2403.13784v6#bib.bib14" target="_blank" rel="noreferrer">[14</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib16" target="_blank" rel="noreferrer">16</a>] . Openness is often used to describe not only the licensing used for artifacts but also the availability of artifacts and even the thoroughness of those artifacts. The multiple uses of the term “open” continues to be used in a way that is misleading or does not reveal the specifics of its usage <a href="https://arxiv.org/html/2403.13784v6#bib.bib68" target="_blank" rel="noreferrer">[68</a>] . Packing the term “openness” with multiple definitions, uses, or dimensions does not clearly articulate what aspect of the model is open. For instance, a model producer may claim that their model is “open” but model consumers may not know if it is open because it employs open licenses, because it is made publicly available, because it provides additional components like datasets, or because the components released are thorough or usable. For this reason, we use the term “completeness” to measure the availability of components that are released with models (with the goal of full completeness) and the term “openness” to describe the usage of permissive licenses for components.</p>
+<h3>3.3 Open Knowledge</h3>
+<p>Open knowledge is an overarching philosophy and larger movement that encompasses all the preceding areas of openness, revolving around the free and public sharing of information and insights across various domains <a href="https://arxiv.org/html/2403.13784v6#bib.bib78" target="_blank" rel="noreferrer">[78</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib79" target="_blank" rel="noreferrer">79</a>] . This entails making knowledge resources accessible to everyone and contributing to a wider pool of shared understanding. Open knowledge practices also involve ensuring that the information is ethically curated and disseminated, upholding principles of integrity and respect for intellectual property. The Wikimedia Foundation, Open Knowledge Foundation, and Science Commons are leading organizations in the open knowledge community.</p>
+<h3>3.4 Open Science</h3>
+<p>Open science refers to the practice of making all stages of the scientific process transparent and accessible to others <a href="https://arxiv.org/html/2403.13784v6#bib.bib75" target="_blank" rel="noreferrer">[75</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib80" target="_blank" rel="noreferrer">80</a>] . This includes publishing research papers, data, source code, code notebooks, and any information or tools needed to replicate research. The goals of open science are to enable reproducibility, collaboration, and facilitate building on previous knowledge to advance scientific research <a href="https://arxiv.org/html/2403.13784v6#bib.bib75" target="_blank" rel="noreferrer">[75</a>] . Open science is critical for credible, ethical, and accessible scientific research that can be reviewed, validated, replicated, and built upon. Open science in AI is sometimes referred to as “open science AI” and is the gold standard for ensuring reproducibility and transparency.</p>
+<p>Advances in AI R&amp;D are in part attributed to the sharing of preprints on platforms like arXiv, but much of the training data, model details, and code of SOTA AI systems remain proprietary. The opaque nature of many AI systems limits reproducibility, hinders research, and increases concerns around bias and safety. Transitioning to open datasets, architectures, weights, and code promises to facilitate AI research, innovation, and adoption across the private and public sectors. Overall, openness has repeatedly shown immense power to advance progress, equity, and opportunity across endeavors. The MOF aims to promote the spirit and methodology of open science in the AI R&amp;D community.</p>
+<h3>3.5 Open Access</h3>
+<p>Open access is the process of making research outputs like publications freely available to read without subscriptions or paywalls, enabling broad dissemination of knowledge. <a href="https://arxiv.org/html/2403.13784v6#bib.bib81" target="_blank" rel="noreferrer">[81</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib82" target="_blank" rel="noreferrer">82</a>] . There are various open-access platforms like Cornell University’s arXiv, which make publications, often distributed under an open license, freely available for review. Furthermore, the adoption of open access policies, mandates, and licenses by journals and conferences have contributed to greater access to research. Before open access, research publications were mostly locked behind expensive journal subscriptions and paywalls, which limited the discoverability and use of knowledge. The open access movement has made more research freely available to all. Open access speeds the dissemination of discoveries to scientists and the public, and it facilitates reproducibility and meta research. As a result, entry barriers to accessing research have greatly reduced and public access to AI research papers has helped advance the field, including many of the developments and enhancements to the transformer architecture that powers the latest highly-capable LLMs.</p>
+<h3>3.6 Open Collaboration and Open Community</h3>
+<p>Open collaboration encourages cooperative efforts across institutions, disciplines, and borders, involving more inclusive and diverse participation in the development of science and technology <a href="https://arxiv.org/html/2403.13784v6#bib.bib83" target="_blank" rel="noreferrer">[83</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib80" target="_blank" rel="noreferrer">80</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib84" target="_blank" rel="noreferrer">84</a>] . Open community goes beyond open collaboration, and it concerns the creation and sustainability of a shared community with neutral governance, where projects can be worked on collaboratively in an equitable environment that embraces principles of openness. The LF AI &amp; Data and Generative AI Commons are examples of open communities <a href="https://arxiv.org/html/2403.13784v6#bib.bib85" target="_blank" rel="noreferrer">[85</a>] .</p>
+<h3>3.7 Open Source Software</h3>
+<p>Open source software (OSS) involves publishing software code under licenses that grant users independence and control over the technology by allowing inspection, modification, and redistribution of the code without restrictions <a href="https://arxiv.org/html/2403.13784v6#bib.bib55" target="_blank" rel="noreferrer">[55</a>] . The OSS movement has transformed software development over the past few decades: while early closed and proprietary systems limited access, locked in users, and stagnated innovation <a href="https://arxiv.org/html/2403.13784v6#bib.bib86" target="_blank" rel="noreferrer">[86</a>] ; nowadays OSS is estimated to be used in 96% of global code bases <a href="https://arxiv.org/html/2403.13784v6#bib.bib87" target="_blank" rel="noreferrer">[87</a>] and to constitute up to 90% of software stacks <a href="https://arxiv.org/html/2403.13784v6#bib.bib88" target="_blank" rel="noreferrer">[88</a>] . It is increasingly being recognized as digital infrastructure <a href="https://arxiv.org/html/2403.13784v6#bib.bib89" target="_blank" rel="noreferrer">[89</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib90" target="_blank" rel="noreferrer">90</a>] . OSI-approved licenses like Apache 2.0 and MIT have been key to enabling worldwide collaborative development, freedom of choice, and accelerated progress <a href="https://arxiv.org/html/2403.13784v6#bib.bib58" target="_blank" rel="noreferrer">[58</a>] .</p>
+<p>OSS has emerged as an indispensable component of AI R&amp;D <a href="https://arxiv.org/html/2403.13784v6#bib.bib91" target="_blank" rel="noreferrer">[91</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib92" target="_blank" rel="noreferrer">92</a>] and open science at large <a href="https://arxiv.org/html/2403.13784v6#bib.bib93" target="_blank" rel="noreferrer">[93</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib94" target="_blank" rel="noreferrer">94</a>] . OSS presents a myriad of benefits for individuals <a href="https://arxiv.org/html/2403.13784v6#bib.bib95" target="_blank" rel="noreferrer">[95</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib96" target="_blank" rel="noreferrer">96</a>] and enterprises <a href="https://arxiv.org/html/2403.13784v6#bib.bib97" target="_blank" rel="noreferrer">[97</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib98" target="_blank" rel="noreferrer">98</a>] . It encourages the sharing of code and software development methodologies <a href="https://arxiv.org/html/2403.13784v6#bib.bib99" target="_blank" rel="noreferrer">[99</a>] , providing a basis for building upon existing work and contributing to the advancement and democratization of science <a href="https://arxiv.org/html/2403.13784v6#bib.bib100" target="_blank" rel="noreferrer">[100</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib101" target="_blank" rel="noreferrer">101</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib102" target="_blank" rel="noreferrer">102</a>] ; it provides learning, skill development, and career development opportunities <a href="https://arxiv.org/html/2403.13784v6#bib.bib27" target="_blank" rel="noreferrer">[27</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib103" target="_blank" rel="noreferrer">103</a>] ; it reduces software development and testing costs <a href="https://arxiv.org/html/2403.13784v6#bib.bib104" target="_blank" rel="noreferrer">[104</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib105" target="_blank" rel="noreferrer">105</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib106" target="_blank" rel="noreferrer">106</a>] ; and it facilitates the development of open standards <a href="https://arxiv.org/html/2403.13784v6#bib.bib99" target="_blank" rel="noreferrer">[99</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib107" target="_blank" rel="noreferrer">107</a>] , among others. The benefits of OSS d...</p>
+<h3>3.8 Source Available</h3>
+<p>Source available should not be confused with open source. Source available originated from conventional software development, where a developer provides access to the source code, but the licenses are not open-source. This means they include restrictions that consumers must fully understand before agreeing to use it. Some have referred to these projects as open access, but this is a misnomer since open access applies to documentation without paywalls. Most open-washed projects are examples of source available due to their restrictive licensing <a href="https://arxiv.org/html/2403.13784v6#bib.bib15" target="_blank" rel="noreferrer">[15</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib49" target="_blank" rel="noreferrer">49</a>] .</p>
+<h3>3.9 Open Data</h3>
+<p>Open data refers to the public release of datasets, databases, and other structured data used for research, enabling access and reuse <a href="https://arxiv.org/html/2403.13784v6#bib.bib112" target="_blank" rel="noreferrer">[112</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib113" target="_blank" rel="noreferrer">113</a>] . This practice upholds scientific reproducibility, allows reanalysis, and spurs innovation <a href="https://arxiv.org/html/2403.13784v6#bib.bib114" target="_blank" rel="noreferrer">[114</a>] . Standard policies and formats are often employed to ensure quality and usable data sharing. Open content, on the other hand, refers to the sharing of creative materials and unstructured data. Both open-data and open-content licenses exist, with open-data licenses often applicable to both data and content. Open data emphasizes the standardization of datasets, addressing transparency and requiring comprehensive descriptions of data collection methods and assessments for intrinsic bias. Furthermore, accessibility is a cornerstone of open data, with datasets expected to be readily available without personal requests or paywalls, promoting transparency and enabling scrutiny.</p>
+<p>Historically, many research fields had cultures of data secrecy that impaired reproducibility and knowledge building. Openly sharing data enables reanalysis, reproducibility, and new applications <a href="https://arxiv.org/html/2403.13784v6#bib.bib115" target="_blank" rel="noreferrer">[115</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib112" target="_blank" rel="noreferrer">112</a>] . For instance, government open data initiatives provide transparency of government operations and promote innovation in and for the public sector <a href="https://arxiv.org/html/2403.13784v6#bib.bib116" target="_blank" rel="noreferrer">[116</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib117" target="_blank" rel="noreferrer">117</a>] ; opening clinical trial data facilitate pharmaceutical research <a href="https://arxiv.org/html/2403.13784v6#bib.bib118" target="_blank" rel="noreferrer">[118</a>] and open genomic databases enablee bioinformatics breakthroughs <a href="https://arxiv.org/html/2403.13784v6#bib.bib119" target="_blank" rel="noreferrer">[119</a>] ; and open climate data <a href="https://arxiv.org/html/2403.13784v6#bib.bib120" target="_blank" rel="noreferrer">[120</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib121" target="_blank" rel="noreferrer">121</a>] have fuelled research and innovation to combate climate change. While better standards and tooling around open data publishing are still needed, the value of open data is clear. In the context of AI R&amp;D, the Datasets and Benchmarks track at NeurIPS underscores the paramount importance of openly releasing machine learning datasets <a href="https://arxiv.org/html/2403.13784v6#bib.bib22" target="_blank" rel="noreferrer">[22</a>] .</p>
+<h3>3.10 Open Licenses</h3>
+<p>Open licenses are legal mechanisms that allow content and artifacts to be freely accessed, used, modified, and shared under permissive terms. They are essential for operationalizing open science, open data, and open-source ideals <a href="https://arxiv.org/html/2403.13784v6#bib.bib58" target="_blank" rel="noreferrer">[58</a>] . Different licenses have emerged for addressing rights, responsibilities, and permissible usage for data, publications, code, and other research outputs. Open licenses solve key problems with closed, restricted systems, including:</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Enabling free access without paywalls or subscriptions</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Allowing reproduction, analysis, and extension of work</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Disseminating contributions back to the community</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Progressing cumulatively by building on prior ideas</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Fostering collaboration across organizational and geographic boundaries</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Promoting transparency and accountability</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Mitigating anti-competitive behavior or rent-seeking</p>
+<p>For research papers and scholarly works, Creative Commons (CC) licenses are widely adopted, which allow free distribution and reuse with conditions, such as requiring attribution and allowing commercial use and derivative works. Common choices for open licenses are CC-BY (attribute) and CC-BY-SA (share alike). Using permissive CC licenses for papers, technical reports, and documentation provides rights to reproduce, expand, and translate the works <a href="https://arxiv.org/html/2403.13784v6#bib.bib59" target="_blank" rel="noreferrer">[59</a>] .</p>
+<p>For software code, many open-source licenses have been developed. The Open Source Definition and the list of approved open-source licenses is maintained by the OSI <a href="https://arxiv.org/html/2403.13784v6#bib.bib55" target="_blank" rel="noreferrer">[55</a>] . Using OSI-approved open-source licenses encourages community review and contributions to code, promoting quality and shared progress <a href="https://arxiv.org/html/2403.13784v6#bib.bib76" target="_blank" rel="noreferrer">[76</a>] . Prominent examples include the MIT, Apache 2.0, and the 3-Clause BSD license, which allow inspection, modification, and redistribution of code while requiring preservation of copyright and license terms. Alternative licenses, such as the Llama 2 license, OpenRAIL, and AI2 ImpACT licenses, are not considered open-source licenses due to their restrictions on usage <a href="https://arxiv.org/html/2403.13784v6#bib.bib49" target="_blank" rel="noreferrer">[49</a>] .</p>
+<p>For datasets, typical licenses are Creative Commons licenses, particularly Creative Commons Zero (CC0), CC BY (attribution) and CC BY-SA (Attribution-ShareAlike), as well as Linux Foundation’s Community Data License Agreement (CDLA-Permissive) and the Open Data Commons licenses like Public Domain Dedication and License (PDDL) and the Open Data Commons Attribution License License (ODC-By). They provide terms for sharing data openly while addressing concerns, such as attribution, permissive usage, and liability <a href="https://arxiv.org/html/2403.13784v6#bib.bib59" target="_blank" rel="noreferrer">[59</a>] .</p>
+<h2>4 Model Openness Framework Classes</h2>
+<h3>4.1 MOF Structure</h3>
+<p>The MOF proposes a three-tier classification system (see Table <a href="https://arxiv.org/html/2403.13784v6#S4.T1" target="_blank" rel="noreferrer">1</a>) to classify the degree of completeness and openness of ML models across all aspects of a model’s development lifecycle. The MOF has 17 components to fulfil completeness of model artifacts, which cover the code, data, and documentation that are part of the model development lifecycle (see definitions of each components in Section <a href="https://arxiv.org/html/2403.13784v6#S5" target="_blank" rel="noreferrer">5</a>). The distribution includes an additional component, the MOF configuration file, to comply with the MOF requirements.</p>
+<p>The 17 components are categorized into three distinct classes. Each class builds upon the previous one, with Class III being the least complete and and Class I being the most complete (see Table <a href="https://arxiv.org/html/2403.13784v6#S4.T1" target="_blank" rel="noreferrer">1</a>). The higher the class indicates a more complete distribution that promotes more transparency and enables reproducibility, auditing, and downstream use. This approach is more meaningful than a calculated index, as it guides model producers in providing essential components released under open licenses for each tier of the framework. As the class of the MOF increases, the producer moves closer to a more complete distribution that best aligns with the principles of open science in AI. To qualify for a particular class, the producer must provide every required component for that class. Each component must be released using an appropriate open license from Table <a href="https://arxiv.org/html/2403.13784v6#S6.T2" target="_blank" rel="noreferrer">2</a> to qualify the entire project at the specified class level.</p>
+<h3>4.2 MOF Class Descriptions</h3>
+<p>The 3 classes of the MOF represent ascending levels of model completeness and openness. We describe the distinguishing aspects of each tier beginning with the lowest class.</p>
+<h4>4.2.1 Class III. Open Model</h4>
+<p>In the MOF, Class III is the entry point and contains the minimum required components that must be released using open licenses. If not all of these components are included in a release and all components do not use an open license then the entire release cannot be considered open under the MOF. The Open Model class covers the following:</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Core model architecture and the final set of parameters</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Light documentation conveying capabilities and characterization of the model and data.</p>
+<p>Class III contains all the components required to study, modify, redistribute, and build upon a model without restrictions, including for commercial and educational purposes. The inclusion of the model architecture, final weights and biases, and documentation (including the technical report, evaluation results, model and data cards) provides the necessary information to work with the model and understand its capabilities, constraints, and the nature of the training data. However, this class lacks completeness and robustness for full reproducibility and the transparency needed to confirm all claims made by the producer. It also lacks sufficient components to evaluate the model, including the training data.</p>
+<h4>4.2.2 Class II. Open Tooling</h4>
+<p>Building upon Class III, Class II provides model consumers the complete codebase including libraries and tools needed for training, assessing and testing models themselves. Added elements include:</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Full training and inference code</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Benchmark tests to validate and quantify performance</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Libraries and tools to ease integration and to complete the codebase (optional)</p>
+<p>This tier is an intermediate step between an open model and open science, providing a model consumer with information to test a model producer’s assertions. It also allows a model consumer to perform debugging, and it allows for enhancements to model functionality. Although it does provide insights into the training process, it does not include the actual datasets. It is also lighter on documentation, which limits a deeper understanding of the model’s intricacies.</p>
+<h4>4.2.3 Class I. Open Science</h4>
+<p>The top tier aligns with ideals of open science: the sharing of all artifacts needed for end-to-end transparency, reproducibility, and collaboration. This includes:</p>
+<ul>
+<li>•</li>
+</ul>
+<p>A detailed research paper conveying the genesis of the model and its evolution</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Raw training datasets used in the training of the model (any license or unlicensed)</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Checkpoint weights showcasing full model evolution</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Log files providing yet more low-level insights</p>
+<p>Fulfilling Class I empowers the community to inspect models through the model lifecycle along multiple fronts, representing the gold standard for completeness and openness rooted in scientific principles.</p>
+<h3>4.3 Hybrid Releases</h3>
+<p>Openness has always been a binary decision in the open-source movement; software is either open-source or not, with no in-between <a href="https://arxiv.org/html/2403.13784v6#bib.bib55" target="_blank" rel="noreferrer">[55</a>] . A developer either released their software under an OSI-approved license or they did not. If any essential component was not released under an open-source license, the entire release was no longer considered open source. The MOF follows this principle. When any component is not released using an open license as described in Table <a href="https://arxiv.org/html/2403.13784v6#S4.T1" target="_blank" rel="noreferrer">1</a>, that component is not deemed open and does not qualify for an MOF class. Removing a component that moves the project into a lesser class is acceptable if all remaining components are released with open licenses.</p>
+<p>To qualify as a Class III project, the model, its parameters, and a technical report that describes the work along with evaluation results and model and data cards must be released with open licenses. If not, the project cannot be considered open. This includes projects that use modified open licenses and implement restrictions or acceptable uses.</p>
+<p>It should be noted that the MOF classifies models and their components on completeness when they are open. The reader should not confuse the classification system as being a gradient measure of openness <a href="https://arxiv.org/html/2403.13784v6#bib.bib36" target="_blank" rel="noreferrer">[36</a>] , but rather a measurement of the completeness of a release in adherence with open science principles <a href="https://arxiv.org/html/2403.13784v6#bib.bib24" target="_blank" rel="noreferrer">[24</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib80" target="_blank" rel="noreferrer">80</a>, <a href="https://arxiv.org/html/2403.13784v6#bib.bib93" target="_blank" rel="noreferrer">93</a>] .</p>
+<h2>5 MOF Components</h2>
+<p>The following defines the 17 components included in the above three-tier classification system of models (see Table <a href="https://arxiv.org/html/2403.13784v6#S4.T1" target="_blank" rel="noreferrer">1</a>). They cover the degree of completeness and openness across all aspects of the development process of an ML model, including training data, model architecture, model parameters, evaluation benchmarks, and documentation.</p>
+<p>Note that not all components are required for all classes. Each component section below specifies the classes and it applies to and Table <a href="https://arxiv.org/html/2403.13784v6#S4.T1" target="_blank" rel="noreferrer">1</a> lists the components required for each class.</p>
+<p>Note that not all components need to be distributed separately, some MAY be combined. For example, evaluation results MAY be included in the research paper, technical report, or model card rather than published as a standalone artifact. This sort of combination SHOULD however be limited to combining component types that are covered by the LICENSE file for that component or the whole distribution.</p>
+<h3>5.1 Model Architecture (III.1)</h3>
+<p>The model architecture is the core of any ML project. It can include the ML algorithms, neural network layout, connectivity, activations, and other architectural elements. Examples include transformers (e.g., GPT, BERT), convolutional neural networks (CNNs), recurrent neural networks (RNNs), and graph neural networks (GNNs). While the model architecture is often closely tied to the trained model parameters, sharing the architecture alone allows others to understand the structure of the model without necessitating the release of the fully trained model. The model architecture SHOULD be fully described in the research paper, technical report, or model card, and MUST be distributed as open source code under an OSI-approved open source software license that does not limit its usage and derivative works.</p>
+<h3>5.2 Model Parameters – Final Checkpoints (III.2)</h3>
+<p>Trained model parameters MUST be released under an open license. In the case of deep learning models, checkpoints from key intermediate stages of training as well as the final optimizer state SHOULD be included. At a minimum the final model parameters and optimizer state (when applicable) MUST be distributed, whether compressed or uncompressed, in a format compatible with popular deep learning frameworks such as TensorFlow, Keras, PyTorch or the framework independent ONNX file format.</p>
+<p>To date, model producers have been releasing model parameters (i.e., weights and biases) using an open source software license, such as Apache 2.0 and MIT, even though model parameters are not compatible with such licenses. Since model parameters are in fact data, model parameters SHOULD be distributed under an open data license, like CDLA-Permissive-2.0. Although licenses designed for OSS are permissive and indemnify the developer from liability, open data licenses are better suited to data-specific considerations such as privacy, ethics, and data rights. Most permissive licenses do not refer to data directly and do not address the ability to modify and redistribute model parameters. This gap could result in a legal obligation to any model consumer if the model producer were to implement royalties after widespread adoption of their model. This is a legal gray area that remains untested. The model architecture and model parameters SHOULD be saved independently in different files for distribution, as each one requires a different format-appropriate open license. This separation allows each component to be studied, modified, redistributed, and used independently of the other.</p>
+<h3>5.3 Technical Report (III.3)</h3>
+<p>The technical report, which MAY be in the form of a white paper, provides the necessary documentation for the model consumer to understand the performance, usage, and implications of using the model, but not necessarily enough details to reproduce the model and replicate its results. The technical report MUST be included in the distribution or made available on a permanent open access platform such as arXiv, and SHOULD be linked from the model card. The technical report MAY be omitted if a research paper is provided. The technical report MUST be distributed under an open license that SHOULD be appropriate for documentation, ideally CC-BY-4.0 or CC0.</p>
+<h3>5.4 Evaluation Results (III.4)</h3>
+<p>Detailed quantitative metrics and qualitative results from evaluating the model MUST be reported. They MAY be included in the technical report, the research paper, or the model card. Tests can evaluate any factor, not limited to model efficiency, accuracy, performance, fairness and bias evaluations, toxicity, truthfulness and so forth. Producers MUST include benchmark test results, whether industry standard benchmarks or custom benchmark tests that were developed. If industry standard benchmark tests or test suites are used, the test suite name, test name and version number MUST be included with the results. If custom benchmarks were developed, whether in code or any form of media including text, images, the custom benchmarks MUST be included in full for validation. The raw outputs of the model evaluation MUST be distributed under an open license that SHOULD be appropriate for content like CC-BY-4.0.</p>
+<h3>5.5 Model Card (III.5)</h3>
+<p>A model card provides metrics, usage guidance, and details about a model <a href="https://arxiv.org/html/2403.13784v6#bib.bib21" target="_blank" rel="noreferrer">[21</a>] . Model cards SHOULD cover model details, intended uses, factors, evaluation, risks, and mitigations related to the model. The model card itself MUST be distributed under an open license that SHOULD be appropriate for documentation, ideally CC-BY-4.0.</p>
+<h3>5.6 Data Card (III.6)</h3>
+<p>A data card provides summary statistics and key information about a dataset to enhance understanding of its composition <a href="https://arxiv.org/html/2403.13784v6#bib.bib22" target="_blank" rel="noreferrer">[22</a>] . Following guidelines from the Data Nutrition Project <a href="https://arxiv.org/html/2403.13784v6#bib.bib123" target="_blank" rel="noreferrer">[123</a>] , data cards SHOULD describe metrics about the features, instances, intended uses, motivation, and collection process. Data cards help identify potential biases in datasets and guide proper usage by downstream usage. They also contribute to reproducibility and transparency by detailing the entire data preparation process. The data card MUST be distributed under an open license that SHOULD be appropriate for documentation, ideally CC-BY-4.0.</p>
+<h3>5.7 Sample Model Outputs (III.7)</h3>
+<h3>5.8 Training, Validation, and Testing Code (II.2)</h3>
+<h3>5.9 Inference Code (II.3)</h3>
+<p>The availability of inference code facilitates complete replication of the performance of the model, and it informs the model consumer about how to use the model most effectively for their applications. Code for performing inference includes any data preprocessing or postprocessing required during inference and possibly any model optimizations and dependencies like external libraries. It MUST include any code required to fully replicate the benchmark results for the model. The inference code MUST be released under an OSI-approved open source software license.</p>
+<h3>5.10 Evaluation Code (II.4)</h3>
+<p>Evaluation code, evaluation data, and evaluation results are separate components in the MOF. This is due to the fact that some benchmarks are written in code and other benchmarks only use data; for instance, text used to evaluate an LLM or images used to evaluate a computer vision model. Many benchmark tests are a combination of both code and data used to evaluate a model, which includes the scripts needed to load the data and run benchmark tests. Since code and data require different licenses, they are separate components. Depending on the nature of the model and the methods used to evaluate it, the distribution MAY include one or both of evaluation code and data. Any code used for model evaluation and benchmarking MUST be included and distributed under an OSI-approved open source software license.</p>
+<h3>5.11 Evaluation Data (II.5)</h3>
+<p>When the model is evaluated with data (be it any media format including text, images, videos, audio, 3D data, and so forth), that evaluation data MUST be included with the distribution. Where the model producer relies on standard benchmark tests that are widely disseminated, they MAY be omitted from the distribution, but they MUST be described in the technical report, research paper, or model card, along with the version of the test. The evaluation data MUST be released under a data or content appropriate open license like CDLA-Permissive-2.0, CC-BY-4.0 or CC0.</p>
+<h3>5.12 Supporting Libraries and Tools (II.6)</h3>
+<p>Any supporting code libraries, utilities, or tools developed in the course of the development of the model SHOULD be distributed under an OSI-approved open source software license. This includes data loaders, visualization code, simulation environments, etc. Use of existing and custom open source tools SHOULD also be documented. Any of the following tools and libraries SHOULD also be included:</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Software libraries and frameworks used in model development along with version details.</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Tokenizers: Code used to tokenize text and any data used to train the tokenizer (if used.)</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Hyperparameter search code: Code for automating hyperparameter tuning (if used).</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Compute infrastructure code: If specialized compute infrastructure was built to scale training, the setup code could be released.</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Monitoring code: Code for tracking experiments, metrics, artifacts etc. during model development is often useful to open source as well.</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Containerization files: Dockerfiles or other container packaging to distribute the model could be shared.</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Frontend/visualization: Any web/mobile frontends or visualizations built on top of the model outputs could be released as open source.</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Deployment orchestration: Infrastructure-as-Code templates for deploying the model to production.</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Model integration code: Wrapper code/SDKs to integrate the model into downstream applications.</p>
+<ul>
+<li>•</li>
+</ul>
+<p>Interactive demos: Links to hosted interactive demos of the model through Jupyter, Streamlit, etc.</p>
+<p>Presumably most libraries and tools used already have their own licenses, but if the model producer created their own libraries or tools they MUST include them with the distribution under an OSI-approved open source software license.</p>
+<h3>5.13 Research Paper (I.2)</h3>
+<h3>5.14 Datasets (I.3)</h3>
+<p>Data is the lifeblood of ML models and is the most often held back element in the release of a model. Datasets include training data which is data used for any form of model training including pre-training, fine-tuning, alignment using reinforcement learning techniques or data used for other methods that otherwise modify the weights of the model. Datasets also include data used for model validation and testing as well as data used with benchmark tests. The datasets component also includes tokenized datasets when present. Data can be any form or combination of media, whether text, code, images, videos, audio, 3D objects, URIs and any other data used for training, validation and testing purposes. Datasets also include any metadata. This includes anything from annotation data like labels, bounding boxes and key points to attribution, bitrates, resolution and other metadata relevant to a dataset used in the model development process. The datasets used to develop the model MUST be provided, in the public domain, as copyrighted data, or under any form of license. They SHOULD be released under an open license, preferably CC-BY-4.0 or CC-0. Any limits on sharing due to privacy or sensitivity SHOULD be documented. Both pre- and post-processed data SHOULD be supplied, however producers MAY provide instead links to any curated raw datasets online if they are accompanied by data preprocessing code.</p>
+<h3>5.15 Data Preprocessing Code (I.4)</h3>
+<p>The data preprocessing code is all code used for preprocessing, cleaning, and formatting the training, validation, and testing data for a model. It also includes code used to transform fine-tuning data and code that is used for alignment tasks like Reinforcement Learning from Human Feedback (RLHF). Other data preprocessing code such as code for data ingestion when appropriate, feature engineering, data augmentation and tokenization is also included. The data preprocessing code MUST be released using an OSI-approved open source software license.</p>
+<h3>5.16 Model Parameters – Intermediate Checkpoints (I.5)</h3>
+<p>In addition to the final checkpoints and optimizer states, for Class I models, the checkpoints and optimizer states (when applicable) from key intermediate stages of training along with the log files MUST be included and distributed under an open license. Intermediate model parameters SHOULD be distributed under an open data license, such as CDLA-Permissive-2.0.</p>
+<h3>5.17 Model Metadata (I.6)</h3>
+<p>There are other forms of metadata that can provide additional context about the model, such as the version of the framework used to create it and custom tags or descriptions provided by the developer including model and data lineage information. There is no particular requirement or profile for this type of metadata and it can reveal anything the developer would like to include with the shipped model. This information can help with model management, especially when working with multiple versions of models or conducting experiments. Often the metadata is exported from or loaded by a metadata store. The model metadata MAY be included in the model card, research paper, or technical report. Any model metadata SHOULD be covered by an open data license such as CDLA-Permissive-2.0.</p>
+<h3>5.18 Model Openness Configuration File</h3>
+<p>The MOF configuration file MUST be included in any distribution. It describes what model components are included in the release and what license covers each component. The file itself MUST be distributed under an open license and SHOULD be distributed under the CC-BY-4.0 license.</p>
+<h2>6 Model Openness Framework Acceptable Licenses</h2>
+<p>Table <a href="https://arxiv.org/html/2403.13784v6#S6.T2" target="_blank" rel="noreferrer">2</a> provides an overview of acceptable licenses for each component. The table categorizes each component into one of three domains: Data, Model, or both. Additionally, the content type of each component is classified as data, code, or documentation. The table specifies standard open licenses that should be used for releasing each component, while allowing some flexibility for equivalent licenses. By providing a comprehensive scope, the MOF encourages opening the entire pipeline that produces, evaluates, and applies a model. This approach offers multiple perspectives into the model’s inner workings, promoting transparency and reproducibility in open model development.</p>
+<h2>7 Adopting the Model Openness Framework</h2>
+<h3>7.1 MOF Process Overview</h3>
+<p>Unlike other frameworks that attempt to dictate how model producers should build and train their models or create a release path on how models should be released, we take a more objective approach by evaluating models based on their completeness and openness. This approach does not constrain model producers into a single methodology but rather lays out a pliable process that acts as a guideline to help model producers create the most complete and open models. At the completion of the process the MOF provides model producers with a badge for their MOF class that clearly demonstrates to the public their commitment to both completeness and openness.</p>
+<p>The MOF process generally follows these steps:</p>
+<ul>
+<li>1.</li>
+</ul>
+<p>Inventory of artifacts (a) Comprehensively list all artifacts involved in creating the model (data, code, documentation, etc).</p>
+<ul>
+<li>(b)</li>
+</ul>
+<p>Capture details like component names, component locations, versions and licenses.</p>
+<ul>
+<li>2.</li>
+</ul>
+<p>Map to MOF components (a) Align inventory items to the 16 components defined in Section 5.</p>
+<ul>
+<li>(b)</li>
+</ul>
+<p>Multiple inventory elements may map to a single standard component.</p>
+<ul>
+<li>3.</li>
+</ul>
+<p>Verify licenses (a) For each MOF component present, check if it uses an acceptable open license from Table <a href="https://arxiv.org/html/2403.13784v6#S6.T2" target="_blank" rel="noreferrer">2</a>.</p>
+<ul>
+<li>(b)</li>
+</ul>
+<p>If licenses are incompatible, the model cannot be classified.</p>
+<ul>
+<li>4.</li>
+</ul>
+<p>Determine completeness (a) Check inventory against the component list for...</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-8db890d46a3e71ac.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">AI 模型能源與資源需求測量、監測與報告倡議概覽</span>
+</a>
+
+<a class="article-sequence-link" href="item-ea1417c5bea98fbe.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">How I coined the term ‘open source’</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-e3bb5d52f23551ba.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：The Model Openness Framework: Promoting Completeness and Openness for Reproducibility, Transparency, and Usability in Artificial Intelligence</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：The Model Openness Framework: Promoting Completeness and Openness for Reproducibility, Transparency, and Usability in Artificial Intelligence（頁面 byline）</li><li><strong>原始網站授權</strong>：Creative Commons（頁面文字推斷）（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-29T10:31:19+00:00</li><li>審稿備註：初步值得追：來源「查證來源」也曾出現在不收紀錄 3 次
+可能形式：值得收錄的精選文章
+下一步：若沒有人工補充觀點，建議按不收並記錄原因。
+2026-06-29T10:31:19+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-e3bb5d52f23551ba";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

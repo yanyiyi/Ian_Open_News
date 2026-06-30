@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agentic AI: Deployment, Adoption and Impact - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; text-align: left; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-30T10:35:57+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-29 23:47</span></div>
+      <h1><a class="article-title-link" href="https://www.entreprises.gouv.fr/files/files/Actualites/2026/g7/agentic-ai-inria-long.pdf" target="_blank" rel="noreferrer" title="開啟原始連結">Agentic AI: Deployment, Adoption and Impact</a></h1>
+      <p class="lede">Agentic AI: Deployment, Adoption and Impacts</p>
+      <div class="tag-chip-list"><span class="tag-chip">agentic AI</span></div>
+    </article>
+
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><p>政策論文</p>
+<p>代理人工智慧：部署、採用與影響</p>
+<p>2026 年 6 月</p>
+<p>引言</p>
+<p>生成式人工智慧最近已從主要產生文字、圖像或程式碼的模型，發展為能夠在人類定義的限制內進行自主決策和主動行為的系統。與傳統生成式人工智慧模型不同，代理人工智慧系統具有分析並回應環境訊號、規劃行動、執行行動以及反思結果的能力，通常以不同的自主性和適應性行為持續運作。</p>
+<p>雖然當前波瀾壯闊的代理人工智慧因大型語言模型和先進機器學習系統的興起而獲得了顯著關注，但其基本概念並非全新。數十年來，幾個科學學科都探索過能夠進行自主決策和互動的系統。多個代理系統和博弈論的研究探討了多個自主實體如何在共享環境中協調、合作或競爭。</p>
+<p>控制理論處理了動態系統中的反饋、適應和調節。與此相關的工作還涉及機器人學、分散式系統和人機互動，研究了自主元件如何分析來自其環境的訊號、規劃行動並隨時間調整其行為。</p>
+<p>當前代理人工智慧的概念建立在這些基礎之上，但在一個新的技術背景下出現：自然語言介面促進了自主數位代理的更廣泛部署。其開發和使用代表了一個重大轉變：與傳統生成式人工智慧工具僅在個別案例和命令下運作不同，代理人工智慧可以執行整個任務鏈以實現給定的目標，並因此影響和引導沿途產生的子決策。</p>
+<p>這意味著代理人工智慧不僅增加了每個代理單獨面臨的挑戰，還帶來了新的特定挑戰，特別是在問責、安全、可追溯性和控制方面。</p>
+<p>由於許多數位工具和流程是為人類操作員和以人為中心的決策週期設計的，隨著代理人工智慧自主性的增加，可能會改變現有的營運、組織和社會正規化，包括對勞動力和環境足跡的影響。治理和監管框架必須引導這些影響。</p>
+<p>AI代理人展現了在簡化、詳細化、個人化或加速流程方面的潛力。近期來，針對工業自動化、研究助理、個人生產力工具以及國防領域的創新提供了動力。將人工智慧系統「代理化」也支持對資料標註、輸出評分與比較等任務的自動化，取代以往需要人為進行的人工註解與評估。</p>
+<p>隨著產業、政策制定者、學術界和潛在使用者正積極識別AI代理人作為新興趨勢，但仍未完全掌握其所有應用與影響之處。本篇論文旨在提供對AI代理人概念的理解，並探討其使用方式及其相較於類似工具的不同之處。</p>
+<p>本文主張： <strong>Agentic AI 是一種工具，能透過限制其潛在負面效應來確保正面結果，包括對社會與環境的不利影響。</strong> 而非僅著重於記錄AI代理人採用的現況與影響，本論文更致力於提出具體的政策建議，以形塑AI代理人發展與部署的軌跡。</p>
+<p>3</p>
+<ol>
+<li>技術概念與正規化</li>
+</ol>
+<ol>
+<li>A</li>
+</ol>
+<p>定義性工作</p>
+<p>雖然AI代理人目前正被廣泛採用，但尚無普遍接受的單一明確定義。事實上，這項技術仍在不斷演進中，相關利益關係者仍在觀察其發展形態，且這些形態取決於其實際運用的環境。因此，為了辨識其關鍵特徵與屬性，除了檢視實際作法外，參考主要的研究定義尤為重要，因為它們凸顯了AI代理人如何形塑未來的樣貌。</p>
+<p>根據美國康乃爾大學（Cornell University）與希臘佩拉波特尼普索斯大學（University of the Peloponnese）的學術研究人員指出：「AI代理系統相較於傳統AI代理，代表了一次範式的轉變，其核心在於多代理協作、動態任務分解、持久記憶以及協調自主性。」 1</p>
+<p>根據洛倫斯·德維勒爾（Laurence Devillers），Sorbonne 大學人工智慧教授，&quot;代理式人工智慧依據指定的意圖來感知、決定和行動。它代表了一種能夠理解高層次目標並建立一組行動清單，然後在人類監督下或自主執行這些行動的實體。&quot;2</p>
+<p>在《IEEE》期刊發表的一份全面技術調查中，研究人員將代理式人工智慧定義為&quot;旨在以最少的人類干預而追求複雜目標的自動化系統&quot;。它展現出&quot;適應性、先進的決策能力和自足性，使其能夠動態地在不斷變化的環境中執行&quot;，並將其與傳統人工智慧區分開來，後者&quot;依賴於結構化的指令和密切的監督。&quot;3</p>
+<p>《經濟合作暨發展組織》（OECD）在其 2026 年 2 月發布的《人工智慧報告》系列中的一份工作論文中定義了 AI 代理：&quot;能夠以一定程度的自主性感知並對其環境採取行動，必要時使用工具來實現特定目標並適應不斷變化的輸入和情境。&quot;OECD 將代理式人工智慧系統區分為由多個協同作業的 AI 代理組成的系統，這些代理能夠將任務分解、合作並在長時間內自主地追求複雜目標。&quot;4</p>
+<p>上述所有定義都強調了代理式人工智慧系統的主要特徵：以實現目標為目的的自主性；協調的多個 AI 代理與環境的連結。為了更詳細地了解代理式人工智慧的風險和機會，有必要探討其所包含的特徵並確定它與其他工具的不同之處。</p>
+<p>1 Sapkota 等人（2025）AI Agents vs. Agentic AI：概念分類、應用及挑戰。《資訊融合》 126, 103599</p>
+<p>2 Devillers, L.（2024）。代理式 IA：新的盟友還是假智慧？Le Hub。 3 Acharya 等人（2025）代理式 AI：為複雜目標的自動化智慧—一份全面調查。《IEEE Access》。 4 OECD（2026）。代理式 AI 的景觀及其概念基礎。《OECD 人工智慧報告》。</p>
+<ol>
+<li>B</li>
+</ol>
+<p>關鍵特徵與實施模式</p>
+<p>以下概述的關鍵特徵基於《OWASP GenAI 安全專案》的工作論文《Agentic AI 狀態的安全與治理 1.0》參考框架。5</p>
+<p>自治與執行：代理系統可以在從人類參與到完全自動化操作的廣泛範圍內受到監督，並明確定義自主行動的範疇。</p>
+<p>規劃與推理：代理人工智慧系統展現了規劃和推理能力，包括任務分解、反覆 deliberation 和能夠反映並自我修正輸出。</p>
+<p>記憶與狀態性：代理系統在互動過程中維持狀態，從單次對話中的即時背景（短期記憶）到持續知識庫和作業歷史（長期記憶），使代理能引用先前的互動、識別模式並隨著時間演變的目標進行調整。</p>
+<p>行動與工具使用：代理系統可以通過工具整合在外部環境中採取行動，例如網頁瀏覽、API 呼叫、程式碼生成與執行以及領域特定的外掛，實現超越純文字回應的能力。</p>
+<p>多代理協調：在高階配置中，代理人工智慧系統通過通訊協議、任務委派機制和集體決策過程來協調多個代理，使平行化和專業化成為可能。</p>
+<p>在實務中，這些特徵透過常見的架構模式得以實現。這些模式代表了將自主性、推理、記憶和工具使用實現在部署系統中的設計方法。它們並非由單一標準所規定，而是反映了部署系統中觀察到的常見設計方法。</p>
+<p>代理架構中的功能角色</p>
+<p>近期 Agentic AI 系統通常將功能分解為多個專業化的代理或模組，這些代理或模組通過結構化通訊和任務委派進行協作。儘管實施方式各異，但可以識別出幾個常見的角色：</p>
+<p>規劃代理負責目標分解與任務協調，將高階目標轉化為可執行的步驟序列。推理代理使用鏈式思考或迭代改進等技術來探索候選解決方案。資訊蒐集代理會與外部工具和環境互動，例如搜尋引擎、API 或網頁瀏覽器，以獲取相關資訊。</p>
+<p>為了提高可靠性，一些架構引入驗證或評論代理來評估中間輸出並檢測錯誤或不一致之處。更高層次的元代理則可能彙整多個代理的決策或解決競爭提案之間的衝突。其他組成部分著重於系統狀態，例如記憶或情境代理，這些代理會維護對話歷史和持久知識，使跨任務連續性得以實現。</p>
+<p>最後，營運問題由監控與稽核代理處理，收集日誌、確保行為的可追溯性並檢測異常行為。這些角色共同形成一個模組化架構，支持複雜自動化流程中的靈活性與監督。</p>
+<ol>
+<li>C</li>
+</ol>
+<p>傳統軟體、AI 代理與 Agentic AI 的邊界</p>
+<p>在實務中，傳統軟體、AI 代理和 Agentic AI 的邊界並不總是明確定義。許多現實世界的系統結合了多種類別的特徵，其自主性和適應性依賴於設計和部署選擇的光譜。因此，這裡呈現的分界線應該被理解為分析參考點，而非嚴格分類。</p>
+<p>傳統軟體系統根據固定的、預先程式化的規則和邏輯運作。其行為由明確規則決定：給定相同的輸入和狀態會產生相同的輸出。這種確定性使得執行路徑可追溯且可驗證。行為改變需要顯式的人類介入，例如透過修改或重新配置程式碼。</p>
+<p>在經典意義上，AI 代理是基於目標、規則或學習行為而在環境中執行的軟體實體。它們可能是完全自主的，也可能是部分自主的，從高度專門化到廣泛能力都有可能，但其自主性通常限於由人類指派的特定任務的執行。</p>
+<p>代理式人工智慧指的是設計用於自主追求目標、規劃達成方法、記憶過去事件，並無論底層實作（如基於大型語言模型的模型、強化學習或混合型）均能使用工具的 AI 系統。這些系統會隨著情境變化調整行為，並能在有限的人類介入下長時間運作。</p>
+<p>在這些系統中，人類的角色因設計而異。傳統軟體開發中，人類定義系統邏輯，並對其運作與輸出負直接責任；而在代理式人工智慧系統中，人類則負責設定目標、限制條件與行為守門欄（guardrails），同時保留監督機制，例如需要批准的流程或高影響行動的覆蓋控制。</p>
+<p>6 案例分析</p>
+<p>為了將分析根植於實際運作情況，我們諮詢了來自 G7 國家的 30 家公司，涵蓋能源、金融、軟體開發等領域。目的是評估代理式人工智慧的採納現況、辨識戰略驅動因素，並量化延遲部署的障礙。</p>
+<p>結果描繪出一個高度投入但謹慎的工業景觀：83.3% 的受訪者表示「非常強烈」有意探索或投資於代理式方法，且每位受訪者都預期其業務營運將至少發生部分轉型。這種熱情與更廣泛的產業調查結果一致。根據一項 PwC 報告指出，79% 的高階主管表示他們的公司已以某種方式使用 AI 代理。</p>
+<p>然而，仍存在明顯的不成熟差距。儘管興奮感很高，技術大多被視為「有前景但尚未成熟」（53.3%）。只有 23.3% 認為它已經足夠穩定用於實際應用。儘管如此，公司正快速前進：48.3% 已開始原型製作，34.5% 成功將代理式解決方案推向生產。</p>
+<p>圖表二：產業對代理式人工智慧的看法</p>
+<p>7 PwC (2025, 五月)。AI 代理調查。PwC Tech Effect</p>
+<p>我們的調查顯示，目前的採用情況集中在技術與支援功能中，這些領域仍以人力監督為主。 「設計與工程」及「分析與決策支援」是需求最高的應用範疇，反映出對程式碼生成、技術驗證以及為決策者合成複雜資料的需求。「運作角色」也展現顯著採用率，「互動與支援」（例如：缺陷偵測）以及「維護與品質保證」。 「營運與生產」則佔比較小，可能是因為高可靠性需求的即時營運環境所致。</p>
+<p>除了上述類別外，受訪者還提及的其他具體應用案例包括：</p>
+<p>自動化合規：根據特定標準生成規格並驗證原始碼。</p>
+<p>簡化人力資源管理。</p>
+<p>技術文件：自動化複雜技術文件的創建與維護。</p>
+<p>觀察到受訪者使用案例的分布，與更廣泛報導的趨勢一致：代理系統在任務結構明確、輸出可驗證且失敗可恢復的領域中正獲得早期進展。 在客戶接觸功能中，「PwC 企業調查」中引用的應用範疇排名前三名為智慧服務協調，由代理自主處理互動並僅將模糊或高風險案例升級給人力操作員。</p>
+<p>在金融服務業，代理人工智慧被用於即時風險監控與合規自動化：一家對全球六百位風險與合規專業人士進行的調查顯示，26% 的人已在其流程中使用代理人工智慧模型。「軟體工程」中，代理系統被整合進 CI/CD 管道作為自主品質閘門，能生成測試案例、偵測回歸並建議修正補丁。</p>
+<p>採用的障礙</p>
+<p>雖然技術整合仍是挑戰，但部署代理人工智慧的主要阻礙是對信任的缺乏。「43% 的受訪者認為『可靠性或控制風險』是他們最大的障礙」，其次是「與現有系統整合的困難度」（約17%）以及「網路安全與法規問題」（10%）。</p>
+<p>整體而言，組織並非等待技術完全成熟，而是謹慎地透過限縮範圍與維持人類監督來推進。因此，向更廣泛的部署轉變取決於能否在營運環境中建立足夠的可靠性、可追溯性和問責制，而非僅是發現新的應用場景。</p>
+<p>能源影響</p>
+<p>能源消耗被普遍認為是在部署自動代理人工智慧系統時日益重要的議題。儘管 83% 的受訪者將能源影響視為重要議題，但只有 47% 表示擁有衡量其基礎設施 AI 模型能源消耗的指標或既定方法。</p>
+<ol>
+<li>實現 AI 成功的條件</li>
+</ol>
+<p>追溯性與解釋力：追溯性與解釋力是指重建並理解自動代理人工智慧系統產出與決策的能力，這在受監管的情境以及發生故障時至關重要。這些要求需讓人類仍能理解其推理過程的說明。</p>
+<p>策略在於建立一套核心控制機制： 全面的原始提示與系統訊息、記憶體讀寫、工具與API呼叫（含輸入與輸出）、以及中間推理步驟的記錄。</p>
+<p>所有組件的版本管理，包含模型與解碼參數（例如溫度、top-k/top-p、隨機種子、硬體設定）。 支援可控的隨機性，在可能的情況下使用固定隨機種子，並允許決定性的解碼模式（例如貪婪策略）。</p>
+<p>可控性是指人類操作員或治理機制能夠穩定地影響、約束和重新導向人工智慧系統行為的能力。在具備自主規劃、推理與工具使用的系統中，決策可能涉及漫長的中間步驟以及與外部工具或環境的互動。因此，維持可控性需要機制讓人類能監控執行、強制操作限制並在必要時介入。</p>
+<p>然而，內部動態也帶來一些限制。在多步驟推理或規劃過程中，代理人可能會重新詮釋指令、產生中間目標，甚至根據環境反饋調整行為。隨著時間推移，這種過程可能導致系統的營運目標與使用者原始意圖之間逐漸分歧。</p>
+<p>在多個代理人設定中，各專業代理之間的協調可能進一步放大偏差，因為中間決策會跨越相互連結的元件傳遞。長期下來，複雜的決策鏈和分散式推理可能會使人類介入的時間點和地點變得難以辨識。</p>
+<p>其他演化則是外在因素所致，與系統部署的環境有關。存取外部工具、API 或自主網頁互動的能力，可能讓系統觸發超出原始任務範圍的行為。系統配置變更、安全政策更新或部署環境差異也可能改變控制可及性以及執行的時機地點。</p>
+<p>該概念與控制理論中的想法有明顯相似之處：當外輸入能將系統狀態引導至期望設定時，系統被視為可控。儘管人工智慧代理系統不遵循經典控制理論中典型的動態系統，但這一基本類比仍然適用——人類必須透過監督輸入和限制來塑造系統行為的軌跡。</p>
+<p>因此，要確保成功的部署，應在整個架構中嵌入明確的控制機制：</p>
+<ul>
+<li><strong>結構化控制節點</strong>：在決策過程的關鍵階段進行檢查與介入</li>
+</ul>
+<p>Constraint enforcement mechanisms，例如政策層、沙箱執行環境與對外工具的存取控制</p>
+<p>明確劃分控制權責，定義哪些角色負責設定目標、執行約束並監督系統運作，包括自動化機制與人類監管共享控制的情境。</p>
+<p>10 定期檢測控管機制，確保干預程序保持有效性，同時使操作員能應對異常行為。在歐盟的規範脈絡下，《一般資料保護規則》第24條即要求此類做法。¹⁰</p>
+<p>目前，這類技術方法足夠穩健的範例仍然範圍有限且實施困難，我們尚未有信心說這些領域的技術進步能跟上自主人工智慧能力發展的速度。在關鍵系統中整合需要謹慎的風險評估與保守的部署方式。</p>
+<ol>
+<li>安全性與潛在危害預防</li>
+</ol>
+<p>使用大型語言模型（LLMs）將其特定風險引入軟體系統，而代理式人工智慧可能透過反覆規劃迴圈、自主工具執行鏈、持續且演變中的記憶以及突發行為放大這些風險。</p>
+<p>虛構的輸出可能在多個步驟中傳播，導致連鎖錯誤行動或持續知識干擾決策。偏見也可能累積於記憶中或在代理之間擴散，隨時間逐漸常態化並影響未來計畫。透過反思與記憶更新，系統可能逐步改變其目標，偏離原始人類意圖。</p>
+<p>代理式工作流程也容易受到敵對指令的攻擊：惡意的提示詞可能跨步驟持續存在，劫持代理或其依賴工具的目標。此外，持續的記憶可能在互動中重新浮現私人資訊，產生潛在的隱私洩漏與法規違規。</p>
+<p>由於代理式人工智慧系統可透過線上服務或軟體整合快速部署，未預期的行為或漏洞可能迅速影響大量使用者，放大規模的潛在危害在此之前尚未被充分測試。</p>
+<p>成功的代理式人工智慧採用需要控制措施來限制錯誤擴散、防止濫用，以及保護個人資料，以應對潛在的安全與危害風險。關鍵措施包括：</p>
+<p><strong>沙盒化與容器化：</strong> 在將代理部署於受限存取資料來源、API 和系統資源的隔離環境中，直到行為被驗證安全為止。</p>
+<p><strong>多源輸出驗證與回饋迴圈：</strong> 用於檢測並修正幻覺和複合成效。</p>
+<p><strong>模型冗餘：</strong> 透過實施備援機制避免依賴單一模型架構，以確保系統可靠性與持續運作。</p>
+<p><strong>定期測試嵌入式資料與輸出的偏見。</strong></p>
+<p><strong>定期重申系統目標。</strong></p>
+<p><strong>將使用者輸入與系統指令分離，並監控提示注入模式。</strong></p>
+<p><strong>基於最小權限原則進行工具存取驗證。</strong></p>
+<p><strong>個人資料最小化與保留期限限制。</strong></p>
+<p>10 歐盟 (2016)《通用資料保護規範》(GDPR)。法規 (EU) 2016/679 第 11 號。</p>
+<ol>
+<li>D</li>
+</ol>
+<p>多代理風險因素</p>
+<p>當多個代理互動、協調或將任務委派給彼此時，會產生超出單一代理行為的額外不確定性點。一旦決策分散到多個代理身上，就很難追溯責任、觀察完整決策路徑或預測因其聯合行動產生的新興行為。</p>
+<p>在這種情境下，一個被入侵或有偏見的代理可能會引導集體決策並導致系統失靈。聯合決策過程也可能產生無法清楚追溯至任何個別代理意圖或邏輯的結果。此外，一個代理生成的錯誤輸出可能未被偵測到就被其他代理接受與升級，導致錯誤在系統中傳播與擴大。</p>
+<p>多代理系統還面臨外部風險。例如，單一外部服務或 API 的失敗可能同時觸發多個代理的重試或即興行動，將區域性中斷轉變為全系統性的失靈。</p>
+<p>To ensure successful adoption, potential risks in multi-agent systems require controls that limit error propagation, reduce manipulation of collective decisions, and constrain emergent behavior. Mitigation strategies include:</p>
+<p>防止任何單一代理從主導群體決策的機制。</p>
+<p>在代理之間設置中間驗證和確認檢查點，以檢測並控制錯誤。</p>
+<p>觀察型代理用來監控集體行為。</p>
+<p>與外部服務提供商簽訂容量協議。</p>
+<p>雖然所提議的緩解措施可以提高可見性並降低某些風險，但它們無法完全解決本節中描述的固有限制。特別是，自主性、非確定性和系統互動相關的挑戰無法透過現有的技術控制手段完全緩解。</p>
+<p>因此，在較高風險部署情境下，可能需要額外的保障措施，包括在關鍵決策點強制執行人工監督、受限的部署設定或延遲部署直到出現更好的控制措施。</p>
+<ol>
+<li>能源與資源效率</li>
+</ol>
+<p>雖然評估 AI 系統對能源和資源的全面影響已是核心挑戰，但代理式 AI 大幅提高了複雜性水平。其基於推理的操作帶來了對能源消耗和資源效率的具體且不確定性的需求。</p>
+<p>12</p>
+<p>代理式工作流與能源效率</p>
+<p>代理式工作流可以在多個步驟和延長的時間內持續運作，代理不斷查詢資料庫、呼叫 API 並在整個過程中更新記憶體。這些工作流程支援層級決策，其中一個推理的輸出會影響後續行動，而每個行動都有其自身的能源影響。</p>
+<p>此外，推理的遞迴性意味著代理可能會陷入「陷入迴圈」：它們會在未達成解決方案前重複評估或執行類似步驟。這不僅會妨礙效率，還可能因長時間計算使用增加環境足跡以及在檢測到失敗後需要重啟整個流程的需求而加劇。</p>
+<p>死鎖與無限迴圈也可能發生在傳統的軟體系統中。然而，代理式工作流更為廣泛且複雜：代理系統會與外部工具互動、觸發 API 呼叫、跨分散式服務進行協調，並以更高的自主性運作。因此，死鎖或失控行動鏈可能更難偵測和修正，因為它們可以在相互連結的系統、平台和服務之間傳播。</p>
+<p>同時，評估 AI 系統的特定能源足跡將變得越來越困難。隨著代理式 AI 整合到更廣泛的數位基礎設施中，其計算與能源消耗將與雲端服務、資料中心、API 和網路操作綁定在一起。因此，區分 AI 的能源影響和整個數位領域的能源影響將更加具有挑戰性。</p>
+<p>資源壓力</p>
+<p>代理式 AI 的需求不僅限於能量指標所揭示的內容。擴展 AI 廠房、雲端平台和邊緣節點需要牽動更廣泛的成本鏈：稀有礦物的提取、硬體壽命縮短以及用於冷卻的大量水資源消耗。此外，代理式工作負載越來越分散於完整的計算連續性中，從雲端到邊緣再到終端裝置，這不僅會放大資源配置效率低下，還會加劇問題。</p>
+<p>互連層快速演進可能會加速硬體汰換速度，超過效率提升所能補償的程度。如果沒有更好的模型來預測這些層層疊加的需求，資源效率將繼續成為需要應對而非規劃的事項。</p>
+<p>在高複雜度的營運環境中，例如代理式 AI 系統，熵可以理解為行動配置的所有可能數量：高熵系統會展現出大量不理想的行動配置。降低熵需要監控系統並處理資訊以選擇最有效率的行動路徑。</p>
+<p>數位產業的發展軌跡可能取決於其是自由發展還是受到限制：能源短缺、原物料成本上升或嚴格的永續要求可能會減少可接受配置數量，透過消除高耗能或不必要的複雜性來實現。在這種情境下，代理式人工智慧（Agentic AI）可能在任務效率和資訊處理方面超越人類管理的流程，並成為能源效率的一把槓桿。</p>
+<p>根據國際能源署（IEA）的說法，將現有的AI應用擴展到能源終端使用部門的全面層級，可能在本世紀末前釋放高達13.5億吉焦耳（EJ）的節能潛力，約佔當今總能源消耗量的3%。然而，仍存在許多不確定性：AI採用的速度、可能的反彈效應以及對水資源、礦產和生物多樣性的更廣泛壓力可能削弱這些效率提升。</p>
+<p>11 IEA (2026), Key Questions on Energy and AI</p>
+<p>13</p>
+<p>代理式人工智慧系統的能源影響與計算複雜性相關聯。在多個代理系統中，協調和共識機制會影響效能和能源效率。如表一所示，結合層級式監督和同儕間協調的混合架構預計將因更高的LLM呼叫、通訊開銷和記憶體複雜性而產生更大的能源影響。</p>
+<p>因此，在協調多個子代理以同儕間協調模型運作的代理系統中，或是自主生成新代理的系統中，可能會大幅增加計算複雜性及延伸的能源消耗。</p>
+<p>除了多代理架構選擇外，代理的模型和架構也很重要：較小、經過資訊預處理的微調LLM（語言模型）可以比大型模型實現相近或更好的任務表現，同時耗能更低。Krupp等人的研究透過對五個開源網路代理在相同任務上的效能量消耗進行評估，揭示了系統之間能源消耗差異可達十倍。</p>
+<p>值得注意的是，最節能的代理也展現了最強勁的整體任務表現。</p>
+<p>表格 1：不同多代理架構間複雜度指標的比較。 資料來源：改編自 Google Research¹³</p>
+<p>12 Krupp et al. (2025)，《促進永續網際網路代理：透過實證與理論分析進行能源消耗評估》</p>
+<p>13 Kim et al. (2026)，《邁向代理系統的規模科學》</p>
+<p>14</p>
+<p>推理導向模型的能耗： 雖然某些任務可以由傳統的生成式或確定性 AI 模型處理，但代理智慧（Agentic AI）也可能依賴具有不清楚能量影響的推理模型。</p>
+<p>對於非推理型 AI 模型，參數數量增長與能源消耗增加之間出現正相關。</p>
+<p>節能策略包括小語言模型 (SLMs)、模型壓縮技術、剪枝技術、量化技術以及謹慎的模型選擇，評估任務特定準確性與能源消耗之間的權衡。14、15 值得注意的是，對於高強度使用，具有較佳量化的大型稀疏模型有時比 SLMs 更具節能效益。</p>
+<p>代理系統透過多步驟推理過程執行，同時生成並探索多條解決方案路徑，每條路徑都有不同的計算成本與能量足跡。</p>
+<p>在資訊理論的脈絡中，決策過程的不確定性可以形式化為熵的概念（entropy），用以衡量可能選擇的不可預測程度。16 在代理工作流程中處理的資訊量與多樣性會產生高初始熵，並需要昂貴的計算來識別最佳推理路徑。</p>
+<p>如 Ebert 等人所述，對於推理模型而言，能耗影響預測比傳統模型更為繁瑣，因為它取決於模型的規模以及推理的路徑與強度，特別是生成的標記數量。他們的前期分析顯示，推理模型平均消耗的能源比傳統模型多約 30 倍。圖 1 展示了在三款特定模型中，有無推理功能的 GPU 能耗增加情況。</p>
+<h1>14 Barros et al. (2025), “Small Is Sufficient: Reducing the World AI Energy Consumption Through Model Selection”, ArXiv:2510.01889.</h1>
+<p>在將 Agentic AI 引進入職場環境中，其影響力遠超過單純的技術效能提升。雖然引入這些系統本質上是為了提高效率與生產力，但實務操作往往會導致資源浪費、能源消耗加劇以及整體運作成本上升。為確保這類新技術能真正帶來正面效益，而非僅造成負面影響，相關策略必須包含：</p>
+<ol>
+<li><strong>導入前的模型效能與能源衝擊評估</strong></li>
+</ol>
+<p>在正式部署前，需對模型的表現與能源使用進行全面評估，將能耗指標納入現有的效能基準中。此舉可確保新技術的落地不會超出既有資源承載範圍，並提供客觀依據支持決策。</p>
+<ol>
+<li><strong>選擇永續能源驅動的資料中心</strong></li>
+</ol>
+<p>優先選用以再生能源供電的資料中心來部署 Agentic AI 系統，從根本上減少碳排放。這不僅能提升營運的環保性，也能降低因能源供應不穩定所帶來的風險。</p>
+<ol>
+<li><strong>建立穩健的回饋與終止機制</strong></li>
+</ol>
+<p>實施嚴謹的回饋迴路偵測及自動終止程序，以確保系統在長期運行中維持穩定與永續性，避免資源無謂耗損。</p>
+<ol>
+<li><strong>依據任務複雜度調整推理深度</strong></li>
+</ol>
+<p>根據特定任務的規模與需求，適度調校推理深度的設定，使資源投入更為精準，提升整體運作效率。</p>
+<ol>
+<li><strong>開發 Agentic AI 的全生命週期能源消耗評估框架</strong></li>
+</ol>
+<p>建立一套完整的評估流程，涵蓋系統從設計、部署到日常維護的各個階段，持續監測與分析其能源使用模式，確保在技術發展過程中兼顧效能與環保。</p>
+<p>這些措施不僅有助於降低 Agentic AI 帶來的額外成本，更能強化社會對於人工智慧運作方式與環境影響的認知，進而形成更健全的人機協作生態系統。</p>
+<p>As Agentic AI 系統愈加深入組織運作，預測其在工作與就業層面上的演變亦同等重要。除了技術層面的影響外，Agentic AI 正重新定義任務的執行方式以及決策流程。上述所提及的風險，包括可追溯性、解釋性與多代理因素，同樣延伸至職場環境，對生產流程、工作者角色、經驗乃至與 AI 協作系統的互動產生深遠影響。</p>
+<p>因此，本節將聚焦於 Agentic AI 對工作者體驗的影響，強調如何管理其整合以打造具生產力且公平的工作環境。</p>
+<p>責任歸屬 隨著 Agentic AI 系統獨立做出決策，明確劃分其結果的責任變得日益複雜。在涉及歧視性招聘、財務損失或其他傷害的情境中，當責歸屬可能模糊不清——究竟應由開發者、部署機構或 AI 系統本身承擔？若缺乏清晰的問責框架，員工可能面臨道德困擾、對自身過錯的恐懼，以及不願挑戰 AI 生成建議的心理。</p>
+<p>長期而言，這種不確定性可能削弱工作者的自主感與專業認同，進而降低對組織領導層與 AI 協作系統的信任。從司法角度觀之，此類問題也將使釐清責任變得困難，尤其在發生衝突或違法情境時更顯棘手。</p>
+<p>19 Nisa, et al. (2025), Agentic AI: The age of reasoning—A review. 20 Acharya et al. (2025), Agentic AI: Autonomous Intelligence for Complex Goals—A Comprehensive Survey. 21 Narasima Venkatesh, (2025). Future of Work: Managing Ethical Challenges of Agentic AI and Super Intelligence in Organizations.</p>
+<hr>
+<p>透明度與解釋性 如前述所述，隨著 Agentic AI 系統日益複雜且自主化提升，重建與理解其輸出及決策流程的能力可能變得不透明。這將形成員工難以理解或挑戰的「黑盒子」系統。缺乏解釋性的後果是工作者無法正確解讀由 AI 生成的評估結果或策略指令。</p>
+<p>這層不透明性可能導致懷疑加深，削弱員工信任並降低他們依賴或與人工智慧協作的意願。</p>
+<p>技能流失的可能性</p>
+<p>特別是在代理式人工智慧出現之際，軟體開發人員的工作環境正發生深刻變化。開發者逐漸從設計詳細指令集的建築師轉變為設計代理目標、限制和驗證機制的設計師。這種角色的轉變伴隨著技能的流失風險，尤其是對於那些僅透過高層次代理規格進行工作而未深入學習底層系統的初階開發人員而言。</p>
+<p>程式語言與開發實務可能隨之演進或變得不那麼核心，因為系統正越來越透過代理協調自我組織。然而，這一圖景需要細緻化。科技歷來已提升人類整體效能，即使在特定任務上超越人類。關鍵變數是人機互動的品質：使用代理工具挑戰思維的開發者可能成長，而被動依賴的則可能逐漸喪失判斷力。</p>
+<p>代理式人工智慧可能會取代某些專業領域，但同時也為監督與系統層次推理的新能力開闢空間。</p>
+<p>重視人類貢獻</p>
+<p>代理式人工智慧所帶來的生產力提升，引發了關於如何在組織內部創造、衡量和分配價值的重要問題。鑑於此類收益通常是工人與系統之間的協作結果，而非單純的 AI 能力，效率增長應公平地分配給全體員工。</p>
+<p>這帶來了一個更深層的測量挑戰：傳統績效指標設計用於可見且可歸因的人類輸出環境，但在代理工作流程中，大部分可觀察的工作是由人工智慧生成的，模糊了人類貢獻的品質與本質。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-ead9b09e8cbc05c2.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">開放原始碼 AI 定義 1.0</span>
+</a>
+
+<a class="article-sequence-link" href="item-24a4bee04ad659c0.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">OFFICIAL</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-60104ca5dc0b6b9f.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：POLICY PAPER（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（PDF 文字推斷）</li><li><strong>自動翻譯中文標題</strong>：14 Barros et al. (2025), “Small Is Sufficient: Reducing the World AI Energy Consumption Through Model Selection”, ArXiv:2510.01889.（TwinkleAI:Gemma-3-4B-T1-IT）</li><li><strong>原始作者</strong>：本機 PDF（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-30T02:59:39+00:00</li><li>審稿備註：由本機 PDF 上傳建立；來源資訊只採用 markitdown 抽取結果，抓不到則需人工補出處。
+2026-06-29T15:47:52+00:00 已將 PDF / MarkItDown 文字補成 reading_metadata.article_markdown，後續模型建議與編輯台會以全文為優先。
+2026-06-29T15:49:10+00:00 已將 PDF / MarkItDown 文字補成 reading_metadata.article_markdown，後續模型建議與編輯台會以全文為優先。
+2026-06-30T02:59:39+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-60104ca5dc0b6b9f";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

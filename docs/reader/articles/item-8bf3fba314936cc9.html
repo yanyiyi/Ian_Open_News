@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 開放性的效益：OECD 給 G7 的討論文件 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; text-align: left; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-30T10:35:57+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-29 18:29</span></div>
+      <h1><a class="article-title-link" href="https://www.oecd.org/content/dam/oecd/en/publications/reports/2026/05/benefits-of-ai-openness_40eaff39/746e8c9a-en.pdf" target="_blank" rel="noreferrer" title="開啟原始連結">AI 開放性的效益：OECD 給 G7 的討論文件</a></h1>
+      <p class="lede">OECD 這份文件是在 2026 年法國 G7 主席任內，為 G7 數位與科技工作小組準備的討論紙。它以「AI stack 的開放性」作為分析框架，討論開放模型、開源程式碼、開放權重與相關基礎設施如何影響企業成本、模型競爭力、自架部署門檻、經濟成長、國家 AI 生態系韌性、在地價值創造與技術主權。從目錄與前文看，這不是單一產品或公司消息，而是國際政策場域正在形成的 AI openness 論述文件。</p>
+      <div class="tag-chip-list"><span class="tag-chip">G7</span><span class="tag-chip">AI openness</span></div>
+    </article>
+
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><p>AI 開放性的益處 OECD 給 G7 的討論文件</p>
+<p>AI 開放性的益處 OECD 給 G7 的討論文件 PUBE</p>
+<p>2  本作品由 OECD 秘書長負責出版。本文所表達的意見與採用的論點，不一定反映 OECD 會員國的官方觀點。本文件係經濟合作暨發展組織（OECD）應由法國擔任的 2026 年 G7 主席國之請求編製，並由 OECD 科學、科技與創新局（STI）起草。</p>
+<p>本文件旨在為 G7 數位與科技工作小組的討論提供參考，討論內容包括擬提交於 2026 年 5 月 29 日在法國巴黎舉行之 G7 數位與科技部長會議的成果項目。本文件，以及其中所含任何資料與地圖，均不影響任何領土的地位或主權、國際邊界與疆界的劃定，或任何領土、城市或地區的名稱。</p>
+<p>以色列的統計資料由相關以色列主管機關提供並由其負責。OECD 使用此類資料，並不影響依國際法對戈蘭高地、東耶路撒冷，以及約旦河西岸以色列屯墾區地位的認定。封面圖片：© Gorodenkoff/Shutterstock © OECD 2026 姓名標示 4.0 國際（CC BY 4.0） 本作品依 Creative Commons 姓名標示 4.0 國際授權條款提供。</p>
+<p>使用本作品，即表示你同意受本授權條款約束（https://creativecommons.org/licenses/by/4.0/）。姓名標示——你必須引用本作品。翻譯——你必須引用原作品、標明對原文所作的變更，並加入以下文字：若原作品與譯文之間有任何不一致，應僅以原作品文字為準。</p>
+<p>改作：你必須註明原作品，並加上以下文字：本作品改作自 OECD 的原作品。本改作中表達的意見與採用的論述，不應被視為代表 OECD 或其會員國的官方立場。第三方素材：本授權不適用於作品中的第三方素材。若使用這類素材，你有責任向第三方取得許可，並自行負責任何侵權主張。</p>
+<p>未經明示許可，你不得使用 OECD 標誌、視覺識別或封面圖片，也不得暗示 OECD 認可你對本作品的使用。凡因本授權產生的任何爭議，應依據常設仲裁法院（Permanent Court of Arbitration, PCA）《2012 年仲裁規則》以仲裁解決。仲裁地為巴黎（法國）。仲裁員人數為一名。AI 開放性的效益 © OECD 2026</p>
+<p> 3 致謝 本文由 OECD 科學、技術與創新司（Directorate for Science, Technology and Innovation, STI）的 Jeff Mollins 與 Luis Aranda 撰寫。策略方向由 OECD 科學、技術與創新司的 Jerry Sheehan、Audrey Plonk、Sara Rendtorff-Smith 與 Galia Daor 提供。作者感謝法國企業總局（DGE）的 G7 主席團隊提供願景與支持，也感謝 G7 數位與科技工作小組代表的寶貴意見與參與。</p>
+<p>作者也感謝在本報告發展過程中提供貢獻的各方，包括 OECD 秘書處的 Vincent Bataille、Manuel Betin、Celine Caira、Julia Carro、Andreia Furtado、Peter Gal、Daniel Haerle 與 Benedicte Rispal，以及 Jesse Dunietz（美國 NIST）與 Frank Nagle（MIT）。作者也感謝 OECD.AI「AI 運算與氣候專家小組」成員提供寶貴見解與回饋。AI 開放性的效益 © OECD 2026</p>
+<p>4  目錄 致謝 3 執行摘要 6 1 前言 8 2 分析架構：AI 堆疊各層的開放性 9 3 AI 開放性的經濟效益 12 微觀層面效果：AI 開放性為企業帶來成本效率與績效提升 12 開放權重與封閉權重模型的品質價格比 12 開放權重模型在 AI 經濟前沿的競爭力日益提升 13 損益平衡分析：何時自行託管開放權重模型會符合成本效益 14 宏觀層面效果：開源 AI 程式碼對經濟成長的指標性影響 16 主要發現 17 結果解讀 18 4 AI 開放性如何推動更強健、更具韌性的國家 AI 生態系 20 在地價值創造與下游創新 20 技術主權與戰略自主 22 特定產業調適 22 5 結論 24 附錄 A.</p>
+<p>損益平衡分析假設 25 附錄 B.宏觀層面分析方法 27 參考文獻 33 表格 表 2.1.AI 堆疊與相關開放性考量的延伸示意對照 10 表 3.1.Token 使用情境 15 表 3.2.私有託管的固定資本支出估算成本（美元）15 表 3.3.雲端 API 與私有 GPU 安裝情境的損益平衡月數 16 表 3.4.AI 開源活動對 GDP 的影響 18 表 B.1.資料來源與說明 29 表 B.2.</p>
+<p>國內與國外 AI 相關開源活動對 GDP 的影響 31 AI 開放性的效益 © OECD 2026</p>
+<p> 5 圖 圖 2.1.AI 堆疊的高階示意圖 9 圖 3.1.雲端提供的開放權重文字模型，隨時間推移仍維持較強的性價比 13 圖 3.2.2024 年 1 月至 2025 年 4 月，雲端提供的開放權重模型約占經濟 前沿模型的 60% 14 圖 3.3.開源 AI 程式碼貢獻快速增加 17 圖 4.1.開放資料集推動以開源授權建立模型的速度加快 21 圖 4.2.</p>
+<p>採用開源授權的模型擴散更快：在 Hugging Face 上所有附有授權 資訊的模型中約占 65%，卻占所有下載量近 80% 21 AI 開放性的效益 © OECD 2026</p>
+<p>6  執行摘要</p>
+<p>人工智慧（AI）的近期進展，特別是基礎模型的快速發展，使政策界重新關注開放性在整個 AI 生態系中的角色。AI 開放性影響 AI 技術堆疊的多個層次，從基礎設施、資料，到模型與應用程式，也包括治理、技能與投資等跨領域促成因素。</p>
+<p>其影響不只限於技術設計選擇，也形塑價值如何被創造、創新如何擴散，以及各國如何在全球 AI 生態系中定位自身。本報告分析 AI 開放性的經濟與策略效益，並參考 OECD 資料與第三方研究。報告同時聚焦於微觀層面的影響（效能、成本與競爭力）與宏觀層面的結果（經濟成長與知識擴散），以及開放性在強化國家 AI 生態系中的角色。</p>
+<p>在個體經濟層面，證據顯示，開放權重 AI 模型相較於專有替代方案，競爭力正日益提升。雖然開放模型在發布時約可達到封閉模型 90% 的效能，但通常能以顯著較低的成本取得，因此具備更高的品質價格比。成本動態會因規模而異。對較小型的工作負載而言，雲端型專有模型因部署容易、前期投資低，仍具成本效益。</p>
+<p>然而，在使用量較大的情境下，開放權重模型可透過自行託管或租用 GPU 帶來可觀的成本節省；對高用量案例而言，損益兩平點也會很快出現。這表示，對具備足夠規模、技能或基礎設施，能有效部署開放權重模型的組織來說，AI 開放性能帶來有意義的成本與效能效益。</p>
+<p>在總體經濟層面，報告發現，在分析的 33 個國家中，AI 開源活動與經濟成長之間存在正向且具統計顯著性的關係。分析以 GitHub 貢獻作為 AI 開放性的代理指標，提供了 AI 開放性潛在經濟效益的指標性證據。這些效益反映出開源 AI 軟體作為共享的全球知識基礎所扮演的角色，能產生跨國外溢效果，並促成企業與各產業的生產力提升。</p>
+<p>這項優勢會隨時間增強，因為開放生態系能受益於累積改進、共享工具，以及社群驅動的最佳化。除了經濟與效率方面的影響之外，AI 開放性也有助於發展更強健、更具韌性的 AI 生態系。透過擴大模型、資料與工具的取得，開放方法會將價值創造轉向 AI 技術堆疊的下游層，讓包括新創與中小企業在內的更多行動者能夠參與。</p>
+<p>開放性也支持技術主權與戰略自主。在本地部署並調整模型的能力，使組織與政府能保有對敏感資料的控制、降低對外部供應商的依賴，並依照國家或特定部門需求客製 AI 系統。同時，開放模型所具備的透明度與可稽核性，也能強化監督、合規與信任。此外，開放性也有助於特定部門的調適。</p>
+<p>透過降低客製化的成本與複雜度，開放方法能促成針對特定產業與公部門使用情境量身打造的 AI 解決方案。</p>
+<p>AI 開放性的效益 © OECD 2026</p>
+<p> 7</p>
+<p>這在資源受限、涉及敏感資料要求，或存在既有系統的脈絡中尤其相關；在這些情況下，專有解決方案可能較不適合，或更難部署。整體而言，分析顯示，AI 開放性可以成為創新、經濟成長與韌性的關鍵促成因素。</p>
+<p>透過降低進入門檻、加速知識擴散，並擴大 AI 開發與使用的參與，開放方法有潛力重塑競爭動態，並支持更具包容性與適應力的 AI 生態系。</p>
+<p>AI 開放性的效益 © OECD 2026</p>
+<p>8 </p>
+<p>1</p>
+<p>導論</p>
+<p>人工智慧（AI）的最新進展，尤其是基礎模型的快速發展，使政策界重新關注開放性在 AI 系統中的角色。各國政府與國際組織，以及私部門、學術界、開源社群與公民社會的主要利害關係人，正日益檢視 AI 開放性可能如何影響創新、市場結構，以及國家與區域的 AI 能力。</p>
+<p>這項討論也反映在國際政策論壇的持續工作中，包括 G7、OECD 與 GPAI，以及 OECD.AI 政策觀測站等分析資源。這些倡議凸顯出，各界對 AI 開發與部署採取開放做法所帶來的機會與影響，正抱持越來越高的關注。</p>
+<p>就本報告而言，「AI 開放性」、「開放 AI 生態系」，或「AI 技術堆疊各層面的開放性」，係指「AI 技術堆疊中關鍵產出物與文件的廣泛公開可取得性與易於存取性，包括 AI 模型（權重與程式碼）、資料集、文件、安全工具與運算資源」（Basdevant et al., 2024；Seger and [1] Hancock, 2025）。[2] 本報告簡要概述 AI 開放性可能帶來的潛在效益。</p>
+<p>本報告參考 OECD 分析（OECD, 2025）、OECD.AI 政策觀測站，以及第三方研究，探討 AI 開放性可能如何影響經濟成果、創新動態，以及國家與區域 AI 生態系的發展。[3] 第 2 節提出一套以 AI 技術堆疊主要層次為基礎的分析框架，並輔以治理、技能與投資等跨領域促成因素。</p>
+<p>在此基礎上，第 3 節從微觀與宏觀層次檢視 AI 開放性的經濟效益，包括經濟成長、成本效率，以及開放權重模型與封閉權重模型之間效能取捨的例證。 第 4 節探討 AI 開放性如何促成更強健、更具韌性的國家 AI 生態系，重點放在地方價值創造、技術主權，以及特定產業的調適。</p>
+<p>第 5 節總結主要發現；附錄 A 與附錄 B 則詳述宏觀與微觀層次分析所依據的方法與假設。本分析聚焦於 AI 開放性相關的效益；潛在風險或缺點不在本文範圍內，留待未來研究。</p>
+<p>AI 開放性的效益 © OECD 2026</p>
+<p> 9</p>
+<p>2</p>
+<p>分析框架：AI 堆疊中的開放性</p>
+<p>為評估 AI 開放性的影響，本報告採用一套以 AI 堆疊主要層次為基礎的框架：實體與物質投入；硬體與運算基礎設施；資料；模型；軟體與工具；以及應用軟體；並將治理與監督、技能與研究，以及投資與融資，視為貫穿各層的促成因素（圖 2.1）。</p>
+<p>AI 堆疊提供了一個結構化的視角，可用來分析 AI 生態系。1 每一層在 AI 系統的開發、部署與使用中都扮演不同角色，而開放性可能以不同方式影響這些層次，進而同時影響上游能力（例如基礎設施與模型開發）以及下游創新（例如應用軟體）。圖 2.1. AI 堆疊的高階示意圖 來源：OECD 分析，參考 Basdevant 等人。</p>
+<p>（2024[1]）、NVIDIA（2026[4]）、Rajdev（2025[5]）與 TBI（2026[6]）。這套框架有助於說明各國如何在 AI 生態系的不同環節中定位自身，並從 AI 堆疊的不同層次取得價值。有些經濟體可能會優先投入基礎設施與基礎模型開發，另一些則可能聚焦於應用開發與特定部門的導入。</p>
+<p>由於每一層涉及不同類型的資產、依賴關係與治理需求，開放性的考量也會隨堆疊層次而異：較底層的重點在於取得管道、互通性，以及對投入與基礎設施的可見性；較上層則著重於權重、程式碼與資料的可取得性、文件化、標準，以及模型與應用的可稽核性。</p>
+<p>這些各層特有的特性，會形塑參與、成本與價值創造如何在國家與區域脈絡中分配（表 2.1）。 AI 開放性的效益 © OECD 2026</p>
+<p>10 </p>
+<p>表 2.1. AI 堆疊與相關開放性考量的延伸示意對照</p>
+<p>a) AI 堆疊的層次</p>
+<p>示意組成要素 示意範例 示意開放性考量</p>
+<p>電網、高耗水冷卻場址、 基礎設施資料的開放取得、影響透明度、 實體與 能源、土地、水、晶片所需關鍵 2 開放通報標準，以及更廣泛取得 物質投入 礦物 半導體材料 關鍵投入。</p>
+<p>與設備 雲端／本地部署之間的互通性 半導體製造 環境、共享或共用的運算 硬體與晶片、GPU、加速器、設施、分散式 促進更廣泛參與的倡議、開放 運算伺服器、資料中心、運算資料中心、開放 架構標準、透明的存取 基礎設施、雲端／本地部署的運算硬體架構 運算資源政策、硬體使用的開放介面 （例如 RISC-V）。</p>
+<p>大量清楚標示資料授權與來源追蹤的資料集合， 訓練前與訓練後資料、 用於訓練的文字／影像、多語與特定領域資料的可取得性 資料標註資料集、 人工標註資料、資料、負責任再利用的開放文件、 合成／測試資料 行政資料的可重現性與可稽核性。</p>
+<p>機器學習資料訓練與評估 可互通的函式庫、透明的 API 框架、軟體函式庫、模型部署 特性、寬鬆授權 工具函式庫、應用程式介面、向量搜尋 擴充功能、維護良好的文件 程式介面與模型檢索工具 社群貢獻與可稽核性。</p>
+<p>（API）增強 可取得模型權重與程式碼、開放或 通用 AI 模型、可檢視的訓練紀錄、透明的發布 基礎模型與微調 模型、特定產業模型、說明、可解釋性工具、關於 模型 小型語言模型評估結果的文件、用於微調與負責任再利用的授權制度。</p>
+<p>AI 助理、深度研究 產品、服務、代理式使用者可控制設定、明確的 API 條款、開放 代理、產業應用、B2B 系統、特定領域標準與協定、模型的可解釋性 應用工具、LLM 應用 應用、編排工具、輸出、日誌與資料的可匯出性 軟體框架、模型脈絡 代理式互動監督、用於稽核的透明機制 協定（MCP）、代理對代理 協定（包括代理式行動）。</p>
+<p>Agent（A2A）通訊 b) 跨領域促成條件 示例組成項目 示範例子 開放性考量示例 政策與法規；防護措施；文件；模型卡、資料表、 授權；訓練、開放測試與評估方法、透明的 紅隊測試、OECD 治理與評估、風險與防護措施的驗證及報告、可互通的 原則、NIST AI RMF、 監督驗證（TEVV）；</p>
+<p>TEVV 標準、可近用的合規 ISO/IEC 22989、EU AI Act、 原則；風險文件、清楚的授權。US AI Action Plan 管理；標準；基準；指標 開放研究成果、資料集取用，以及 國家實驗室、AI 技能與教育、研究與學習模型、人才流動、協作式 安全／資安機構 研究發展（R&amp;D）研究基礎設施、公開分享的 （AISIs） 基準或可重現實驗。</p>
+<p>支持開放取用的條件、共享基礎設施的資金、 Stargate 計畫、民間 投資與公共投資、民間募資輪、全球 開放權重模型發布的誘因、支持本地模型調適 融資資本、創投資金、資料中心建置、 能力，以及能擴大各類行動者參與的 國家 AI 計畫 投資模式 來源：OECD 分析，參考 Basdevant et al.（2024[1]）、Rajdev（2025[5]）與 TBI（2026[6]）。</p>
+<p>AI 開放性的益處 © OECD 2026</p>
+<p> 11 在這種生態系觀點的基礎上，AI 技術堆疊為政策制定者提供一個實用的分析視角， 用來評估 AI 開放性在其國家脈絡中哪些地方最具關鍵意義。它有助於辨識哪些層次 在策略上更重要、應優先發展哪些能力以最大化經濟與社會回報， 以及在哪些地方合作，包括區域與國際合作，能創造最大的 價值。</p>
+<p>透過這種方式，這套框架能協助把 AI 技術堆疊各層之間的差異轉化為可執行的政策 選擇。開放性並不是一致的：其效益取決於它如何部署在各層之中，以及這些層次 彼此配合運作的程度。若解決方案能在各層內互通，並且跨層相容， 開放性才能發揮完整價值，進而形成模組化的 AI 技術堆疊。</p>
+<p>這意味著各項元件，無論是開放或專有，都必須能無縫整合（例如，開放權重模型能有效搭配專有資料或工具運作）。如果缺乏這種相容性，整個堆疊就會出現缺口，限制創新與採用。以下各節將檢視 AI 開放性帶來的主要經濟效益，涵蓋微觀與宏觀層面的影響，接著探討開放性如何形塑國家的 AI 生態系。</p>
+<p>本分析橫跨 AI 堆疊的多個層次，主要聚焦在較上層的部分。在這個範圍內，本文概述開放取徑如何影響 AI 生態中的成長、創新，以及在地能力的發展。AI 開放性的效益 © OECD 2026</p>
+<p>12  3 AI 開放性的經濟效益 開源軟體長期以來在數位技術發展中扮演重要角色，而類似的動態也正在 AI 生態系的部分領域浮現。與此同時，AI 的開發與部署仍高度仰賴專有軟體與平台。</p>
+<p>在這樣的背景下，開源 AI 工具與開放權重模型，可能透過降低實驗門檻、促進知識擴散，並擴大 AI 開發的參與，進而對創新有所貢獻。</p>
+<p>微觀層面的影響：AI 開放性為企業帶來的成本效率與效能提升 開放權重模型與封閉權重模型的品質價格比 近期研究顯示，開放權重模型相較於封閉的專有模型，競爭力正逐漸提高，同時在特定情境下可能具備成本優勢。研究指出，開放權重模型在發布時約可達到封閉權重替代方案 90% 的效能（Nagle and Yue, 2025）。</p>
+<p>OECD AI knowledge on demand（AIKOD）資料庫追蹤雲端服務供應商提供生成式 AI 模型的情況，也證實了這項發現：[7] 開放權重文字模型進入市場時，品質指數約為封閉權重模型的 90%，但價格比僅為 0.2。實務上，0.2 的價格比代表雲端可用的開放權重模型，在執行同一任務時，成本約為封閉權重模型價格的 20%，因此具備明顯更高的性價比。</p>
+<p>開放權重模型上市後的前幾個月，品質價格比是封閉權重模型的兩倍（圖 3.1）。這項比率持續較高，顯示開放權重模型具備競爭力與成本效益。AI 開放性的益處 © OECD 2026</p>
+<p> 13 圖 3.1。雲端提供的開放權重文字模型隨著時間推移，仍維持較強的性價比 依模型年齡計算的平均品質指標分數除以價格</p>
+<p>註：文字轉文字模型的價格，是結合提示詞中的每 token 價格與生成的 AI 回應中每 token 價格來衡量。效能則是取多項基準測試與來源的平均值計算，包括 Hugging Face 的 MMLU 分數、Arena ELO 分數、GPQA 數值與 Livebench。</p>
+<p>本分析使用資料庫中從建立日期到 7 個月後皆存在的模型子集。來源：OECD.AI 的 AIKOD（2025[8]）。開放權重模型在 AI 經濟前沿的競爭力日益提升</p>
+<p>AIKOD 資料也顯示，開放權重模型在「AI 經濟前沿」中的占比愈來愈高；這裡的「AI 經濟前沿」定義為在特定品質水準下使價格最低的一組模型（André et al., 2025）。</p>
+<p>近年來，開放權重模型在前沿中的占比穩定上升，從 2024 年初到 2025 年中，約占經濟前沿模型集合的 60%（圖 3.2）。這項轉變可能反映出開放權重模型開發的複合優勢：每個新模型都能建立在先前的架構、共享工具，以及社群開發的最佳化技術之上。</p>
+<p>隨著時間推移，這種動態會降低開發成本並加速發布週期，幫助開放權重模型更有效地與封閉、專有的替代方案競爭。這些發現也凸顯，開放權重模型的益處到目前為止，是透過企業的理性策略達成，而且已證明能有效創造網路效應、形成標準，並增加累積性創新。AI 開放性的益處 © OECD 2026</p>
+<p>14 </p>
+<p>圖 3.2. 2024 年 1 月至 2025 年 4 月，雲端提供的開放權重模型約占經濟前緣模型的 60%</p>
+<p>在特定品質水準下，能將價格降到最低的文字轉文字模型數量</p>
+<p>註：AI 經濟前緣是一個概念，用來辨識市場上在特定品質水準下能將價格降到最低的一組模型。</p>
+<p>文字轉文字模型的價格，是結合提示中每個 token 的價格，以及生成式 AI 回應中每個 token 的價格來衡量。效能則是取多個基準測試與來源的平均值計算而得，包括 Hugging Face 的 MMLU 分數、Arena ELO 分數、GPQA 數值與 Livebench。</p>
+<p>資料來源：AIKOD from OECD.AI (2025[8])</p>
+<p>損益兩平分析：自行託管開放權重模型何時具成本效益</p>
+<p>對於大規模或高用量使用 AI 的組織而言，開放權重模型的成本優勢可能特別重要。在這些情況下，組織或許可以透過自行託管模型來節省費用，也就是在自己的伺服器上運行模型，而不是向雲端供應商支付按次使用費。</p>
+<p>為了說明這點，我們使用 token 用量的估計值進行損益兩平分析。token 是衡量 AI 模型處理多少文字的標準單位，包含輸入、輸出與內部推理；一個 token 大致可視為相當於一個短字詞。我們也納入運行不同工作負載所需的 GPU 需求。這項分析並非聚焦於聊天機器人式互動，而是模擬企業將 AI 系統部署於內部營運或面向客戶應用時的推論情境。</p>
+<p>這些結果與分析旨在作為示例，尤其考量到租用 GPU 的普及程度與成本效益更高，這點將於下文進一步討論。儘管如此，這項分析仍可協助企業，特別是中小企業（SMEs），評估是否應投資內部運算能力，或依賴雲端供應商滿足其 AI 需求。完整的建模假設可見附件 A。</p>
+<p>工作負載被分類為「小型」（每月少於 1 億個 token）到「超大型」（超過 500 億個）（表 3.1）。「小型」使用案例的一個例子，是主要將 AI 用於程式開發或提升效率的中小企業（SME）；大型或超大型使用案例則可能是擁有數百名使用者、聊天機器人服務，或其他高度仰賴 AI 活動的企業。AI 開放性的效益 © OECD 2026</p>
+<p> 15</p>
+<p>表 3.1. Token 使用情境</p>
+<p>| | 工作負載規模 | 每月使用 token 數 | | | GPU 需求 | | | ----------- | --------------- | -------------------- | ---------------------- | ----------- | ---------------- | --------- | | 小型 | | | 少於 1 億 | | | 1 張 L4 | | 中型 | | | | 10 億 | | 1 張 H100 | | 大型 | | | | 100 億 | | 2-3 張 H100 | | 超大型 | | | | 500 億 | | 8 張 H100 |</p>
+<p>註：GPU 的 token 處理容量會因模型與其他效率因素而有很大差異。這些情境是以約 80% 的 GPU token 容量，以及假設會隨工作負載最佳化而擴展的每秒 token 處理量為基礎。</p>
+<p>來源：（NVIDIA, 2026[4]）與 OECD 計算。</p>
+<p>針對每個情境，本研究使用 token 工作負載，並套用 Gemini 3.1 的代表性價格，估算使用隨用隨付雲端 API 的每月成本；Gemini 3.1 在封閉權重模型中成本相對較低（Artificial Analysis, 2026 [10]）。在假設沒有前期固定成本的情況下，我們發現，在中型 token 使用情境下，10 億個 token 每月成本為 8,000 美元（附錄 A）。</p>
+<p>成本也與自行託管的估算進行比較，其中納入資本支出（CapEx）與營運支出（OpEx）。資本支出由 GPU 成本與基礎設施安裝成本組成，例如儲存設備、伺服器、連線等（表 3.2）。營運支出包括電力、主機代管機房空間、連線、工程支援、保險與折舊。損益兩平分析所採用的假設，反映了企業營運 AI 基礎設施時的典型成本結構。</p>
+<p>表 3.2. 自行託管的估計固定資本支出成本（美元）</p>
+<p>| | 工作負載規模 | | GPU 成本 | | 安裝成本 | | | ----------- | --------------- | --- | --------- | ------- | ------------------ | ------- | | 小型 | | | | 8000 | | 7500 | | 中型 | | | | 30000 | | 15000 | | 大型 | | | | 75000 | | 37500 | | 超大型 | | | | 240000 | | 120000 |</p>
+<p>資料來源：Northflank（2025[11]）與 OECD 計算。</p>
+<p>主要結果</p>
+<p>開放權重（open-weight）模型只有在達到一定規模後，自行託管才具成本效益。對於運行非常大規模工作負載的企業來說，考量前期資本支出（CapEx）後，開放權重模型仍可能帶來可觀的成本節省；但規模較小的使用者可能仍會覺得雲端 API 更有效率（表 3.3）：</p>
+<p>• 對於小型工作負載（每月少於 1 億個 token），自行託管的經濟效益並不明顯。</p>
+<p>• 在中型工作負載（每月 10 億個 token）下，私有託管只有在 2.5 年後（約 30 個月）才會比隨用隨付的雲端服務便宜。</p>
+<p>• 對於較大型工作負載，損益兩平點會更早出現：大型工作負載（每月 100 億個 token）約為 2 個月，非常大型工作負載（每月 500 億個 token）約為 1 個月。</p>
+<p>AI 開放性的效益 © OECD 2026</p>
+<p>16 </p>
+<p>表 3.3. 雲端 API 與私有 GPU 安裝情境的損益兩平月份</p>
+<p>| 工作負載規模 | 損益兩平月份 | | --- | --- | | 小型（每月 1 億個 token） | 無法損益兩平 | | 中型（每月 5 億個 token） | 30.4 | | 大型（每月 50 億個 token） | 1.8 | | 非常大型（每月 500 億個 token） | 1.0 |</p>
+<p>資料來源：OECD 根據附錄 A 所列假設進行計算。</p>
+<p>第三種選項：租用 GPU，提供了另一種在實務上愈來愈常見的替代方案。舉例來說，以相對較高的每小時 5 美元成本租用 8 張 H100 GPU，並以滿載狀態連續預留一整年，費用約為 35 萬美元。雖然這項估算不包括資料傳輸、儲存、編排與代管服務等額外費用，但仍遠低於隨用隨付雲端 API 模型下估計每年 480 萬美元的成本。3 因此，在某些假設下，即使使用量相對不高，租用 GPU 也可能具成本效益。</p>
+<p>較便宜的前一代 GPU（例如 L4）每小時約 1 美元，可能進一步降低成本；對某些工作負載而言，其每月費用甚至可能低於每月 1 億個 token 的隨用隨付 API 對應成本。這項估算假設租用本身沒有額外成本，但在支援基礎設施已經建置完成的特定情況下，可能是合理的。歸根究柢，企業的 AI 部署選擇取決於一系列因素，而不只是表面上的成本比較。</p>
+<p>以 API 為基礎的服務提供易用性、快速部署，以及可存取持續改進的專有模型，通常對內部技術能力的要求也較低。相較之下，租用或自有的 GPU 架構做法，能讓企業更能掌握模型選擇、效能最佳化與成本結構，但需要足夠的內部專業能力與前期組織量能。</p>
+<p>實務上，無論是租用或自有模式，都必須配置足以因應尖峰需求的資源，而尖峰需求會因使用情境而有很大差異。這可能導致資源在某些期間未被充分利用，使成本效率低於理論基準。因此，本節分析假設企業具備必要的技術能力與需求規模，能有效運用專用運算資源，無論這些資源是租用或自有。</p>
+<p>儘管如此，在這些情境中，證據顯示 AI 開放性有潛力為企業層級帶來有意義的成本節省與效能提升，特別是對於具備規模、技能或基礎設施，能有效部署開放權重模型的組織而言。對其他組織來說，主要效益則來自較低價格、更高競爭、較快的創新週期，以及較低的進入門檻。</p>
+<p>整體而言，這些因素有助於 AI 能力在經濟中更廣泛擴散，並促成更具競爭性的市場動態。總體層級影響：開源 AI 程式碼對經濟成長的指標性影響</p>
+<p>本小節探討開源 AI 程式碼可能帶來的整體經濟影響，包括其對 GDP 成長的貢獻。此處以 AI 相關 GitHub 儲存庫的提交紀錄來衡量開源 AI 程式碼。</p>
+<p>實務上，「提交」（commit）指的是 GitHub 儲存庫中對單一檔案或一組檔案所做的一次變更。因此，本小節主要聚焦於前一節所討論 AI 技術堆疊中的工具與應用層，不過模型層級使用的程式碼也會明確納入此資料集。資料顯示，近年來對公開 AI 專案的貢獻呈現指數成長，起點則是 2011 年相對有限的基礎（圖 3.3）。AI 開放性的效益 © OECD 2026</p>
+<p> 17 圖 3.3。開放原始碼 AI 程式碼貢獻快速擴張 AI 相關公開 GitHub 儲存庫的提交次數 來源：GitHub Archive 與 OECD 計算。雖然已有研究探討開放原始碼軟體（OSS）對整體經濟的影響，但開放原始碼 AI 程式碼（AI OSS）的具體貢獻仍大致未被充分探索。為補足這項缺口，我們調整 Blind 與 Schubert（2023）採用的總體經濟模型，用以估算 GitHub 上 AI OSS 專案的貢獻可能如何影響 GDP。 [12]</p>
+<p>因此，該模型估算勞動、資本、研發支出、智慧財產權國際支付、專利活動，以及 AI OSS 貢獻等關鍵驅動因素對 GDP 的長期影響。分析採用涵蓋 2011 至 2024 年期間的追蹤資料集，並納入 33 個資料充足的 OECD 國家（完整清單見附件 B）。</p>
+<p>估算時也區分研發支出與 AI OSS 貢獻的國內與國外來源，分別評估來自各國境內的活動，以及來自其他國家的活動（即「世界其他地區」，rest of the world，ROW）。由於本分析在實證與概念上有所限制，本小節結果應視為示意性結果。關於資料來源、涵蓋範圍、方法考量與穩健性檢驗的詳細資訊，請見附件 B。</p>
+<p>主要發現 分析顯示，全球 AI OSS 貢獻與經濟成長之間存在正向且持續的關聯，長期彈性約為 0.05，且具統計顯著性（表 3.4）。表 B.2 也以替代設定支持這些結果；該設定區分國外與國內 AI OSS 貢獻，並控制模型敏感度。</p>
+<p>該模型也估算出資本與勞動的效果，分別約落在 0.27 與 0.55 的範圍內，大致符合成長文獻中的標準估計值（Vollrath，2024）。 [13] AI 開放性的益處 © OECD 2026</p>
+<p>18  表 3.4 AI 開源活動對 GDP 的影響 (1) GDP 對數 L.國內研發的對數 0.06 (0.05) L.世界其他地區（ROW）研發的對數 -0.55*** (0.18) 資本存量對數 0.27*** (0.07) 就業人數對數 0.62*** (0.22) L.專利數對數 0.07 (0.06) 智慧財產權支付額對數 -0.02 (0.02) 全球 GitHub 提交數對數 0.05*** (0.02) 短期誤差修正項 -0.18*** (0.03) 註：<em>p &lt; 0.10，<strong>p &lt; 0.05，</strong></em>p &lt; 0.01。括號內為標準誤。</p>
+<p>分析納入 33 個 OECD 國家，涵蓋 13 年期間，並刪除部分遺漏值（觀察值 = 419）。動態固定效果誤差修正模型，涵蓋所有國家。顯示長期方程式與短期誤差修正項。AI 開源活動以 AI 相關儲存庫的 GitHub 提交數衡量。來源：完整來源清單見表 B.1。結果顯示，AI 開源軟體開發可作為共享的全球知識基礎。</p>
+<p>透過跨境擴散與自由取用這些資產，AI OSS 支持各國的國內生產。解讀結果 這些發現顯示，全球 AI 開源軟體貢獻增加 10%，長期而言與 GDP 約 0.5% 的成長相關。按此關係推算，貢獻增加 40%（約略相當於近年觀察到的成長幅度）對應到 GDP 約 1.5-2% 的增加。</p>
+<p>鑑於樣本中 33 個 OECD 國家在 2024 年的實質 GDP 合計為 54 兆美元，這意味著其影響量級約為 1 兆美元。雖然這個數字乍看之下可能很大，但應放在全球軟體經濟的規模，以及開源活動獨特的經濟特性脈絡中理解。</p>
+<p>AI 開源軟體不應被理解為狹義的程式碼貢獻類別，而是更廣泛的互補投資與活動生態系的一部分，包括工具、文件、標準、技能，以及企業與各部門的下游採用。對 AI OSS 的貢獻，其功能很像是對全球公共財的投資：邊際投資所產生的效益會廣泛累積到各企業與部門，而不是由單一生產者獨占。</p>
+<p>AI 開放原始碼貢獻會產生非競爭性且跨境的外溢效果，類似於基礎研究或乾淨空氣等其他公共財。</p>
+<p>若缺少這類共享資源，企業就必須各自重複開發許多核心軟體工具，導致成本上升並拖慢擴散速度。4 從這個角度來看，估計出的收益不只反映可自由取得 AI 軟體的直接使用，也反映出更廣泛的生產力效果：AI 開放原始碼軟體（AI OSS）貢獻擴大了全球技術知識存量，並促成互補性投資。</p>
+<p>將結果與整體軟體經濟的規模相比，也很有參考價值：全球每年對軟體及相關無形資產的投資達數兆美元（Brown et al., 2026）。在這樣的背景下，本文所辨識出的宏觀層級效果 [14] AI 開放性的益處 © OECD 2026</p>
+<p> 19 大致符合軟體在先進經濟體推動生產力成長中已扮演的核心角色。本文辨識出的規模，也與既有關於開放原始碼軟體經濟價值的實證研究一致。例如，Blind and Schubert（2023）發現，在 2000-2018 年期間，國際 OSS 貢獻增加 10%，與約 0.4% 的 GDP 成長相關。</p>
+<p>Hoffmann、Nagle and Zhou（2024）估計，2020 年全球開放原始碼軟體的價值約為 8.8 兆美元 [15] 。隨著 AI 相關 OSS 如今在整體開放原始碼軟體活動中占比快速上升，本文提出的結果與這套更廣泛的文獻相符，也建立在其基礎之上。同時，這些估計仍應以適當審慎的態度解讀。</p>
+<p>AI OSS 的成長與更廣泛的趨勢同時發生，例如數位化以及軟體投資增加，而這些趨勢同樣支持生產力成長。因此，這些估計可能部分捕捉到的是這些互補動態，而不完全是 AI OSS 本身的嚴格因果效果。此外，開放原始碼貢獻的效益通常是間接的，並透過其與資本資產及勞動份額的互動而實現。</p>
+<p>因此，這些結果最適合被視為 AI 相關開放原始碼活動可能具有宏觀經濟重要性的指標，並作為其對長期經濟成長貢獻的上限估計。AI 開放性的益處 © OECD 2026</p>
+<p>20  4 AI 開放性作為推動更強健且更具韌性的國家 AI 生態系的驅動力</p>
+<p>AI 開放性不只會影響創新與生產力，也會影響各國 AI 生態系中，價值如何以及在何處被創造與取得。三項動態似乎特別相關：在地價值創造與下游創新；技術主權與戰略自主；以及特定產業領域的調適。</p>
+<p>在地價值創造與下游創新</p>
+<p>開放權重模型可以把 AI 技術堆疊中更大一部分的價值創造，轉移到應用與服務等下游層。由於底層模型可以依照在地語言、脈絡與法規環境調整，開放方法讓更廣泛的企業、實務工作者與公共機構得以參與 AI 開發。</p>
+<p>Linux Foundation 報告（Lawson et al., 2024）的證據顯示，組織已經高度仰賴開放性：受訪者表示，他們有 41% 的程式碼基礎設施是開放原始碼，且有 89% 在其 AI 系統中至少使用部分開源元件。隨著 AI 相關開源軟體的品質與成熟度持續提升，其在組織所使用軟體基礎設施中的占比很可能會增加。開源工具也可能進一步降低開發與維護成本。</p>
+<p>2025 年的調查資料顯示，採用開源 AI 的組織回報較低的導入成本（60%）與較低的維護成本（46%）（McKinsey, Mozilla Foundation, PJMF, 2025）。這些節省來自 [16] 可重複使用元件的可取得性、社群開發的工具，以及在不受供應商限制的情況下，依組織需求調整系統的能力。開源生態系似乎會產生自我強化的動態。</p>
+<p>對 Hugging Face 資料的分析顯示，新的開放資料集發布後，很快就會出現採用開源授權的新模型，5 兩者呈現特別強的相關性，且時間落差很短。雖然非開放資料集也會帶來新模型，但這種關係弱得多。時間點值得注意：開放授權模型往往會在新的開放資料集出現後 1 至 2 個月內回應，而封閉權重模型則需要較長時間（4 至 6 個月）。</p>
+<p>這顯示，開放資料集更容易讓開發者採用並整合，有助於加快實驗與模型開發（圖 4.1）。這些模式顯示出一個良性循環：開放資料集促成新的開放原始碼授權模型建立，而這些模型又進一步鼓勵對生態系的貢獻。這種動態支持內生性成長，也就是 AI 開發的進展會在既有基礎上持續累積，並隨時間加速。AI 開放性的效益 © OECD 2026</p>
+<p> 21 圖 4.1.開放資料集推動開放原始碼授權模型更快速產生 資料集數量與下列數量之間的相關性</p>
+<p>...</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-ea1417c5bea98fbe.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">How I coined the term ‘open source’</span>
+</a>
+
+<a class="article-sequence-link" href="item-6850e49158ee3f18.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">Le G7 s’engage pour un numérique responsable : quatre priorités adoptées...</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-8bf3fba314936cc9.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Benefits of AI openness: OECD discussion paper for the G7（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：Benefits of AI openness: OECD discussion paper for the G7（Codex）</li><li><strong>原始作者</strong>：查證來源（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-29T10:31:19+00:00</li><li>審稿備註：初步值得追：符合主線或既有收錄線索，可人工判斷是否作為小消息。
+可能形式：純事實新聞 / 小消息
+命中線索：G7、OECD
+判斷理由：尚未命中「開放科技與開放產業發展」保留關鍵字，需要人工補判斷。
+判斷理由：和過去收錄資料相近：來源「查證來源」曾被收錄 32 次。
+下一步：先做事實查核；如果只是短訊，可標記直接送 PR（小消息）。
+2026-06-29T10:31:19+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。
+2026-06-29T10:52:37+00:00 已將 PDF / MarkItDown 文字補成 reading_metadata.article_markdown，後續模型建議與編輯台會以全文為優先。
+2026-06-29T11:15:16+00:00 以 Codex 重新分段全文（只重排段落、不改字詞）。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-8bf3fba314936cc9";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

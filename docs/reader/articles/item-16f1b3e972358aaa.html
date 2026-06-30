@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>“Code should be regenerated, not maintained”: Codeplain makes the case for spec-driven development - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; text-align: left; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-06-30T10:35:57+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-06-25 08:00</span></div>
+      <h1><a class="article-title-link" href="https://thenewstack.io/codeplain-spec-driven-regenerative-code/" target="_blank" rel="noreferrer" title="開啟原始連結">“Code should be regenerated, not maintained”: Codeplain makes the case for spec-driven development</a></h1>
+      <p class="lede">Codeplain倡議「應再生產程式碼而非維護」，主張將規格書視為唯一永續的開發資產。透過spec-driven development，AI可自動化生成與維持符合規範的系統，大幅降低維運人力成本。</p>
+      <div class="tag-chip-list"><span class="tag-chip">developer tool</span><span class="tag-chip">開源 AI / OSAID</span><span class="tag-chip">開源治理 / OSPO</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.thenewstack.io/media/2026/06/b5af3842-summertime-flag-sfrnzzjylck-unsplash-scaled.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><h1>「程式碼應重新生成，而非維護」：Codeplain 倡導以規格驅動開發</h1>
+<p>檢查您的郵箱以確認一封驗證信件，您可以在此調整偏好設定，甚至加入更多群組。</p>
+<p>追蹤 TNS 在您喜愛的社群媒體網路上的官方帳號。</p>
+<p>成為 <a href="https://www.linkedin.com/company/the-new-stack" target="_blank" rel="noreferrer">TNS 在 LinkedIn 的追隨者</a>。</p>
+<h2>「程式碼應重新生成，而非維護」：Codeplain 倡導以規格驅動開發</h2>
+<p>人工智慧生成的程式碼速度超過團隊的審查能力。多數開發者認為答案並非更快的程式碼審查，而是將其替換為另一種完全不同的方式。</p>
+<p><a href="https://www.linkedin.com/in/dusanomercevic/" target="_blank" rel="noreferrer">Dušan Omerčević</a> 是 <a href="https://www.codeplain.ai/" target="_blank" rel="noreferrer">Codeplain</a> 的執行長兼共同創辦人，這是一家致力於以 <a href="https://thenewstack.io/vibe-coding-spec-driven/" target="_blank" rel="noreferrer">規格驅動開發</a> 作為 AI 時代軟體建置與維護基礎的公司。該公司成立於 2025 年初的斯洛維尼亞首都盧比安納，Codeplain 在同年 9 月悄然推出其服務，承諾提供「規格驅動、可用的程式碼生成」。</p>
+<p>此概念的基礎是 <a href="https://plainlang.org/" target="_blank" rel="noreferrer">Plain</a>，一種開放原始碼的規格語言。它以結構化、易於理解的文件作為軟體應如何建置與運作的唯一真理。其核心理念為：若程式碼出現問題或需要修改，您編輯的是規格而非程式碼，Codeplain 會重新生成實作。</p>
+<p>現在，Omerčević 進一步推廣此概念。在 [The New Stack] 的專訪中，他主張隨著 AI 產生的程式碼量越來越大，瓶頸已從撰寫軟體轉移至審查與維護，而審查規格（編碼意圖而非實作）所需的心智負荷遠低於審查程式碼。</p>
+<blockquote>「我們的論點是程式碼不應被維護——程式碼應被重新生成。規格應被審查，且負責維護的正是這些規格。」</blockquote>
+<p>Omerčević 解釋道：「我們的論點是程式碼不應被維護——程式碼應被重新生成。規格應被審查，且負責維護的正是這些規格。」</p>
+<p>為了推進這一使命，公司正推出一個名為「<a href="https://github.com/Codeplain-ai/plain-forge" target="_blank" rel="noreferrer">plain-forge</a>」的新開源代理技能框架。這個框架讓編程代理（例如：Claude Code、Codex 和 OpenCode）能夠透過對話來起草和維護 Plain 規範，從而自動化了以往需要最多人類投入的規範驅動開發部分。</p>
+<p>與此同時，Codeplain 公布其已籌集到目前為止總計 $3M 的資金，支持者包括 <a href="https://gapminder.vc/" target="_blank" rel="noreferrer">GapMinder VC</a> 和 [Silicon Gardens](https://www.silicongardens.com/）。</p>
+<h2><strong>規範的樂趣：一場新的開發正規化</strong></h2>
+<p>Codeplain 在規範驅動開發方面並非孤軍奮戰。早在 2025 年七月，<a href="https://thenewstack.io/kiro-is-awss-specs-centric-answer-to-windsurf-and-cursor/" target="_blank" rel="noreferrer">Amazon 推出了 Kiro</a>，這是一個以代理 IDE 為核心的工具，透過從自然語言提示生成結構化規範來引導開發。而 GitHub 則推出了 <a href="https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/" target="_blank" rel="noreferrer">Spec Kit</a>，一個開源工具集，旨在讓規範成為 AI 代理可以直接執行的可執行文件。</p>
+<p>然而，這一概念的起源卻早於這些發展。2023 年，<a href="https://githubnext.com/projects/speclang/" target="_blank" rel="noreferrer">SpecLang</a>——GitHub Next 的一項研究專案開始探索使用簡單英語作為真正的程式語言的可能性，讓 AI 將人類意圖轉換為可執行的程式碼。</p>
+<p>這條線索也與 Codeplain 息息相關。<a href="https://www.linkedin.com/in/johan-rosenkilde/" target="_blank" rel="noreferrer">Johan Rosenkilde</a>——SpecLang 的創建者之一以及 GitHub Copilot 團隊的創始成員，目前擔任 Codeplain 的董事會成員，也是其最早期的投資人之一。</p>
+<p>儘管規範驅動開發正在取得進展，但似乎開發人員並不熱衷於撰寫規範。透過使用者測試，Omerčević 和他的團隊發現，雖然開發人員抗拒撰寫規範，但他們普遍願意閱讀規範。事實上，一條結構良好的規範比最終產生的程式碼更容易審查和推理。</p>
+<p>Plain-forge 是 Codeplain 對於這項矛盾的解決方案。它不再要求開發者從零開始撰寫規格，而是讓程式碼代理（coding agent）動起來——去研究問題、漸進式地草擬規格，並在人類看到之前先與 Codeplain 的渲染器（renderer）進行驗證。至關重要的一點是，它不會透過預先產生龐大的規格文件來啟動整個流程——這是 Omerčević 明確批評的做法。</p>
+<p>他說：「我們不會一次丟給開發者 200 行的規格，我們是採取迭代式的做法。」</p>
+<p>每一項微小的規格都會產出可運行的軟體，讓開發者能立即檢查並給予回應；這讓開發者能一次掌握一個功能而熟悉規格，而不是被迫面對一份他們根本沒參與形塑的完成文件。</p>
+<p>「透過漸進式地增加規格，開發者正在與規格建立關係。」</p>
+<p>Omerčević 表示：「透過這種方式，藉由漸進式地增加規格，開發者正在與規格建立關係。規格就是事實來源（source of truth），也是給予開發者的回饋，證明 AI 理解了他們的要求。」</p>
+<h2><strong>如鳳凰般的重生</strong></h2>
+<p>在這背後的核心理念是：程式碼應被視為可拋棄的產出，而非持久性的資產；而團隊應該保留並維護的是規格（spec），而非生成的程式碼。Omerčević 表示，他是在開發 Codeplain 的過程中得出這個結論的，但他發現很難向那些職業身分完全建立在程式碼上的開發者解釋清楚。</p>
+<p>這就是 <a href="https://www.linkedin.com/in/fowlerchad/" target="_blank" rel="noreferrer">Chad Fowler</a> 的 <a href="https://aicoding.leaflet.pub/" target="_blank" rel="noreferrer">鳳凰架構（Phoenix Architecture）</a> 介入的契機。Fowler 作為一名資深工程師以及 BlueYard Capital 的普通合夥人（General Partner），在過去的六個月中，致力於為這種方法建立一個更廣泛的哲學框架。</p>
+<p>他在去年 12 月發布的系列文章首篇，標題為 <a href="https://aicoding.leaflet.pub/3majnyfydzs2y" target="_blank" rel="noreferrer">Regenerative Software（再生式軟體）</a>，主張 AI 已讓程式碼變得廉價且充裕，這顛覆了過去數十年關於軟體系統中哪些部分值得保留的假設——而且那些堅持留守現有實作的團隊，正在比他們意識到的更快地產生技術債（technical debt）。</p>
+<p>Omerčević 表示，這個框架提供了他一直以來苦苦尋找的描述詞彙。</p>
+<blockquote>「『規格驅動開發（Spec-driven development）』對於一般開發者來說真的很難溝通。」</blockquote>
+<p>Spec-driven development 真的很難向普通開發人員傳達，Omerčević 表示。「Chad 做得很棒的是將故事與程式碼結合，他說唯一不同之處是這段程式碼不再永久存在——它是暫態的，並且可以從其他 artefact 中隨時重新產生。」</p>
+<p>Phoenix（鳳凰）在初學者看來是一個希臘神話生物——一種會週期性燃燒自身並從灰燼中重生的鳥類。Fowler 認為軟體系統應該被設計成這樣。</p>
+<p>在他三月發表的文章《對話即提交》中，Fowler 討論了當開發人員手動編輯 AI 生成的程式碼時，他們切斷了某個重要事物：為什麼存在於該程式碼中的記錄以及決策過程。輸出改變了，但導致變更的原因卻消失了。</p>
+<p>隨著時間推移，這種丟失背景資訊的累積就是 Fowler 所稱的「provenance debt」——他認為大多數開發人員在整個職業生涯中都在不知不覺地積累了這種債務。</p>
+<blockquote>「如果我們沒有朝著最終記錄下這些豐富且重要的資訊邁進，那麼面對以創新方式構建軟體的這一波浪潮，我們將對不起。」</blockquote>
+<p>「問題只在於，技術上很難在沒有極端官僚主義的情況下捕捉 provenance，因此我們的整個產業幾乎都決定這不是值得嘗試的事項。」Fowler 在《新堆棧》中解釋道。「現在的工具開啟了這些事物的可能性，而不再需要繁重的流程。我的觀點是，如果我們沒有朝著最終記錄下這些豐富且重要的資訊邁進，那麼面對以創新方式構建軟體的這一波浪潮，我們將對不起。」</p>
+<p>換句話說，規範及其背後的理由現在才是值得保留的東西——而不是它們產生的程式碼。</p>
+<p>很難過度誇大地這將涉及的文化轉變——開發人員畢竟是以程式碼為中心建立自身身份的。那麼你該如何向工程師說明「刪除」與「重新產生」代表進步？</p>
+<p>對於 Fowler 來說，有兩種方式，每種方式都反映了不同類型的說服。</p>
+<p>第一步是等待，因為他們會發現，隨著時間推移，舊有的做事方式已經變得過時。我們需要進化或者面臨淘汰，&quot;他說。&quot; 而更積極的第二步則是向他們展示，刪除與再生定義並強化了新的嚴謹性——只有這套新工具才能實現。&quot;Codeplain&quot;，在福勒看來，是一次可信的嘗試，將這種嚴謹性融入到一個運作中的產品中——不過他小心地說，這只是一個更大的拼圖的一部分，目前仍在組裝中。</p>
+<p>&quot;我希望有許多公司和開放原始碼開發者能夠建立它 [1],&quot;他說。&quot;因為我相信這個遺失的層次可能看起來非常不同。在這一點上充滿了想像力和創新空間。&quot;我不希望走任何一個團隊或個人的假設，認為它應該如何運作。越奇怪越好，我認為。我們必須創造出一套新的慣例和工具。</p>
+<h2><strong>達到規格</strong></h2>
+<p>奧梅爾切維奇並非不熟悉構建並交付企業軟體的經驗——他之前創立了 <a href="https://techcrunch.com/2017/01/24/cleanshelf-teams-up-with-squrb-to-clean-your-saas-clock/" target="_blank" rel="noreferrer">Cleanshelf</a>，一個 SaaS 管理平台。他於 2021 年將其售予 LeanIX [2]，後者又在 2023 年被 SAP 收購 [3]。那麼，Codeplain 就是他的下一個行動——而且它已經有客戶在使用它了。</p>
+<p>Incode，一家身份驗證服務提供商，使用 Codeplain 來建立和維護與外部資料供應商的整合工作——這涉及持續的 API 研究、不斷變化的外部系統，以及對意外故障的高容忍度。</p>
+<p>正是這個最後的問題——事情出錯了——讓奧梅爾切維奇感到最振奮。因為規格編碼的是意圖，而不是實施細節。當外部 API 改變並破壞了一個整合時，Codeplain 通常可以通過從完全相同的規格中重新生成程式碼來解決問題，而不會使規格受損。是程式碼出了錯，而不是規格出了錯。</p>
+<p>&quot;你甚至不需要修改規格，&quot;奧梅爾切維奇說。&quot;你只需要從完全相同的規格重新生成程式碼，因為通常情況下，只是小小的變化會導致問題，但規格並沒有改變。&quot;</p>
+<p>當然，以下是翻譯後的內容：</p>
+<hr>
+<p>除了有硬有的經濟論點支撐這種方法。Omerčević 指出，編寫生成規格的代理程式使用五到十倍更少的標記碼；因為規格對代理程式來說認知負擔較小，所以可以在同一個上下文視窗內處理更大的、更有複雜性的問題。至於程式生成步驟本身，Codeplain 使用了如 Gemini Flash 這種更快、更便宜的模型，而不是 frontier 模型，以降低成本。</p>
+<p>Omerčević 用的類比是 TypeScript 編譯器：Claude 可以直接從 TypeScript 生成 JavaScript，但為什麼要這樣做呢？當一個專門的工具可以更快、更便宜地完成時，那正是最佳選擇。</p>
+<p>「讓專業工具去做它們真正擅長的事。」他說。「而讓 Claude 做它真正擅長的事情——研究。」</p>
+<p>社群為開發者創建了路線圖、文章、資源和旅程，幫助他們選擇方向並在職涯中成長。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-4697e6a715840cc5.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">中國開源模型 GLM-5.2 讓 AI 駭侵能力更容易取得</span>
+</a>
+
+<a class="article-sequence-link" href="item-27ee1780f944a655.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">Sentient 推出 4,200 萬美元基金支持開源 AGI</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-16f1b3e972358aaa.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：&quot;Code should be regenerated, not maintained&quot;: Codeplain makes the case for spec-driven development</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：「程式碼應重新生成，而非維護」：Codeplain 倡導以規格驅動開發（TwinkleAI:Gemma-3-4B-T1-IT）</li><li><strong>原始作者</strong>：Paul Sawers（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-29T16:02:03+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-06-29T16:02:03+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-16f1b3e972358aaa";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
