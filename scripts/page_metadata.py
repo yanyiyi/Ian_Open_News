@@ -57,6 +57,13 @@ CODELIKE_PATTERNS = [
     "datalayer",
 ]
 
+ACCESS_PROMPT_RE = re.compile(
+    r"(please enable (?:js|javascript).{0,120}(?:disable|turn off).{0,80}ad blocker|"
+    r"enable javascript and cookies to continue|"
+    r"just a moment.{0,240}enable javascript)",
+    re.I | re.S,
+)
+
 
 def unwrap_google_alert_url(value: object) -> str:
     url = str(value or "").strip()
@@ -121,6 +128,28 @@ def is_code_like_text(value: object) -> bool:
     if len(compact) >= 180 and sum(char in "{}[]:," for char in compact) / len(compact) >= 0.18:
         return True
     return False
+
+
+def contains_access_prompt(value: object) -> bool:
+    return bool(ACCESS_PROMPT_RE.search(clean_text(value)))
+
+
+def is_access_prompt_text(value: object) -> bool:
+    text = clean_text(value)
+    if not text or len(text) > 900:
+        return False
+    return contains_access_prompt(text)
+
+
+def drop_access_prompt_fields(metadata: dict[str, str]) -> None:
+    for key in ["article_text", "article_markdown"]:
+        if not is_access_prompt_text(metadata.get(key)):
+            continue
+        for suffix in ["", "_chars", "_method", "_status", "_label"]:
+            metadata.pop(f"{key}{suffix}", None)
+    for key in ["description", "excerpt"]:
+        if is_access_prompt_text(metadata.get(key)):
+            metadata.pop(key, None)
 
 
 def inline_markdown(fragment: str, base_url: str = "") -> str:
@@ -443,12 +472,22 @@ def article_body_from_jsonld(html_text: str) -> str:
 
 def candidate_blocks(html_text: str) -> list[str]:
     blocks: list[str] = []
+    wysiwyg_blocks = [
+        match.group(0)
+        for match in re.finditer(
+            r"(?is)<div\b[^>]*(class|id)=['\"][^'\"]*\bwysiwyg\b[^'\"]*['\"][^>]*>.*?</div>",
+            html_text,
+        )
+    ]
+    if wysiwyg_blocks:
+        blocks.append("\n".join(wysiwyg_blocks))
+        blocks.extend(wysiwyg_blocks)
     for tag in ("article", "main"):
         blocks.extend(match.group(0) for match in re.finditer(fr"(?is)<{tag}\b[^>]*>.*?</{tag}>", html_text))
     blocks.extend(
         match.group(0)
         for match in re.finditer(
-            r"(?is)<div\b[^>]*(class|id)=['\"][^'\"]*(article|content|entry|post|story|main)[^'\"]*['\"][^>]*>.*?</div>",
+            r"(?is)<div\b[^>]*(class|id)=['\"][^'\"]*(article|body|content|entry|post|story|main)[^'\"]*['\"][^>]*>.*?</div>",
             html_text,
         )
     )
@@ -654,6 +693,11 @@ def response_access_issue(
         return "cloudflare-challenge", "網站回 Cloudflare challenge，需要用瀏覽器、cookie 或手動方式補全文。"
     if "just a moment" in lower and "enable javascript and cookies to continue" in lower:
         return "cloudflare-challenge", "網站要求 JavaScript 與 cookies，這次無法由本機直接抓全文。"
+    if article_chars < 500 and contains_access_prompt(lower):
+        note = "網站只回啟用 JavaScript／關閉 ad blocker 的提示，沒有抓到完整主文。"
+        if status_code in {401, 402, 403}:
+            return "http-access-denied", note
+        return "javascript-required", note
     if urlparse(final_url).netloc.casefold() == "books.openbookpublishers.com" and status_code in {202, 405} and article_chars < 500:
         return "openbook-fulltext-blocked", "Open Book Publishers 的 HTML 全文頁拒絕本機抓取，需要用瀏覽器或手動貼文補全文。"
     if status_code in {401, 402, 403} and re.search(r"\b(sign in|log in|login|subscribe|subscription|register)\b", lower):
@@ -704,6 +748,10 @@ def metadata_from_response(
     site_name = first_meta(html_text, "og:site_name", "application-name", "twitter:site")
     title = title_from_html(html_text)
     excerpt = excerpt_from_html(html_text)
+    if is_access_prompt_text(description):
+        description = ""
+    if is_access_prompt_text(excerpt):
+        excerpt = ""
     author, author_source = author_from_html(html_text)
     published_at, published_at_source = published_date_from_html(html_text, final_url)
     license_text, license_source, license_url = license_from_html(html_text, final_url)
@@ -738,6 +786,10 @@ def metadata_from_response(
         metadata["original_license_url"] = license_url
     article_text, article_method = extract_article_text(html_text)
     article_markdown, article_markdown_method = extract_article_markdown(html_text, final_url=final_url, title=title)
+    if is_access_prompt_text(article_text):
+        article_text = ""
+    if is_access_prompt_text(article_markdown):
+        article_markdown = ""
     article_chars = max(len(article_text), len(article_markdown))
     issue, issue_note = response_access_issue(html_text, response_headers, status_code, article_chars, final_url=final_url)
     # books.openbookpublishers.com 用 bot UA 回 202 空頁，改由呼叫端用 browser UA 重試，不在此標 blocked。
@@ -1002,9 +1054,12 @@ def enrich_item_metadata(
         for key, value in metadata.items():
             if key in always_refresh or not merged.get(key):
                 merged[key] = value
+        drop_access_prompt_fields(merged)
         updated["reading_metadata"] = merged
     else:
-        updated["reading_metadata"] = {**current, **metadata}
+        merged = {**current, **metadata}
+        drop_access_prompt_fields(merged)
+        updated["reading_metadata"] = merged
     if metadata.get("image_url") and (not preserve_existing or not updated.get("image_url")):
         updated["image_url"] = metadata["image_url"]
     summary = str(updated.get("summary") or "").strip()

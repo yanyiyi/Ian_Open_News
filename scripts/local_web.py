@@ -36,6 +36,7 @@ from page_metadata import (
     enrich_item_metadata,
     fetch_page_metadata,
     infer_language_from_text,
+    is_access_prompt_text,
     published_date_from_url,
     text_to_markdown,
     unwrap_google_alert_url,
@@ -345,6 +346,7 @@ COMMAND_SHORTCUTS = {
 }
 DATA_AUTOCOMMIT_FILES = [
     ITEMS,
+    REJECTED_ITEMS,
     REVIEW_EVENTS,
     SOURCES,
     PUBLISHED_PAGES,
@@ -390,6 +392,13 @@ GENERIC_NEWSLETTER_LINK_LABELS = {
     "report",
     "paper",
     "recent report",
+    "文章",
+    "報告",
+    "論文",
+    "來源",
+    "連結",
+    "查看",
+    "閱讀全文",
     "閱讀更多",
     "更多",
 }
@@ -943,11 +952,11 @@ def manual_item_summary(record: dict, metadata: dict) -> str:
     ]
     for candidate in candidates:
         excerpt = context_excerpt(candidate)
-        if excerpt and not looks_like_triage_placeholder(excerpt):
+        if excerpt and not looks_like_triage_placeholder(excerpt) and not is_access_prompt_text(excerpt):
             return excerpt
     for candidate in [metadata.get("article_markdown"), metadata.get("article_text")]:
         excerpt = context_excerpt(candidate)
-        if excerpt and not looks_like_triage_placeholder(excerpt):
+        if excerpt and not looks_like_triage_placeholder(excerpt) and not is_access_prompt_text(excerpt):
             return excerpt
     title = clean_text(record.get("title"), 300)
     source_name = clean_text(record.get("source_name"), 120)
@@ -1789,7 +1798,7 @@ def taste_profile_summary_lines() -> list[str]:
     if g.get("de_emphasize"):
         lines.append("要警惕/淡化：" + "、".join(g["de_emphasize"]))
     if g.get("taiwan_context_required"):
-        lines.append("台灣切角為必要條件")
+        lines.append("台灣脈絡是優先檢查項，不是可補造的事實；無直接線索時只能標示比較參考。")
     for track, meta in (profile.get("tracks") or {}).items():
         prio = (meta or {}).get("priority_themes") or []
         avoid = (meta or {}).get("avoid_themes") or []
@@ -4408,6 +4417,11 @@ def usable_zh_title(text: object, limit: int = 320) -> str:
     return title
 
 
+def readable_text(value: object, limit: int | None = None) -> str:
+    text = clean_text(value, limit)
+    return "" if is_access_prompt_text(text) else text
+
+
 def item_original_summary(item: dict, limit: int = 420) -> str:
     metadata = item_reading_metadata(item)
     candidates = [
@@ -4418,13 +4432,13 @@ def item_original_summary(item: dict, limit: int = 420) -> str:
         metadata.get("twitter_description"),
     ]
     for candidate in candidates:
-        text = clean_text(candidate, limit)
+        text = readable_text(candidate, limit)
         if text and not looks_like_triage_placeholder(text):
             return text
     editorial = item.get("editorial_triage") or {}
     if isinstance(editorial, dict):
         text = workflow_display_text(editorial.get("zh_summary"), limit)
-        if text and not looks_like_triage_placeholder(text):
+        if text and not looks_like_triage_placeholder(text) and not is_access_prompt_text(text):
             return text
     return ""
 
@@ -4502,8 +4516,6 @@ def metadata_source_label(metadata: dict, field: str) -> str:
 def item_original_language(item: dict) -> str:
     metadata = item_reading_metadata(item)
     language = clean_text(metadata.get("original_language"))
-    if language:
-        return language
     text = "\n".join(
         part
         for part in [
@@ -4514,7 +4526,15 @@ def item_original_language(item: dict) -> str:
         ]
         if part
     )
-    return infer_language_from_text(text)
+    inferred = infer_language_from_text(text)
+    if (
+        language.startswith("zh")
+        and inferred
+        and not inferred.startswith("zh")
+        and clean_text(metadata.get("original_language_source")) in {"推斷", "PDF 文字推斷"}
+    ):
+        return inferred
+    return language or inferred
 
 
 def is_foreign_language_item(item: dict) -> bool:
@@ -4524,15 +4544,81 @@ def is_foreign_language_item(item: dict) -> bool:
     return not language.startswith("zh")
 
 
+def infer_translation_provider_from_source(source: object) -> str:
+    text = clean_text(source, 240).casefold()
+    if not text:
+        return ""
+    provider_signals = [
+        ("ollama-twinkle", ("twinkleai", "twinkle", "gemma-3-4b-t1", "gemma-3-4b")),
+        ("ollama-gemma4", ("gemma4", "gemma4:12b", "12b-mlx")),
+        ("claude", ("claude",)),
+        ("gemini", ("gemini",)),
+        ("codex", ("codex",)),
+    ]
+    for provider, signals in provider_signals:
+        if any(signal in text for signal in signals):
+            return provider
+    return ""
+
+
+def legacy_translation_provider(metadata: dict) -> str:
+    return (
+        infer_translation_provider_from_source(metadata.get("translation_source"))
+        or infer_translation_provider_from_source(metadata.get("translated_zh_title_source"))
+        or "codex"
+    )
+
+
 def item_provider_translation_markdown(item: dict, provider: str) -> str:
     metadata = item_reading_metadata(item)
     provider = normalize_ai_provider(provider)
-    if provider == "codex":
-        return clean_markdown_text(
-            metadata.get("codex_translated_article_markdown_zh")
-            or metadata.get("translated_article_markdown_zh")
-        )
-    return clean_markdown_text(metadata.get(AI_PROVIDER_META[provider]["translation_markdown_key"]))
+    provider_markdown = clean_markdown_text(metadata.get(AI_PROVIDER_META[provider]["translation_markdown_key"]))
+    if provider_markdown:
+        return provider_markdown
+    if provider == legacy_translation_provider(metadata):
+        return clean_markdown_text(metadata.get("translated_article_markdown_zh"))
+    return ""
+
+
+def item_translation_source_markdown(item: dict) -> str:
+    edited = item_edited_markdown(item)
+    if edited and not item_edited_markdown_base(item).casefold().startswith("zh"):
+        return edited
+    return item_article_markdown(item) or item_article_text(item)
+
+
+def item_translation_source_hash(item: dict) -> str:
+    markdown = item_translation_source_markdown(item)
+    if not markdown:
+        return ""
+    return hashlib.sha1(markdown.encode("utf-8")).hexdigest()[:16]
+
+
+def provider_translation_source_hash_key(provider: str) -> str:
+    provider = normalize_ai_provider(provider)
+    return AI_PROVIDER_META[provider]["translation_markdown_key"].replace(
+        "_translated_article_markdown_zh", "_translation_source_hash"
+    )
+
+
+def item_provider_translation_source_hash(item: dict, provider: str) -> str:
+    metadata = item_reading_metadata(item)
+    provider = normalize_ai_provider(provider)
+    source_hash = clean_text(metadata.get(provider_translation_source_hash_key(provider)))
+    if source_hash:
+        return source_hash
+    if provider == legacy_translation_provider(metadata):
+        progress = metadata.get("translation_progress") if isinstance(metadata.get("translation_progress"), dict) else {}
+        return clean_text(metadata.get("translation_source_hash") or progress.get("source_hash"))
+    return ""
+
+
+def item_provider_translation_is_stale(item: dict, provider: str) -> bool:
+    if not item_provider_translation_markdown(item, provider):
+        return False
+    source_hash = item_translation_source_hash(item)
+    translated_hash = item_provider_translation_source_hash(item, provider)
+    return bool(source_hash and translated_hash and source_hash != translated_hash)
 
 
 def item_translation_entries(item: dict) -> list[tuple[str, str]]:
@@ -4556,6 +4642,17 @@ def item_edited_markdown(item: dict) -> str:
     return clean_markdown_text(item_reading_metadata(item).get("edited_markdown"))
 
 
+def item_edited_markdown_base(item: dict) -> str:
+    return clean_text(item_reading_metadata(item).get("edited_markdown_base"))
+
+
+def edited_fulltext_kicker(item: dict) -> str:
+    base = item_edited_markdown_base(item).casefold()
+    if base.startswith("zh"):
+        return "翻譯全文（已手動修正）"
+    return "全文（已手動修正）"
+
+
 def item_primary_markdown(item: dict) -> str:
     """目前要當主全文顯示／取用的版本：手動編輯版 > 中文翻譯 > 原始全文。
     單篇頁、線上線下閱讀版共用，確保編輯過的內容會真的取代顯示。"""
@@ -4568,7 +4665,7 @@ def translation_meta_value(metadata: dict, provider: str, key: str) -> str:
     value = clean_text(metadata.get(meta_key))
     if value:
         return value
-    if provider == "codex":
+    if provider == legacy_translation_provider(metadata):
         legacy_map = {
             "translation_source_key": "translation_source",
             "translation_generated_key": "translation_generated_at",
@@ -4582,30 +4679,41 @@ def translation_meta_value(metadata: dict, provider: str, key: str) -> str:
 
 
 def translation_actions_html(item: dict, item_id: str, redirect_to: str) -> str:
-    if not (item_article_markdown(item) or item_article_text(item)):
+    if not item_translation_source_markdown(item):
         return ""
     if not is_foreign_language_item(item):
         return ""
-    missing = [provider for provider in AI_PROVIDER_ORDER if not item_provider_translation_markdown(item, provider)]
-    if not missing:
+    actions = []
+    for provider in AI_PROVIDER_ORDER:
+        if item_provider_translation_markdown(item, provider):
+            if item_provider_translation_is_stale(item, provider):
+                actions.append((provider, True))
+        else:
+            actions.append((provider, False))
+    if not actions:
         return ""
     forms = []
-    for provider in missing:
+    has_stale = any(is_stale for _, is_stale in actions)
+    for provider, is_stale in actions:
         label = ai_provider_label(provider)
         button_class = "" if provider == "codex" else "secondary"
         shortcut = "T" if provider == "codex" else "L"
+        force_input = "<input type='hidden' name='force' value='1'>" if is_stale else ""
+        action_label = f"{label} 重翻中文" if is_stale else f"{label} 翻譯中文"
         forms.append(
             "<form method='post' action='/items/translate-zh' data-translate-form>"
             f"<input type='hidden' name='id' value='{h(item_id)}'>"
             f"<input type='hidden' name='redirect' value='{h(redirect_to)}'>"
             f"<input type='hidden' name='provider' value='{h(provider)}'>"
-            f"<button type='submit' class='{h(button_class)}'>{button_content(label + ' 翻譯中文', 'translate', shortcut)}</button>"
+            f"{force_input}"
+            f"<button type='submit' class='{h(button_class)}'>{button_content(action_label, 'translate', shortcut)}</button>"
             "</form>"
         )
     metadata = item_reading_metadata(item)
+    stale_note = "；已有翻譯若來自舊版全文，重翻會用目前這份全文覆蓋" if has_stale else ""
     return (
         f"<div class='button-row'>{''.join(forms)}</div>"
-        f"<p class='help'>偵測原文語言：{h(language_label(item_original_language(item)))}{h(metadata_source_label(metadata, 'original_language'))}。會用台灣習慣用語翻成繁體中文，並依 provider 存回本機資料庫。</p>"
+        f"<p class='help'>偵測原文語言：{h(language_label(item_original_language(item)))}{h(metadata_source_label(metadata, 'original_language'))}。會用台灣習慣用語翻成繁體中文，並依 provider 存回本機資料庫{h(stale_note)}。</p>"
     )
 
 
@@ -4622,8 +4730,8 @@ def translation_panels_html(item: dict, collapsed: bool = False) -> str:
             # 已有手動編輯版時，自動翻譯收合起來供比對（point 2）
             panels.append(
                 f"""
-<details class="card fulltext-panel source-card source-card--source original-fulltext-collapsible" id="translation-panel-{h(provider)}">
-  <summary><div class="section-kicker">{h(label)} 自動翻譯（原始版本）</div></summary>
+<details class="card fulltext-panel source-card source-card--source original-fulltext-collapsible translation-fulltext-collapsible" id="translation-panel-{h(provider)}">
+  <summary><div class="section-kicker">翻譯全文（原始版本）</div></summary>
   <p class="help">翻譯來源：{h(source)} · {h(generated_at)}</p>
   {note_html}
   <div class="article-text article-markdown">{markdown_to_html(markdown)}</div>
@@ -4634,7 +4742,7 @@ def translation_panels_html(item: dict, collapsed: bool = False) -> str:
             panels.append(
                 f"""
 <section class="card fulltext-panel source-card source-card--source" id="translation-panel-{h(provider)}">
-  <div class="section-kicker">{h(label)} 中文翻譯</div>
+  <div class="section-kicker">翻譯全文</div>
   <p class="help">翻譯來源：{h(source)} · {h(generated_at)}</p>
   {note_html}
   <div class="article-text article-markdown">{markdown_to_html(markdown)}</div>
@@ -4645,15 +4753,16 @@ def translation_panels_html(item: dict, collapsed: bool = False) -> str:
 
 
 def item_article_text(item: dict) -> str:
-    return clean_text(item_reading_metadata(item).get("article_text"))
+    text = clean_text(item_reading_metadata(item).get("article_text"))
+    return "" if is_access_prompt_text(text) else text
 
 
 def item_article_markdown(item: dict) -> str:
     metadata = item_reading_metadata(item)
     markdown = clean_markdown_text(metadata.get("article_markdown"))
-    if markdown:
+    if markdown and not is_access_prompt_text(markdown):
         return markdown
-    article_text = clean_text(metadata.get("article_text"))
+    article_text = item_article_text(item)
     if article_text:
         return text_to_markdown(article_text, title=metadata.get("title") or item.get("title") or "")
     return ""
@@ -4831,7 +4940,7 @@ def ensure_article_markdown(item: dict) -> tuple[dict, bool]:
 
 
 def markdown_source_text(item: dict) -> str:
-    return item_article_markdown(item) or item_article_text(item) or clean_text(item.get("summary"))
+    return item_article_markdown(item) or item_article_text(item) or item_original_summary(item, 3000)
 
 
 def strip_markdown_syntax(value: object, limit: int | None = None) -> str:
@@ -4867,6 +4976,37 @@ def item_url_keys(item: dict) -> set[str]:
         metadata.get("canonical_url"),
     ]
     return {key for key in (canonical_item_url(url) for url in urls) if key}
+
+
+COMPLETED_INTAKE_ACTIONS = {
+    "accepted-for-editing",
+    "direct-pr-small-news",
+    "rejected",
+}
+
+
+def item_has_completed_intake_decision(item: dict) -> bool:
+    decision = item.get("local_decision")
+    if not isinstance(decision, dict):
+        return False
+    return clean_text(decision.get("action")) in COMPLETED_INTAKE_ACTIONS
+
+
+def is_pending_inbox_item(item: dict) -> bool:
+    return item.get("status") == "inbox" and not item_has_completed_intake_decision(item)
+
+
+def pending_review_entries(items: list[dict], candidates: list[dict]) -> list[tuple[str, dict]]:
+    active_ids = {clean_text(item.get("id")) for item in items if clean_text(item.get("id"))}
+    active_url_keys = {url_key for item in items for url_key in item_url_keys(item)}
+    pending_candidates = [
+        candidate
+        for candidate in candidates
+        if clean_text(candidate.get("id")) not in active_ids
+        and not (item_url_keys(candidate) & active_url_keys)
+    ]
+    inbox_items = [item for item in items if is_pending_inbox_item(item)]
+    return [("rss", candidate) for candidate in pending_candidates] + [("item", item) for item in inbox_items]
 
 
 def title_from_url_path(url: str) -> str:
@@ -4929,6 +5069,50 @@ def extract_markdown_links(markdown: str, base_url: str = "") -> list[dict]:
     return links
 
 
+CJK_TEXT_RE = re.compile(r"[\u3400-\u9fff]")
+
+
+def has_cjk_text(value: object) -> bool:
+    return bool(CJK_TEXT_RE.search(clean_text(value, 500)))
+
+
+def newsletter_translated_links_by_url(item: dict) -> dict[str, dict]:
+    translated_links: dict[str, dict] = {}
+    base_url = clean_text(item.get("url"))
+    for _provider, markdown in item_translation_entries(item):
+        for link in extract_markdown_links(markdown, base_url):
+            url = canonical_item_url(link.get("url"))
+            if not url or url in translated_links:
+                continue
+            translated_title = usable_zh_title(link.get("title"), 300)
+            if not translated_title or not has_cjk_text(translated_title):
+                continue
+            translated_links[url] = {**link, "title": translated_title}
+    return translated_links
+
+
+def enrich_newsletter_link_display_title(record: dict, translated_links: dict[str, dict]) -> dict:
+    url = canonical_item_url(record.get("url"))
+    original_title = clean_text(record.get("title"), 300)
+    translated_title = ""
+    if url and url in translated_links:
+        translated_title = clean_text(translated_links[url].get("title"), 300)
+    display_title = translated_title or original_title
+    enriched = {**record, "display_title": display_title}
+    if translated_title and original_title and clean_text(translated_title).casefold() != clean_text(original_title).casefold():
+        enriched["original_title"] = original_title
+    return enriched
+
+
+def newsletter_link_title_html(link: dict) -> str:
+    primary = clean_text(link.get("display_title") or link.get("title") or link.get("url"), 300)
+    original = clean_text(link.get("original_title"), 300)
+    original_html = ""
+    if original and clean_text(original).casefold() != clean_text(primary).casefold():
+        original_html = f'<span class="nl-cand-original">{h(original)}</span>'
+    return f'<span class="nl-cand-title"><span class="nl-cand-primary">{h(primary)}</span>{original_html}</span>'
+
+
 def classify_newsletter_link(item: dict, link: dict) -> tuple[bool, str]:
     url = canonical_item_url(link.get("url"))
     if not url:
@@ -4961,11 +5145,12 @@ def newsletter_link_candidates(item: dict) -> tuple[list[dict], list[dict]]:
     markdown = markdown_source_text(item)
     if not markdown:
         return [], []
+    translated_links = newsletter_translated_links_by_url(item)
     candidates: list[dict] = []
     skipped: list[dict] = []
     for link in extract_markdown_links(markdown, clean_text(item.get("url"))):
         keep, reason = classify_newsletter_link(item, link)
-        record = {**link, "reason": reason}
+        record = enrich_newsletter_link_display_title({**link, "reason": reason}, translated_links)
         if keep:
             candidates.append(record)
         else:
@@ -5659,7 +5844,9 @@ def editorial_triage_html(item: dict, compact: bool = False, reject_action: str 
 
     article_text = item_article_text(item)
     metadata = item_reading_metadata(item)
-    source_text = article_text or clean_text(metadata.get("excerpt"), 900) or clean_text(item.get("summary"), 900)
+    source_text = article_text or readable_text(metadata.get("excerpt"), 900) or readable_text(item.get("summary"), 900)
+    if not source_text and item_has_fulltext_signal(item):
+        source_text = readable_text(metadata.get("fulltext_note") or metadata.get("access_issue_note"), 900) or "這篇需要補全文；目前沒有抓到可顯示的主文。"
     source_label = "原始主文" if article_text else "RSS/頁面摘要"
     source_html = ""
     if not compact:
@@ -5668,7 +5855,7 @@ def editorial_triage_html(item: dict, compact: bool = False, reject_action: str 
             f"<div class='section-kicker'>{h(source_label)}</div>"
             "<h3>本來文章的內容</h3>"
             f"{badge('已抓主文' if article_text else '尚未抓全文', 'neutral')}"
-            f"{badge(str(metadata.get('article_text_method', 'metadata')), 'neutral') if metadata else ''}"
+            f"{badge(str(metadata.get('article_text_method', 'metadata')), 'neutral') if metadata and article_text else ''}"
             f"<p class='source-excerpt'>{h(clean_text(source_text, 900))}</p>"
             "</div>"
         )
@@ -5700,6 +5887,8 @@ def editorial_triage_html(item: dict, compact: bool = False, reject_action: str 
             f"<div class='reason-presets'>{inline_reject_buttons(clean_text(item.get('id')), suggested_reasons, limit=4, action=reject_action)}</div>"
         )
     zh_summary = workflow_display_text(editorial.get("zh_summary"), 620)
+    if is_access_prompt_text(zh_summary):
+        zh_summary = ""
     has_model_review = bool(record_model_reviews(item))
     zh_summary_html = f"<p class='zh-summary'>{h(zh_summary)}</p>" if zh_summary and not compact and not has_model_review else ""
     confidence_html = f"{score_label(confidence_score_10(confidence))}/10" if confidence else ""
@@ -6288,6 +6477,8 @@ def page(title: str, body: str) -> bytes:
     }}
     .original-fulltext-collapsible[open] > summary {{ margin-bottom: 12px; }}
     .original-fulltext-collapsible[open] > summary::after {{ content: "收起原文"; }}
+    .translation-fulltext-collapsible > summary::after {{ content: "展開翻譯"; }}
+    .translation-fulltext-collapsible[open] > summary::after {{ content: "收起翻譯"; }}
     .share-url-field {{
       width: 100%;
       border: 1px solid var(--line);
@@ -6531,39 +6722,40 @@ def page(title: str, body: str) -> bytes:
     .badge--suggest-skip {{ background: #fff0f6; color: var(--ocf-magenda); }}
     .badge--suggest-ask {{ background: #fff7e6; color: #b7791f; }}
     .badge--reading {{ background: #fff8db; color: #7a5a00; }}
-    .tag-chip-list {{ display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }}
+    .tag-chip-list {{ display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }}
     .tag-chip {{
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 4px 7px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #fff;
-      color: var(--ocf-dark);
-      font-size: 12px;
-      font-weight: 800;
-      line-height: 1.25;
+      gap: 4px;
+      padding: 2px 5px;
+      border: 1px solid #dce3f1;
+      border-radius: 5px;
+      background: #f8fafc;
+      color: #647084;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.2;
       text-decoration: none;
       transition: background .12s ease, border-color .12s ease, color .12s ease;
     }}
     .tag-chip:hover {{
-      border-color: var(--ocf-cyan);
-      background: #eefcff;
+      border-color: #b7d8e8;
+      background: #f1f9fc;
       color: #00699f;
       text-decoration: none;
     }}
     .tag-chip-icon {{
       display: inline-grid;
       place-items: center;
-      width: 15px;
-      height: 15px;
+      width: 12px;
+      height: 12px;
       color: var(--muted);
       flex: 0 0 auto;
+      opacity: .72;
     }}
     .tag-chip-icon svg {{
-      width: 14px;
-      height: 14px;
+      width: 11px;
+      height: 11px;
       fill: none;
       stroke: currentColor;
       stroke-width: 2;
@@ -6590,8 +6782,8 @@ def page(title: str, body: str) -> bytes:
     .tag-picker-current, .tag-suggestion-strip {{
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      min-height: 32px;
+      gap: 5px;
+      min-height: 26px;
     }}
     .tag-suggestion-strip:empty {{ display: none; }}
     .tag-suggestion-collapse {{ margin-top: 6px; }}
@@ -6606,56 +6798,56 @@ def page(title: str, body: str) -> bytes:
     .tag-suggestion-groups:empty {{ display: none; }}
     .tag-suggestion-group {{
       display: grid;
-      grid-template-columns: minmax(120px, .24fr) minmax(0, 1fr);
-      gap: 8px;
+      grid-template-columns: minmax(96px, .24fr) minmax(0, 1fr);
+      gap: 6px;
       align-items: start;
     }}
     .tag-suggestion-group-label {{
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 850;
       line-height: 1.35;
-      padding-top: 7px;
+      padding-top: 5px;
     }}
     .tag-pill, .tag-suggestion, .tag-menu-option {{
       display: inline-flex;
       align-items: center;
       justify-content: flex-start;
-      gap: 6px;
+      gap: 5px;
       width: auto;
-      min-height: 32px;
+      min-height: 26px;
       margin: 0;
-      padding: 6px 9px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #fff;
-      color: var(--ocf-dark);
-      font-size: 13px;
-      font-weight: 800;
+      padding: 4px 7px;
+      border: 1px solid #dce3f1;
+      border-radius: 5px;
+      background: #f8fafc;
+      color: #647084;
+      font-size: 12px;
+      font-weight: 750;
       line-height: 1.2;
       box-shadow: none;
     }}
     .tag-pill:hover, .tag-suggestion:hover, .tag-menu-option:hover {{
       color: #00699f;
-      border-color: #78cde5;
-      background: #eefcff;
+      border-color: #b7d8e8;
+      background: #f1f9fc;
       box-shadow: none;
       transform: translateY(-1px);
     }}
     .tag-suggestion {{
-      border-color: #b7e7f4;
-      background: #eefcff;
-      color: #00699f;
+      border-color: #c8d8e7;
+      background: #f4f8fc;
+      color: #516172;
     }}
     .tag-pill-remove {{
       display: inline-grid;
       place-items: center;
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       border-radius: 999px;
       background: #eef1fb;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 10px;
       line-height: 1;
       opacity: 0;
       transition: opacity .12s ease, background .12s ease, color .12s ease;
@@ -7147,7 +7339,8 @@ def page(title: str, body: str) -> bytes:
     .chip-form {{ display: inline-flex; margin: 0; }}
     .reason-chip {{
       margin-top: 0;
-      padding: 6px 8px;
+      min-height: 28px;
+      padding: 5px 7px;
       border: 1px solid var(--line);
       background: #fff;
       color: var(--ocf-dark);
@@ -7894,8 +8087,10 @@ def page(title: str, body: str) -> bytes:
     .nl-cand-list {{ display: grid; gap: 4px; max-height: 52vh; overflow: auto; margin: 10px 0; padding-right: 4px; }}
     .nl-cand {{ display: flex; align-items: baseline; gap: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }}
     .nl-cand input {{ flex: 0 0 auto; }}
-    .nl-cand-title {{ flex: 1 1 auto; min-width: 0; font-weight: 600; word-break: break-word; }}
-    .nl-cand-host {{ flex: 0 0 auto; color: var(--muted, #64748b); font-size: 12px; }}
+    .nl-cand-title {{ flex: 1 1 auto; min-width: 0; display: block; font-weight: 600; color: var(--ink); word-break: break-word; }}
+    .nl-cand-primary {{ display: block; }}
+    .nl-cand-original {{ display: block; margin-top: 2px; color: var(--muted, #64748b); font-size: 12px; font-weight: 400; line-height: 1.35; }}
+    .nl-cand-host {{ flex: 0 0 auto; align-self: flex-start; margin-top: 2px; color: var(--muted, #64748b); font-size: 12px; }}
     .nl-skip {{ margin-top: 6px; }}
     .nl-skip ul {{ margin: 6px 0 0; padding-left: 18px; color: var(--muted, #64748b); font-size: 13px; }}
     .nl-cand--skip {{ background: var(--surface-2, #f8fafc); opacity: 0.85; }}
@@ -9102,11 +9297,14 @@ def page(title: str, body: str) -> bytes:
     const id = (form.querySelector("input[name='id']") || {{}}).value || "";
     const redirect = (form.querySelector("input[name='redirect']") || {{}}).value || (window.location.pathname + window.location.search);
     const provider = (form.querySelector("input[name='provider']") || {{}}).value || "codex";
+    const formBody = new URLSearchParams(new FormData(form));
+    formBody.set("id", id);
+    formBody.set("redirect", redirect);
     if (!window.runEngineJob) {{ form.submit(); return; }}
     window.runEngineJob({{
       label: "全文翻譯",
       url: form.getAttribute("action") || "/items/translate-zh",
-      baseBody: {{ id: id, redirect: redirect }},
+      baseBody: formBody,
       engine: provider,
       statusUrl: "/api/translate-status?id=" + encodeURIComponent(id),
       onSuccess: (payload) => {{ window.location.href = (payload && payload.redirect) || redirect; }}
@@ -13930,12 +14128,11 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         items = load_jsonl(ITEMS)
         candidates = load_jsonl(CANDIDATES)
         sources = load_jsonl(SOURCES)
-        candidates = load_jsonl(CANDIDATES)
-        inbox_items = [item for item in items if item.get("status") == "inbox"]
         skill_candidates = [item for item in items if is_skill_candidate(item)]
         direct_pr_items = [item for item in items if is_direct_pr_item(item)]
         reader_items = [item for item in items if is_reader_item(item)]
-        pending_review_items = [*candidates, *inbox_items]
+        pending_entries = pending_review_entries(items, candidates)
+        pending_review_items = [record for _, record in pending_entries]
         pending_counts = Counter(candidate_recommendation(item) for item in pending_review_items)
         recycle_items = recycle_records()
         recycle_type_counts = Counter(item.get("_recycle_origin") for item in recycle_items)
@@ -14057,7 +14254,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   </div>
   <div class="card">
     <h3>閱讀資料庫狀態</h3>
-    <p class="muted">固定保護本機編輯狀態，只送出 items、review-events、sources 三個資料檔。</p>
+    <p class="muted">固定保護本機編輯狀態，只送出閱讀資料庫相關檔案，包含已收、已退件、審查事件與來源設定。</p>
     <form method="post" action="/commands/run" data-command-form>
       <input type="hidden" name="command" value="commit_database_state">
       <button type="submit" class="secondary">送 commit 儲存狀態</button>
@@ -14081,8 +14278,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     def show_items(self, query: dict[str, list[str]]) -> None:
         items = load_jsonl(ITEMS)
         candidates = load_jsonl(CANDIDATES)
-        inbox_items = [item for item in items if item.get("status") == "inbox"]
-        pending_entries = [("rss", candidate) for candidate in candidates] + [("item", item) for item in inbox_items]
+        pending_entries = pending_review_entries(items, candidates)
         track_filter = (query.get("track") or ["all"])[0]
         recommendation_filter = (query.get("recommendation") or ["all"])[0]
         license_filter = clean_text((query.get("license") or ["all"])[0]) or "all"
@@ -15965,7 +16161,7 @@ if (document.readyState === "loading") {{
             )
             primary_fulltext_panel = f"""
 <section class="card fulltext-panel source-card source-card--source" id="primary-fulltext-panel">
-  <div class="section-kicker">全文（已手動修正）</div>
+  <div class="section-kicker">{h(edited_fulltext_kicker(item))}</div>
   <div class="article-text article-markdown">{edited_html}</div>
   {translate_actions_row}
 </section>
@@ -16147,7 +16343,7 @@ if (document.readyState === "loading") {{
         if newsletter_candidates:
             nl_cand_rows = "".join(
                 f'<label class="nl-cand"><input type="checkbox" name="url" value="{h(clean_text(c.get("url")))}" checked>'
-                f'<span class="nl-cand-title">{h(clean_text(c.get("title")) or clean_text(c.get("url")))}</span>'
+                f"{newsletter_link_title_html(c)}"
                 f'<span class="nl-cand-host">{h(host_label(clean_text(c.get("url"))))}</span></label>'
                 for c in newsletter_candidates
             )
@@ -16163,14 +16359,14 @@ if (document.readyState === "loading") {{
                     selectable_rows = "".join(
                         f'<label class="nl-cand nl-cand--skip">'
                         f'<input type="checkbox" name="url" value="{h(clean_text(s.get("url")))}">'
-                        f'<span class="nl-cand-title">{h(clean_text(s.get("title")) or clean_text(s.get("url")))}</span>'
+                        f"{newsletter_link_title_html(s)}"
                         f'<span class="nl-cand-host muted">— {h(s.get("reason", ""))}</span></label>'
                         for s in nl_skip_selectable
                     )
                     skip_parts.append(f'<p class="help">系統未自動選，但你可以手動勾選：</p>{selectable_rows}')
                 if nl_skip_info:
                     info_rows = "".join(
-                        f'<li>{h(clean_text(s.get("title")) or clean_text(s.get("url")))} <span class="muted">— {h(clean_text(s.get("reason"), 60))}</span></li>'
+                        f'<li>{newsletter_link_title_html(s)} <span class="muted">— {h(clean_text(s.get("reason"), 60))}</span></li>'
                         for s in nl_skip_info
                     )
                     skip_parts.append(f'<ul>{info_rows}</ul>')
@@ -16467,6 +16663,12 @@ if (document.readyState === "loading") {{
             item,
             auto_open=form_value(query, "pdf_relations") == "1",
         ) if item_is_pdf_like(item) else ""
+        detail_zh_summary = item_zh_summary(item, 780)
+        detail_summary = readable_text(item.get("summary"), 1800)
+        if clean_text(detail_summary).casefold() == clean_text(detail_zh_summary).casefold():
+            detail_summary = ""
+        detail_zh_summary_html = f'<p class="zh-summary">{h(detail_zh_summary)}</p>' if detail_zh_summary else ""
+        detail_summary_html = f"<p>{h(detail_summary)}</p>" if detail_summary else ""
         body = f"""
 {top_navigation}
 {notice}
@@ -16521,9 +16723,9 @@ if (document.readyState === "loading") {{
       {reader_flag_badges(item)}
       {license_badge_html(item)}
     </div>
-    <p class="zh-summary">{h(item_zh_summary(item, 780))}</p>
+    {detail_zh_summary_html}
     {tag_chips_html(item_visible_tags(item, 8))}
-    <p>{h(clean_text(item.get('summary'), 1800))}</p>
+    {detail_summary_html}
   </section>
 
 {reading_panels}
@@ -16741,6 +16943,7 @@ if (document.readyState === "loading") {{
 
         if changed:
             write_jsonl(ITEMS, updated_items)
+            remove_jsonl_ids(CANDIDATES, selected_ids)
             remove_jsonl_ids(REJECTED_ITEMS, active_ids)
             remove_jsonl_ids(DISMISSED, active_ids)
             for event in events:
@@ -16857,8 +17060,7 @@ if (document.readyState === "loading") {{
         show_all = form_value(data, "show") == "all"
         candidates = load_jsonl(CANDIDATES)
         items = load_jsonl(ITEMS)
-        inbox_items = [item for item in items if item.get("status") == "inbox"]
-        pending_entries = [("rss", candidate) for candidate in candidates] + [("item", item) for item in inbox_items]
+        pending_entries = pending_review_entries(items, candidates)
 
         def matches_auto_batch(record: dict) -> bool:
             if track_filter != "all" and record.get("track") != track_filter:
@@ -16910,8 +17112,7 @@ if (document.readyState === "loading") {{
             threshold = 65.0
         candidates = load_jsonl(CANDIDATES)
         items = load_jsonl(ITEMS)
-        inbox_items = [item for item in items if item.get("status") == "inbox"]
-        pending_entries = [("rss", candidate) for candidate in candidates] + [("item", item) for item in inbox_items]
+        pending_entries = pending_review_entries(items, candidates)
 
         def matches_auto_batch(record: dict) -> bool:
             if track_filter != "all" and record.get("track") != track_filter:
@@ -17558,7 +17759,7 @@ if (document.readyState === "loading") {{
     def pdf_relation_confirm(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         candidate_id = form_value(data, "candidate_id")
-        provider = normalize_ai_provider(form_value(data, "provider", "codex"))
+        provider = normalize_ai_provider(form_value(data, "provider", "codex"), allow_random=True)
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
         command = [
             sys.executable,
@@ -17585,7 +17786,7 @@ if (document.readyState === "loading") {{
 
     def pdf_split_suggest(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
-        provider = normalize_ai_provider(form_value(data, "provider", "codex"))
+        provider = normalize_ai_provider(form_value(data, "provider", "codex"), allow_random=True)
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
         command = [
             sys.executable,
@@ -17915,12 +18116,8 @@ if (document.readyState === "loading") {{
             return
         if wants_json:
             metadata = item_reading_metadata(response_item or {})
-            article_text = clean_text(metadata.get("article_text"))
-            article_markdown = clean_text(metadata.get("article_markdown")) or (
-                text_to_markdown(article_text, title=metadata.get("title") or (response_item or {}).get("title") or "")
-                if article_text
-                else ""
-            )
+            article_text = item_article_text(response_item or {})
+            article_markdown = item_article_markdown(response_item or {})
             article_html = markdown_to_html(article_markdown) if article_markdown else ""
             translation_actions_markup = translation_actions_html(response_item or {}, item_id, redirect_to)
             message = (
@@ -18036,7 +18233,7 @@ if (document.readyState === "loading") {{
         """對勾選的多筆項目，用指定引擎批次補 AI 閱讀建議。沿用 runEngineJob（右下角狀態列）。"""
         raw_ids = ",".join(data.get("ids") or [])
         item_ids = [item_id.strip() for item_id in raw_ids.split(",") if item_id.strip()]
-        provider = normalize_ai_provider(form_value(data, "provider", "codex"))
+        provider = normalize_ai_provider(form_value(data, "provider", "codex"), allow_random=True)
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
         status_command = "codex_review_batch"
         if not item_ids:
@@ -18283,6 +18480,7 @@ if (document.readyState === "loading") {{
         provider = normalize_ai_provider(form_value(data, "provider", "codex"))
         redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
+        force_translation = form_value(data, "force", "") == "1"
         target_path = ITEMS
         if any(item.get("id") == item_id for item in load_jsonl(ITEMS)):
             target_path = ITEMS
@@ -18312,6 +18510,8 @@ if (document.readyState === "loading") {{
             "--id", item_id,
             "--status-file", str(TRANSLATE_STATUS),
         ]
+        if force_translation:
+            command.append("--force")
         try:
             result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=3600)
             output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
@@ -18835,8 +19035,11 @@ if (document.readyState === "loading") {{
         css_class = track_class(track)
         button_class = f"button-{css_class}" if css_class in {"opentech", "humanities"} else "secondary"
         track_items = [item for item in items if item.get("track") == track]
-        inbox_items = [item for item in track_items if item.get("status") == "inbox"]
-        pending_items = [*inbox_items, *[item for item in candidates if item.get("track") == track]]
+        pending_items = [
+            item
+            for _, item in pending_review_entries(items, candidates)
+            if item.get("track") == track
+        ]
         track_sources = [source for source in sources if source.get("track") == track and source.get("status") != "archived"]
         fetchable_sources = [source for source in track_sources if is_fetchable_source(source)]
         source_types = Counter(source.get("source_type", "manual") for source in track_sources)

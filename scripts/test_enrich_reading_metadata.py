@@ -96,6 +96,48 @@ class ReadingMetadataRulesTest(unittest.TestCase):
             page_metadata.BROWSER_FALLBACK_USER_AGENT,
         )
 
+    def test_fetch_page_metadata_drops_js_adblock_prompt_article(self) -> None:
+        body = b"""
+        <html lang="en">
+          <head><title>nytimes.com</title></head>
+          <body>
+            <h1>nytimes.com</h1>
+            <p>Please enable JS and disable any ad blocker</p>
+          </body>
+        </html>
+        """
+        first = urllib.error.HTTPError(
+            "https://www.nytimes.com/2026/04/07/technology/google-ai-overviews-accuracy.html",
+            403,
+            "Forbidden",
+            {"content-type": "text/html; charset=utf-8"},
+            io.BytesIO(body),
+        )
+        second = urllib.error.HTTPError(
+            "https://www.nytimes.com/2026/04/07/technology/google-ai-overviews-accuracy.html",
+            403,
+            "Forbidden",
+            {"content-type": "text/html; charset=utf-8"},
+            io.BytesIO(body),
+        )
+        with patch.object(
+            page_metadata.urllib.request,
+            "urlopen",
+            side_effect=[first, second],
+        ):
+            metadata = page_metadata.fetch_page_metadata(
+                "https://www.nytimes.com/2026/04/07/technology/google-ai-overviews-accuracy.html"
+            )
+        first.close()
+        second.close()
+
+        self.assertEqual(metadata["access_issue"], "http-access-denied")
+        self.assertEqual(metadata["needs_fulltext"], "true")
+        self.assertEqual(metadata["excerpt"], "")
+        self.assertNotIn("article_text", metadata)
+        self.assertNotIn("article_markdown", metadata)
+        self.assertIn("JavaScript", metadata["access_issue_note"])
+
     def test_fetch_page_metadata_extracts_site_name_and_published_date(self) -> None:
         class FakeResponse:
             headers = {"content-type": "text/html; charset=utf-8"}
@@ -283,6 +325,40 @@ class ReadingMetadataRulesTest(unittest.TestCase):
             "This is the second paragraph with enough text to remain a separate block.",
             markdown,
         )
+
+    def test_wysiwyg_article_blocks_beat_related_cards(self) -> None:
+        html = """
+        <html>
+          <head><title>Sunset and Renew</title></head>
+          <body>
+            <div class="body1">
+              <div class="-mx:a -xw:5 wysiwyg">
+                <p>Republicans and Democrats agree the current social media ecosystem serves neither consumers nor citizens.</p>
+                <p>Merely repealing Section 230 is insufficient because lawmakers must also protect human speech.</p>
+              </div>
+              <div class="-mx:a -xw:5 wysiwyg">
+                <p>Our proposed repeal and renew approach would remove the liability shield for algorithmic amplification.</p>
+                <p>The distinction between protected speech and harmful algorithmic amplification becomes clear in public interest systems.</p>
+              </div>
+            </div>
+            <article class="card1">
+              <h3>Artificial Intelligence and Democracy: Campaigns, Elections, Movements, and Deliberation</h3>
+              <p>A related card about generative AI is long enough to look article-like but should not be selected.</p>
+            </article>
+          </body>
+        </html>
+        """
+
+        markdown, method = page_metadata.extract_article_markdown(
+            html,
+            final_url="https://ash.harvard.edu/articles/sunset-and-renew-section-230-should-protect-human-speech-not-algorithmic-virality/",
+            title="Sunset and Renew",
+        )
+
+        self.assertEqual(method, "semantic-block")
+        self.assertIn("Republicans and Democrats agree", markdown)
+        self.assertIn("repeal and renew approach", markdown)
+        self.assertNotIn("Artificial Intelligence and Democracy", markdown)
 
     def test_text_to_markdown_preserves_paragraph_separators(self) -> None:
         markdown = page_metadata.text_to_markdown(

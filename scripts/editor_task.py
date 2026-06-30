@@ -25,6 +25,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from page_metadata import is_access_prompt_text
+
 ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "database" / "items.jsonl"
 VIEWPOINTS = ROOT / "database" / "viewpoints.jsonl"
@@ -113,6 +115,16 @@ def clean_markdown(value: object, limit: int | None = None) -> str:
     if limit and len(text) > limit:
         return text[:limit].rstrip() + "\n\n..."
     return text
+
+
+def readable_text(value: object, limit: int | None = None) -> str:
+    text = clean_text(value, limit)
+    return "" if is_access_prompt_text(text) else text
+
+
+def readable_markdown(value: object, limit: int | None = None) -> str:
+    text = clean_markdown(value, limit)
+    return "" if is_access_prompt_text(text) else text
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -212,7 +224,7 @@ def material_block(record: dict[str, Any]) -> dict[str, Any]:
     if translated:
         body, body_kind = translated, "translated_full"
     else:
-        body = clean_text(editorial.get("zh_summary"), 2400) or clean_text(record.get("summary"), 2400)
+        body = readable_text(editorial.get("zh_summary"), 2400) or readable_text(record.get("summary"), 2400)
         body_kind = "summary"
     return {
         "id": clean_text(record.get("id")),
@@ -229,9 +241,9 @@ def material_block(record: dict[str, Any]) -> dict[str, Any]:
 def newsletter_material_block(record: dict[str, Any]) -> dict[str, Any]:
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
     body = (
-        clean_markdown(metadata.get("article_markdown"), 22000)
-        or clean_markdown(metadata.get("article_text"), 22000)
-        or clean_markdown(record.get("summary"), 22000)
+        readable_markdown(metadata.get("article_markdown"), 22000)
+        or readable_markdown(metadata.get("article_text"), 22000)
+        or readable_markdown(record.get("summary"), 22000)
     )
     return {
         "id": clean_text(record.get("id")),
@@ -241,7 +253,7 @@ def newsletter_material_block(record: dict[str, Any]) -> dict[str, Any]:
         "url": clean_text(record.get("url")),
         "source_name": clean_text(record.get("source_name")),
         "body_kind": "full_markdown" if body else "summary",
-        "body": body or clean_text(record.get("summary"), 2400),
+        "body": body or readable_text(record.get("summary"), 2400),
     }
 
 

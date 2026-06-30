@@ -22,6 +22,27 @@ class MarkdownRenderingTest(unittest.TestCase):
             markdown,
         )
 
+    def test_access_prompt_is_not_treated_as_article_body(self) -> None:
+        item = {
+            "id": "item-test",
+            "url": "https://www.nytimes.com/2026/04/07/technology/google-ai-overviews-accuracy.html",
+            "reading_metadata": {
+                "access_issue": "http-access-denied",
+                "needs_fulltext": "true",
+                "excerpt": "Please enable JS and disable any ad blocker",
+                "article_text": "Please enable JS and disable any ad blocker",
+                "article_markdown": "# nytimes.com\n\nPlease enable JS and disable any ad blocker",
+            },
+            "summary": "Please enable JS and disable any ad blocker",
+        }
+
+        self.assertEqual(local_web.item_article_text(item), "")
+        self.assertEqual(local_web.item_article_markdown(item), "")
+        self.assertEqual(local_web.item_original_summary(item), "")
+        self.assertEqual(local_web.markdown_source_text(item), "")
+        self.assertTrue(local_web.item_has_fulltext_signal(item))
+        self.assertEqual(local_web.translation_actions_html(item, "item-test", "/items/view?id=item-test"), "")
+
     def test_translation_reader_keeps_blank_lines(self) -> None:
         markdown = "# 中文標題\n\n第一段。\n\n第二段。"
 
@@ -31,6 +52,57 @@ class MarkdownRenderingTest(unittest.TestCase):
             ),
             markdown,
         )
+
+    def test_legacy_translation_source_infers_twinkle_provider(self) -> None:
+        markdown = "# 中文標題\n\n第一段。"
+        item = {
+            "reading_metadata": {
+                "translated_article_markdown_zh": markdown,
+                "translation_source": "TwinkleAI:Gemma-3-4B-T1-IT",
+                "translation_generated_at": "2026-06-29T04:32:28+00:00",
+            }
+        }
+
+        self.assertEqual(local_web.item_translation_entries(item), [("ollama-twinkle", markdown)])
+        self.assertEqual(local_web.item_provider_translation_markdown(item, "codex"), "")
+        self.assertEqual(local_web.item_provider_translation_markdown(item, "ollama-twinkle"), markdown)
+
+        rendered = local_web.translation_panels_html(item)
+        self.assertIn('<div class="section-kicker">翻譯全文</div>', rendered)
+        self.assertIn("翻譯來源：TwinkleAI:Gemma-3-4B-T1-IT", rendered)
+        self.assertNotIn("Codex 自動翻譯", rendered)
+
+    def test_legacy_codex_translation_still_available_without_source(self) -> None:
+        markdown = "# 中文標題\n\n第一段。"
+        item = {"reading_metadata": {"translated_article_markdown_zh": markdown}}
+
+        self.assertEqual(local_web.item_translation_entries(item), [("codex", markdown)])
+        self.assertEqual(local_web.item_provider_translation_markdown(item, "codex"), markdown)
+
+    def test_chinese_edited_fulltext_kicker_marks_translation(self) -> None:
+        item = {"reading_metadata": {"edited_markdown": "中文全文", "edited_markdown_base": "zh"}}
+
+        self.assertEqual(local_web.edited_fulltext_kicker(item), "翻譯全文（已手動修正）")
+
+    def test_inferred_chinese_language_does_not_hide_english_fulltext_translation_actions(self) -> None:
+        item = {
+            "id": "item-english",
+            "title": "中文標題",
+            "reading_metadata": {
+                "original_language": "zh",
+                "original_language_source": "推斷",
+                "article_markdown": (
+                    "# G7 Vision on AI openness opportunities and shared language\n\n"
+                    "This document is addressed to the broader AI ecosystem of G7 members and beyond. "
+                    "It may serve as a reference for institutions, companies, open source communities, "
+                    "civil society, researchers, public authorities, and model providers. "
+                    "The objective is to call for greater clarity in the use of terminology describing AI openness."
+                ),
+            },
+        }
+
+        self.assertEqual(local_web.item_original_language(item), "en")
+        self.assertTrue(local_web.translation_actions_html(item, "item-english", "/items/view?id=item-english"))
 
     def test_edited_markdown_reader_does_not_collapse_blank_lines(self) -> None:
         markdown = "第一行\n\n第二段"

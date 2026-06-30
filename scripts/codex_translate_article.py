@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from page_metadata import infer_language_from_text
+from page_metadata import infer_language_from_text, is_access_prompt_text
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +66,21 @@ def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(text, encoding="utf-8")
     tmp.replace(path)
+
+
+def write_record(path: Path, record: dict[str, Any]) -> None:
+    item_id = clean_text(record.get("id"))
+    records = load_jsonl(path)
+    out: list[dict[str, Any]] = []
+    replaced = False
+    for row in records:
+        if clean_text(row.get("id")) == item_id:
+            out.append(record)
+            replaced = True
+        else:
+            out.append(row)
+    if replaced:
+        write_jsonl(path, out)
 
 
 def codex_path() -> str:
@@ -255,13 +270,14 @@ def item_title(record: dict[str, Any]) -> str:
 def source_markdown(record: dict[str, Any]) -> str:
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
     edited = clean_markdown(metadata.get("edited_markdown"), 42000)
-    if edited:
+    edited_base = clean_text(metadata.get("edited_markdown_base")).casefold()
+    if edited and not edited_base.startswith("zh"):
         return edited
     markdown = clean_markdown(metadata.get("article_markdown"), 42000)
-    if markdown:
+    if markdown and not is_access_prompt_text(markdown):
         return markdown
     text = clean_text(metadata.get("article_text"), 36000)
-    if text:
+    if text and not is_access_prompt_text(text):
         title = clean_text(metadata.get("title") or record.get("title"), 320)
         return f"# {title}\n\n{text}" if title else text
     return ""
@@ -662,16 +678,20 @@ def translate_record_chunked(
     max_chunk_chars: int,
     timeout: int,
     dry_run: bool,
+    force: bool = False,
 ) -> dict[str, Any]:
     item_id = clean_text(record.get("id"))
     chunks = split_markdown_chunks(markdown, max_chunk_chars)
     total = len(chunks)
     source_hash = hashlib.sha1(markdown.encode("utf-8")).hexdigest()[:16]
 
+    def translation_status(**payload: Any) -> dict[str, Any]:
+        return {"item_id": item_id, "provider": provider, **payload}
+
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
     metadata = dict(metadata)
     progress = metadata.get("translation_progress") if isinstance(metadata.get("translation_progress"), dict) else {}
-    if progress.get("source_hash") != source_hash or not isinstance(progress.get("chunks"), dict):
+    if force or progress.get("source_hash") != source_hash or not isinstance(progress.get("chunks"), dict):
         progress = {"source_hash": source_hash, "total": total, "chunks": {}}
     done_chunks: dict[str, str] = dict(progress.get("chunks") or {})
 
@@ -679,10 +699,15 @@ def translate_record_chunked(
         key = str(index)
         if clean_text(done_chunks.get(key)):
             continue
-        write_status(status_file, {
-            "state": "running", "done": len(done_chunks), "total": total,
-            "message": f"翻譯第 {index + 1}/{total} 段中…（{provider_label(provider)}）",
-        })
+        write_status(
+            status_file,
+            translation_status(
+                state="running",
+                done=len(done_chunks),
+                total=total,
+                message=f"翻譯第 {index + 1}/{total} 段中…（{provider_label(provider)}）",
+            ),
+        )
         zh = run_chunk(provider, build_chunk_prompt(chunks[index], language, index, total), timeout)
         if not clean_text(zh):
             raise RuntimeError(f"第 {index + 1}/{total} 段翻譯回傳空白。")
@@ -691,7 +716,7 @@ def translate_record_chunked(
         metadata["translation_progress"] = {"source_hash": source_hash, "total": total, "chunks": done_chunks, "updated_at": now_iso(), "last_provider": provider}
         record["reading_metadata"] = metadata
         if not dry_run:
-            write_jsonl(items_path, records)
+            write_record(items_path, record)
 
     zh_markdown = "\n\n".join(done_chunks[str(i)] for i in range(total)).strip()
     payload = {
@@ -701,14 +726,22 @@ def translate_record_chunked(
         "zh_markdown": zh_markdown,
         "note": f"分 {total} 段翻譯（{provider_label(provider)}）。",
     }
-    apply_translation(record, payload, language, provider)
+    apply_translation(record, payload, language, provider, source_hash=source_hash)
     # 完成後清掉逐段暫存，只留完成記號。
     metadata = dict(record.get("reading_metadata") or {})
     metadata["translation_progress"] = {"source_hash": source_hash, "total": total, "done": total, "completed_at": now_iso()}
     record["reading_metadata"] = metadata
     if not dry_run:
-        write_jsonl(items_path, records)
-    write_status(status_file, {"state": "done", "done": total, "total": total, "message": f"翻譯完成，共 {total} 段。"})
+        write_record(items_path, record)
+    write_status(
+        status_file,
+        translation_status(
+            state="done",
+            done=total,
+            total=total,
+            message=f"翻譯完成，共 {total} 段。",
+        ),
+    )
     return payload
 
 
@@ -716,7 +749,38 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def apply_translation(record: dict[str, Any], payload: dict[str, Any], language: str, provider: str) -> bool:
+def infer_translation_provider_from_source(source: object) -> str:
+    text = clean_text(source, 240).casefold()
+    if not text:
+        return ""
+    provider_signals = [
+        ("ollama-twinkle", ("twinkleai", "twinkle", "gemma-3-4b-t1", "gemma-3-4b")),
+        ("ollama-gemma4", ("gemma4", "gemma4:12b", "12b-mlx")),
+        ("claude", ("claude",)),
+        ("gemini", ("gemini",)),
+        ("codex", ("codex",)),
+    ]
+    for provider_name, signals in provider_signals:
+        if any(signal in text for signal in signals):
+            return provider_name
+    return ""
+
+
+def legacy_translation_provider(metadata: dict[str, Any]) -> str:
+    return (
+        infer_translation_provider_from_source(metadata.get("translation_source"))
+        or infer_translation_provider_from_source(metadata.get("translated_zh_title_source"))
+        or "codex"
+    )
+
+
+def apply_translation(
+    record: dict[str, Any],
+    payload: dict[str, Any],
+    language: str,
+    provider: str,
+    source_hash: str = "",
+) -> bool:
     metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
     metadata = dict(metadata)
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -732,9 +796,15 @@ def apply_translation(record: dict[str, Any], payload: dict[str, Any], language:
             f"{provider_prefix}_translation_source": source_label,
             f"{provider_prefix}_translation_generated_at": generated_at,
             f"{provider_prefix}_translation_note": clean_text(payload.get("note"), 600),
+            f"{provider_prefix}_translation_source_hash": clean_text(source_hash, 80),
         }
     )
-    if provider == "codex" or not clean_text(metadata.get("translated_article_markdown_zh")):
+    should_update_primary = (
+        provider == "codex"
+        or not clean_text(metadata.get("translated_article_markdown_zh"))
+        or provider == legacy_translation_provider(metadata)
+    )
+    if should_update_primary:
         metadata.update(
             {
                 "translated_zh_title": zh_title,
@@ -744,6 +814,7 @@ def apply_translation(record: dict[str, Any], payload: dict[str, Any], language:
                 "translation_source": source_label,
                 "translation_generated_at": generated_at,
                 "translation_note": clean_text(payload.get("note"), 600),
+                "translation_source_hash": clean_text(source_hash, 80),
             }
         )
     if language and not clean_text(metadata.get("original_language")):
@@ -761,6 +832,7 @@ def main() -> None:
     parser.add_argument("--timeout", type=int, default=480, help="每段翻譯的逾時秒數")
     parser.add_argument("--status-file", type=Path, default=None, help="進度寫到這個 JSON，給前端輪詢")
     parser.add_argument("--max-chunk-chars", type=int, default=2400)
+    parser.add_argument("--force", action="store_true", help="丟掉既有逐段暫存，從目前全文重新翻譯")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -780,7 +852,7 @@ def main() -> None:
     try:
         payload = translate_record_chunked(
             records, record, markdown, language, args.provider, args.items,
-            args.status_file, args.max_chunk_chars, args.timeout, args.dry_run,
+            args.status_file, args.max_chunk_chars, args.timeout, args.dry_run, args.force,
         )
     except Exception as exc:  # noqa: BLE001 - 失敗時保留已完成的段，並回報進度
         progress = (record.get("reading_metadata") or {}).get("translation_progress") or {}

@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from page_metadata import is_access_prompt_text
+
 
 ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "database" / "items.jsonl"
@@ -72,6 +74,29 @@ AI_PROVIDERS = {
         "model": "TwinkleAI/gemma-3-4B-T1-it",
     },
 }
+
+TAIWAN_DIRECT_SIGNAL_RE = re.compile(
+    r"台灣|臺灣|台北|臺北|Taiwan(?:ese)?|Taipei|Republic of China|\bROC\b|\.tw\b",
+    re.I,
+)
+TAIWAN_OUTPUT_SIGNAL_RE = re.compile(
+    r"台灣|臺灣|台北|臺北|Taiwan(?:ese)?|Taipei|中華電信|台積電|TSMC|數位發展部|國發會|行政院|立法院|本土(?:企業|公司|團隊|廠商|電信|產業)",
+    re.I,
+)
+TAIWAN_SAFE_CONTEXT_RE = re.compile(
+    r"(?:未見|沒有|缺少|無|非).{0,12}(?:台灣|臺灣|Taiwan|Taipei)"
+    r"|(?:台灣|臺灣).{0,12}(?:比較參考|參考案例|讀者)"
+    r"|(?:可作|作為|只能作為|只能視為).{0,16}(?:台灣|臺灣).{0,16}(?:比較|參考)",
+    re.I,
+)
+TAIWAN_FACT_CLAIM_RE = re.compile(
+    r"(?:台灣|臺灣|Taiwan(?:ese)?|Taipei)(?:的)?(?:團隊|企業|公司|廠商|組織|政府|法規|法制|案例|部署|產業|半導體|電信)"
+    r"|(?:由|來自|面向|針對).{0,8}(?:台灣|臺灣|Taiwan(?:ese)?|Taipei).{0,8}(?:開發|推出|採用|部署)"
+    r"|(?:中華電信|台積電|TSMC|數位發展部|國發會|行政院|立法院)"
+    r"|本土(?:企業|公司|團隊|廠商|電信|產業)",
+    re.I,
+)
+TAIWAN_GUARD_FALLBACK = "原文未見直接台灣關聯；若要保留，只能作為比較政策、治理概念或技術架構參考。"
 
 
 def clean_text(value: object, limit: int | None = None) -> str:
@@ -440,6 +465,8 @@ def source_material(record: dict[str, Any]) -> tuple[str, str, bool]:
     enrichment = enrichment if isinstance(enrichment, dict) else {}
 
     article_text = clean_text(reading.get("article_text"), 5000)
+    if is_access_prompt_text(article_text):
+        article_text = ""
     if article_text:
         return article_text, "主文全文", False
 
@@ -450,7 +477,11 @@ def source_material(record: dict[str, Any]) -> tuple[str, str, bool]:
             return text, "已抽取正文摘要", True
 
     summary = clean_text(record.get("summary"), 2200)
+    if is_access_prompt_text(summary):
+        summary = ""
     description = clean_text(reading.get("description"), 1200)
+    if is_access_prompt_text(description):
+        description = ""
     if summary and description and description not in summary:
         return f"{summary}\n{description}", "RSS 摘要與頁面描述", True
     if summary:
@@ -460,6 +491,57 @@ def source_material(record: dict[str, Any]) -> tuple[str, str, bool]:
 
     title = clean_text(record.get("title"), 500)
     return title, "只有標題", True
+
+
+def direct_taiwan_signal_text(record: dict[str, Any]) -> str:
+    reading = record.get("reading_metadata")
+    reading = reading if isinstance(reading, dict) else {}
+    text, _basis, _needs_fulltext = source_material(record)
+    parts: list[str] = [
+        clean_text(record.get("title"), 500),
+        clean_text(record.get("url"), 500),
+        clean_text(record.get("source_name"), 240),
+        clean_text(record.get("summary"), 1500),
+        " ".join(str(tag) for tag in record.get("tags", []) if tag),
+        text,
+        clean_text(reading.get("description"), 1200),
+        clean_text(reading.get("site_name"), 240),
+        clean_text(reading.get("original_site_title"), 500),
+        clean_text(reading.get("final_url"), 500),
+        clean_text(reading.get("source_url"), 500),
+    ]
+    return "\n".join(part for part in parts if part)
+
+
+def has_direct_taiwan_signal(record: dict[str, Any]) -> bool:
+    return bool(TAIWAN_DIRECT_SIGNAL_RE.search(direct_taiwan_signal_text(record)))
+
+
+def split_sentences(text: str) -> list[str]:
+    text = clean_text(text)
+    if not text:
+        return []
+    parts = re.split(r"(?<=[。！？!?])\s*|(?<=\.)\s+", text)
+    return [part for part in parts if part]
+
+
+def has_unsupported_taiwan_context(text: object) -> bool:
+    value = clean_text(text)
+    if not value or not TAIWAN_OUTPUT_SIGNAL_RE.search(value):
+        return False
+    return not bool(TAIWAN_SAFE_CONTEXT_RE.search(value))
+
+
+def sanitize_unsupported_taiwan_context(text: object) -> tuple[str, bool, bool]:
+    value = clean_text(text)
+    if not has_unsupported_taiwan_context(value):
+        return value, False, False
+    fact_claim = bool(TAIWAN_FACT_CLAIM_RE.search(value))
+    sentences = split_sentences(value)
+    kept = [sentence for sentence in sentences if not has_unsupported_taiwan_context(sentence)]
+    if kept and len(kept) < len(sentences):
+        return clean_text("".join(kept)), True, fact_claim
+    return TAIWAN_GUARD_FALLBACK, True, fact_claim
 
 
 def review_input(record: dict[str, Any]) -> dict[str, Any]:
@@ -553,7 +635,10 @@ def taste_profile_block() -> str:
     if g.get("de_emphasize"):
         lines.append("要警惕/淡化：" + "、".join(g["de_emphasize"]))
     if g.get("taiwan_context_required"):
-        lines.append("台灣切角為必要條件")
+        lines.append(
+            "台灣脈絡是優先檢查項，不是可補造的事實；source_text 沒有直接台灣線索時，"
+            "只能寫「未見直接台灣關聯」或「可作台灣比較參考」。"
+        )
     for track, meta in (profile.get("tracks") or {}).items():
         prio = (meta or {}).get("priority_themes") or []
         avoid = (meta or {}).get("avoid_themes") or []
@@ -571,7 +656,7 @@ def taste_profile_block() -> str:
 ## 使用者品味（請優先參考，這是 Ian 的個人判斷偏好）
 {body}
 
-請在判斷 recommendation / confidence / content_kind 時把上述品味納入考量；命中偏好主題、有台灣切角的，傾向 recommend-collect 或 recommend-review，不要輕易 skip。
+請在判斷 recommendation / confidence / content_kind 時把上述品味納入考量；命中偏好主題，或原文有明確台灣切角的，傾向 recommend-collect 或 recommend-review，不要輕易 skip。
 """
 
 
@@ -584,6 +669,11 @@ def build_prompt(batch: list[dict[str, Any]], provider: str = "codex") -> str:
 
 請只根據每筆提供的 source_text 判斷，不要上網，不要補不存在的事實。
 若 source_basis 是「只有標題」或 source_text 太短，請明確降低 confidence，needs_fulltext 設為 true，摘要只做保守判斷。
+
+台灣脈絡防幻覺規則：
+- 只有 source_text、標題、來源或 URL 明示台灣 / 臺灣 / Taiwan / Taipei / .tw 等直接線索時，才可把台灣人物、組織、企業、團隊、政策、法規、案例或部署寫成事實。
+- 若沒有直接台灣線索，不得宣稱「台灣團隊」「台灣企業」「台灣案例」「台灣政策」或自行代入中華電信、台積電、半導體等台灣產業角色。
+- 沒有直接台灣線索但議題有參考價值時，只能說「未見直接台灣關聯，但可作台灣比較政策 / 治理概念 / 技術架構參考」。
 
 每筆請產生：
 - zh_title：如果原標題是英文，翻成自然繁體中文；如果已是中文，可微調成清楚標題。
@@ -826,6 +916,51 @@ def clear_existing_model_reviews(editorial: dict[str, Any]) -> None:
         editorial.pop(key, None)
 
 
+def apply_taiwan_context_guard(record: dict[str, Any], provider_review: dict[str, Any]) -> None:
+    if has_direct_taiwan_signal(record):
+        return
+
+    sanitized_fields: list[str] = []
+    fact_claim = False
+    for field in ("zh_title", "one_line_recommendation", "summary", "note"):
+        original = provider_review.get(field)
+        sanitized, changed, field_fact_claim = sanitize_unsupported_taiwan_context(original)
+        if changed:
+            provider_review[field] = sanitized
+            sanitized_fields.append(field)
+            fact_claim = fact_claim or field_fact_claim
+
+    sanitized_reasons: list[str] = []
+    reasons_changed = False
+    for reason in provider_review.get("reasons", []):
+        sanitized, changed, field_fact_claim = sanitize_unsupported_taiwan_context(reason)
+        sanitized_reasons.append(sanitized)
+        if changed:
+            reasons_changed = True
+            fact_claim = fact_claim or field_fact_claim
+    if reasons_changed:
+        provider_review["reasons"] = sanitized_reasons
+        sanitized_fields.append("reasons")
+
+    if not sanitized_fields:
+        return
+
+    guard_note = "防幻覺提醒：原文未見直接台灣訊號；已移除或改寫未支持的台灣關聯。"
+    existing_note = clean_text(provider_review.get("note"), 500)
+    if guard_note not in existing_note:
+        provider_review["note"] = clean_text(f"{guard_note} {existing_note}", 500)
+    if fact_claim:
+        provider_review["confidence"] = "low"
+    elif provider_review.get("confidence") == "high":
+        provider_review["confidence"] = "medium"
+    provider_review["taiwan_context_guard"] = {
+        "status": "no-direct-taiwan-signal",
+        "action": "sanitized-unsupported-context",
+        "fields": sanitized_fields,
+        "fact_claim": fact_claim,
+    }
+
+
 def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]], provider: str, replace_existing: bool = False) -> int:
     meta = provider_meta(provider)
     by_id = {str(review.get("id")): review for review in reviews if review.get("id")}
@@ -862,11 +997,12 @@ def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]], 
         }
         if meta.get("model"):
             provider_review["model"] = meta["model"]
+        apply_taiwan_context_guard(record, provider_review)
         editorial[meta["review_key"]] = provider_review
         has_codex = isinstance(editorial.get("codex_review"), dict)
         if provider == "codex" or not has_codex:
             editorial["zh_title"] = provider_review["zh_title"] or clean_text(record.get("title"), 300)
-            editorial["zh_summary"] = formatted_summary(review)
+            editorial["zh_summary"] = formatted_summary(provider_review)
             editorial["summary_reason"] = f"已由 {meta['label']} 依目前可讀資料補閱讀建議與摘要。"
         editorial[meta["generated_key"]] = generated_at
         record["editorial_triage"] = editorial

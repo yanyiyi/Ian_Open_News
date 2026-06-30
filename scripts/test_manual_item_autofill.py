@@ -176,6 +176,31 @@ class ManualItemAutofillTest(unittest.TestCase):
         self.assertEqual([candidate["title"] for candidate in candidates], ["10. From Data to Display: Infrastructures of Openness in the Making"])
         self.assertEqual(skipped[0]["reason"], "系列、分類或作者索引頁")
 
+    def test_newsletter_link_candidates_show_translated_title_with_original(self) -> None:
+        url = "https://example.org/news/open-source-policy"
+        item = {
+            "url": "https://newsletter.example.org/archive",
+            "reading_metadata": {
+                "article_markdown": f"""
+## [How open source policy moves](https://example.org/news/open-source-policy)
+
+[Read more]({url})
+""",
+                "translated_article_markdown_zh": f"""
+## [開源政策如何成形](https://example.org/news/open-source-policy)
+
+[閱讀更多]({url})
+""",
+            },
+        }
+
+        candidates, _skipped = local_web.newsletter_link_candidates(item)
+
+        self.assertEqual(candidates[0]["title"], "How open source policy moves")
+        self.assertEqual(candidates[0]["display_title"], "開源政策如何成形")
+        self.assertEqual(candidates[0]["original_title"], "How open source policy moves")
+        self.assertIn("nl-cand-original", local_web.newsletter_link_title_html(candidates[0]))
+
 
 if __name__ == "__main__":
     unittest.main()
