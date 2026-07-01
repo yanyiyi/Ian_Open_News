@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 代理也要有身分證？！最數位的國家愛沙尼亞怎從數位一路到 AI 治理 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; text-align: left; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-07-01T02:50:49+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="is-active" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main><section class="page-heading"><h1>AI 代理也要有身分證？！最數位的國家愛沙尼亞怎從數位一路到 AI 治理</h1></section>
+<style>.article-markdown h1 + hr, .article-markdown h2 + hr, .article-markdown h3 + hr, .article-markdown h4 + hr { display:none; } .article-sources { margin:0; padding-left:18px; } .article-sources li { margin:6px 0; }</style>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../features.html" onclick="if (history.length > 1) { history.back(); return false; }">返回專文</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏延伸資料</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">專文</span><span class="badge badge--date">2026-06-30</span></div>
+      <h1>AI 代理也要有身分證？！最數位的國家愛沙尼亞怎從數位一路到 AI 治理</h1>
+
+    </article>
+    <figure class="article-hero"><img src="https://interoperable-europe.ec.europa.eu/sites/default/files/news/logo/2021-07/f8d69de1d7c99c73d59bb388252f4cbe_400x400.png" alt="" loading="lazy"><figcaption>圖片援引自：愛沙尼亞要求國有軟體公開釋出</figcaption></figure>
+    <section class="article-fulltext-card">
+      <div class="article-text article-markdown"><p><em>愛沙尼亞「監管 AI」並不僅是從這 AI 時代開此。從 2021 年要求行政部門公開國有軟體，到 Bürokratt 把公共服務做成 AI 虛擬助理網路，再到 2026 年提出 AI 代理專屬數位身分，它的主軸其實很一致：政府數位服務要能互通、可授權、可追蹤，也要知道責任在哪裡。這套思路對台灣有參考價值，但不能只看成果，必須先看它背後二十多年累積的數位身分、X-Road 資料交換與公共服務的基礎建設。</em></p>
+<h2>趨勢與重點</h2>
+<h3>開放原始碼先被放進國家治理，而不是只停在倡議口號</h3>
+<p>愛沙尼亞在 2021 年 5 月 12 日由國會通過修正《愛沙尼亞國有財產法》，新規於 2021 年 6 月 1 日生效，要求行政部門公開由政府全部或部分擁有的軟體；若政府只擁有部分所有權，則公開國家持有的部分（來源：<a href="https://interoperable-europe.ec.europa.eu/collection/open-source-observatory-osor/news/estonia-makes-public-software-public" target="_blank" rel="noreferrer">OSOR</a>）。</p>
+<p>這不是「所有東西無條件公開」。原文也說，若公開可能損害國家、公共秩序、國家安全，或涉及網路安全風險，負責機構可以決定不公開。換句話說，愛沙尼亞把開放原始碼做成一套程序：預設公開、說明用途與條款，也保留安全例外。</p>
+<p>這個脈絡很重要。愛沙尼亞過去已公開 X-Road 等數位政府基礎設施，並設有 koodivaramu.eesti.ee 作為政府軟體發布平台（來源：<a href="https://interoperable-europe.ec.europa.eu/collection/open-source-observatory-osor/news/estonia-makes-public-software-public" target="_blank" rel="noreferrer">OSOR</a>）。它的價值不只是儲存庫數量，而是把開放原始碼放在跨機關資料流通與互通性的底層。</p>
+<h3>Bürokratt 把 AI 服務設計成公共網路，而不是單一聊天機器人</h3>
+<p>Bürokratt 是由愛沙尼亞政府開發、基於 AI 的公共部門虛擬助理，部署在各公部門機構網站上，讓民眾透過自然語言取得機構資訊、使用公共服務與資訊服務（來源：<a href="https://www.kratid.ee/en/burokratt" target="_blank" rel="noreferrer">Kratid：Bürokratt</a>）。</p>
+<p>它現在的做法包括使用大型語言模型與 RAG，讓助理根據機構指定來源回答問題；2025 年底前，規劃建立通用知識模組、核心元件與全域分類器，讓不同 Bürokratt 之間能安全通訊；自 2026 年起，則走向各機構或領域擁有個人化 AI 代理，並形成統一協作的代理網路（來源：<a href="https://www.kratid.ee/en/burokratt" target="_blank" rel="noreferrer">Kratid：Bürokratt</a>）。</p>
+<p>這讓問題從「哪個模型比較好」轉成「公共服務中的 AI 要怎麼接資料、怎麼清理資料、怎麼跨機關協作、怎麼限制權限」。Bürokratt 軟體本身免費，但通常託管在 State Cloud，每月約 150 歐元，另有 LLM 使用成本；導入機構也需要投入資料蒐集與清理，RIA 可提供展示到上線支援（來源：<a href="https://www.kratid.ee/en/_files/ugd/90338c_d3102efdff264fa6b3ec1d08e4f323a9.pdf" target="_blank" rel="noreferrer">Bürokratt LLM 指南 PDF</a>）。</p>
+<h3>數位主權不只在系統，也在語言模型能不能被判斷</h3>
+<p>Eesti.ai 的材料把 AI 治理拉到語言與文化層次。愛沙尼亞語言研究所（EKI）建立語言模型評測基準，用來評估大型語言模型的愛沙尼亞語品質、對愛沙尼亞文化脈絡的理解，以及抵抗宣傳資訊的能力（來源：<a href="https://eesti.ai/uudised/eestist-saab-esimene-riik-maailmas-mis-loob-ai-agentidele-digitaalse-identiteedi" target="_blank" rel="noreferrer">Eesti.ai</a>）。</p>
+<p>原文指出，愛沙尼亞語 AI 不會自行成熟；不同模型表現差異很大，較輕量、低成本的模型在愛沙尼亞語上往往較弱，若使用不適合的模型，可能增加誤導資訊傳播風險（來源：<a href="https://eesti.ai/uudised/eestist-saab-esimene-riik-maailmas-mis-loob-ai-agentidele-digitaalse-identiteedi" target="_blank" rel="noreferrer">Eesti.ai</a>）。</p>
+<p>這裡的「數位主權」不是抽象主張，而是公部門、教育機構、企業與民眾能不能知道自己正在用什麼模型、它是否適合本國語言與文化情境、它在公共任務中可能造成什麼偏誤。</p>
+<h3>AI 代理身分把問題推到最小授權與責任歸屬</h3>
+<p>愛沙尼亞總理 Kristen Michal 2026 年 6 月底表示，已支持 Eesti.ai 顧問委員會提出的方向：為 AI 代理建立獨立於個人、企業或機構的數位身分，也就是 AI 個人識別碼（來源：<a href="https://eesti.ai/uudised/eestist-saab-esimene-riik-maailmas-mis-loob-ai-agentidele-digitaalse-identiteedi" target="_blank" rel="noreferrer">Eesti.ai</a>、<a href="https://decrypt.co/371441/estonia-ai-agents-national-id" target="_blank" rel="noreferrer">Decrypt</a>、<a href="https://thenextweb.com/news/estonia-ai-agents-personal-id-numbers" target="_blank" rel="noreferrer">The Next Web</a>）。</p>
+<p>這項提案的核心，不是把 AI 當成人，而是避免 AI 代理借用人的完整帳號。代理應只能取得有限、可控管、可稽核的權限，例如查看資料、準備文件、建立付款指示，或只在特定金額上限內行動（來源：<a href="https://eesti.ai/uudised/eestist-saab-esimene-riik-maailmas-mis-loob-ai-agentidele-digitaalse-identiteedi" target="_blank" rel="noreferrer">Eesti.ai</a>、<a href="https://decrypt.co/371441/estonia-ai-agents-national-id" target="_blank" rel="noreferrer">Decrypt</a>）。</p>
+<p>但目前尚未說明制度何時上路，也未交代當 AI 代理造成金錢損失或錯誤決策時，責任與賠償如何分配（來源：<a href="https://decrypt.co/371441/estonia-ai-agents-national-id" target="_blank" rel="noreferrer">Decrypt</a>、<a href="https://thenextweb.com/news/estonia-ai-agents-personal-id-numbers" target="_blank" rel="noreferrer">The Next Web</a>）。</p>
+<h2>我們的觀察</h2>
+<h3>1. 愛沙尼亞核心一直不是「 AI 化」，而是把數位國家做成經得起檢視的基礎設施。</h3>
+<p>從 X-Road、數位身分、數位簽章、資料存取軌跡，到政府軟體預設公開，愛沙尼亞的 AI 代理身分提案是在既有治理邏輯上延伸。它不是單點產品創新，而是把代理行為放進可授權、可追蹤、可問責的公共基礎設施。</p>
+<h3>2. 最小授權是 AI 代理治理的起點，不是口號。</h3>
+<p>現在許多 AI 代理討論都在談能力：能不能訂票、報稅、寫文件、跑流程。但愛沙尼亞把焦點放在限制：代理能代表誰、做什麼、拿到哪些資料、能不能付款、上限是多少。這比一般 AI 倫理宣言更具體，也更接近真正會發生事故的地方。</p>
+<h3>3. 開放原始碼與資料治理是同一套治理思路，不是兩條線。</h3>
+<p>愛沙尼亞要求國有軟體公開，同時保留安全例外；Bürokratt 要跨機構通訊，也必須處理資料清理、共用元件與機構責任。這提醒我們，政府開源不只是把程式碼丟出來，而是讓公共系統的設計、維護、授權與例外條件可以被討論。</p>
+<h3>4. 台灣的切角不該只問「能不能複製愛沙尼亞」。</h3>
+<p>台灣有自然人憑證、健保卡、政府資料開放、MyData、T-Road 相關討論與各種部會數位服務，但跨機關資料治理、授權紀錄、公共系統開源、AI 服務責任歸屬，仍常分散在不同政策語境裡。愛沙尼亞案例真正可參考的，不是某一個系統，而是把身分、資料交換、開源、AI 服務與責任設計放在同一張圖上，有一致的思路。</p>
+<h3>5. 語言模型選擇能力，也是台灣需要面對的數位主權問題。</h3>
+<p>愛沙尼亞擔心小語言在低成本模型上表現較弱，台灣也有類似問題，只是形式不同：繁體中文、台灣語境、法律制度、在地行政用語、原住民族語言與台語、客語等，都可能被大型模型混同或低估。若公部門只是採用外部模型，卻沒有評測基準與資料治理能力，就很難知道錯誤會在哪裡發生。</p></div>
+    </section>
+  </div>
+  <aside class="side-panel" id="public-article-side-panel"><div class="section-kicker">引用</div><h2>引用材料</h2><ul class="article-sources"><li><a href="../articles/item-0b8461bf7c8fa259.html">如果對 Bürokratt 有興趣，該怎麼開始？</a></li><li><a href="../articles/item-17ca3b093698f25a.html">愛沙尼亞要求國有軟體公開釋出</a></li><li><a href="../articles/item-8da786b43e6a0c60.html">愛沙尼亞擬為 AI 代理建立國家級數位身分</a></li><li><a href="../articles/item-fee35be0ee79f76f.html">愛沙尼亞擬為每個 AI 代理配置獨立身分識別碼</a></li><li><a href="../articles/item-dd92631275c6ed65.html">Bürokratt：愛沙尼亞公共部門 AI 虛擬助理網路</a></li><li><a href="../articles/item-537909ad59fadf0b.html">愛沙尼亞擬啟動 AI 代理專屬數位身分，能否解決借用人類帳號的治理難題？</a></li><li><a href="../articles/item-87b968a885010410.html">愛沙尼亞將為 AI 代理建立數位身分</a></li></ul><div class="section-kicker">觀點</div><h2>延伸觀點</h2><ul class="article-sources"><li><strong>最小授權是 AI 代理治理的具體起點，不是口號</strong><br><span class="summary">愛沙尼亞提案的核心不是「監管 AI」，而是把「最小授權原則」直接嵌入代理身分設計：代理只能取得執行特定任務所需的權限，不繼承人類帳號的全部存取能力。這比抽象的 AI 倫理宣言更具操作意義，也是目前各國討論中少見的可實作框架。（來源：Decrypt、eesti.ai）</span></li><li><strong>數位治理輸出的前提：二十年基礎建設不可省略</strong><br><span class="summary">愛沙尼亞能在 AI 代理治理上率先行動，背後是 2007 年後逐步建立的 KSI 區塊鏈、X-Road 資料交換層、全國數位身分與 100% 線上政府服務。這套前提條件讓其他國家難以直接複製，意味著「愛沙尼亞模式」的輸出價值在框架觀念，而非在系統本身。（來源：Decrypt、eesti.ai）</span></li><li><strong>愛沙尼亞：小規模不等於低價值，重點在資料交換底層</strong><br><span class="summary">原文把愛沙尼亞列入小規模群，但指出其活動集中在 X-Road 等資料交換平台，而非大量個別應用程式。這提供一個不同判準：政府 OSS 的價值不只看儲存庫數量，也要看是否把資源押在能支撐跨機關資料流通的基礎設施。</span></li><li><strong>開放是預設，不是無條件裸奔</strong><br><span class="summary">原文顯示，愛沙尼亞 2021 年修法要求行政部門公開國有軟體，但仍保留公共秩序、國家安全、網路安全等例外。我們的觀察是：它的開放原始碼政策不是單純喊公開，而是把「預設公開、說明條款、可因安全理由限制」寫成治理程序。</span></li><li><strong>AI 代理身分延續的是數位國家邏輯</strong><br><span class="summary">AI 代理專屬識別碼的提案，延續愛沙尼亞既有的數位身分、X-Road、數位簽章與資料存取軌跡思路：要知道誰在行動、代表誰、有哪些權限、誰負責。這不是把 AI 當人，而是把代理行為納入可授權、可追蹤、可稽核的國家數位基礎設施。</span></li><li><strong>治理焦點是限縮授權，而非放大代理能力</strong><br><span class="summary">多篇材料都把問題指向同一個風險：AI 代理若借用人的完整帳號，就可能取得過大的資料與服務權限。愛沙尼亞提案的重點，是讓代理只能檢視資料、起草文件、建立付款指示或在特定金額上限內行動；但事故責任與賠償如何分配仍未說明。</span></li><li><strong>Bürokratt 把 AI 服務做成公共網路</strong><br><span class="summary">Bürokratt 不是單一聊天機器人，而是部署在各機構、可互相協作的公共部門虛擬助理網路，並規劃 LLM/RAG、通用知識模組、全域分類器與安全通訊。這讓 AI 治理問題從「哪個模型比較好」轉成「資料清理、共用元件、機構責任與跨系統授權如何安排」。</span></li><li><strong>Bürokratt 是公共網路而非單一聊天機器人</strong><br><span class="summary">Bürokratt 部署在各機構、互作協同的虛擬助理網路，透過通用知識模組、全域分類器與安全通訊實現治理，將問題轉為資料清理、授權共用元件等可管理課題。</span></li><li><strong>數位主權也包含語言模型選擇能力</strong><br><span class="summary">Eesti.ai 材料提到，愛沙尼亞語言研究所建立評測基準，檢驗大型語言模型的愛沙尼亞語品質、文化脈絡理解與抵抗宣傳資訊能力。我們的觀察是：愛沙尼亞把 AI 治理拉到語言與文化層次，避免公部門只是採用外部模型，卻無法判斷它是否適合本國情境。</span></li><li><strong>語言規模決定 AI 治理能力：小語言的結構性弱勢</strong><br><span class="summary">愛沙尼亞語言研究所指出，較輕量、低成本的語言模型在愛沙尼亞語上表現明顯較弱，若公部門採用不適合的模型，將增加誤導資訊擴散的風險。這揭示一個普遍張力：AI 代理治理不只是身分與授權設計，還牽涉語料與模型品質——語言使用人口越小，這個問題越緊迫。（來源：eesti.ai）</span></li><li><strong>AI 代理身分是數位國家邏輯的延伸</strong><br><span class="summary">愛沙尼亞將為 AI 代理建立專屬識別碼，延續其既有的數位基礎設施思維，包括數位身分、X-Road 與資料存取軌跡。此舉旨在確保代理行為可授權、可追蹤且具稽核性，而非僅開放原始碼卻放任失控。</span></li><li><strong>治理焦點在限縮授權而非放大能力</strong><br><span class="summary">愛沙尼亞提案限制 AI 代理的權限：只能檢視資料、草擬文件、執行低額度付款。事故責任與賠償分配仍未明確說明，顯示政策設計優先考量風險控管。</span></li></ul></aside>
+</div>
+
+<script>
+(() => {
+  const layout = document.getElementById("public-article-layout");
+  const toggle = document.getElementById("public-article-side-toggle");
+  const panel = document.getElementById("public-article-side-panel");
+  if (!layout || !toggle) return;
+  const label = toggle.querySelector("[data-sidebar-toggle-label]");
+  const storageKey = "ian-open-news-public-feature-sidebar";
+  const apply = (hidden) => {
+    layout.classList.toggle("is-sidebar-hidden", hidden);
+    panel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+    toggle.setAttribute("aria-expanded", hidden ? "false" : "true");
+    if (label) label.textContent = hidden ? "顯示延伸資料" : "隱藏延伸資料";
+  };
+  let hidden = false;
+  try { hidden = localStorage.getItem(storageKey) === "hidden"; } catch (_e) { hidden = false; }
+  apply(hidden);
+  toggle.addEventListener("click", () => {
+    hidden = !layout.classList.contains("is-sidebar-hidden");
+    apply(hidden);
+    try { localStorage.setItem(storageKey, hidden ? "hidden" : "visible"); } catch (_e) {}
+  });
+})();
+</script>
+
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

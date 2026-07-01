@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>公部門機關如何選擇開源 AI 模型：2026 年 6 月研究 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; text-align: left; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-07-01T02:50:47+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-07-01 01:12</span></div>
+      <h1><a class="article-title-link" href="https://doi.org/10.1016/j.giq.2026.102133" target="_blank" rel="noreferrer" title="開啟原始連結">公部門機關如何選擇開源 AI 模型：2026 年 6 月研究</a></h1>
+      <p class="lede">Government Information Quarterly 43 (2026) 102133 Contents lists available at ScienceDirect Government Information Quarterly journal homepage: www.elsevier.com/locate/govinf Open to open-source AI? Navigating AI model choice in public sector agencies Nicholas Robinson Hertie School of Governance, Germany A R T I C L E I N F O A B S T R A C T Keywords: Public sector Agencies are increasingly adopting artificial intelligence (AI) tools. High quality open-source AI Artificial intelligence (AI) (OSAI) options are available, but much of their current attention is on proprietary options such as Copilot and Public secto...</p>
+      <div class="tag-chip-list"><span class="tag-chip">public sector AI</span><span class="tag-chip">開放原始碼</span><span class="tag-chip">open-source software</span><span class="tag-chip">開源 AI / OSAID</span><span class="tag-chip">digital sovereignty</span></div>
+    </article>
+
+    <section class="article-fulltext-card">
+      <div class="section-kicker">全文</div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Government Information Quarterly 43 (2026) 102133</h1>
+<p>Contents lists available at ScienceDirect</p>
+<p>Government Information Quarterly</p>
+<p>journal homepage: www.elsevier.com/locate/govinf</p>
+<h1>Open to open-source AI?Navigating AI model choice in public</h1>
+<p>sector agencies</p>
+<p>Nicholas Robinson*</p>
+<p>Hertie School of Governance, Germany</p>
+<p>A R T I C L E I N F O A B S T R A C T</p>
+<p>Keywords: Public sector Agencies are increasingly adopting artificial intelligence (AI) tools.</p>
+<p>High quality open-source AI</p>
+<p>Artificial intelligence (AI) (OSAI) options are available, but much of their current attention is on proprietary options such as Copilot and Public sector AI adoption ChatGPT.There are parallels with take-up of open-source software (OSS).</p>
+<p>While OSS has a foothold in niche Open-source functions of Agencies&#x27; technology suites, it has not seen widespread adoption despite backing from technical and Digital sovereignty political spheres and its potential to reduce costs and spur increased competition and innovation.</p>
+<p>Technology-organisation-environment Grounded in theoretical frameworks and evidence used to investigate OSS uptake, the study draws on in- framework terviews with 31 decision-makers on AI adoption in Australian, Canadian and German public sector Agencies to analyse key factors in the feasibility of open-source technologies in general and OSAI in particular, compared to their proprietary counterparts.</p>
+<p>In comparison to determinants of OSS adoption, technological characteristics like fit, control and the avail- ability of hardware infrastructure are more influential in whether OSAI is adopted.Furthermore, organisational considerations like digital sovereignty and data protection were more prominent in the AI decisions.</p>
+<p>Conversely, AI models are more homogenous and easier to switch between than traditional software products, meaning that perceptions of usability, fears of vendor lock-in and availability of support were not as strong an influence as with OSS.Although AI is a fast-evolving technology, the choice to adopt OSAI or proprietary AI involves making com- mitments today — like investment in hardware and building internal sovereign capabilities — that will echo into the future.</p>
+<h1>1.</h1>
+<h1>Introduction</h1>
+<p>in proprietary AI models and products from American developers such as OpenAI (GPT models), Alphabet (Gemini) and Anthropic (Claude)</p>
+<p>Decision-makers in public sector agencies (hereafter, ‘Agencies’1) (Burkhardt &amp; Rieder, 2024;Tarkowski &amp; Open Futures, 2025).Promi- have long considered open-source software as an alternative to pro- nent OSAI models have come from more globally dispersed developers, prietary software, however, take-up varies across regions.</p>
+<p>With the such as Meta (US), Mistral (France), Alibaba, Baidu and High-Flyer (all emergence of public sector artificial intelligence (AI) adoption, Agencies based in China).are making similar assessments about the suitability of open-source AI The definition of OSAI has been contested (Bateman et al., 2024;(OSAI) models compared with proprietary AI models.Floridi et al., 2025;Liesenfeld &amp; Dingemanse, 2024).</p>
+<p>In an OSS context, Since 2022, significant public attention has been brought to AI scholars used characteristics such as costless access, a permissive through the release of user-friendly tools such as ChatGPT, leveraging licence, a related community and full documentation (Rossi et al., 2012;technology advances in computing scale, model architecture, access to Sa´nchez et al., 2020;Shaikh, 2016).</p>
+<p>OSAI definitions contain additional large amounts of data and refinement in training techniques criteria such as accessible model weights and transparent model archi- (Brynjolfsson et al., 2023;Hjaltalin &amp; Sigurdarson, 2024).Increasingly, tecture, training methodology and training data (Bateman et al., 2024;the advances and widespread uptake of AI tools have been largely seen Bommasani et al., 2021;Tarkowski &amp; Open Futures, 2025), however,</p>
+<ul>
+<li>Corresponding author at: Friedrichstrasse 180, 10117 Berlin, Germany.</li>
+</ul>
+<p>E-mail address: n.robinson@phd.hertie-school.org.1 Agencies is a term used in the Australian and Canadian contexts to capture the range of government organisations when referring to them collectively.It is used in part to avoid using an acronym instead.https://doi.org/10.1016/j.giq.2026.102133</p>
+<p>Received 24 September 2025;Received in revised form 4 March 2026;Accepted 10 March 2026</p>
+<p>Available online 20 March 2026</p>
+<p>0740-624X/© 2026 The Author.Published by Elsevier Inc.</p>
+<p>This is an open access article under the CC BY license ( http://creativecommons.org/licenses/by/4.0/ ).</p>
+<p>N.Robinson G o v e r n m e n t I n f o r m a t i o n Q u a r t e r ly 43 (2026) 102133</p>
+<p>there is still a lack of consensus.Interview participants were not as 2.Theoretical background stringent about their classifications of OSAI.Somewhat restrictive licence conditions imposed by developers like Meta and DeepSeek were 2.1.Innovation adoption in the public sector seen as relevant only to defence and security agencies.</p>
+<p>Furthermore, no major AI model developer has fully disclosed the sources of its training Adoption of new technologies in studies of innovation diffusion is data (Tarkowski &amp; Open Futures, 2025).</p>
+<p>As discussed further in Sections typically framed as a binary of a status quo and a new innovation, for 4 and 5, such definitional ambiguity impacts Agencies&#x27; real-world example, classical examples on whether hybrid corn or boiled water are technical investment and procurement decisions, risk assessments and taken up or disregarded (Edquist &amp; Hommen, 2000;Rogers, 2003;Ryan efforts to strengthen sovereignty, by muddying which AI tools are &amp; Gross, 1943).</p>
+<p>AI is the most recent major technological innovation to actually open-source.Different criteria of openness are covered in be considered by governments.further detail in Appendix 1.</p>
+<p>For the purposes of this analysis, OSAI To understand how innovations are taken up, scholars have deployed refers to AI models that are free to access, have generally unrestrictive theoretical frameworks such as the diffusion of innovation theory licence conditions and are accompanied by sufficient transparent in- (Rogers, 2003), the technology acceptance model (TAM) (Davis, 1989) formation for Agencies to substantially customise them and make them and its successors including the unified theory of acceptance and use of ‘sovereign’, acknowledging that this definition includes some models technology (Venkatesh et al., 2003).</p>
+<p>These provide a wide range of that are strictly seen as ‘open weight’ such as the Llama and Gemma factors explaining why innovations will diffuse and be adopted.How- models, rather than maximally open-source models like EleutherAI&#x27;s ever, when choosing between two broadly substitutable new technology Pythia series (Tarkowski &amp; Open Futures, 2025;Widder et al., 2024).choices however, the mechanisms described by these theories are less Existing research on government&#x27;s adoption of AI in the public suited.</p>
+<p>For this reason, I choose to inform the choice between management and governance field has not kept up with novel techno- open-source and proprietary technology using factors from innovation logical advances (Haug et al., 2024).Both proprietary and open-source diffusion theories but subsume them into the Technology Organisation AI models are fighting to be seen as the innovative choice (Azoulay et al., Environment (TOE) framework.Tornatzky and Fleischer (1990)devel- 2024).</p>
+<p>Whether OSAI or proprietary models dominate governments&#x27; AI oped the TOE framework, arguing that the adoption decision was driven take-up has flow-on impacts to digital sovereignty, cost structures for AI by the attributes of the technology itself as well as organisational and investments and internal skills needs.Although OSAI is neither neces- environmental contexts.</p>
+<p>Numerous subsequent scholars have taken this sarily more or less innovative than proprietary options, it is seen as a approach, including while studying traditional software choices (e.g.challenger to the status quo of proprietary AI, potentially enabling Sa´nchez et al., 2020;Ven &amp; Verelst, 2006) as well as in AI adoption (e.g.differentiated improvements to products through a multi-stage process Chen et al., 2024;Madan &amp; Ashok, 2023;Mikalef et al., 2022;Neumann of adoption (Baregheh et al., 2009).</p>
+<p>Despite public administrations&#x27; et al., 2024).stated support or even hype towards OSS (Freeman, 2012), there has long been a preference towards proprietary options (Rossi et al., 2012).2.2.</p>
+<p>The choice between open-source and proprietary software OSS is on the one hand seen as more customisable, cost effective and sovereign, but has perceived disadvantages such as worse usability, The decision whether to adopt traditional software from open-source being more challenging to technically and organisationally implement or proprietary sources has been widely studied in both a public and a lack of an actor responsible for maintaining it (ibid.;Shaikh, 2016;</p>
+<p>administration and private organisation context and is highly influenced Hauge et al., 2010;Sa´nchez et al., 2020).The evidence presented in this by ideological factors (e.g.Medappa &amp; Srivastava, 2020;Stewart &amp; study will indicate that proprietary AI is the current default for most Gosain, 2006;Ven &amp; Verelst, 2006).Here, the TAM makes an important Agencies.</p>
+<p>Nonetheless, while innovation diffusion theory presents a contribution by highlighting the role of decision-maker perception as range of possible factors for successful adoption, it alone is not sufficient distinct from a fully objective reality.There do not appear to be neither to understand why OSAI is chosen over proprietary AI or vice versa.</p>
+<p>The shining examples of functional fully open-source governments — widely used Technology-Organisation-Environment (TOE) framework is although the German state of Schleswig-Holstein is currently aiming in therefore deployed instead to structure the analysis.</p>
+<p>This study is guided this direction (Landesportal Schleswig-Holstein, 2025) — nor those who by two research questions viewed through a TOE lens: are entirely content with being fully reliant on proprietary tools with</p>
+<p>Research question 1: What informs the choice of Agencies to adopt open- source software verses proprietary options?mixture of diffusion, acceptance and adoption factors.</p>
+<p>Research question 2: Are the patterns of OSAI take-up in Agencies likely such as the systematic literature review by Hauge et al.(2010)found to be different from OSS?that technology-focused reasons were the key factor behind the choice of To address these questions, I draw upon the perspectives and expe- OSS over proprietary tools.</p>
+<p>Similarly, others claim with their free access riences of 31 decision-makers on AI in Australian, Canadian and German and ability to be customised, open-source options are seen as more in- Agencies, via semi-structured interviews.I argue that the decision pro- dependent, localised, cost-effective, flexible and specialised than pro- cess for choosing between open-source and proprietary AI brings many prietary ones (Bouras et al., 2014;Hauge et al., 2010;</p>
+<p>Ven &amp; Verelst, of the same considerations as for OSS verses proprietary software, in 2006, Van Loon &amp; Toshkov, 2015), with greater ability to satisfy user particular on an organisational level, but that the technological and needs, lower frequency of software bugs, strong security and freedom environmental dimensions differ substantially.AI models function in a (Bouras et al., 2014;Freeman, 2012;Gurusamy &amp; Campbell, 2012;more homogenous way than traditional software products but their Raymond, 2000).</p>
+<p>However, while the Belgian organisations studied by success is also more dependent on the surrounding technical ecosystem, Ven and Verelst (2006) cited features like richer documentation and including Agencies&#x27; tech stack and data.The early stage of AI adoption source code as valuable, none actually drew upon them.Furthermore, means that many of the environmental factors are still in flux;</p>
+<p>in despite its costless sticker price, a perception can conversely emerge that contrast, communities, supports and relevant regulations for OSS are this implies it is risky or low quality (Freeman, 2012;Noronha, 2002;well-established, if not always positive factors.Shaikh, 2016).In section 2, I cover the relevant theoretical background to OSS and The ease of use of proprietary options could explain why they are OSAI adoption.</p>
+<p>In section 3, I describe the research design for this prevalent across public administrations.Compared with proprietary empirical study.Section 4includes findings from interviews and section options, the flexibility of open-source tools can result in higher technical 5covers discussion and implications.complexity, requiring a steeper learning curve (Shaikh, 2016).A number of studies report switching back from OSS to proprietary tools, even after a period of attempted OSS adoption, which would indicate that the 2</p>
+<p>N.Robinson G o v e r n m e n t I n f o r m a t i o n Q u a r t e r ly 43 (2026) 102133</p>
+<p>product benefits were insufficient to overcome negative perceptions of competition (e.g.Floridi et al., 2025;Widder et al., 2024).The latter ease of use (e.g.Fitzgerald, 2009;Rossi et al., 2012;Shaikh, 2016).issue points to digital sovereignty being a relevant adoption factor for Many studies find that organisational dynamics are critically important OSAI, in contrast with OSS take-up, where security was a stronger factor.</p>
+<p>to whether OSS is adopted (e.g.Holck et al., 2005;Shaikh, 2016;Zuliani Adoption mechanisms related to community input and support are likely &amp; Succi, 2004).to be also less relevant for OSAI, as foundation models are typically</p>
+<p>Whose opinion counts also matters.</p>
+<p>Many studies cite the role of sourced as a product directly from the original developer with minimal managers — as distinct from technical staff or executive leadership — as guarantee of support, although as Shaikh (2016)points out, the ideal of a pivotal cohort in successful adoption (Freeman, 2012;Rossi et al., a collaborative and responsive repository supporting an OSS project is 2012;S´anchez et al., 2020;Shaikh, 2016, Van Loon &amp; Toshkov, 2015).not always realised in practice.</p>
+<p>This ‘productisation’ limits how an OSAI In her in-depth interviews, Shaikh (2016) found that managers pre- model mutates over time, with models being superseded by the original emptively change-course in anticipatory response to internal problems developer rather than upgraded.that may occur with OSS adoption, from a steep learning curve to a In their SLR on Free / Libre / Open-Source Software (FLOSS) adop- possible lack of support.</p>
+<p>Shaw (2011)found that OSS was promoted by tion across public and private sector organisations, Sa´nchez et al.(2020) “insurgent experts” who expended political capital on its adoption.In catalogued a wide range of adoption factors for OSS cited in the 54 research on Finnish public sector adoption of OSS, Freeman (2012) papers they reviewed, as shown in Table 1.</p>
+<p>While they defined TOE&#x27;s ‘E&#x27; contrasted the pro-OSS views of technical staff with the pro-proprietary as Economic, Environmental adoption factors (those not in the control of software views of clerical staff.Workers who self-select to go into the the organisation nor being key features of the technology) have been public service tend to have a more risk averse profile (Chang, 2024;added to align with the typical TOE formulation.</p>
+<p>Schofield, 2001), perhaps influencing their perceptions of OSS&#x27;s cost- A challenge in reviewing the available literature is that much of the benefit trade-off as a challenger product compared to familiar pro- empirical research on OSS adoption is framed as a search of reasons to prietary software.adopt OSS or focuses on success factors for OSS adoption, rather than an Leveraging external supports like consultancies or technology ven- equally-weighted evaluation of OSS verses proprietary software.</p>
+<p>For this dors is a key method organisations can use to improve perceptions of reason, the subsequent analysis will assume that proprietary software open-source tools&#x27; ease of use.Many don&#x27;t have sufficient internal and AI are the status quo and open-source alternatives are the chal- capability present to fully implement in-house (Shaikh, 2016;Van lengers.This reflects real-world patterns of both traditional software and Noordt &amp; Tangi, 2023).</p>
+<p>As open-source tools are typically provided AI, although open-source has notably been highly prevalent in pre- without warranty, liability or guarantee, outsourcing some or all of the generative AI machine learning applications (Bright et al., 2025).implementation transfers the perceived responsibility for delivering a</p>
+<h1>3.Research design</h1>
+<p>useful product from the organisation itself to the external support (Holck 3.Research design et al., 2005).</p>
+<p>If this support is no longer available, it can cause delays in implementation (Shaikh, 2016).This dynamic is particularly distinct in To address the research questions, this study primarily draws upon the choice between traditional software, as proprietary products may be 31 semi-structured interviews with current or recently formerly supported by the original vendor itself as well as consultancies with employed decision-makers in public sector Agencies in Australia, Can- relevant expertise.</p>
+<p>Agencies may find it reassuring that a brand sits ada and Germany conducted in December 2024 and the first half of behind any new technology (Freeman, 2012;Shaikh, 2016).External 2025.Initial literature review and desktop research indicated that there supports can extend to formalising the role of open-source communities.was scarce research on AI model choice in the public sector, particularly Two of the five elements in Shaikh&#x27;s (2016)definition of open-source — relating to OSAI.</p>
+<p>This informed the choice of relying on interviews community and coordinating mechanisms— are distinct from the tech- instead of case studies for data collection, with the advantage of nology itself but instead are reflect the ongoing support from the OSS capturing a wider sample of viewpoints and considerations.Further community.research using case studies may help to explore the themes raised in In comparison to the wide range of research on OSS adoption, aca- more depth.</p>
+<p>In addition, to inform the interview guide (shown in Ap- demic research on OSAI thus far has been mainly limited to how OSAI pendix 2) and provide a timely overview of the status quo, contextual models are technically developed (e.g.Osborne et al., 2024), defini- information on AI model features and implementations was drawn upon tional debates about what should be considered OSAI (e.g.Liesenfeld &amp; from sources such as model developer websites, user forums and media Dingemanse, 2024;</p>
+<p>Widder et al., 2024), geopolitical and corporate reporting.</p>
+<p>Table 1</p>
+<p>Adoption factors for OSS (Adapted from Sa´nchez et al., 2020).Adoption factors when Technology Organisation Environment – not included in considering OSS choice S´anchez et al.</p>
+<p>(2020)</p>
+<p>Technological attributes Economic (separate from technology in S´anchez et al., 2020)</p>
+<p>Factors (# of papers citing •Compatibility (34 papers •Total cost of ownership (19) •Support (45) •Regulatory pressures factor) cited this factor) •Reliability (23) •Licences cost (16) •Training (25) •Political pressures •Usability (17) •Operational cost (4) •Vendor lock-ins (13) •Political and public pressures •Documentation (12) •Support cost (2) •Top management support •Sustainability of open-source (10) community •Maintainability (12) •Attitude towards change •Expertise in relevant open-source (6) community •Reusability (8) •Centrality of IT (3) •Labour market for relevant skills •Portability (6) •Case studies of FLOSS •Market trends and industry adoption (2) context •Time [to] adoption (2) •Business process reengineering (1)</p>
+<p>Source: Adapted from S´anchez et al.</p>
+<p>(2020).Environmental adoption factors synthesised from Shaikh (2016), Ven and Verelst (2006), Badampudi et al.(2018), Dedrick and West (2004), Munoz-Cornejo et al.(2008), Freeman (2012).3</p>
+<p>N. Robinson G o v e r n m e n t I n f o r m a t i o n Q u a r t e r ly 43 (2026) 102133</p>
+<h2>3.1. Recruitment of participants</h2>
+<p>| 3.1. Recruitment of participants | | | Table 2: | | -------------------------------- | --- | --- | -------- | The key inclusion requirement for participants was proximity to or Participants were identified using documentary evidence collection influence over the decision-making process on AI model choice, on government AI initiatives, personal outreach via email or LinkedIn following the example of Gurusamy and Campbell&#x27;s (2012)selection of and recommendations from other participants — a snowball sampling public servants who influence the decision to adopt OSS. In practice, technique practiced by others including Freeman (2012). The partici- participants fit into one of three categories: responsible for an AI func- pants were approximately one-third women and two-thirds men. tion or department, having an oversight role on AI adoption or technical The choice of Australian, Canadian and German jurisdictions was leader of AI projects. Although the scope of public sector AI adoption is driven by several factors, including: expanding, according to participants themselves, the population of decision-influencers on the choice of AI model is relatively small across the three jurisdictions, particularly at a federal level. Thus the 31 par- interviewed; ticipants come from most of the key Agencies with influence on AI</p>
+<p>• availability and openness of senior decision-makers to be adoption in each jurisdiction, representing a relatively a strong sample compared to centralised states, due to higher autonomy for states of relevant contemporary perspectives and experiences. Further sam- or provinces, and providing greater heterogeneity across pling would enable more quantitative analysis but is likely to echo the</p>
+<p>• the federal structure increasing the number of decision-makers | perspectives; | | | standpoints shared in this study. | | ------------- | --- | --- | --------------------------------- | • avoiding jurisdictions with globally prominent home-grown models, To allow candid insights, participants participated in their personal which may bias decision-making; capacities drawing on their experiences in respective Agencies, rather • a relatively advanced consideration of AI implementation choices (if than representing any official positions. De-identification of participant not broad implementation) as these jurisdictions tend to have more names, positions and specific Agencies was important for two main insights on AI adoption, following the example of Van Noordt and reasons. First, to ensure participants could speak critically of their own Tangi (2023). Agency&#x27;s culture and decision-making (even if not all did), and second, on probity grounds, to avoid prejudicing current active procurements of The breakdown of participants and their Agencies is shown in AI models, including with vendors mentioned in the study.</p>
+<h2>3.2. Data collection</h2>
+<p>Table 2</p>
+<p>Participant and agency backgrounds (randomly sorted after country). The interviews were all conducted via video-conference through Country Level Type of Agency Role with AI adoption Microsoft Teams for between 45 and 90 min and semi-structured using contextual and thematic questions developed using previous research on | Federal | Central and/or digital | Oversaw AI approach | | | ------- | ---------------------- | ------------------- | --- | OSS choice, theories of innovation adoption and framed using TOE. The | State | Delivery or regulatory | Led delivery of AI projects | | | ----- | ---------------------- | --------------------------- | --- | interview guide is shown in Appendix 2. To minimise any biasing dis- | State | Central and/or digital | Oversaw AI approach | | | ----- | ---------------------- | ------------------- | --- | Federal Central and/or digital Led delivery of AI projects cussion of AI adoption towards open-source, contextual data on AI Federal Delivery or regulatory Responsible for AI and data area implementation was gathered before discussing open-source vs. pro- Australia State Central and/or digital Oversaw AI approach prietary choice, before returning to decision-making and enabling | State | Delivery or regulatory | Led delivery of AI projects | | | ----- | ---------------------- | -------------------------------- | -------- | | State | Central and/or digital | Responsible for AI and data area | factors. | Federal Delivery or regulatory Responsible for AI and data area The German interviews were conducted by the author and an addi- 9 participants tional fully fluent German speaker to ensure fine nuances of language | Federal | Central and/or digital | Led delivery of AI projects | | | ------- | ---------------------- | --------------------------- | --- | were not missed in the interaction. The questions were structured into | Province | Central and/or digital | Responsible for AI and data area | | | -------- | ---------------------- | -------------------------------- | --- | the following categories from early discovery to acceptance and imple- | Federal | Central and/or digital | Oversaw AI approach | | | ------- | ---------------------- | ------------------- | --- | Province Central and/or digital Oversaw AI approach mentation: Context and background, AI initiation and implementation, Province Delivery or regulatory Led delivery of AI projects consideration of open-source, decision-making process and influences, Canada Federal Delivery or regulatory Oversaw AI approach and enablers and flow-on effects. The interview was conducted using Federal Delivery or regulatory Oversaw AI approach mainly open questions, meaning that some participants chose to focus | Province | Delivery or regulatory | Led delivery of AI projects | | | -------- | ---------------------- | --------------------------- | --- | more on technical factors and others on organisational ones. Participant | Federal | Central and/or digital | Oversaw AI approach | | | ------- | ---------------------- | ------------------- | --- | responses were de-identified using country code (e.g. AU7, CA4, DE4) | Federal | Delivery or regulatory | Responsible for AI and data area | | | ------- | ---------------------- | -------------------------------- | --- | 10 participants with the number chosen at random. Participants were asked whether | Federal | Delivery or regulatory | Responsible for AI and data area | | | ------- | ---------------------- | -------------------------------- | --- | there were supplementary sources of information that should be referred | State | Central and/or digital | Responsible for AI and data area | | | ----- | ---------------------- | -------------------------------- | --- | Federal Central and/or digital Oversaw AI approach to, e.g. policies and guidance. Almost no participants cited any sources State Central and/or digital Responsible for AI and data area generated by government, therefore documentary evidence was not a Federal Delivery or regulatory Led delivery of AI projects significant source of further data. The lack of guiding materials is dis- | Federal | Central and/or digital | Responsible for AI and data area | cussed further in Section 4. | | ------------- | ---------------------- | -------------------------------- | ---------------------------- | | Germany State | Delivery or regulatory | Oversaw AI approach | | | Federal | Delivery or regulatory | Responsible for AI and data area | |</p>
+<h2>3.3. Data analysis</h2>
+<p>| Federal | Central and/or digital | Oversaw AI approach | | | ------- | ---------------------- | --------------------------- | --- | | State | Central and/or digital | Led delivery of AI projects | | State Central and/or digital Oversaw AI approach Interview transcripts were captured in almost all interviews except | Federal | Central and/or digital | Responsible for AI and data area | | | ------- | ---------------------- | -------------------------------- | --- | two, which proceeded using closely captured manual notes at the par- 12 participants Total 31 participants ticipants&#x27; request. Transcripts in German were translated to English using the Microsoft Translate tool and checked by the author. The quotes Notes: (1) Generalising the role is important to maintain anonymity as the used in Section 4are as literal as possible. All identifying proper nouns number of the AI decision-makers is still relatively small. (2) In a German have been removed and in the case of three participants, quotes have context, the state level includes cities. (3) The roles are defined as following: been slightly summarised for additional anonymisation. ‘Responsible for AI and data area’ means the participant was the leader of this function or department, ‘Oversaw AI approach’ means that the participant had a Processed interview transcripts were coded using a form of qualita- tive content analysis that aims to extend existing theory, which Hsieh role overseeing, determining or coordinating AI projects without necessarily being a departmental leader, ‘Led delivery of AI projects’ means that the and Shannon (2005)term directed content analysis. This approach relies participant held senior technical or delivery responsibilities. on open-ended questions that aim to avoid priming participants to</p>
+<p>4</p>
+<p>N.Robinson G o v e r n m e n t I n f o r m a t i o n Q u a r t e r ly 43 (2026) 102133</p>
+<p>follow a certain direction.That the data analysis is ‘directed’ initially by Table 3 the deductive themes sets it up for later comparison between the pre- Themes used in coding and frequency in coding.vious and current state, as is the goal of the Research Questions.</p>
+<p>The TOE dimensions Deductive themes from the Inductive themes that approach taken here also includes abductive elements as it is actively literature arose primarily through open to new themes (Timmermans &amp; Tavory, 2012) to engage with AI- interviews specific dynamics.</p>
+<p>The code book (see Appendix 2) drew on deductive Ordered by code frequency, the % represents the share of themes from literature on OSS adoption covered in Section 2as well as the 31 participants where this theme was coded research on AI adoption (for example, Mergel et al., 2023;Neumann Technological •Ongoing costs (54 times •Tuning, post-training, et al., 2024;Pumplun et al., 2019;Straub et al., 2023;Van Noordt &amp; adoption factors coded during thematic prompt-engineering and Tangi, 2023;</p>
+<p>Wirtz et al., 2019) to obtain guide AI-specific themes.</p>
+<p>(31% of total code coding, for 71% of other AI tuning techniques count) participants) (31, 45%) To ensure the context was fresh and allow for a code-recode •Performance (47, 65%) •Data maturity (20, 35%) approach (Fusch &amp; Ness, 2015), initial coding was undertaken imme- •Upfront costs (36, 65%) •Flexibility (5, 13%) diately after each interview (generally within a few days) using deduc- •Ease of implementation tive themes derived from literature as well as inductive themes.</p>
+<p>The (33, 65%) process of coding involved marking identified themes but also making •Physical infrastructure (31, 71%) notes and clarifications alongside for further refinement.The TOE •Product fit (31, 68%) framework helped structure the coding.</p>
+<p>Later, a few weeks after the last •Fit with existing tech- interviews, the transcripts (and manually captured notes) were placed in stack (28, 58%) a consolidated document where a further round of coding took place to •Innovation (19, 35%) check deductive themes as well as code new inductive themes into •Cloud (18, 45%) •Debugging and useability earlier interviews and clarify their definitions.</p>
+<p>Over time, the themes (13, 35%) were tracked using the spreadsheet to record definitional changes, •Linked data (12, 29%) necessary exclusions, inclusions and examples and monitor the emer- •Licensing (10, 23%) gence of new themes.</p>
+<p>Saturation was indicated when the identified Organisational •Decision-maker support •Procurement teams (45, adoption factors or influence (73, 81%) 68%) themes comprehensively accounted for the data, as indicated by low (57% of total code •Security (57, 77%) •Digital sovereignty (42, incremental learning (Eisenhardt, 1989), for example, no new themes count) 71%) emerging, which occurred after the second coding cycle.</p>
+<p>Table 3shows •Staff capability (51, •Inter-Agency the deductive and inductive themes identified as well as respective 81%) collaboration (42, 48%) frequency counts and the share of participants where the theme was •Policies (49, 68%) •Role of the central (federal) government (20, coded.</p>
+<p>45%) Using the coded transcripts, quotes or paragraphs were categorised •Lock-in (46, 68%) •Privacy and IP protection into a separate, thematically-structured document in order to de-link (18, 42%) them from individual participants&#x27; transcripts and capture a more ho- •Organisational technical •Administrative effects of sophistication (45, 65%) AI (16, 42%) listic sense of each theme.</p>
+<p>This document was used to undertake further •Organisational attitude •Transparency (15, 26%) inductive analysis, as well as checking the deductive coding against up- towards OSS (41, 71%) to-date theme definitions, prior to a final phase to check codes, where •Culture (30, 52%) •In-the-loop and saturation was confirmed.The thematic document also helped to high- guardrails (14, 23%) light relationships between adoption factors across participants and •Team attitude towards •Fairness (9, 23%) OSS (31, 58%) countries.</p>
+<p>These links which are discussed further in Section 4.Defini- •Resources and guidance •Accountability (6, 16%) tions of codes used in thematic analysis are shown in Appendix 3.(28, 58%)</p>
+<p>In interpreting the following analysis, it is important to note that the •Regulation (18, 42%) AI adoption was rapidly evolving in Agencies in the study period.During •Team technical sophistication (9, 16%) data collection, DeepSeek was released and Canada received stated •IT team (7, 19%) threats to its sovereignty.</p>
+<p>Both impacted the decision-making on AI Environmental •Open-source community •Internal support (e.g.model choice, adding a future-looking perspective.adoption factors (38, 58%) internal consulting, shared (12% of total code services) (26, 45%)</p>
+<h1>4.Findings</h1>
+<p>count) •Competition (28, 48%) •Academic support (10, 19%) •Vendor or tech firm •Reputation and brand (7, The following sub-sections are organised to sequentially answer RQ1 support (23, 55%) 13%) and RQ2 structured using the TOE framework.</p>
+<p>•Consulting support (21, 39%)</p>
+<h2>4.1.What informs the choice of Agencies to adopt open-source software Notes: (1) Each code assignment was counted individually.Individual codes</h2>
+<p>verses proprietary options?could be used more than once for each interview transcript, however, care was taken to ensure that a code was only used again when the subsequent instance</p>
+<h2>4.1.1.</h2>
+<p>Technological dimension was distinct of previous instances by contributing a different insight to previous Although interviews focused primarily on the consideration of pro- instances.(2) The frequency counts and percentages may be affected by the composition of the sample across the three study countries, although the number prietary vs.open-source AI, participants often addressed this choice by of participants were reasonably balanced across the three countries.reflecting on open-source technologies in general.</p>
+<p>Their perception of Agencies&#x27; stance to open-source differed based on its fit with the existing think that basically kind of put people in a position where it was cloud first technology stack.A key barrier to open-source adoption was that it re- cloud automatically” [CA8].The take-up of cloud has been a key quires Agencies to have invested more in their own infrastructure, for consideration in the drift away from open-source solutions, with several example, on-premises servers, CPUs and GPUs.</p>
+<p>In contrast, hosting and participants stating that the Agency didn&#x27;t want to support its own processing of proprietary software is typically managed by the vendor.According to AU1, “there&#x27;s probably been a significant under-investment [in hardware.A large majority of participants mentioned infrastructure as a our own infrastructure] for a long time”.</p>
+<p>Proprietary options have been strong factor, with almost all German participants documented that on- more attractive to Agencies, if they “forgot how to pay technical debt … I premises infrastructure is either in-place or a priority.In contrast,</p>
+<p>5</p>
+<p>N.Robinson G o v e r n m e n t I n f o r m a t i o n Q u a r t e r ly 43 (2026) 102133</p>
+<p>Australian and Canadian Agencies appeared to be much more reliant on government was coded, reflecting far greater enthusiasm for central the cloud, making up nearly 80% of times coded.Factors relating to fit, coordination and leadership.</p>
+<p>For instance DE3 “recommend[ed] having a compatibility and ease of implementation were strong but not pre- central unit available as a contact point on open-source” and DE10 hoped dominant themes, echoing previous OSS literature (see Table 1).“there will be new structures in the federal government”.This reflects the tension between Germany&#x27;s “decentralised federation” [DE11] with a</p>
+<h2>4.1.2.</h2>
+<p>Organisational dimension desire for top-down guidance and rules on when open-source is suitable With over half of all theme frequency counts relating to the organ- compared with proprietary.DE12 thought government should “think isational dimension, these factors were more prevalent in whether open- more European” and CA10 documented a need to “interoperate with [other source was considered feasible compared to proprietary options.Four- allied countries]”.</p>
+<p>Many participants viewed government as taking open- fifths of participants saw staff capability as a significant factor, with source communities for granted, e.g.</p>
+<p>“we have to get rid of this fallacy that lower internal capacity making it more difficult to undertake the more the wider community is just going to develop things for us” [DE5], however intensive technical work needed to adopt open-source options, as noted others, primarily in Australia and Canada, warned that it was not real- by Shaikh (2016), Sa´nchez et al.(2020) and Rossi et al.(2012).</p>
+<p>istic for government to become a wide-scale contributor: “if I&#x27;ve got my Australian and Canadian Agencies were concerned with the right mix of team spending 100 per cent of their time contributing to open-source projects, skills, for example, “we have some skills gaps in a lot of our product teams” that&#x27;s also not a great use of taxpayer dollar” [AU7].Highly capable [CA9], particularly around DevOps, data engineering and AI engineer- external consultants were seen as relatively neutral towards open- ing.</p>
+<p>AU8 blamed the issue of skills on the “the presumption that expertise source, “vendors will try more or less to give you what you asked for” which includes technology is an externalisable commodity that whenever you [AU6], although some “want to sell us closed systems because that&#x27;s how need it, you can just buy”.In comparison, German Agencies appeared to they lock us in” [DE4].</p>
+<p>Much of the concern about open-source adoption be generally stretched, with a several simply citing reasons like “a crazy comes back to relative brand weakness, with a number of participants shortage of skilled workers [in the wider economy]” [DE12] or “demographic citing the adage that “no one ever gets in trouble when you use IBM” [CA2] change” [DE4] as a reason why building in-house can be more risky.or a variation thereof that substitutes Microsoft.</p>
+<p>AU4 highlighted the Perhaps for this reason, a large majority of them brought up an advan- importance of “social licence” for government as a reason for trusting tage of open-source of being to collaborate and leverage economies of established brands, although reputati</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-8204ef348779ff1c.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">Google AI Overviews 準確率爭議：從九成到八成？</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-68b090706311abdc.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：公部門機關如何選擇開源 AI 模型：2026 年 6 月研究（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（PDF 文字推斷）</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：本機 PDF（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-06-30T17:13:32+00:00</li><li>審稿備註：由本機 PDF 上傳建立；來源資訊只採用 markitdown 抽取結果，抓不到則需人工補出處。
+2026-06-30T17:12:34+00:00 已將 PDF / MarkItDown 文字補成 reading_metadata.article_markdown，後續模型建議與編輯台會以全文為優先。
+2026-06-30T17:13:32+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。
+2026-06-30T17:16:44+00:00 以 Codex 重新分段全文（只重排段落、不改字詞）。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-68b090706311abdc";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
