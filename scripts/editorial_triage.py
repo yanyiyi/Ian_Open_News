@@ -94,6 +94,14 @@ COMMERCIAL_SOURCE_HINTS = [
     "nvidia", "meta", "openai", "anthropic",
 ]
 
+HISTORY_CALIBRATION_DEFAULTS = {
+    "enabled": True,
+    "window_days": 45,
+    "low_acceptance_rate": 0.08,
+    "min_source_total": 20,
+    "min_keyword_total": 20,
+}
+
 # 跨篇關聯：與庫中 researching/drafting 稿件共用幾個 tag 才算可互為佐證
 XREF_TAG_THRESHOLD = 2
 
@@ -230,6 +238,59 @@ def clean_text(value: object, limit: int | None = None) -> str:
 
 def normalized(value: object) -> str:
     return clean_text(value).casefold()
+
+
+def history_calibration_settings(taste: dict[str, Any]) -> dict[str, Any]:
+    global_cfg = taste.get("global") if isinstance(taste.get("global"), dict) else {}
+    cfg = global_cfg.get("history_calibration") if isinstance(global_cfg, dict) else {}
+    if not isinstance(cfg, dict):
+        cfg = {}
+    return {**HISTORY_CALIBRATION_DEFAULTS, **cfg}
+
+
+def cfg_int(config: dict[str, Any], key: str, default: int) -> int:
+    try:
+        return int(config.get(key, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def cfg_float(config: dict[str, Any], key: str, default: float) -> float:
+    try:
+        return float(config.get(key, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def cfg_terms(config: dict[str, Any], key: str) -> list[str]:
+    terms = config.get(key) or []
+    if not isinstance(terms, list):
+        return []
+    return [clean_text(term) for term in terms if clean_text(term)]
+
+
+def matched_keyword_keys(record: dict[str, Any]) -> list[str]:
+    triage = record.get("triage") if isinstance(record.get("triage"), dict) else {}
+    keys = [normalized(keyword) for keyword in (triage.get("matched_keywords") or []) if normalized(keyword)]
+    return list(dict.fromkeys(keys))
+
+
+def low_acceptance_signal(
+    label: str,
+    accepted: int,
+    rejected: int,
+    *,
+    min_total: int,
+    low_rate: float,
+    window_days: int,
+) -> str:
+    total = accepted + rejected
+    if total < min_total:
+        return ""
+    rate = accepted / total if total else 0
+    if rate > low_rate:
+        return ""
+    return f"{label}近 {window_days} 天收下率 {accepted}/{total}（{rate * 100:.0f}%）"
 
 
 def has_cjk(value: object) -> bool:
@@ -459,6 +520,19 @@ def named_event_chain_hits(
 
 
 def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[str, Any]) -> dict[str, Any]:
+    taste = load_taste_profile()
+    history_cfg = history_calibration_settings(taste)
+    history_window_days = max(0, cfg_int(history_cfg, "window_days", HISTORY_CALIBRATION_DEFAULTS["window_days"]))
+    history_since = date.today() - timedelta(days=history_window_days) if history_window_days else None
+
+    def in_history_window(record: dict[str, Any]) -> bool:
+        if history_cfg.get("enabled") is False:
+            return False
+        if history_since is None:
+            return True
+        record_date = parse_record_date(record)
+        return bool(record_date and record_date >= history_since)
+
     prior_records = [record for record in records if is_prior_collection_record(record)]
     rejected_records = [record for record in records if is_rejected_record(record)]
 
@@ -467,18 +541,30 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
     rejected_tags: Counter[str] = Counter()
     rejected_sources: Counter[str] = Counter()
     rejected_reasons: Counter[str] = Counter()
+    history_prior_sources: Counter[str] = Counter()
+    history_rejected_sources: Counter[str] = Counter()
+    history_prior_keywords: Counter[str] = Counter()
+    history_rejected_keywords: Counter[str] = Counter()
 
     for record in prior_records:
         prior_tags.update(tags_for(record))
         source = source_key(record)
         if source:
             prior_sources[source] += 1
+            if in_history_window(record):
+                history_prior_sources[source] += 1
+        if in_history_window(record):
+            history_prior_keywords.update(matched_keyword_keys(record))
 
     for record in rejected_records:
         rejected_tags.update(tags_for(record))
         source = source_key(record)
         if source:
             rejected_sources[source] += 1
+            if in_history_window(record):
+                history_rejected_sources[source] += 1
+        if in_history_window(record):
+            history_rejected_keywords.update(matched_keyword_keys(record))
         decision = record.get("local_decision") or {}
         reason = clean_text(decision.get("reason"), 120) if isinstance(decision, dict) else ""
         if reason:
@@ -486,7 +572,6 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
 
     named_event_index = build_named_event_index(prior_records, keyword_config)
 
-    taste = load_taste_profile()
     personal_beats = [b.get("beat") or b.get("signal", "") for b in (taste.get("personal_beats") or [])]
     personal_beats = [b for b in personal_beats if b]
 
@@ -517,6 +602,11 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
         "rejected_tags": rejected_tags,
         "rejected_sources": rejected_sources,
         "rejected_reasons": rejected_reasons,
+        "history_prior_sources": history_prior_sources,
+        "history_rejected_sources": history_rejected_sources,
+        "history_prior_keywords": history_prior_keywords,
+        "history_rejected_keywords": history_rejected_keywords,
+        "history_window_days": history_window_days,
         "prior_count": len(prior_records),
         "rejected_count": len(rejected_records),
         "taste_profile": taste,
@@ -738,6 +828,65 @@ def evaluate_editorial_triage(
         extra = ("（雖同時命中排除詞「" + "、".join(skip_keywords[:3]) + "」）") if skip_keywords else ""
         taste_signals.append("命中收錄關鍵字「" + "、".join(matched_keywords[:4])
                              + "」屬正訊號" + extra + "，雖被其他負分壓低，建議先確認再決定")
+
+    # 歷史命中率校準層：高價值國際科技政策訊號不因非台灣來源被略過；相反地，
+    # 低收下率來源/關鍵字若只命中泛文化詞，就不要讓 keep 泛詞直接推高到 ask/collect。
+    history_cfg = history_calibration_settings(context.get("taste_profile") or {})
+    if history_cfg.get("enabled") is not False:
+        high_value_hits = cue_matches(text, cfg_terms(history_cfg, "high_value_signals"))
+        if high_value_hits:
+            high_value_note = (
+                "歷史校準：命中高價值政策訊號「"
+                + "、".join(high_value_hits[:4])
+                + "」"
+            )
+            if recommendation in {"suggest-skip", "suggest-review"} and deletion_score < 4:
+                recommendation = "suggest-ask"
+                high_value_note += "，即使非台灣來源也先問再決定"
+            else:
+                high_value_note += "，避免只因非台灣來源降分"
+            taste_signals.append(high_value_note)
+
+        generic_terms = {normalized(term) for term in cfg_terms(history_cfg, "generic_keep_keywords")}
+        generic_hits = [keyword for keyword in matched_keywords if normalized(keyword) in generic_terms]
+        non_generic_hits = [keyword for keyword in matched_keywords if normalized(keyword) not in generic_terms]
+        if generic_hits and not non_generic_hits and not high_value_hits:
+            window_days = cfg_int(history_cfg, "window_days", context.get("history_window_days") or HISTORY_CALIBRATION_DEFAULTS["window_days"])
+            low_rate = cfg_float(history_cfg, "low_acceptance_rate", HISTORY_CALIBRATION_DEFAULTS["low_acceptance_rate"])
+            low_history_signals: list[str] = []
+            if source:
+                signal = low_acceptance_signal(
+                    f"來源「{source}」",
+                    context.get("history_prior_sources", Counter()).get(source, 0),
+                    context.get("history_rejected_sources", Counter()).get(source, 0),
+                    min_total=cfg_int(history_cfg, "min_source_total", HISTORY_CALIBRATION_DEFAULTS["min_source_total"]),
+                    low_rate=low_rate,
+                    window_days=window_days,
+                )
+                if signal:
+                    low_history_signals.append(signal)
+            for keyword in dict.fromkeys(generic_hits):
+                key = normalized(keyword)
+                signal = low_acceptance_signal(
+                    f"關鍵字「{keyword}」",
+                    context.get("history_prior_keywords", Counter()).get(key, 0),
+                    context.get("history_rejected_keywords", Counter()).get(key, 0),
+                    min_total=cfg_int(history_cfg, "min_keyword_total", HISTORY_CALIBRATION_DEFAULTS["min_keyword_total"]),
+                    low_rate=low_rate,
+                    window_days=window_days,
+                )
+                if signal:
+                    low_history_signals.append(signal)
+            if low_history_signals:
+                if recommendation in {"suggest-collect", "suggest-ask"}:
+                    recommendation = "suggest-review"
+                taste_signals.append(
+                    "歷史校準："
+                    + "；".join(low_history_signals[:3])
+                    + "，且只命中泛文化詞「"
+                    + "、".join(dict.fromkeys(generic_hits[:4]))
+                    + "」；最高只給人工看過"
+                )
 
     # tracked-beat 監測層：命中使用者長期追蹤線（taste_profile.tracked_beats 的關鍵字）時，
     # 即使單篇品質普通也強制把 suggest-skip 升為 suggest-ask，附追蹤線脈絡；命中明確 spam 排除詞則不動。
