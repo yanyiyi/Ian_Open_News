@@ -7535,6 +7535,10 @@ def page(title: str, body: str) -> bytes:
       color: var(--ocf-magenda);
     }}
     .inline-select-form {{ display: inline-flex; margin: 0; }}
+    .inline-select-form .source-quick-status {{
+      min-width: 3.25em;
+      margin-left: 6px;
+    }}
     .inline-select-form select {{
       width: auto;
       min-width: 112px;
@@ -7549,6 +7553,20 @@ def page(title: str, body: str) -> bytes:
     .source-action-row {{ display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }}
     .source-action-row .button, .source-action-row button {{ margin-top: 0; padding: 6px 8px; font-size: 12px; }}
     .source-toggle-form {{ display: inline-flex; margin: 0; }}
+    .source-toggle-form .source-quick-status {{
+      min-width: 3.25em;
+      margin-left: 6px;
+      align-self: center;
+    }}
+    .source-quick-status {{
+      display: inline-block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1;
+      white-space: nowrap;
+    }}
+    .source-quick-status.is-error {{ color: var(--ocf-magenda); }}
     .source-toggle {{
       display: inline-flex;
       align-items: center;
@@ -9122,6 +9140,72 @@ def page(title: str, body: str) -> bytes:
     }});
   }});
 
+  const setSourceQuickStatus = (form, message, isError = false) => {{
+    const status = form?.querySelector("[data-source-quick-status]");
+    if (!status) return;
+    status.textContent = message || "";
+    status.classList.toggle("is-error", Boolean(isError));
+  }};
+
+  const removeSourceRowIfFilteredOut = (form, nextStatus) => {{
+    if (!nextStatus) return;
+    const row = form.closest("[data-source-row]");
+    if (!row) return;
+    const statusFilter = new URL(window.location.href).searchParams.get("status") || "live";
+    let filteredOut = false;
+    if (statusFilter === "live") filteredOut = nextStatus === "archived";
+    else if (statusFilter !== "all") filteredOut = nextStatus !== statusFilter;
+    if (!filteredOut) return;
+    row.style.opacity = "0";
+    window.setTimeout(() => {{
+      row.remove();
+      updateSourceGroupCounts();
+    }}, 180);
+  }};
+
+  const submitSourceQuickUpdate = async (form) => {{
+    if (!form) return;
+    if (!window.fetch) {{
+      form.submit();
+      return;
+    }}
+    const controls = Array.from(form.querySelectorAll("button, select, input:not([type='hidden'])"));
+    const data = new URLSearchParams(new FormData(form));
+    data.set("format", "json");
+    setSourceQuickStatus(form, "儲存中");
+    controls.forEach((control) => control.disabled = true);
+    try {{
+      const response = await fetch(form.getAttribute("action") || form.action, {{
+        method: "POST",
+        headers: {{
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          "X-Requested-With": "local-web-fetch"
+        }},
+        body: data
+      }});
+      let payload = null;
+      try {{ payload = await response.json(); }} catch (_error) {{ payload = null; }}
+      if (!response.ok || (payload && payload.ok === false)) {{
+        throw new Error((payload && payload.error) || `HTTP ${{response.status}}`);
+      }}
+      setSourceQuickStatus(form, "已儲存");
+      if (data.get("field") === "status") removeSourceRowIfFilteredOut(form, data.get("value"));
+      window.setTimeout(() => setSourceQuickStatus(form, ""), 1400);
+    }} catch (error) {{
+      setSourceQuickStatus(form, String(error), true);
+    }} finally {{
+      controls.forEach((control) => control.disabled = false);
+    }}
+  }};
+  window.submitSourceQuickUpdate = submitSourceQuickUpdate;
+
+  document.querySelectorAll("form[data-source-quick-form]").forEach((form) => {{
+    form.addEventListener("submit", async (event) => {{
+      event.preventDefault();
+      await submitSourceQuickUpdate(form);
+    }});
+  }});
+
   document.querySelectorAll("form[data-source-toggle-form]").forEach((form) => {{
     form.addEventListener("submit", async (event) => {{
       if (!window.fetch) return;
@@ -9145,12 +9229,13 @@ def page(title: str, body: str) -> bytes:
         if (!response.ok) throw new Error(`HTTP ${{response.status}}`);
         const isActive = nextStatus === "active";
         button.classList.toggle("is-on", isActive);
-        button.innerHTML = `<span></span>${{isActive ? "啟用" : "暫停"}}`;
+        button.innerHTML = `<span class="toggle-dot"></span>${{isActive ? "啟用" : "暫停"}}`;
         const nextValue = isActive ? "paused" : "active";
         const hint = isActive ? "點一下暫停抓取" : "點一下恢復啟用";
         valueInput.value = nextValue;
         button.title = hint;
         button.setAttribute("aria-label", hint);
+        removeSourceRowIfFilteredOut(form, nextStatus);
       }} catch (_error) {{
         button.innerHTML = previousHTML;
       }} finally {{
@@ -20147,7 +20232,8 @@ if (document.readyState === "loading") {{
   <input type="hidden" name="id" value="{h(source.get('id', ''))}">
   <input type="hidden" name="field" value="{h(field)}">
   <input type="hidden" name="redirect" value="{h(redirect_path)}">
-  <select name="value" aria-label="{h(field)}" onchange="this.form.submit()">{option_list(options, current)}</select>
+  <select name="value" aria-label="{h(field)}" onchange="window.submitSourceQuickUpdate ? window.submitSourceQuickUpdate(this.form) : this.form.submit()">{option_list(options, current)}</select>
+  <span class="source-quick-status" data-source-quick-status aria-live="polite"></span>
 </form>
 """
 
@@ -20165,12 +20251,13 @@ if (document.readyState === "loading") {{
             source_id = clean_text(source.get("id"))
             if status == "archived":
                 return f"""
-<form class="source-toggle-form" method="post" action="/sources/quick-update">
+<form class="source-toggle-form" method="post" action="/sources/quick-update" data-source-quick-form>
   <input type="hidden" name="id" value="{h(source_id)}">
   <input type="hidden" name="field" value="status">
   <input type="hidden" name="value" value="active">
   <input type="hidden" name="redirect" value="{h(redirect_path)}">
   <button type="submit" class="source-toggle source-toggle--archived" aria-label="恢復啟用">{h(source_status_label(status))}</button>
+  <span class="source-quick-status" data-source-quick-status aria-live="polite"></span>
 </form>
 """
             next_status = "paused" if status == "active" else "active"
@@ -20193,12 +20280,13 @@ if (document.readyState === "loading") {{
             if status == "archived":
                 return ""
             return f"""
-<form class="chip-form" method="post" action="/sources/quick-update">
+<form class="chip-form" method="post" action="/sources/quick-update" data-source-quick-form>
   <input type="hidden" name="id" value="{h(source_id)}">
   <input type="hidden" name="field" value="status">
   <input type="hidden" name="value" value="archived">
   <input type="hidden" name="redirect" value="{h(redirect_path)}">
   <button type="submit" class="reason-chip reason-chip--danger" title="封存這個來源">封存</button>
+  <span class="source-quick-status" data-source-quick-status aria-live="polite"></span>
 </form>
 """
 
