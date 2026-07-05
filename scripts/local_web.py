@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import argparse
 import errno
+import fcntl
 import html
 import json
 import mimetypes
+import os
 import re
 import shutil
 import subprocess
@@ -73,6 +75,8 @@ INSIGHT_REPORTS = DATABASE / "insight-reports.jsonl"
 SYSTEM_CHANGE_PROPOSALS = DATABASE / "system-change-proposals.jsonl"
 TASTE_PROFILE = DATABASE / "taste-profile.json"
 CACHE_DIR = ROOT / ".cache"
+LOCAL_WEB_LOCK = CACHE_DIR / "local-web.lock"
+_LOCAL_WEB_LOCK_HANDLE = None
 INSIGHT_STATUS = ROOT / ".cache" / "insight-status.json"
 PDF_SPLIT_STATUS = ROOT / ".cache" / "pdf-split-status.json"
 TRANSLATE_STATUS = ROOT / ".cache" / "translate-status.json"
@@ -2512,6 +2516,40 @@ def start_data_autocommit_worker() -> None:
             commit_database_state("auto")
 
     threading.Thread(target=worker, name="data-autocommit", daemon=True).start()
+
+
+def acquire_local_web_lock() -> None:
+    global _LOCAL_WEB_LOCK_HANDLE
+    LOCAL_WEB_LOCK.parent.mkdir(parents=True, exist_ok=True)
+    handle = LOCAL_WEB_LOCK.open("a+", encoding="utf-8")
+    try:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError as exc:
+        handle.seek(0)
+        details = clean_text(handle.read(), 500)
+        handle.close()
+        message = "Another Ian Open News local web server is already running for this checkout."
+        if details:
+            message += f" Lock holder: {details}"
+        message += f" Lock file: {LOCAL_WEB_LOCK}"
+        raise SystemExit(message) from exc
+
+    handle.seek(0)
+    handle.truncate()
+    handle.write(
+        json.dumps(
+            {
+                "pid": os.getpid(),
+                "started_at": datetime.now(LOCAL_TIMEZONE).isoformat(timespec="seconds"),
+                "root": str(ROOT),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+        + "\n"
+    )
+    handle.flush()
+    _LOCAL_WEB_LOCK_HANDLE = handle
 
 
 def default_review(notes: str = "") -> dict:
@@ -20911,7 +20949,11 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--port-scan-count", type=int, default=20, help="How many ports to try when the requested port is already in use.")
+    parser.add_argument("--allow-multiple", action="store_true", help="Allow more than one local web server for debugging.")
     args = parser.parse_args()
+
+    if not args.allow_multiple:
+        acquire_local_web_lock()
 
     server = None
     last_error = None
