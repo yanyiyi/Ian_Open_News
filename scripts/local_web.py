@@ -355,6 +355,8 @@ DATA_AUTOCOMMIT_FILES = [
     SYSTEM_CHANGE_PROPOSALS,
     TASTE_PROFILE,
 ]
+TRANSLATION_SOURCE_MARKDOWN_LIMIT = 42000
+TRANSLATION_SOURCE_TEXT_LIMIT = 36000
 DATA_AUTOCOMMIT_LOCK = threading.Lock()
 # 序列化資料庫的「讀取→修改→整檔覆寫」交易。ThreadingHTTPServer 會並發處理請求，
 # 沒有這把鎖時，批次或快速連點的收件/分流會 lost-update：item 被另一執行緒的舊
@@ -670,6 +672,28 @@ def clean_markdown_text(value: object, limit: int | None = None) -> str:
         return ""
     text = str(value).replace("\r\n", "\n").replace("\r", "\n")
     text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", text).strip()
+    if limit and len(text) > limit:
+        return text[:limit].rstrip() + "..."
+    return text
+
+
+def translation_source_clean_markdown(value: object, limit: int | None = None) -> str:
+    """Match codex_translate_article.source_markdown normalization for source hashes."""
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", text)
+    text = re.sub(r"[ \t\f\v]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    if limit and len(text) > limit:
+        return text[:limit].rstrip() + "\n\n..."
+    return text
+
+
+def translation_source_clean_text(value: object, limit: int | None = None) -> str:
+    text = str(value or "")
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = "\n".join(" ".join(line.split()) for line in text.split("\n"))
+    text = "\n".join(line for line in text.split("\n") if line.strip()).strip()
     if limit and len(text) > limit:
         return text[:limit].rstrip() + "..."
     return text
@@ -4581,10 +4605,19 @@ def item_provider_translation_markdown(item: dict, provider: str) -> str:
 
 
 def item_translation_source_markdown(item: dict) -> str:
-    edited = item_edited_markdown(item)
-    if edited and not item_edited_markdown_base(item).casefold().startswith("zh"):
+    metadata = item_reading_metadata(item)
+    edited = translation_source_clean_markdown(metadata.get("edited_markdown"), TRANSLATION_SOURCE_MARKDOWN_LIMIT)
+    edited_base = clean_text(metadata.get("edited_markdown_base")).casefold()
+    if edited and not edited_base.startswith("zh"):
         return edited
-    return item_article_markdown(item) or item_article_text(item)
+    markdown = translation_source_clean_markdown(metadata.get("article_markdown"), TRANSLATION_SOURCE_MARKDOWN_LIMIT)
+    if markdown and not is_access_prompt_text(markdown):
+        return markdown
+    text = translation_source_clean_text(metadata.get("article_text"), TRANSLATION_SOURCE_TEXT_LIMIT)
+    if text and not is_access_prompt_text(text):
+        title = clean_text(metadata.get("title") or item.get("title"), 320)
+        return f"# {title}\n\n{text}" if title else text
+    return ""
 
 
 def item_translation_source_hash(item: dict) -> str:
@@ -6479,6 +6512,17 @@ def page(title: str, body: str) -> bytes:
     .original-fulltext-collapsible[open] > summary::after {{ content: "收起原文"; }}
     .translation-fulltext-collapsible > summary::after {{ content: "展開翻譯"; }}
     .translation-fulltext-collapsible[open] > summary::after {{ content: "收起翻譯"; }}
+    .fulltext-panel-heading {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }}
+    .fulltext-panel-heading form {{
+      margin: 0;
+      flex: 0 0 auto;
+    }}
     .share-url-field {{
       width: 100%;
       border: 1px solid var(--line);
@@ -11166,6 +11210,8 @@ class Handler(BaseHTTPRequestHandler):
             self.save_personal_note(self.read_form())
         elif parsed.path == "/items/update-tags":
             self.update_item_tags(self.read_form())
+        elif parsed.path == "/items/update-track":
+            self.update_item_track(self.read_form())
         elif parsed.path == "/items/toggle-reading-priority":
             self.toggle_reading_priority(self.read_form())
         elif parsed.path == "/pages/toggle-publish":
@@ -11180,6 +11226,8 @@ class Handler(BaseHTTPRequestHandler):
             self.normalize_pdf_markdown(self.read_form())
         elif parsed.path == "/items/save-fulltext":
             self.save_fulltext_edit(self.read_form())
+        elif parsed.path == "/items/clear-edited-fulltext":
+            self.clear_edited_fulltext(self.read_form())
         elif parsed.path == "/items/repaginate-fulltext":
             self.repaginate_fulltext(self.read_form())
         elif parsed.path == "/items/fulltext-link":
@@ -11288,7 +11336,7 @@ class Handler(BaseHTTPRequestHandler):
 
         lookup = editor_item_lookup()
         available_records = editor_search_items()
-        available_payload = [editor_material_payload(record) for record in available_records[:350]]
+        available_payload = [editor_material_payload(record) for record in available_records]
         selected_payload = [editor_material_payload(lookup[item_id]) for item_id in prefill_ids if lookup.get(item_id)]
         available_json = json.dumps(available_payload, ensure_ascii=False).replace("<", "\\u003c")
         selected_json = json.dumps(selected_payload, ensure_ascii=False).replace("<", "\\u003c")
@@ -11953,7 +12001,7 @@ class Handler(BaseHTTPRequestHandler):
             for r in load_jsonl(ITEMS)
             if is_skill_candidate(r) and clean_text(r.get("id")) not in {e[0] for e in mat_entries}
         ]
-        toolbox_mat_pool_json = json.dumps(toolbox_mat_pool[:400], ensure_ascii=False).replace("<", "\\u003c")
+        toolbox_mat_pool_json = json.dumps(toolbox_mat_pool, ensure_ascii=False).replace("<", "\\u003c")
         toolbox_panel = f"""
 <details class="card editor-session-toolbox" open>
   <summary><h2>工具箱</h2><span class="help-dot" title="用同一組材料改跑其他寫法、其他任務，或換另一個 AI。可取消勾選排除材料、搜尋加入新材料。">?</span></summary>
@@ -12327,7 +12375,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         item_lookup = {clean_text(item.get("id")): item for item in all_items}
         links_by_item = material_article_links_by_item()
         searchable_items = editor_search_items()
-        viewpoint_materials = [editor_material_payload(record) for record in searchable_items[:350]]
+        viewpoint_materials = [editor_material_payload(record) for record in searchable_items]
         viewpoint_material_json = json.dumps(viewpoint_materials, ensure_ascii=False).replace("<", "\\u003c")
         available_notes = []
         for item in searchable_items:
@@ -13680,7 +13728,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         body = article.get("body_markdown") or ""  # 原始 markdown，不可走 clean_text
 
         lookup = editor_item_lookup()
-        available_payload = [editor_material_payload(record) for record in editor_search_items()[:350]]
+        available_payload = [editor_material_payload(record) for record in editor_search_items()]
         selected_payload = []
         for item_id in item_ids:
             rec = lookup.get(item_id)
@@ -16047,6 +16095,8 @@ if (document.readyState === "loading") {{
             notice = '<div class="notice">已更新這篇的對外顯示標題。</div>'
         elif saved == "metadata":
             notice = '<div class="notice">已更新這篇的原始 metadata。</div>'
+        elif saved == "track":
+            notice = '<div class="notice">已更新這篇的大分流；列表、閱讀區篩選與單篇 badge 會改用新的主線。</div>'
         elif saved == "translation":
             notice = '<div class="notice">已完成中文翻譯，並存回閱讀資料庫。</div>'
         elif saved == "newsletter_links":
@@ -16066,6 +16116,8 @@ if (document.readyState === "loading") {{
             notice = '<div class="notice">已補入全文來源，並標明是貼上連結、手動貼文或上傳 PDF。</div>'
         elif saved == "fulltext_edit":
             notice = '<div class="notice">已儲存你線上修正後的全文，閱讀區與編輯台都會用這份。</div>'
+        elif saved == "fulltext_edit_cleared":
+            notice = '<div class="notice">已清除手動修正全文，頁面已回到原始主文／自動翻譯的狀態。</div>'
         elif saved == "repaginate":
             notice = '<div class="notice">已用 AI 重新分段（只重排段落、未改字詞）。如不滿意可再「編輯 PDF 全文」手動微調。</div>'
         elif (query.get("error") or [""])[0] == "repaginate":
@@ -16087,6 +16139,8 @@ if (document.readyState === "loading") {{
             notice = '<div class="notice">這次無法解析跳轉後網址。你仍可手動貼上實際文章網址再儲存。</div>'
         elif (query.get("error") or [""])[0] == "translation":
             notice = '<div class="notice">這次沒有順利翻譯。請先確認已展開全文，或稍後再試。</div>'
+        elif (query.get("error") or [""])[0] == "track":
+            notice = '<div class="notice">這次沒有更新大分流。請確認選的是既有主線。</div>'
         elif (query.get("error") or [""])[0] == "pdf_markdown":
             upload_href = f"/items/upload-pdf?parent_item_id={quote(clean_text(item.get('id')))}&relation=full-source&track={quote(clean_text(item.get('track')))}"
             notice = (
@@ -16112,6 +16166,11 @@ if (document.readyState === "loading") {{
         translation_entries = item_translation_entries(item)
         has_translation = bool(translation_entries)
         is_edited = bool(edited_markdown)
+        edited_base = item_edited_markdown_base(item).casefold()
+        translation_has_current = any(
+            not item_provider_translation_is_stale(item, provider)
+            for provider, _markdown in translation_entries
+        )
         article_html = markdown_to_html(strip_duplicate_leading_heading(article_markdown, display_title)) if article_markdown else ""
         original_title = item_original_title(item)
         original_language = item_original_language(item)
@@ -16128,6 +16187,18 @@ if (document.readyState === "loading") {{
         edit_fulltext_button = (
             f'<a class="button button-small" href="/items/edit-fulltext?id={quote(item_id)}">{button_content(edit_fulltext_label, "edit")}</a>'
             if (article_markdown or article_text or has_translation or is_edited) and not is_rss_candidate
+            else ""
+        )
+        clear_edited_fulltext_form = (
+            f"""
+    <form method="post" action="/items/clear-edited-fulltext"
+      onsubmit="return confirm('確定要清除手動修正全文？原始主文與自動翻譯會保留。');">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+      <button type="submit" class="button button-small quiet" title="清除這個手動修正全文區塊">{button_content("清除本區塊", "clear")}</button>
+    </form>
+"""
+            if is_edited and not is_rss_candidate
             else ""
         )
         # 原文面板：read-more 目標，永遠帶 #fulltext-panel / data-fulltext-body / 翻譯動作。
@@ -16161,20 +16232,29 @@ if (document.readyState === "loading") {{
             )
             primary_fulltext_panel = f"""
 <section class="card fulltext-panel source-card source-card--source" id="primary-fulltext-panel">
-  <div class="section-kicker">{h(edited_fulltext_kicker(item))}</div>
+  <div class="fulltext-panel-heading">
+    <div class="section-kicker">{h(edited_fulltext_kicker(item))}</div>
+    {clear_edited_fulltext_form}
+  </div>
   <div class="article-text article-markdown">{edited_html}</div>
   {translate_actions_row}
 </section>
 """
-        # 自動翻譯：沒編輯時當主全文（prominent + 編輯鈕）；編輯後收合供比對（point 2）
+        # 自動翻譯：中文手修版存在時收合供比對；原文手修版的最新版翻譯則直接顯示給閱讀。
         if has_translation and is_edited:
-            translation_panel = translation_panels_html(item, collapsed=True)
+            translation_panel = translation_panels_html(
+                item,
+                collapsed=edited_base.startswith("zh") or not translation_has_current,
+            )
         elif has_translation:
             translation_panel = translation_panels_html(item)
         else:
             translation_panel = ""
-        # 閱讀區順序：主全文（編輯版）→ 翻譯 → 原文
-        reading_panels = primary_fulltext_panel + translation_panel + original_fulltext_panel
+        # 閱讀區順序：最新版中文翻譯優先；若只有原文手修版或舊翻譯，仍保留比對用原文。
+        if has_translation and is_edited and translation_has_current and not edited_base.startswith("zh"):
+            reading_panels = translation_panel + primary_fulltext_panel + original_fulltext_panel
+        else:
+            reading_panels = primary_fulltext_panel + translation_panel + original_fulltext_panel
         note = personal_note_text(item)
         item_url = clean_text(item.get("url"), 1200)
         online_article_url = public_reader_article_url(item)
@@ -16204,6 +16284,23 @@ if (document.readyState === "loading") {{
         tag_reference_records = [*all_items, *candidate_records, *load_jsonl(REJECTED_ITEMS)]
         tag_panel = tag_editor_html(item, tag_reference_records, item_detail_href(item), autosave=True)
         reading_priority_actions = "" if is_rss_candidate else reading_priority_form(item, item_detail_href(item))
+        current_track = clean_text(item.get("track"))
+        if current_track not in TRACK_META:
+            current_track = "unclassified"
+        track_options = [(track, TRACK_META[track]["label"]) for track in TRACK_ORDER]
+        track_panel = f"""
+  <div class="card">
+    <h2>大分流 <span class="help-dot" title="只修正這一篇材料所在的主線，不會連動修改來源 RSS 預設分流。">?</span></h2>
+    <form method="post" action="/items/update-track">
+      <input type="hidden" name="id" value="{h(item_id)}">
+      <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
+      <label>目前主線</label>
+      <select name="track">{option_list(track_options, current_track)}</select>
+      <button type="submit" class="button button-small">{button_content("更新分流", "tag")}</button>
+    </form>
+    <p class="help">看到「人文與在地知識」或「開放科技」分錯時，從這裡直接改單篇。</p>
+  </div>
+"""
 
         inbox_actions = ""
         if is_rss_candidate:
@@ -16639,6 +16736,7 @@ if (document.readyState === "loading") {{
       <div class="button-row article-dock-actions">
         {read_more_actions}
         {edit_fulltext_button}
+        {clear_edited_fulltext_form}
         {reading_priority_actions}
       </div>
     </div>
@@ -16646,6 +16744,7 @@ if (document.readyState === "loading") {{
   </section>
   <section class="article-tool-section">
     <div class="article-tool-section-title">整理與編輯</div>
+    {track_panel}
     {tag_panel}
     {editor_panel}
   </section>
@@ -18070,6 +18169,52 @@ if (document.readyState === "loading") {{
                 return True
         return False
 
+    def _clear_edited_markdown(self, item_id: str, note: str) -> bool:
+        """移除 edited_markdown 覆寫層，回到原文／自動翻譯的顯示狀態。"""
+        edited_keys = {
+            "edited_markdown",
+            "edited_markdown_chars",
+            "edited_markdown_base",
+            "edited_markdown_at",
+        }
+        for path in (ITEMS, CANDIDATES):
+            records = load_jsonl(path)
+            changed = False
+            out = []
+            for it in records:
+                if clean_text(it.get("id")) != item_id:
+                    out.append(it)
+                    continue
+                updated = dict(it)
+                md = dict(item_reading_metadata(updated))
+                had_edited = any(md.get(key) not in (None, "") for key in edited_keys)
+                for key in edited_keys:
+                    md.pop(key, None)
+                updated["reading_metadata"] = md
+                if had_edited:
+                    updated["review"] = append_review_note(updated.get("review") or {}, note)
+                    changed = True
+                out.append(updated)
+            if changed:
+                write_jsonl(path, out)
+                return True
+        return False
+
+    def clear_edited_fulltext(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        ok = self._clear_edited_markdown(
+            item_id,
+            f"{now_iso()} 清除手動修正全文覆寫層，回到原始主文／自動翻譯顯示狀態。",
+        )
+        if not ok:
+            item, _path = self._find_item_any(item_id)
+            if not item:
+                self.send_html("找不到項目", "<h1>找不到可清除全文覆寫層的材料</h1>", HTTPStatus.NOT_FOUND)
+                return
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}saved=fulltext_edit_cleared")
+
     def repaginate_fulltext(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         provider = clean_text(form_value(data, "provider", "claude")) or "claude"
@@ -18424,6 +18569,59 @@ if (document.readyState === "loading") {{
             return
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=title")
+
+    def update_track_record(self, path: Path, item_id: str, new_track: str) -> bool:
+        if new_track not in TRACK_META:
+            return False
+        records = load_jsonl(path)
+        updated_records = []
+        found = False
+        updated_at = now_iso()
+        for item in records:
+            if clean_text(item.get("id")) != item_id:
+                updated_records.append(item)
+                continue
+            found = True
+            updated = dict(item)
+            previous_track = clean_text(updated.get("track")) or "unclassified"
+            updated["track"] = new_track
+            metadata = dict(updated.get("track_metadata") if isinstance(updated.get("track_metadata"), dict) else {})
+            metadata.update(
+                {
+                    "previous_track": previous_track,
+                    "updated_at": updated_at,
+                    "source": "local_web",
+                }
+            )
+            updated["track_metadata"] = metadata
+            if previous_track != new_track:
+                note = (
+                    f"{updated_at} 手動更新大分流："
+                    f"{track_meta(previous_track)['short']} → {track_meta(new_track)['short']}。"
+                )
+                updated["review"] = append_review_note(updated.get("review") or {}, note)
+            updated_records.append(updated)
+        if found:
+            write_jsonl(path, updated_records)
+        return found
+
+    def update_item_track(self, data: dict[str, list[str]]) -> None:
+        item_id = form_value(data, "id")
+        new_track = form_value(data, "track")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        found = self.update_track_record(ITEMS, item_id, new_track)
+        if not found:
+            found = self.update_track_record(CANDIDATES, item_id, new_track)
+        if not found:
+            item, _path = self._find_item_any(item_id)
+            if not item:
+                self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回入庫建檔區</a></p>", HTTPStatus.NOT_FOUND)
+                return
+            separator = "&" if "?" in redirect_to else "?"
+            self.redirect(f"{redirect_to}{separator}error=track")
+            return
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}saved=track")
 
     def update_metadata_record(self, path: Path, item_id: str, data: dict[str, list[str]]) -> bool:
         fields = [

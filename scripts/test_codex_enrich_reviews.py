@@ -4,6 +4,8 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -160,6 +162,30 @@ class CodexEnrichReviewsTaiwanGuardTest(unittest.TestCase):
         self.assertIn("claude_review", editorial)
         self.assertEqual(editorial["zh_title"], "新的閱讀建議")
         self.assertIn("新的摘要", editorial["zh_summary"])
+
+
+class CodexEnrichReviewsProviderFallbackTest(unittest.TestCase):
+    def test_random_provider_falls_back_when_first_engine_returns_bad_json(self) -> None:
+        calls = []
+
+        def fake_run_provider(batch, args, provider):
+            calls.append(provider)
+            if provider == "ollama-twinkle":
+                raise RuntimeError("輸出不是可用的閱讀建議 JSON")
+            return [{"id": "item-test", "summary": "ok"}]
+
+        args = SimpleNamespace(provider="random")
+        with patch.object(codex_enrich_reviews, "run_provider", side_effect=fake_run_provider):
+            provider, reviews = codex_enrich_reviews.run_provider_with_fallback(
+                [{"id": "item-test"}],
+                args,
+                "ollama-twinkle",
+                ["ollama-twinkle", "codex"],
+            )
+
+        self.assertEqual(provider, "codex")
+        self.assertEqual(calls, ["ollama-twinkle", "codex"])
+        self.assertEqual(reviews, [{"id": "item-test", "summary": "ok"}])
 
 
 if __name__ == "__main__":

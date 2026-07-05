@@ -886,6 +886,31 @@ def run_provider(batch: list[dict[str, Any]], args: argparse.Namespace, provider
     return run_codex(batch, args)
 
 
+def random_fallback_order(initial_provider: str, providers: list[str]) -> list[str]:
+    ordered = [provider for provider in providers if provider != initial_provider]
+    ordered.sort(key=lambda provider: PROVIDER_WEIGHTS.get(provider, 0), reverse=True)
+    return [initial_provider, *ordered]
+
+
+def run_provider_with_fallback(
+    batch: list[dict[str, Any]],
+    args: argparse.Namespace,
+    provider: str,
+    providers: list[str] | None = None,
+) -> tuple[str, list[dict[str, Any]]]:
+    if args.provider != "random":
+        return provider, run_provider(batch, args, provider)
+    candidates = random_fallback_order(provider, providers or available_providers())
+    errors = []
+    for candidate in candidates:
+        try:
+            return candidate, run_provider(batch, args, candidate)
+        except RuntimeError as exc:
+            errors.append(f"{provider_meta(candidate)['label']}: {exc}")
+            continue
+    raise RuntimeError("隨機 AI 閱讀建議可用引擎都失敗：\n" + "\n\n".join(errors))
+
+
 def formatted_summary(review: dict[str, Any]) -> str:
     reasons = review.get("reasons") if isinstance(review.get("reasons"), list) else []
     reasons = [clean_text(reason) for reason in reasons[:3]]
@@ -1139,8 +1164,24 @@ def process_file(
                 batch_records=batch_records,
             )
             batch_input = [review_input(record) for record in batch_records]
-            reviews = run_provider(batch_input, args, provider)
-            batch_changed = apply_reviews(records, reviews, provider, replace_existing=args.replace_existing)
+            actual_provider, reviews = run_provider_with_fallback(batch_input, args, provider, providers if args.provider == "random" else None)
+            if actual_provider != provider:
+                progress_status(
+                    args,
+                    progress,
+                    message=(
+                        f"{label} 失敗，已改用 {provider_meta(actual_provider)['label']} "
+                        "補 AI 閱讀建議"
+                    ),
+                    provider=actual_provider,
+                    kind=kind,
+                    batch_records=batch_records,
+                )
+                print(
+                    f"{kind}: {label} failed; retried with {provider_meta(actual_provider)['label']}",
+                    flush=True,
+                )
+            batch_changed = apply_reviews(records, reviews, actual_provider, replace_existing=args.replace_existing)
             changed += batch_changed
             progress["index"] = end_index
             progress["end_index"] = end_index

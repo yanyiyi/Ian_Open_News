@@ -8,6 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import codex_translate_article  # noqa: E402
 import local_web  # noqa: E402
 
 
@@ -104,6 +105,31 @@ class MarkdownRenderingTest(unittest.TestCase):
         self.assertEqual(local_web.item_original_language(item), "en")
         self.assertTrue(local_web.translation_actions_html(item, "item-english", "/items/view?id=item-english"))
 
+    def test_long_edited_translation_hash_matches_actual_translate_source(self) -> None:
+        edited = "# Long OSPO Report\n\n" + ("Open source programme office context.\n\n" * 2500)
+        item = {
+            "id": "item-long",
+            "title": "Long OSPO Report",
+            "reading_metadata": {
+                "article_markdown": "# Wrong short source\n\nAttribution 4.0 International",
+                "edited_markdown": edited,
+                "edited_markdown_base": "original",
+                "original_language": "en",
+            },
+        }
+        source_hash = codex_translate_article.hashlib.sha1(
+            codex_translate_article.source_markdown(item).encode("utf-8")
+        ).hexdigest()[:16]
+        item["reading_metadata"].update(
+            {
+                "codex_translated_article_markdown_zh": "# 中文報告\n\n已翻譯。",
+                "codex_translation_source_hash": source_hash,
+            }
+        )
+
+        self.assertEqual(local_web.item_translation_source_hash(item), source_hash)
+        self.assertFalse(local_web.item_provider_translation_is_stale(item, "codex"))
+
     def test_edited_markdown_reader_does_not_collapse_blank_lines(self) -> None:
         markdown = "第一行\n\n第二段"
 
@@ -178,6 +204,82 @@ class MarkdownRenderingTest(unittest.TestCase):
 
         self.assertTrue(saved)
         self.assertEqual(stored, markdown)
+
+    def test_clear_edited_markdown_keeps_original_and_translation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            items_path = Path(tmp) / "items.jsonl"
+            candidates_path = Path(tmp) / "candidates.jsonl"
+            original = "# Original\n\nEnglish source."
+            translated = "# 中文\n\n自動翻譯。"
+            edited = "# 錯貼內容\n\n不應繼續覆蓋。"
+            local_web.write_jsonl(
+                items_path,
+                [
+                    {
+                        "id": "item-test",
+                        "review": {},
+                        "reading_metadata": {
+                            "article_markdown": original,
+                            "translated_article_markdown_zh": translated,
+                            "edited_markdown": edited,
+                            "edited_markdown_chars": len(edited),
+                            "edited_markdown_base": "zh",
+                            "edited_markdown_at": "2026-07-01T00:00:00+00:00",
+                        },
+                    }
+                ],
+            )
+            local_web.write_jsonl(candidates_path, [])
+            original_items = local_web.ITEMS
+            original_candidates = local_web.CANDIDATES
+            local_web.ITEMS = items_path
+            local_web.CANDIDATES = candidates_path
+            try:
+                handler = local_web.Handler.__new__(local_web.Handler)
+                cleared = handler._clear_edited_markdown("item-test", "clear test")
+                metadata = local_web.load_jsonl(items_path)[0]["reading_metadata"]
+            finally:
+                local_web.ITEMS = original_items
+                local_web.CANDIDATES = original_candidates
+
+        self.assertTrue(cleared)
+        self.assertEqual(metadata["article_markdown"], original)
+        self.assertEqual(metadata["translated_article_markdown_zh"], translated)
+        self.assertNotIn("edited_markdown", metadata)
+        self.assertNotIn("edited_markdown_base", metadata)
+        self.assertNotIn("edited_markdown_at", metadata)
+
+    def test_update_track_record_changes_only_target_item(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            items_path = Path(tmp) / "items.jsonl"
+            candidates_path = Path(tmp) / "candidates.jsonl"
+            local_web.write_jsonl(
+                items_path,
+                [
+                    {
+                        "id": "item-test",
+                        "track": "digital-humanities-local-knowledge",
+                        "review": {"notes": "old note"},
+                    },
+                    {"id": "item-other", "track": "digital-humanities-local-knowledge"},
+                ],
+            )
+            local_web.write_jsonl(candidates_path, [{"id": "candidate-test", "track": "digital-humanities-local-knowledge"}])
+            handler = local_web.Handler.__new__(local_web.Handler)
+
+            changed = handler.update_track_record(items_path, "item-test", "open-tech-open-industry")
+            invalid = handler.update_track_record(items_path, "item-test", "not-a-track")
+            records = local_web.load_jsonl(items_path)
+            candidates = local_web.load_jsonl(candidates_path)
+
+        self.assertTrue(changed)
+        self.assertFalse(invalid)
+        self.assertEqual(records[0]["track"], "open-tech-open-industry")
+        self.assertEqual(records[0]["track_metadata"]["previous_track"], "digital-humanities-local-knowledge")
+        self.assertEqual(records[0]["track_metadata"]["source"], "local_web")
+        self.assertIn("手動更新大分流", records[0]["review"]["notes"])
+        self.assertEqual(records[1]["track"], "digital-humanities-local-knowledge")
+        self.assertEqual(candidates[0]["track"], "digital-humanities-local-knowledge")
 
 
 if __name__ == "__main__":
