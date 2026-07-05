@@ -6434,7 +6434,8 @@ def page(title: str, body: str) -> bytes:
       --humanities: var(--ocf-dark);
       --danger: #9f2525;
       --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
-      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+      --latin-title: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans";
+      --article-heading: var(--latin-title), "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
       --paper: #fffdf7;
     }}
     * {{ box-sizing: border-box; }}
@@ -6514,6 +6515,8 @@ def page(title: str, body: str) -> bytes:
       min-width: 0;
       margin: 0;
       color: var(--ocf-dark);
+      font-family: var(--article-heading);
+      font-variant-east-asian: proportional-width;
       overflow-wrap: anywhere;
     }}
     .article-title-tools {{
@@ -7217,7 +7220,9 @@ def page(title: str, body: str) -> bytes:
       order: 1;
       display: block;
       min-width: 0;
+      font-family: var(--article-heading);
       font-weight: 700;
+      font-variant-east-asian: proportional-width;
       line-height: 1.42;
       color: var(--ocf-dark);
       text-decoration: none;
@@ -7707,7 +7712,12 @@ def page(title: str, body: str) -> bytes:
       font-size: 19px;
       line-height: 1.34;
     }}
-    .reader-list-card h3 a {{ color: #4f3ed2; font-weight: 850; }}
+    .reader-list-card h3 a {{
+      color: #4f3ed2;
+      font-family: var(--article-heading);
+      font-weight: 850;
+      font-variant-east-asian: proportional-width;
+    }}
     .reader-list-card .zh-summary {{
       margin: 0;
       font-size: 16px;
@@ -8108,6 +8118,7 @@ def page(title: str, body: str) -> bytes:
     .article-markdown h5 {{
       font-family: var(--article-heading);
       font-weight: 850;
+      font-variant-east-asian: proportional-width;
       line-height: 1.35;
       margin: 1.55em 0 .68em;
       letter-spacing: 0;
