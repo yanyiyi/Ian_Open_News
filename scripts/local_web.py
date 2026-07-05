@@ -62,6 +62,7 @@ DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
 RSS_FETCH_STATUS = ROOT / ".cache" / "rss-fetch-status.json"
 DATA_COMMIT_STATUS = ROOT / ".cache" / "data-autocommit-status.json"
 COMMAND_STATUS = ROOT / ".cache" / "command-status.json"
+TRIAGE_CLUSTERS = ROOT / ".cache" / "triage-clusters.json"
 VIEWPOINTS = DATABASE / "viewpoints.jsonl"
 MATERIAL_LINKS = DATABASE / "material-links.jsonl"
 ARTICLES = DATABASE / "articles.jsonl"
@@ -547,6 +548,21 @@ COMMANDS = {
         "description": "彙整近期收下、不收、候選與 RSS 抓取結果，替每個來源建議抓取頻率、是否暫停或重設個別關鍵字。適合兩週跑一次。",
         "button": "更新來源健康評估",
         "command": [sys.executable, str(ROOT / "scripts" / "analyze_source_health.py")],
+    },
+    "triage_cluster": {
+        "label": "AI 分群建議（入庫建檔區）",
+        "description": "把 pending 候選與 inbox 依「會被抓在一起寫成文章」的主題分群，給每群建議動作與每篇三層閱讀深度。只分堆與預選，收不收仍由你批次確認。",
+        "button": "跑 AI 分群建議",
+        "command": [
+            sys.executable,
+            str(ROOT / "scripts" / "triage_cluster.py"),
+            "--engine",
+            "claude",
+            "--limit",
+            "120",
+            "--status-file",
+            str(COMMAND_STATUS),
+        ],
     },
     "export_sqlite": {
         "label": "匯出 SQLite",
@@ -6246,6 +6262,50 @@ def inline_reject_buttons(item_id: str, reasons: list[str], limit: int = 7, acti
     return "\n".join(buttons)
 
 
+READING_DEPTH_LABELS = {
+    "news-brief": "小消息",
+    "knowledge-worthy": "知識級",
+    "deep-read": "必深讀",
+}
+CLUSTER_ACTION_LABELS = {
+    "collect-as-theme": "建議整群收",
+    "collect-individual": "建議單篇收",
+    "merge-into-item": "建議併入稿件",
+    "skip": "建議略過",
+    "ask": "拿不準，請人工看",
+}
+
+
+def item_cluster_info(item: dict) -> dict:
+    editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    cluster = editorial.get("cluster")
+    return cluster if isinstance(cluster, dict) else {}
+
+
+def item_cluster_attrs(item: dict) -> str:
+    """卡片上的分群 data 屬性；沒跑過分群的舊資料回空字串（向後相容）。"""
+    cluster = item_cluster_info(item)
+    if not cluster:
+        return ""
+    return (
+        f' data-cluster-id="{h(cluster.get("cluster_id"))}"'
+        f' data-cluster-action="{h(cluster.get("suggested_action"))}"'
+        f' data-cluster-depth="{h(cluster.get("reading_depth"))}"'
+    )
+
+
+def cluster_badge_html(item: dict) -> str:
+    cluster = item_cluster_info(item)
+    if not cluster:
+        return ""
+    label = clean_text(cluster.get("label"), 40)
+    depth = READING_DEPTH_LABELS.get(clean_text(cluster.get("reading_depth")), "")
+    text = " / ".join(part for part in [label, depth] if part)
+    if not text:
+        return ""
+    return badge(f"🧩 {text}", "neutral")
+
+
 def batch_reason_buttons(reasons: list[str], limit: int = 7) -> str:
     return "\n".join(
         f'<button type="submit" name="action" value="reject" class="reason-chip reason-chip--danger" data-batch-reason="{h(reason)}">{h(reason)}</button>'
@@ -7145,6 +7205,29 @@ def page(title: str, body: str) -> bytes:
     .button-row.flow-options--review button:hover {{ background: var(--ocf-primary); color: #fff; border-color: transparent; }}
     .button-row.flow-options--review .secondary:hover {{ background: var(--ocf-cyan); color: #fff; border-color: transparent; }}
     .button-row.flow-options--review .reading-button:hover {{ background: var(--ocf-magenda); color: #fff; border-color: transparent; }}
+    /* 分群檢視：同主題卡片收成一組；卡片本體與 checkbox 原封不動搬進來 */
+    .cluster-group {{
+      border: 1px solid #d7dcf0; border-radius: 12px; padding: 10px 14px;
+      margin-bottom: 16px; background: #fbfcff;
+    }}
+    .cluster-group > summary {{
+      cursor: pointer; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      list-style-position: outside;
+    }}
+    .cluster-group-title {{ font-weight: 700; }}
+    .cluster-action-chip {{ border-radius: 999px; padding: 2px 10px; font-size: 0.85em; white-space: nowrap; }}
+    .cluster-group--collect .cluster-action-chip {{ background: #e2f6e9; color: #1c6b38; }}
+    .cluster-group--merge .cluster-action-chip {{ background: #e3ecfb; color: #274f9c; }}
+    .cluster-group--skip .cluster-action-chip {{ background: #fbe3ec; color: #a1245c; }}
+    .cluster-group--ask .cluster-action-chip {{ background: #fdf3d8; color: #8a6410; }}
+    .cluster-group--skip {{ border-color: #f1bfd3; }}
+    .cluster-group--ask {{ border-color: #ecd9a0; }}
+    .cluster-angle {{ font-size: 0.88em; flex: 1 1 220px; }}
+    .cluster-group-rationale {{ margin: 8px 0 0; font-size: 0.92em; }}
+    .cluster-group-body {{ display: grid; gap: 12px; margin-top: 10px; }}
+    .cluster-ungrouped-heading {{ margin: 4px 0 10px; font-weight: 600; }}
+    #cluster-view-toggle.is-active {{ background: var(--ocf-cyan); color: #fff; }}
+    #cluster-view-toggle.is-active:hover {{ color: #fff; }}
     .batch-panel {{ border-left: 4px solid var(--ocf-cyan); }}
     .auto-batch-panel {{
       border-left: 4px solid var(--ocf-primary);
@@ -8684,7 +8767,7 @@ def page(title: str, body: str) -> bytes:
 
   const commandTimerFor = (commandName) => {{
     if (commandName === "fetch_rss") return startRssStatusPolling();
-    if (commandName === "enrich_reader_metadata" || commandName === "codex_enrich_reviews" || commandName === "codex_review_batch") return startCommandStatusPolling(commandName);
+    if (commandName === "enrich_reader_metadata" || commandName === "codex_enrich_reviews" || commandName === "codex_review_batch" || commandName === "triage_cluster") return startCommandStatusPolling(commandName);
     return startElapsedStatus();
   }};
 
@@ -11134,6 +11217,11 @@ class Handler(BaseHTTPRequestHandler):
             self.show_source_edit(query)
         elif parsed.path == "/api/rss-status":
             self.send_json(load_json(RSS_FETCH_STATUS))
+        elif parsed.path == "/api/triage-clusters":
+            payload = load_json(TRIAGE_CLUSTERS)
+            if not isinstance(payload, dict) or not payload.get("clusters"):
+                payload = {"clusters": [], "ungrouped_ids": [], "run_id": ""}
+            self.send_json(payload)
         elif parsed.path == "/api/data-commit-status":
             self.send_json(load_json(DATA_COMMIT_STATUS))
         elif parsed.path == "/api/command-status":
@@ -14435,7 +14523,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 detail_href = item_detail_href(item)
                 rows.append(
                     f"""
-<article class="card candidate-card candidate-card--{h(recommendation)}" data-item-id="{h(item_id)}">
+<article class="card candidate-card candidate-card--{h(recommendation)}" data-item-id="{h(item_id)}"{item_cluster_attrs(item)}>
   <label class="select-item">
     <input type="checkbox" class="item-select" value="{h(item_id)}">
     <span class="select-item-text">選取這則做批次處理</span>
@@ -14443,6 +14531,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   <div class="candidate-detailed" id="{h(detail_panel_id)}">
   <div class="candidate-detailed-heading">
     {badge("RSS 新進", "neutral")}
+    {cluster_badge_html(item)}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
     {badge(f"綜合 {priority_score}/10", "neutral")}
@@ -14494,7 +14583,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             detail_href = item_detail_href(item)
             rows.append(
                 f"""
-<article class="card candidate-card candidate-card--{h(recommendation)}" data-item-id="{h(item_id)}">
+<article class="card candidate-card candidate-card--{h(recommendation)}" data-item-id="{h(item_id)}"{item_cluster_attrs(item)}>
   <label class="select-item">
     <input type="checkbox" class="item-select" value="{h(item_id)}">
     <span class="select-item-text">選取這則做批次處理</span>
@@ -14502,6 +14591,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   <div class="candidate-detailed" id="{h(detail_panel_id)}">
   <div class="candidate-detailed-heading">
     {badge("已入庫待分流", "neutral")}
+    {cluster_badge_html(item)}
     {badge(track_meta(item.get("track", "unclassified"))["short"], css_class)}
     {badge(recommendation_label(recommendation), recommendation)}
     {badge(f"綜合 {priority_score}/10", "neutral")}
@@ -14647,6 +14737,9 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 </div>
 <div class="workspace-toolbar">
   {material_layout_toggle("items-list")}
+  <div class="layout-toggle" role="group" aria-label="分群檢視">
+    <button type="button" class="layout-toggle-button" id="cluster-view-toggle" aria-pressed="false" title="依 AI 分群結果把同主題卡片收成一組；再按一次回到單篇清單">🧩 分群檢視</button>
+  </div>
   {workspace_sidebar_toggle("items-workspace", "items-sidebar", "items", "篩選與批次工具")}
 </div>
 <div class="workspace-layout" id="items-workspace">
@@ -14725,6 +14818,14 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             <button type="button" id="batch-ai-review" class="secondary">{button_content("批次跑 AI 閱讀建議", "wand", "I")}</button>
           </div>
           <p class="help">用選定引擎對勾選項目逐筆生成閱讀建議；進度看右下角狀態列，可能需要數分鐘。</p>
+        </div>
+        <div class="batch-ai-review">
+          <p class="help" style="margin-top:10px">AI 分群建議（跨篇比較，不改分流）</p>
+          <div class="button-row">
+            <select id="cluster-engine" aria-label="選擇分群引擎">{option_list([("claude", AI_PROVIDER_META["claude"]["label"]), ("codex", AI_PROVIDER_META["codex"]["label"])], "claude")}</select>
+            <button type="button" id="run-cluster" class="secondary">{button_content("跑 AI 分群", "wand", "G")}</button>
+          </div>
+          <p class="help">把目前 pending 候選與 inbox 依「會被抓在一起寫成文章」分群並預選；完成後左側自動切到分群檢視。你仍逐群調整、按上面的批次按鈕才算數。</p>
         </div>
         <p class="help">只處理已勾選項目；完成後會離開入庫建檔區。</p>
       </div>
@@ -14827,6 +14928,184 @@ if (aiBatchBtn && aiBatchBtn.dataset.aiBatchBound !== "1") {{
       aiBatchBtn.dataset.running = "";
       aiBatchBtn.disabled = false;
       aiBatchBtn.textContent = origText;
+    }}
+  }});
+}}
+
+// ── 分群檢視：把同主題卡片搬進同一個 <details>，checkbox 與批次表單完全共用 ──
+const clusterToggle = document.getElementById("cluster-view-toggle");
+const runClusterBtn = document.getElementById("run-cluster");
+const clusterEngine = document.getElementById("cluster-engine");
+const itemsList = document.getElementById("items-list");
+let clusterData = null;
+let clusterViewOn = false;
+let clusterOriginalOrder = null;
+
+const CLUSTER_DEPTH_LABELS = {{"news-brief": "小消息", "knowledge-worthy": "知識級", "deep-read": "必深讀"}};
+const CLUSTER_ACTION_META = {{
+  "collect-as-theme": {{label: "建議整群收", cls: "collect", preselect: true}},
+  "collect-individual": {{label: "建議單篇收", cls: "collect", preselect: true}},
+  "merge-into-item": {{label: "建議併入稿件", cls: "merge", preselect: false}},
+  "skip": {{label: "建議略過", cls: "skip", preselect: false}},
+  "ask": {{label: "拿不準，請人工看", cls: "ask", preselect: false}},
+}};
+
+async function fetchClusterData() {{
+  const response = await fetch("/api/triage-clusters", {{headers: {{"X-Requested-With": "local-web-fetch"}}}});
+  if (!response.ok) return null;
+  return response.json();
+}}
+
+function setClusterToggleState(on) {{
+  clusterViewOn = on;
+  if (clusterToggle) {{
+    clusterToggle.setAttribute("aria-pressed", on ? "true" : "false");
+    clusterToggle.classList.toggle("is-active", on);
+  }}
+}}
+
+function enterClusterView(data) {{
+  if (!itemsList || clusterViewOn || !data) return;
+  clusterOriginalOrder = Array.from(itemsList.children);
+  const fragment = document.createDocumentFragment();
+  let movedCards = 0;
+  (data.clusters || []).forEach((cluster) => {{
+    const cards = (cluster.member_ids || []).map(findItemCard).filter(Boolean);
+    if (!cards.length) return;
+    const meta = CLUSTER_ACTION_META[cluster.suggested_action] || CLUSTER_ACTION_META.ask;
+    const group = document.createElement("details");
+    group.className = `cluster-group cluster-group--${{meta.cls}}`;
+    group.open = true;
+
+    const summary = document.createElement("summary");
+    const title = document.createElement("span");
+    title.className = "cluster-group-title";
+    title.textContent = `🧩 ${{cluster.label || cluster.cluster_id}}（${{cards.length}} 則）`;
+    summary.appendChild(title);
+    const chip = document.createElement("span");
+    chip.className = "cluster-action-chip";
+    chip.textContent = meta.label + (cluster.confidence ? `・信心 ${{cluster.confidence}}` : "");
+    summary.appendChild(chip);
+    if (cluster.angle_hint) {{
+      const angle = document.createElement("span");
+      angle.className = "muted cluster-angle";
+      angle.textContent = cluster.angle_hint;
+      summary.appendChild(angle);
+    }}
+    const selectAll = document.createElement("button");
+    selectAll.type = "button";
+    selectAll.className = "secondary button-small cluster-select-all";
+    selectAll.textContent = "全選這群";
+    selectAll.addEventListener("click", (event) => {{
+      event.preventDefault();
+      event.stopPropagation();
+      cards.forEach((card) => {{
+        const box = card.querySelector(".item-select");
+        if (box && card.isConnected) box.checked = true;
+      }});
+      syncSelection();
+    }});
+    summary.appendChild(selectAll);
+    if (cluster.suggested_action === "merge-into-item" && cluster.merge_target_item_id) {{
+      const mergeLink = document.createElement("a");
+      mergeLink.className = "button secondary button-small";
+      mergeLink.href = `/editor?items=${{encodeURIComponent((cluster.member_ids || []).join(","))}}`;
+      mergeLink.textContent = "帶這群進編輯台";
+      summary.appendChild(mergeLink);
+    }}
+    group.appendChild(summary);
+
+    if (cluster.rationale) {{
+      const rationale = document.createElement("p");
+      rationale.className = "muted cluster-group-rationale";
+      rationale.textContent = cluster.rationale;
+      group.appendChild(rationale);
+    }}
+
+    const body = document.createElement("div");
+    body.className = "cluster-group-body";
+    cards.forEach((card) => {{
+      const box = card.querySelector(".item-select");
+      if (box) box.checked = meta.preselect;
+      const depth = card.dataset.clusterDepth;
+      if (depth && CLUSTER_DEPTH_LABELS[depth]) card.setAttribute("data-depth-label", CLUSTER_DEPTH_LABELS[depth]);
+      body.appendChild(card);
+      movedCards += 1;
+    }});
+    group.appendChild(body);
+    fragment.appendChild(group);
+  }});
+  if (!movedCards) {{
+    clusterOriginalOrder = null;
+    window.alert("分群結果對不上目前畫面上的項目（可能已被分流過）；請重新跑一次 AI 分群。");
+    return;
+  }}
+  const remaining = Array.from(itemsList.children).filter((node) => node.classList?.contains("candidate-card"));
+  if (remaining.length) {{
+    const heading = document.createElement("p");
+    heading.className = "muted cluster-ungrouped-heading";
+    heading.textContent = `未分群 ${{remaining.length}} 則——維持單篇挑選`;
+    itemsList.insertBefore(heading, remaining[0]);
+  }}
+  itemsList.prepend(fragment);
+  setClusterToggleState(true);
+  syncSelection();
+}}
+
+function exitClusterView() {{
+  if (!clusterViewOn || !clusterOriginalOrder || !itemsList) return;
+  clusterOriginalOrder.forEach((node) => itemsList.appendChild(node));
+  itemsList.querySelectorAll(".cluster-group, .cluster-ungrouped-heading").forEach((node) => node.remove());
+  clusterOriginalOrder = null;
+  setClusterToggleState(false);
+  syncSelection();
+}}
+
+if (clusterToggle && clusterToggle.dataset.clusterBound !== "1") {{
+  clusterToggle.dataset.clusterBound = "1";
+  clusterToggle.addEventListener("click", async () => {{
+    if (clusterViewOn) {{ exitClusterView(); return; }}
+    if (!clusterData) clusterData = await fetchClusterData().catch(() => null);
+    if (!clusterData || !(clusterData.clusters || []).length) {{
+      window.alert("還沒有分群結果。先按右側批次工具裡的「跑 AI 分群」。");
+      return;
+    }}
+    enterClusterView(clusterData);
+  }});
+}}
+
+if (runClusterBtn && runClusterBtn.dataset.clusterBound !== "1") {{
+  runClusterBtn.dataset.clusterBound = "1";
+  runClusterBtn.addEventListener("click", async () => {{
+    if (typeof window.runEngineJob !== "function") {{
+      window.alert("頁面還沒接上右下角狀態列，請重新整理後再試。");
+      return;
+    }}
+    if (runClusterBtn.dataset.running === "1") return;  // 防連點
+    const engine = clusterEngine ? clusterEngine.value : "claude";
+    const origText = runClusterBtn.textContent;
+    runClusterBtn.dataset.running = "1";
+    runClusterBtn.disabled = true;
+    runClusterBtn.textContent = "分群中…（看右下角）";
+    try {{
+      await window.runEngineJob({{
+        label: "AI 分群建議",
+        url: "/commands/run",
+        baseBody: "command=triage_cluster",
+        engine: engine,
+        statusUrl: "/api/command-status?command=triage_cluster",
+        onSuccess: async () => {{
+          clusterData = await fetchClusterData().catch(() => null);
+          if (clusterData && (clusterData.clusters || []).length) {{
+            if (clusterViewOn) exitClusterView();
+            enterClusterView(clusterData);
+          }}
+        }},
+      }});
+    }} finally {{
+      runClusterBtn.dataset.running = "";
+      runClusterBtn.disabled = false;
+      runClusterBtn.textContent = origText;
     }}
   }});
 }}
@@ -20538,6 +20817,12 @@ if (document.readyState === "loading") {{
         active_provider = ""
         if requested_provider in {*AI_PROVIDER_META.keys(), "random"} and "--provider" in command:
             idx = command.index("--provider")
+            if idx + 1 < len(command):
+                command[idx + 1] = requested_provider
+                active_provider = requested_provider
+        elif requested_provider in {"claude", "codex"} and "--engine" in command:
+            # triage_cluster 這類跨篇任務只開放 claude/codex（本機小模型塞不下跨篇比較）
+            idx = command.index("--engine")
             if idx + 1 < len(command):
                 command[idx + 1] = requested_provider
                 active_provider = requested_provider
