@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-07-05T15:10:16+00:00",
+  "updated_at": "2026-07-05T19:22:13+00:00",
   "global": {
     "taiwan_context_required": true,
     "emphasize": [
@@ -45,8 +45,51 @@
       "僅因非台灣本地題而排除跨國指標性事件",
       "僅以版位或領域不符判定跳過",
       "只因文章像工具評測或合作公告而跳過",
-      "只因領域是能源、教育、衛星或工程管理而視為旁支"
+      "只因領域是能源、教育、衛星或工程管理而視為旁支",
+      "地方政府機關新聞、城市觀光稿、文化局活動稿、僑務/地方生活新聞、單一文化記憶 Facebook 來源，若沒有政策機制、公共治理爭議、開放技術、數位權利或可供台灣借鏡的制度訊號，預設低優先"
     ],
+    "history_calibration": {
+      "enabled": true,
+      "window_days": 45,
+      "low_acceptance_rate": 0.08,
+      "min_source_total": 20,
+      "min_keyword_total": 20,
+      "generic_keep_keywords": [
+        "記憶庫",
+        "文化記憶",
+        "文化資源",
+        "文化資產",
+        "中醫藥文化記憶",
+        "牛犁社區",
+        "地方創生",
+        "口述歷史",
+        "數位典藏",
+        "文化路徑",
+        "社區營造"
+      ],
+      "high_value_signals": [
+        "tech sovereignty",
+        "科技主權",
+        "AI governance",
+        "AI 公共治理",
+        "AI accountability",
+        "government by AI",
+        "政府 AI",
+        "government AI",
+        "children's online safety",
+        "children’s online safety",
+        "兒少網路安全",
+        "online safety legislation",
+        "US tech policy",
+        "cloud sovereignty",
+        "雲端主權",
+        "cloud dependency",
+        "雲端依賴",
+        "AI cloud dependency",
+        "US cloud",
+        "Europe tech policy"
+      ]
+    },
     "writing_style_ref": "ian-xuexi-xinde"
   },
   "tracks": {
@@ -470,6 +513,27 @@
         "trust and accountability",
         "deepfake",
         "深偽"
+      ]
+    },
+    {
+      "beat": "國際科技主權與 AI 公共治理",
+      "keywords": [
+        "tech sovereignty",
+        "科技主權",
+        "數位主權",
+        "AI governance",
+        "AI accountability",
+        "government by AI",
+        "children's online safety",
+        "children’s online safety",
+        "online safety legislation",
+        "US tech policy",
+        "cloud sovereignty",
+        "cloud dependency",
+        "雲端依賴",
+        "AI cloud dependency",
+        "US cloud",
+        "Europe tech policy"
       ]
     }
   ]
