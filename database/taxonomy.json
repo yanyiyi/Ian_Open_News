@@ -91,5 +91,10 @@
     "line-editor",
     "target-reader",
     "fact-checker"
+  ],
+  "reading_depths": [
+    "news-brief",
+    "knowledge-worthy",
+    "deep-read"
   ]
 }
