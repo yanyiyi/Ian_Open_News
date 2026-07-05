@@ -28,16 +28,25 @@ from pathlib import Path
 from typing import Any
 
 from codex_enrich_reviews import (
+    ACTIVE_PROVIDER_ORDER,
     CANDIDATES,
     ITEMS,
     ROOT,
+    agy_path,
+    available_providers,
     claude_path,
     clean_text,
+    cli_env,
     codex_path,
     load_jsonl,
+    ollama_model,
+    ollama_path,
     parse_cli_json,
+    provider_meta,
+    random_fallback_order,
     review_input,
     taste_profile_block,
+    weighted_choice,
     write_jsonl,
     write_status,
 )
@@ -53,15 +62,18 @@ CLUSTERS_PREVIEW = ROOT / ".cache" / "triage-clusters-preview.json"
 READING_DEPTHS = ["news-brief", "knowledge-worthy", "deep-read"]
 SUGGESTED_ACTIONS = ["collect-as-theme", "collect-individual", "merge-into-item", "skip", "ask"]
 ANCHOR_STATUSES = {"researching", "drafting"}
-# ollama 的 4B/12B 模型塞不下上百筆跨篇比較，不開放。
-CLUSTER_ENGINES = ["claude", "codex"]
+# 所有引擎都開放給 Ian 自選（原則：不替他預先排除）。
+# 注意：本機 ollama 小模型（4B/12B）遇到上百筆跨篇比較很可能塞不下 context，
+# 用 ollama 時建議把 --limit 壓到 20 以下。
+CLUSTER_ENGINES = [*ACTIVE_PROVIDER_ORDER, "random"]
 
 
 def cluster_schema() -> dict[str, Any]:
     return {
         "type": "object",
         "additionalProperties": False,
-        "required": ["clusters", "ungrouped_ids"],
+        # codex --output-schema 是 strict 模式：properties 的每個 key 都必須列在 required
+        "required": ["clusters", "ungrouped_ids", "notes"],
         "properties": {
             "clusters": {
                 "type": "array",
@@ -286,6 +298,61 @@ def run_codex(prompt: str, args: argparse.Namespace) -> dict[str, Any]:
     return json.loads(output_path.read_text(encoding="utf-8"))
 
 
+def run_gemini(prompt: str, args: argparse.Namespace) -> dict[str, Any]:
+    command = [agy_path(), "--print", prompt]
+    if args.model:
+        command += ["--model", args.model]
+    result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=args.timeout, env=cli_env())
+    if result.returncode != 0:
+        raise RuntimeError(f"agy print failed\nSTDERR:\n{result.stderr[-2000:]}")
+    (ROOT / ".cache" / "triage-cluster-output.json").write_text(result.stdout, encoding="utf-8")
+    return parse_cli_json(result.stdout)
+
+
+def run_ollama(prompt: str, args: argparse.Namespace, provider: str) -> dict[str, Any]:
+    model = args.model or ollama_model(provider)
+    command = [ollama_path(), "run", model, "--format", "json", "--nowordwrap", "--hidethinking"]
+    try:
+        result = subprocess.run(
+            command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=args.timeout, env=cli_env()
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"{provider_meta(provider)['label']}（model: {model}）執行超過 {args.timeout} 秒；"
+            "本機小模型跑跨篇分群建議把 --limit 壓到 20 以下，或改用其他引擎。"
+        ) from exc
+    if result.returncode != 0:
+        raise RuntimeError(f"ollama run failed（model: {model}）\nSTDERR:\n{result.stderr[-2000:]}")
+    (ROOT / ".cache" / "triage-cluster-output.json").write_text(result.stdout, encoding="utf-8")
+    return parse_cli_json(result.stdout)
+
+
+def run_engine(prompt: str, args: argparse.Namespace, engine: str) -> tuple[str, dict[str, Any]]:
+    """依引擎分派；random 走加權抽選＋失敗自動降級（與 enrich 同款邏輯）。"""
+
+    def dispatch(provider: str) -> dict[str, Any]:
+        if provider == "claude":
+            return run_claude(prompt, args)
+        if provider == "gemini":
+            return run_gemini(prompt, args)
+        if provider.startswith("ollama"):
+            return run_ollama(prompt, args, provider)
+        return run_codex(prompt, args)
+
+    if engine != "random":
+        return engine, dispatch(engine)
+    providers = available_providers()
+    if not providers:
+        raise RuntimeError("找不到任何可用的 AI CLI。")
+    errors = []
+    for candidate in random_fallback_order(weighted_choice(providers), providers):
+        try:
+            return candidate, dispatch(candidate)
+        except RuntimeError as exc:
+            errors.append(f"{provider_meta(candidate)['label']}: {exc}")
+    raise RuntimeError("隨機分群可用引擎都失敗：\n" + "\n\n".join(errors))
+
+
 def validate_and_normalize(
     payload: dict[str, Any], input_ids: list[str], anchor_ids: set[str]
 ) -> dict[str, Any]:
@@ -406,7 +473,7 @@ def eval_replay(args: argparse.Namespace) -> int:
     random.shuffle(pool)
     digests = [record_digest(record) for record in pool]
     prompt = build_prompt(digests, [], historical_bundles(items))
-    payload = run_claude(prompt, args) if args.engine == "claude" else run_codex(prompt, args)
+    _, payload = run_engine(prompt, args, args.engine)
     result = validate_and_normalize(payload, [d["id"] for d in digests], set())
     truth_ids = {clean_text(r.get("id")) for r in truth_records}
     best_overlap = 0
@@ -475,13 +542,13 @@ def main() -> int:
         {"phase": "clustering", "message": f"以 {args.engine} 分群 {len(pool)} 筆", "run_id": run_id},
     )
     prompt = build_prompt(digests, anchors, bundles)
-    payload = run_claude(prompt, args) if args.engine == "claude" else run_codex(prompt, args)
+    used_engine, payload = run_engine(prompt, args, args.engine)
     result = validate_and_normalize(payload, input_ids, anchor_ids)
 
     output = {
         "run_id": run_id,
         "generated_at": generated_at,
-        "engine": args.engine,
+        "engine": used_engine,
         "model": args.model,
         "input_scope": {"pending": len(pending), "inbox": len(inbox), "clustered": len(pool), "track": args.track},
         **result,

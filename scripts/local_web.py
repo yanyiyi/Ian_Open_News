@@ -5754,6 +5754,7 @@ def action_icon(action: str) -> str:
         "search": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M16.5 16.5L21 21"></path></svg>',
         "back": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path><path d="M9 12h12"></path></svg>',
         "previous": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>',
+        "cluster": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"></rect><rect x="13" y="3" width="8" height="8" rx="1.5"></rect><rect x="8" y="13" width="8" height="8" rx="1.5"></rect></svg>',
         "next": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>',
     }
     return icons.get(action, icons["read"])
@@ -5814,8 +5815,10 @@ def layout_toggle(section_id: str, current: str = "list") -> str:
     return f'<div class="layout-toggle" role="group" aria-label="顯示模式">{"".join(buttons)}</div>'
 
 
-def material_layout_toggle(target_id: str, current: str = "list") -> str:
-    """材料頁 2-mode 顯示切換（列表式詳細卡 / 清單式精簡列）；沿用 .layout-toggle 樣式與切換 JS。"""
+def material_layout_toggle(target_id: str, current: str = "list", extra_buttons: str = "") -> str:
+    """材料頁 2-mode 顯示切換（列表式詳細卡 / 清單式精簡列）；沿用 .layout-toggle 樣式與切換 JS。
+
+    extra_buttons：接續在同一個群組尾端的額外按鈕（例如分群檢視），維持既有排版位置。"""
     modes = [("list", "列表式", "list"), ("compact", "清單式", "compact")]
     buttons = []
     for mode, label, icon in modes:
@@ -5826,7 +5829,7 @@ def material_layout_toggle(target_id: str, current: str = "list") -> str:
             f'aria-pressed="{str(mode == current).lower()}" title="{h(label)}">'
             f"{layout_icon(icon)}<span>{h(label)}</span></button>"
         )
-    return f'<div class="layout-toggle" role="group" aria-label="顯示模式">{"".join(buttons)}</div>'
+    return f'<div class="layout-toggle" role="group" aria-label="顯示模式">{"".join(buttons)}{extra_buttons}</div>'
 
 
 def is_reader_item(item: dict) -> bool:
@@ -6364,7 +6367,7 @@ def cluster_badge_html(item: dict) -> str:
     text = " / ".join(part for part in [label, depth] if part)
     if not text:
         return ""
-    return badge(f"🧩 {text}", "neutral")
+    return badge(text, "neutral")
 
 
 def batch_reason_buttons(reasons: list[str], limit: int = 7) -> str:
@@ -14901,10 +14904,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   {metric_card(counts.get("suggest-skip", 0), "建議不要看", items_metric_href("suggest-skip"), "只看建議不要看", "is-active" if recommendation_filter == "suggest-skip" else "")}
 </div>
 <div class="workspace-toolbar">
-  {material_layout_toggle("items-list")}
-  <div class="layout-toggle" role="group" aria-label="分群檢視">
-    <button type="button" class="layout-toggle-button" id="cluster-view-toggle" aria-pressed="false" title="依 AI 分群結果把同主題卡片收成一組；再按一次回到單篇清單">🧩 分群檢視</button>
-  </div>
+  {material_layout_toggle("items-list", extra_buttons=f'<button type="button" class="layout-toggle-button" id="cluster-view-toggle" aria-pressed="false" title="依 AI 分群結果把同主題卡片收成一組；再按一次回到單篇清單">{icon_span("cluster")}<span>分群檢視</span></button>')}
   {workspace_sidebar_toggle("items-workspace", "items-sidebar", "items", "篩選與批次工具")}
 </div>
 <div class="workspace-layout" id="items-workspace">
@@ -14987,7 +14987,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         <div class="batch-ai-review">
           <p class="help" style="margin-top:10px">AI 分群建議（跨篇比較，不改分流）</p>
           <div class="button-row">
-            <select id="cluster-engine" aria-label="選擇分群引擎">{option_list([("claude", AI_PROVIDER_META["claude"]["label"]), ("codex", AI_PROVIDER_META["codex"]["label"])], "claude")}</select>
+            <select id="cluster-engine" aria-label="選擇分群引擎">{option_list([("random", "隨機"), *[(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER]], "claude")}</select>
             <button type="button" id="run-cluster" class="secondary">{button_content("跑 AI 分群", "wand", "G")}</button>
           </div>
           <p class="help">把目前 pending 候選與 inbox 依「會被抓在一起寫成文章」分群並預選；完成後左側自動切到分群檢視。你仍逐群調整、按上面的批次按鈕才算數。</p>
@@ -15145,7 +15145,7 @@ function enterClusterView(data) {{
     const summary = document.createElement("summary");
     const title = document.createElement("span");
     title.className = "cluster-group-title";
-    title.textContent = `🧩 ${{cluster.label || cluster.cluster_id}}（${{cards.length}} 則）`;
+    title.textContent = `${{cluster.label || cluster.cluster_id}}（${{cards.length}} 則）`;
     summary.appendChild(title);
     const chip = document.createElement("span");
     chip.className = "cluster-action-chip";
@@ -20988,8 +20988,8 @@ if (document.readyState === "loading") {{
             if idx + 1 < len(command):
                 command[idx + 1] = requested_provider
                 active_provider = requested_provider
-        elif requested_provider in {"claude", "codex"} and "--engine" in command:
-            # triage_cluster 這類跨篇任務只開放 claude/codex（本機小模型塞不下跨篇比較）
+        elif requested_provider in {*AI_PROVIDER_META.keys(), "random"} and "--engine" in command:
+            # 用 --engine 旗標的指令（如 triage_cluster）：所有引擎與隨機都開放自選
             idx = command.index("--engine")
             if idx + 1 < len(command):
                 command[idx + 1] = requested_provider
