@@ -4359,6 +4359,29 @@ def public_reader_feature_url(article: dict) -> str:
     return f"{ONLINE_READER_BASE_URL}/features/{article_id}.html"
 
 
+def offline_reader_bookmarklet(local_base: str) -> str:
+    js = (
+        "(()=>{"
+        f"const base={json.dumps(local_base)};"
+        'let path=location.pathname.replace(/\\/+$/,"");'
+        'let target="/reader";'
+        "let m=path.match(/^\\/reader\\/articles\\/(item-[^\\/]+)\\.html$/);"
+        'if(m){target="/items/view?id="+encodeURIComponent(m[1]);}'
+        "else if((m=path.match(/^\\/reader\\/features\\/(art-[^\\/]+)\\.html$/))){"
+        'target="/articles/view?id="+encodeURIComponent(m[1]);'
+        "}"
+        'else if(path===""||path==="/reader"||path==="/reader/index.html"){target="/reader"+location.search;}'
+        'else if(path==="/reader/features.html"){target="/articles";}'
+        "else if(path.match(/^\\/reader\\/sources\\//)){target='/sources';}"
+        "else if((m=path.match(/^\\/reader\\/tags\\/([^\\/]+)\\.html$/))){"
+        'target="/reader?keyword="+encodeURIComponent(decodeURIComponent(m[1]));'
+        "}"
+        "location.href=base+target;"
+        "})()"
+    )
+    return "javascript:" + js
+
+
 def source_public_slug(source_id: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(source_id) or "source").strip("-") or "source"
 
@@ -14414,10 +14437,12 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         data_commit_next = clean_text(data_commit_status.get("next_run_at")) or "尚未排程"
         data_commit_last = clean_text(data_commit_status.get("updated_at")) or "尚未記錄"
         host = self.headers.get("Host", "127.0.0.1:8765")
+        local_base = f"http://{host}"
         bookmarklet = (
-            f"javascript:location.href='http://{host}/items/new?url='"
+            f"javascript:location.href='{local_base}/items/new?url='"
             "+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)"
         )
+        offline_bookmarklet = offline_reader_bookmarklet(local_base)
         track_cards = []
         for track in ["open-tech-open-industry", "digital-humanities-local-knowledge"]:
             meta = track_meta(track)
@@ -14463,6 +14488,12 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <p class="muted">把這顆拖到瀏覽器書籤列。之後看到想記下來的頁面，點書籤就會開出「手動入庫」表單。</p>
     <p><a class="button" href="{h(bookmarklet)}">做成瀏覽器收藏按鈕</a></p>
     <p class="help">這不會直接發布內容，只是先放進入庫建檔區。</p>
+  </div>
+  <div class="card">
+    <h3>線上閱讀跳離線</h3>
+    <p class="muted">把這顆拖到瀏覽器書籤列。之後在線上閱讀版頁面點它，會跳到目前本機離線版的對應頁。</p>
+    <p><a class="button secondary" href="{h(offline_bookmarklet)}">做成線上跳離線按鈕</a></p>
+    <p class="help">閱讀器首頁、單篇文章與專文會盡量對到本機頁；其他線上閱讀頁會回到本機閱讀區。</p>
   </div>
   <div class="card">
     <h3>入庫建檔區</h3>

@@ -32,6 +32,8 @@ http://127.0.0.1:8765
 
 首頁也有 bookmarklet。把它拖到瀏覽器書籤列後，看到想收的頁面時點一下，會自動把目前頁面的 title 和 URL 帶進表單。
 
+首頁另有「線上閱讀跳離線」bookmarklet。把它拖到瀏覽器書籤列後，在 `technews.ospo.tw/reader` 線上閱讀版點一下，會跳到目前本機 local web 的對應閱讀頁、單篇材料頁或專文頁。
+
 也可以從主線入口進入：
 
 - `http://127.0.0.1:8765/track/open-tech-open-industry`
