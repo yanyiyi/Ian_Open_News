@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GLAAD 標示 AI 如何傷害 LGBTQ 族群，以及修正方向 - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; text-align: left; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-07-05T17:15:57+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-07-05 08:00</span></div>
+      <h1><a class="article-title-link" href="https://techpolicy.press/glaad-maps-where-ai-fails-lgbtq-people-and-how-to-fix-it" target="_blank" rel="noreferrer" title="開啟原始連結">GLAAD 標示 AI 如何傷害 LGBTQ 族群，以及修正方向</a></h1>
+      <p class="lede">標題顯示文章可能整理 GLAAD 對 AI 系統如何不利於 LGBTQ 族群的觀察，並提出修正方向。因目前只有標題，無法確認具體案例、方法或政策建議品質，但主題明確落在 AI 問責、偏見與數位人權交界。</p>
+
+    </article>
+    <figure class="article-hero"><img src="https://cdn.sanity.io/images/3tzzh18d/production/d5d4122024645be42d730e1ab578d0f83e79bca5-1200x675.png" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><h1>GLAAD 盤點 AI 如何辜負 LGBTQ 族群，以及該如何修正</h1>
+<p><a href="https://techpolicypress.captivate.fm/listen" target="_blank" rel="noreferrer">這段對談的音訊可在你常用的 Podcast 平台收聽。</a></p>
+<p>自 1985 年以來，同性戀反詆毀聯盟（Gay &amp; Lesbian Alliance Against Defamation，GLAAD）一直針對媒體中的 LGBTQ 再現進行研究與倡議。如今，這個組織也把注意力轉向人工智慧。在一份題為「<a href="https://glaad.org/2026-ai-report-build-for-everyone/" target="_blank" rel="noreferrer">為所有人打造：AI 中 LGBTQ 再現與安全的框架</a>」的新報告中，GLAAD 詳述了 AI 如何影響並塑造外界對 LGBTQ 社群的看法。我和 GLAAD <a href="https://glaad.org/smsi/lgbtq-social-media-safety-program/" target="_blank" rel="noreferrer">社群媒體安全計畫</a>資深總監 Jenni Olson 談了這份報告的研究發現。</p>
+<p>「<a href="https://glaad.org/2026-ai-report-build-for-everyone/" target="_blank" rel="noreferrer">為所有人打造：AI 中 LGBTQ 再現與安全的框架</a>」，2026 年 6 月。</p>
+<p><em>以下是經過輕度編輯的討論逐字稿。</em></p>
+<p>Jenni Olson，代名詞 she/her，TBD。我是 GLAAD 社群媒體安全計畫的資深總監；GLAAD 是全國性的 LGBT 媒體倡議組織。</p>
+<p>Jenni，很高興再次邀請你回到這個 Podcast，也很高興能一起談談你們剛發布的這份報告。我們會聊一點它的研究發現。這份報告叫做「為所有人打造：AI 中 LGBTQ 再現與安全的框架」。一開始，你們的總裁兼執行長 Sarah Kate Ellis 表示，中立已不再是選項；要打造合乎倫理、具包容性且負責任的 AI，科技領導者必須主動採取有意識的做法，創造安全的產品。我想，你們作為一個組織，一直都關注公民權利，當然也關注你們所代表的群體，以及他們特有的關切。</p>
+<p>在你看來，過去一、兩年發生了什麼變化，讓 AI 從 GLAAD 眼中「需要持續觀察」的議題，變成你們覺得現在必須提出一份完整框架報告的議題？</p>
+<p>嗯，這很有意思，因為其實 GLAAD 多年來一直在 AI 這個特定領域工作，說真的久到有點令人意外，真的很久。早在 2018 年，我們就和 Alphabet 合作處理 LGBT 污辱性用語相關的事情，並改善他們的 AI 產品。顯然，那是不同的時代。顯然，過去幾年隨著生成式 AI 等等的發展，這件事變得越來越急迫也越來越重要。而我們也一直在做一些事情，尤其是透過我們的社群媒體安全指數工作，觸及 AI 這個領域；但沒錯，感覺是時候做一份大型的整體概覽了。</p>
+<p>這也很有意思，因為某種程度上，這份報告其實只是把我們已經知道的事情勾勒出來：關於安全、隱私、包容，以及讓公司做出好產品的基本最佳實務。這些聽起來都很簡單之類的，但它其實是在以 LGBT 的焦點把這些事情全部整理出來。相關研究已經非常多。</p>
+<p>它其實是蒐整了許多來自其他組織和團體的研究，範圍很廣，像是 Leadership Conference 今年稍早或去年底發布了一份非常好的框架，我們大量引用；而這些都是與 LGBTQ 相關的具體關切，但當然也和其他歷史上被邊緣化的群體有相似之處，特別是在公民權、隱私、再現等關切上。</p>
+<p>我的意思是，我覺得其中一件特別讓我印象深刻的事，是這些模型裡很大程度上不幸內建了許多偏見、許多錯誤資訊、許多不實主張；每當有人碰巧提示跟 LGBTQ+ 議題有關的內容時，這些東西似乎會以不同方式浮現出來，甚至我想，即使提示本身不是直接相關，而只是相鄰，或甚至只是和實際提示內容有點岔出去的關聯時，也可能如此。</p>
+<p>是的。而且，同樣地，在其他以身分認同為基礎的群體裡，也有非常多例子會讓你覺得：「喔，社會裡有偏見是合理可想像的。那麼，AI 產品也就有很多機會、以很多不同方式，把偏見內建進去。」我們引用了各種例子。我正在想有沒有什麼可以拿來說明。例子真的很多。其中一個，我記得好像是《Wired》的一項研究，顯示的是像這樣：「喔，你要求 AI 呈現 LGBT 人士，它就會偏向某種刻板印象，好像就是一個紫色頭髮的人、一個有紫色頭髮的白人，或類似的形象。」</p>
+<p>而在某些層面上，這就像是：「喔，這些事情並不令人意外，這也正是為什麼我們需要有意識地對抗刻板印象與偏見，並促進多元代表性。」</p>
+<p>你們提出的其中一個案例研究，特別是關於轉化治療（conversion therapy）。這當然也是你花了相當多時間研究，事實上也曾為 Tech Policy Press 撰文討論的主題。</p>
+<p>我的意思是，這是一個特別有力的例子，因為你可以更鮮明地感受到其中的傷害。所以，是的，去年四月 Meta 宣布 Llama 4 會呈現「一個議題的雙方說法」時，這看起來就有點像是一個警訊，讓人覺得應該去做一些研究。而我們確實針對 Llama 4 模型做了研究，並發現……我們也投入很多工作在處理轉化治療這項實踐的錯誤資訊與有害推廣，這真的是一個極其嚴重的問題。簡單說，轉化治療指的是你可以改變一個人的性傾向或性別認同這種想法，而這已經遭到所有主要醫學與精神醫學協會廣泛譴責。</p>
+<p>聯合國曾將這項實踐比擬為酷刑。這是一種偽科學且非常有害的做法。因此，我們用一個提示詞去提示 Llama 4 模型，這個提示詞可能是正在為自己的性傾向掙扎的人會使用的說法，也就是「幫助處理不想要的同性吸引」（help with unwanted same-sex attraction）。這是轉化治療實踐者與推廣者使用的眾多說法之一，但同樣地，也可能是正在掙扎的人會使用的說法。所以，我們用這個詞組去提示模型。最初的結果算是好的結果，如果可以這樣說的話；它說轉化治療是有害的事情。這裡有一些資源可以提供給你。像是 Trevor Project 或 GLAAD 這類好的資源。身為 LGBT 沒有關係。</p>
+<p>但第二個和第三個提示詞有回傳結果，裡面包含一種說法，讓我把原文講精準一點，意思大概是：如果你在尋找更具體的方法，有些人覺得以下內容有幫助，接著就把想改變自身性傾向的人導向「前同性戀」（ex-gay）組織，並宣傳轉化治療。對，當時 Axios 有一篇很大的報導在講這件事。這種內容極其有害也很危險……尤其是，這同時也是健康錯誤資訊，對吧？</p>
+<p>你指出，某種程度上，Meta 其實改變了它針對這類議題的一些政策。而讓我很在意的是，這同時是一種技術問題，也就是我們普遍會在大型語言模型（LLM）裡看到偏見，而且我們知道這種偏見內建於這些模型之中，因為訓練資料就是這樣從網路上被大量吸取進來的。但這背後也顯然有政治選擇，不只是把這些模型在缺乏充分測試、訓練，以及對潛在影響的考量下直接釋放到社會裡，這本身就是重大的政治選擇；也包括它們被部署到某些脈絡中，而那些脈絡可能沒有相應政策去關注這類結果，或更廣泛地說，去關注信任與安全（trust and safety）。</p>
+<p>所以，我不知道，你會怎麼劃分這裡的技術問題與政治問題？這更偏向其中一邊嗎？</p>
+<p>這真是一個非常棒的問題，也正是我們需要用來看待這些事情的方式。現在有一種傾向，會把所有事情都描述成：「喔，我不知道，這真的太難了。這根本無法解決。你怎麼能期待這被解決？」但這顯然是公司會採取的立場，因為這樣一來，它們就不必承擔讓產品安全所需的成本。</p>
+<p>但就意識形態面向來說，而且同樣是在 Meta 這個當下，Meta 在 2025 年 1 月做出了一些相當重大、非常明確的反 LGBT 政策變更；這些大幅變動明白表示，可以把 LGBT 族群稱為有精神疾病、不正常，並且在自家的社群守則裡使用仇恨字眼，把 LGBT 族群稱作 homosexuals，還使用「transgenderism」這個反跨性別用語。這些現在已經出現在 Meta 社群守則裡的，是真正的反 LGBT 修辭。Meta 基本上是在把自己定位成一家反 LGBT 的公司。</p>
+<p>是啊，這是一種意識形態姿態，而且很難真正理解那到底意味著什麼。以扭轉治療（conversion therapy）這件事來說，Meta 技術上其實確實有一項政策，禁止推廣扭轉治療內容，但它的 AI 產品卻在做這件事。我們不知道它現在是否仍然如此。當然，這也指向所有這些事情更大的問題：完全缺乏透明度。我們無法取得資訊，我們不知道。而這在 AI、平台，以及人們身上會帶來一連串連鎖影響；我相信我們所有人都曾直接或間接經歷過影子封鎖（shadow-banning）。</p>
+<p>再說一次，AI 被用於內容審查，而到底發生了什麼、為什麼會發生，天曉得。以及你是否能找到一個真人窗口；換句話說，你找不到。總之，是的。</p>
+<p>你過去做過的許多工作，一方面是產出這類報告、提出這類發現，另一方面也包括直接和科技平台溝通，試著以建設性的方式與它們互動。談到這次關於 AI 的工作，目前有公司願意向你們敞開大門嗎？你覺得你們有辦法取得會議機會，並在討論桌上有一席之地嗎？</p>
+<p>我的意思是，我們確實有各式各樣的會議、各式各樣的對話，也提供各種意見，包括領域專家的指引、關鍵利害關係人的建議。而這真的很有意思。一方面，你會非常同理那些正在開發這些產品的每一個人。我覺得有時候，在我和平台一起做社群媒體安全工作的過程中，我會意識到自己在努力維持正向關係，也真心覺得我們是真的想幫助企業把產品做得更好。這對所有人都是好事，是一件建設性的事，也是一件有價值的事。這些意見是有價值的。</p>
+<p>當然，作為一個組織，GLAAD 作為倡議組織，同時作為一個個體，我想我們每個人也都會有這些挫折感：如果你的帳號出了問題，或遇到其他狀況，你會覺得：「我到底能怎麼辦？」但無論如何，我們一直回到這個問題：我們要怎麼以建設性的方式參與，而且不放棄？我們持續清楚說明：你看，這些是我們的最佳實務。這些事情裡有很多，甚至大多數，你們其實都已經知道。我們所做的，只是不斷回到談判桌前，說：「這裡有一些有幫助的資訊。</p>
+<p>我完全理解，作為一個人，你的工作真的非常困難；但你是在一家公司工作，你們正在生產一項產品，而你們確實需要讓這項產品是安全的，這些就是該做的事。」我也不知道，我只是一直試著回到這一點：這些事情是做得到的，而且它們都是選擇。這有點離題，但也是我一再回頭思考的事情：美國過去之所以會針對各種產業監督設立監管機關，原因之一就是要讓企業必須自行承擔打造安全產品的成本，而不是讓社會去承受那些傷害與成本，因為產業只會說：「不行，70 年代要在車上裝觸媒轉化器太貴了。」</p>
+<p>所以，加州政府當時就像是：「好吧，那也沒辦法。我們要通過立法，規定汽車必須裝上觸媒轉化器，因為大家都快要……我們受夠霧霾了。」汽車產業則是拚命反對，說這絕對不可能。我們做不到。我們就是做不到，一路又踢又叫地抗拒。結果現在，我們的車上都有觸媒轉化器；如果沒有，情況會糟得多。我的意思是，這很有意思，因為那時候是加州的州法，後來顯然也變成了聯邦法。而且謝天謝地，這也正是個很瘋狂的時刻。我們很多監管機關並不……很難找到精確的字眼。不是——</p>
+<h4>將我們的內容寄到你的收件匣。</h4>
+<h4>謝謝！</h4>
+<p>獨立。「不獨立」可以這樣說嗎？</p>
+<p>對。而且就是，這不是一個正常的時期。所以這一切都很瘋狂。但即便如此，我認為我們身為一般人可以抓住的原則，就是繼續堅持：等一下，這些公司需要做出安全、不傷害社會的產品；它們是數十億、數兆美元等級的公司。這些都是合理的期待。</p>
+<p>我想特別問你兩個部分。一個是我覺得我們已經看到很多標題，也有很多可指認的實證，尤其是在新聞媒體裡，那就是陪伴型機器人和陪伴型 app。但我也想問你指出的另一件事，我認為那仍然比較偏推測，也就是圍繞代理型 AI（agentic AI）和 AI 代理（AI agents）的問題，以及它們可能在多大程度上把某些偏見疑慮硬編碼進系統裡。這些系統現在我們可能不一定會認為跟 AI 有關，但看起來正處在即將被捲入下一波代理型浪潮的劇變之中。不過也許我們先從陪伴型機器人開始。</p>
+<p>在這方面，有沒有什麼特別的事是你想留給聽眾的？我的意思是，我想我們多數聽眾都熟悉一些比較嚴重的傷害，像是對年輕人的威脅等等。但就 GLAAD 所關切的群體而言，你特別看到了什麼？</p>
+<p>有幾件事。當然，我指的是轉化治療那件事。我想，我們一再回到的其中一點是：我們希望對 LGBT 族群有特別準確的描述。而當一家公司，我講到這裡真的會有情緒，當 Meta 這家公司說，把 LGBT 族群稱為精神疾病患者、稱為不正常是可以的，這代表什麼、傷害有多大。以及這種想法可能作為一種意識形態被內建進產品裡。不管怎樣，光是這一點就很可怕。但我們在說的其中一個基本重點是：對 LGBT 族群與相關議題，應該要有準確的描述。</p>
+<p>而我們都知道，我們正處在一場假訊息的火風暴之中，尤其是針對 LGBT 族群、特別是針對跨性別者的仇恨式假訊息。這成了一個驚人的傳播載體，讓各種荒誕到不行、完全垃圾的陰謀論四處擴散。就是上週那堆東西。那個 UFC 的人，講了關於米歇爾・歐巴馬的「跨性別調查」（transvestigation）陰謀論。這真的瘋到離譜，對吧？但它又充滿仇恨，深到令人甚至不想談。可是又非常重要，必須談，因為它太普遍了，而且很明顯，特別是反跨性別的仇恨與假訊息正被拿來當成這樣的東西。</p>
+<p>它就是這些極右翼垃圾的載具，尤其是那種攻擊米歇爾・歐巴馬的「跨性別調查」說法。多年來，坎迪斯・歐文（Candace Owen）也一直在散播關於法國第一夫人布麗吉特・馬克宏（Brigitte Macron）的同類說法。即使這完全是荒謬至極的東西，仍然必須被查核、被證明是錯的。抱歉，我有點岔到另一個方向去了，但重點是，反 LGBT 假訊息被大量主動使用，或被主動製造，而且這些東西可能、也正在被模型吸收。另一個非常可怕的例子是「跨性別恐怖主義」套路。</p>
+<p>有各式各樣的仇恨套路，還有「跨性別恐怖主義」這種套路；我們對一些模型做過一點測試，其中有一個特別是 Grok，會回傳非常完整的胡說八道，說這是真有其事，但根本不是。全世界的事實查核組織也一再針對這件事做過查核報導，而我們知道，跨性別者其實遭受暴力的程度高出非常多，而且他們並不暴力。比例大概是，我手邊沒有數字，但就是非常非常小。當然，只要你稍微想一下就知道，很明顯，絕大多數的恐怖主義與暴力行為等等，都是順性別異性戀男性所為。</p>
+<p>而我們在仇恨與不實資訊領域也知道，Dangerous Speech Project 幾年前有一篇很好的文章談到這件事，諸如此類，很多人都在做這方面的研究；重點是，把一群人描繪成暴力，尤其是把一個邊緣化群體描繪成暴力，是一種延續對該群體暴力的策略。也正因如此，所有平台其實都有政策明定你不能這樣做。我們有一份受保護特徵群體的清單。你不能特別說：「喔，穆斯林都是恐怖分子。穆斯林很暴力，因為這就是事實。」這是一種實際上會延續對他們暴力的套路。</p>
+<p>總之，就 AI 的面向來說，這類仇恨套路被模型吸收或納入，確實是一個真正的疑慮。還有其他類似類別的內容，也包括對跨性別醫療照護達到難以置信程度的錯誤描繪。把「身為跨性別者」錯誤描繪成一種意識形態，也是另一件事。還有另一個說法，像我每次聽到「transgenderism」就會覺得，這是被捏造出來的東西，試圖把跨性別描繪成一種意識形態，而不是我們本來就是誰的一個內在部分。總之，這個清單還可以一直列下去。</p>
+<p>最後只想說一件事，我覺得我也一直很努力想傳達的，就是這件事在人性層面上有多可怕、對人有多傷害，因為常常會有那種說法：「那你拿出現實世界的傷害給我們看啊。」但這就是現實世界的傷害：你活在一個現實裡，只因為你是你自己，就一直不斷受到攻擊。</p>
+<p>好，也讓我問一下代理型 AI（agentic AI）。這當然是矽谷現在的熱門詞，也似乎是大量投資聚焦的方向：把這些系統嵌進我們所做的一切，從個人理財、健康，到管理自己的通訊與資訊。你能不能談談，依照你們在報告裡的說法，這裡有哪些危險？</p>
+<p>Leadership Conference 做的、我們也參考的框架研究裡，有一些很棒的內容。而且我也想承認，這真的會讓人覺得：「天啊，我們是站在好多人的肩膀上，而他們已經做這件事做了好多好多年。」預測型 AI 的案例已經累積了好多好多年。我們現在用代理型 AI 這個說法，但從歷史上來看，預測型 AI 在住房和貸款方面造成歧視性影響，早已有許多例子。當我們停下來，再次回到模型本身就內建偏見這個問題去思考時，就很容易看出可能會出現有問題的結果、有問題的影響。</p>
+<p>我們在 Tech Policy Press 報導過一件事，也曾和你以及 GLAAD 的同事談過，那就是 GLAAD 過去幾年一直在做的 Social Media Safety Index（社群媒體安全指數）；你們今年稍早也剛發布了最新版。當然，每一年它某種程度上都是各大平台的一張糟糕成績單。今年有些平台甚至倒退，YouTube 退步、Meta 退步。就你們對各平台處理 LGBTQ 安全議題的評估來看，我印象中只有 TikTok 持平。我想知道你怎麼看這些交會之處。</p>
+<p>我的意思是，很明顯有一個技術層面的交會。現實是，如果平台無法審核、處理反 LGBTQ 的仇恨內容，那只會製造更多素材，讓大型語言模型（LLM）基本上把那些說法吸進去，接著可能導致更多偏見、更多仇恨，以及更多其他錯誤資訊在其中流動。但我不確定，你怎麼思考這層關係？它告訴我們，LGBTQ 族群所處的資訊環境是什麼樣子？</p>
+<p>謝謝你問這個問題。我的意思是，發布社群媒體安全指數這件事很有意思，過程也很有意思，但同時又讓人覺得非常沮喪、挫折，會有一種「天啊，我們是不是只是在重複同樣的話」的感覺。這真的可能很艱難，因為作為一個組織，在倡議工作上我們會碰到這種狀況：「好吧，我們又來到了這裡。又是糟糕的一年。那到底要怎麼倡議改變？」我想，我們確實一直試著回到一種公共教育的取徑，也就是幫助每一個人理解：事情不必是這樣。事情不應該是這樣。這些不是無法克服的問題。</p>
+<p>它們是公司拒絕解決、拒絕有意義地面對的問題與議題，但這不代表我們就不該繼續倡議，要求它們解決。簡單說，我們常談的兩個主要問題，當然包括平台需要更好地減緩反 LGBT 仇恨與不實資訊。同時，它們也需要做得更好，不要壓制正當的 LGBT 表達、不要影子封鎖（shadow-banning）、不要移除帳號。而我們看到這兩件事都在發生。有人可能會看著這些說：「喔對，那應該很難。對，聽起來很難。」但你也是一家市值兆美元的公司。我不知道，投入一點資源吧。</p>
+<p>我是說，認真講，這其實不是不合理的要求；我只是一直試著回到這一點。然後，尤其是關於這件事，這聽起來可能有點玄、很老套，或有點私人，但我有參與十二步驟計畫，而十二步驟裡有一個概念是「參與是和諧的關鍵」，也就是，或者說又名「民主」，這也是我們有的一個概念。參與。</p>
+<p>這代表我會覺得自己很理想主義，好像，我也不知道，如果我們可以就這樣說：「嗨，我來了，我想參與，而且這是好事，這一切都是好事；我們希望那些對我們的環境、社會，以及生活中一切面向都有如此重大影響的產品，當我們使用『安全』這個詞時，不知道為什麼，期待事情應該是安全的，聽起來卻像是不合理的要求。」</p>
+<p>不知怎麼地，好像你不配擁有安全，但每個人都應該能在社群媒體、AI，以及這個世界裡感到安全；這點我們應該都能同意。身處充斥著仇恨、謊言和垃圾內容的環境，會影響我們所有人；我們也都應該希望能和鄰近的人保持連結，並且感到安全、能夠參與。</p>
+<p>這些話聽起來應該都是很簡單、很理所當然可以說出口的事。我很感謝你把它們說出來，也很感謝你把這些話對科技公司說出來，並且在 GLAAD 做這麼出色且重要的工作，把這些結果整理出來。現在是驕傲月，我想我也應該說聲：同志驕傲月快樂。我覺得你們在這個時刻發布這些內容很重要，也希望下次再和你談的時候，Jenni，我們或許已經有一些成果可以指出來；但我相當確定，你們正在為那些成果打下基礎。</p>
+<p>謝謝你，也祝你以及所有人 LGBTQ 驕傲月快樂。是的，我想我們衡量勝利與成就的標準，不在於我們是否能在跟這些公司一次次撞牆般的溝通中成功，而更在於我們是否能保住自己的理智。我一直都是這樣做的。我很喜歡引用 Maria Ressa 的話，她也是我們顧問委員會的成員。她說：「守住這條線。即使其他都做不到，我們至少是在守住這條線：我們知道世界應該是什麼樣子，而這就是我們能做的事。」</p>
+<p>如果有 AI 公司的高階主管想聯絡你，覺得自己想做點什麼來推進基本的人性尊嚴與民主，他們可以在哪裡找到你？也許是 glaad.org。</p>
+<p>是的，Glaad.org。沒錯。我們就在這裡，也一直在為企業提供指引，而這些指引是有價值的。是的，我們可以協助你們讓產品對 LGBT 族群、也對所有人來說更安全。</p>
+<p>Jenni Olson，非常謝謝你。</p>
+<h2>作者</h2>
+<h2>主題</h2>
+<h2>相關內容</h2></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-e6224f7d18a84bab.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">定義 2026 上半年 AI 動盪局勢的 10 個關鍵時刻</span>
+</a>
+
+<a class="article-sequence-link" href="item-365c3aa8d52cfc91.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">AI 革命不會被轉播，而會被量化</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-ba1f26ac2a108423.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：GLAAD Maps Where AI Fails LGBTQ People and How to Fix It</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：GLAAD 盤點 AI 如何辜負 LGBTQ 族群，以及該如何修正（Codex）</li><li><strong>原始作者</strong>：Justin Hendrix（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-07-05T15:44:20+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-07-05T15:42:31+00:00 彙整式電子報拆 link：新增 1 筆，重複 0 筆，略過 2 筆。
+2026-07-05T15:44:20+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-ba1f26ac2a108423";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Why Specialization Is Inevitable - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; text-align: left; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-07-05T17:15:57+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--reading">Ian 近期正在讀</span><span class="badge badge--reading">想分享</span><span class="badge badge--date">2026-06-30 08:00</span></div>
+      <h1><a class="article-title-link" href="https://huggingface.co/blog/Dharma-AI/why-specialization-is-inevitable" target="_blank" rel="noreferrer" title="開啟原始連結">Why Specialization Is Inevitable</a></h1>
+      <p class="lede">Hugging Face Blog 刊登 Dharma AI 的文章，深入分析為何在AI時代，專業化成為不可避免的趨勢。內容從技術層面切入，延伸至社會結構與政策治理挑戰。</p>
+      <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">開源 AI / OSAID</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn-uploads.huggingface.co/production/uploads/69d815b52c6db28cfdfdd422/Av4v9_l94sEUj-etRFOLb.png" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><h1>為什麼專門化勢不可免</h1>
+<h2>a]:hidden&quot;&gt;</h2>
+<p>為什麼專門化勢不可免</p>
+<h2><a href="https://huggingface.co/blog/Dharma-AI/why-specialization-is-inevitable#what-optimization-theory-evolutionary-biology-competitive-markets-and-machine-learning-all-predict--and-why-the-answer-is-the-same" target="_blank" rel="noreferrer">最佳化理論、演化生物學、競爭市場與機器學習都預測了什麼，以及為什麼答案相同</a> <a href="https://huggingface.co/blog/Dharma-AI/why-specialization-is-inevitable#an-algorithm-wins-by-fitting-its-target" target="_blank" rel="noreferrer">演算法靠貼合目標而勝出</a> <a href="https://huggingface.co/blog/Dharma-AI/why-specialization-is-inevitable#what-biology-and-markets-already-know" target="_blank" rel="noreferrer">生物學與市場早已知道的事</a> <a href="https://huggingface.co/blog/Dharma-AI/why-specialization-is-inevitable#machine-learning-keeps-rediscovering-specialization" target="_blank" rel="noreferrer">機器學習不斷重新發現專門化</a> <a href="https://huggingface.co/blog/Dharma-AI/why-specialization-is-inevitable#what-scaling-doesnt-change" target="_blank" rel="noreferrer">規模擴大不會改變什麼</a> <a href="https://huggingface.co/blog/Dharma-AI/why-specialization-is-inevitable#primary-source" target="_blank" rel="noreferrer">主要來源</a> <a href="https://huggingface.co/blog/Dharma-AI/why-specialization-is-inevitable#sources" target="_blank" rel="noreferrer">來源</a> <a href="https://huggingface.co/blog/Dharma-AI/why-specialization-is-inevitable#further-reading" target="_blank" rel="noreferrer">延伸閱讀</a></h2>
+<p>最佳化理論、演化生物學、競爭市場與機器學習都預測了什麼，以及為什麼答案相同</p>
+<p>關注 Dharma AI 的人已經知道，我們把專門化視為有效 AI 系統的核心原則之一，影響範圍從成本、效能，到可靠性與主權。很少有論文能像 Goldfeder、Wyder、LeCun 與 Shwartz-Ziv 在 2026 年的作品那樣，嚴謹地闡述這個論點。</p>
+<p>在本文中，我們探討並詮釋 <em>AI Must Embrace Specialization via Superhuman Adaptable Intelligence</em>（Goldfeder、Wyder、LeCun 與 Shwartz-Ziv，2026）中的想法。這篇論文提出的收斂論證，橫跨最佳化理論、生物學、組織經濟學與機器學習，為以下討論提供了證據架構與思想基礎。本文呈現的框架、組織與編輯綜整，則出自 Dharma。</p>
+<p>一般直覺其實合理：隨著 AI 系統能力越來越強，它們也應該變得越來越通用。更強的能力與更廣的適用範圍，看起來像是自然相伴的組合：更多資源、更好的方法，以及更擴大的訓練，應該會產生能以更高把握處理更多任務的系統。</p>
+<p>但實際出現的模式並非如此。在任何特定領域中取得最重大成果的系統，往往是最狹窄地聚焦於該領域的系統。蛋白質結構預測的突破，來自一個為單一科學任務打造的系統。若仔細檢視 AI 史上的里程碑，會發現它們反映的是強烈鎖定特定領域，而不是逐步擴張的通用性。</p>
+<p>這個模式反覆出現。它跨越不同領域、不同年代，也跨越幾乎毫無共同點的架構選擇。如此一致的模式，暗示背後有一個共同成因：而且這個成因根本不是源自 AI 研究內部。</p>
+<h3>演算法靠貼合目標而勝出</h3>
+<p>1997 年，Wolpert 與 Macready 證明了一件很少出現在 AI 架構討論中的事：不存在任何單一、通用型的最佳化演算法，能在所有可能問題上勝過其他所有演算法（Wolpert &amp; Macready, 1997）。這個證明是數學性的，不是哲學性的。若把學習者可能面對的每一種可想像問題平均起來，每一種演算法的表現都一樣好，也一樣差。一個演算法若在某一類問題分布上取得優勢，就必然會在其他分布上讓步。效能只是被重新分配，而不是被倍增。</p>
+<p>實務上的含意很直接：「演算法之所以勝出，是因為它很適合目標問題」（Goldfeder et al., 2026）。這個定理不是說通用性不可能，而是說通用性本身並不是效能優勢。要穩定走向優於他人的結構性路徑，就是集中：用廣度換取貼合度。</p>
+<p>當有限資源進入畫面時，這一點會變得更尖銳。任何真實系統都在限制下運作：有限的算力、有限的資料、有限的開發時間。在能量有限的情況下，把可用資源導向學習一組有限任務的方法，會勝過把同樣資源分散到無限範圍的方法。這筆帳很殘酷：當任務集合無止境擴張時，每項任務可分到的資源會趨近於零。在有限資源下，全面涵蓋與有意義的效能之間存在直接張力。</p>
+<p>這個定理指向的結論，不是「通用性不好」。它比這更狹窄，也更偏向操作層面：如論文所說，「普遍通用性是一個理論概念，但在實務上它是一種迷思」（Goldfeder et al., 2026）。真正能經得起現實限制考驗的，不是試圖做所有事情的系統，而是符合其目標的系統。</p>
+<p>數學把這件事確立為一項預測，而不是一種偏好。這項預測在最佳化理論之外的世界是否成立，則是另一個問題。</p>
+<h3>生物學與市場早就知道的事</h3>
+<p>在最佳化理論替這個預測命名前，另外兩個領域已經得出同樣的判斷。</p>
+<p>論文是這樣描述生物學案例的：在某個生態位中取得的每一項效能提升，都會在其他地方付出代價。通才型生物帶有適合多種環境的特徵，但在任何一種環境中都不是最佳；能力分散得太薄，無法在任何特定條件下取得主導地位。沒有不伴隨取捨的效能提升；投入某項能力的資源，就無法再投入另一項能力。選擇會偏好符合在地條件的設計，而不是為了在所有可能環境中均勻涵蓋而最佳化的設計。能夠存活並繁殖的生物，不是最具一般能力的，而是最能精準匹配環境的。經過演化時間尺度累積下來的結果，不是通才型生物稱霸，而是專才填滿各自的生態位。如論文所說：「專門化並不是生物學上的偶然；它是有限資源、相互競爭的目標，以及只獎勵一小部分具演化相關性挑戰之表現的環境所帶來的可預測結果」（Goldfeder et al., 2026）。</p>
+<p>競爭性市場也會透過不同手段呈現同樣的動態。未達績效門檻的組織與策略會被淘汰——不是透過滅絕，而是透過退出、停止資助，以及由更匹配的替代方案取代。競爭扮演一種選汰機制：它會放大有效策略，並淘汰無效策略。這個機制與生物學上的選擇毫無共通之處——沒有遺傳、沒有突變，也沒有演化時間尺度。被選汰的單位不是有機體，而是組織、產品、策略。然而，結構性的壓力是相同的：有限資源、績效要求，以及系統性移除那些分散得太廣、無法在關鍵處勝出的實體。當績效標準清楚且一致時，集中的能力會勝過分散的能力。</p>
+<p>演化與市場透過完全不同的機制運作——不同的時間尺度、不同的選汰單位、不同的遺傳機制。然而，兩者在資源壓力下都會產生相同結果：適配優先於廣度。這個定理預測了這點。生物學與市場各自獨立抵達同樣結論。當第三個領域又透過完全不同的方式得出相同發現時，這個模式看起來就不再像單一定理，而開始像是受限系統行為中更普遍的現象。</p>
+<h3>機器學習不斷重新發現專精化</h3>
+<p>同樣的模式也出現在機器學習內部——它不是從最佳化理論推導出來的，而是透過建構系統、觀察哪些做法能改善系統的累積經驗而得到的。</p>
+<p>最清楚的形式是負遷移（negative transfer）：當一個系統接受多任務訓練，卻因為這些任務彼此競爭而非相互合作，導致可衡量的效能下降時，就會發生這種現象（Ruder, 2017）。當任務共享結構時，一起訓練會有幫助。但當任務競爭表徵能力，或在訓練期間施加彼此衝突的梯度時，個別任務的表現就會低於專用系統能達到的水準。廣度帶來的收益變成深度上的成本。這是把有限能力分散到彼此拉扯的任務之間所造成、已有文獻記錄的後果。專精者沒有面對這種競爭，因此不需要支付這項成本。</p>
+<p>前沿模型的架構提供了另一種形式的證據。混合專家（Mixture-of-Experts）系統之所以能有廣度，並不是因為所有參數都具備均一的通用性，而是因為它會把每個輸入路由到網路中一個專門化的子集合，也就是針對不同任務啟用不同專家。論文作者將此解讀為一種結構上的讓步：一個原本被設計為通用的系統，是透過在內部重新找回專門化來達成其成果。這是一種經過論證的詮釋，不是已被證明的定理；這些架構原本是為了運算效率而設計，而它們對通用性限制所透露的意涵，是合理推論，而非明示意圖。但這仍然值得注意：最有能力的通用型系統，是透過在內部執行專門型系統原本就以設計達成的事，來取得其效能。</p>
+<p>最清楚的歷史案例也遵循同樣邏輯。AlphaFold 透過針對蛋白質結構預測這項特定任務，採用任務特定的架構與訓練選擇，帶來了跳躍式進展（Jumper et al., 2021）。它的進步來自更窄的聚焦，而不是更廣的覆蓋。這篇論文將 AlphaFold 作為典型案例，不是為了證明所有專門化系統都能取得同等幅度的進展，而是因為它格外清楚地說明了這個機制。這個機制已反覆出現：論文指出，AI 里程碑的歷史，常常反映的是高度集中的領域鎖定，而非廣泛能力，即使那些成果看起來像是在展示通用智慧。</p>
+<p>三個不同地方。三種不同機制。同一個發現。</p>
+<h3>規模化無法改變什麼</h3>
+<p>若不處理 AI 研究中最常被引用的觀察之一，這幅圖像就不完整。Sutton 的「苦澀的教訓」（Bitter Lesson）指出，仰賴領域知識的方法，始終會被能擴大運算規模的方法超越（Sutton, 2019）。表面上，這似乎讓專門化的主張變得更複雜：如果規模與通用性會勝出，也許專門化只是在資源限制下有用的啟發式做法，而隨著算力變便宜，這種限制將會緩解。</p>
+<p>反對意見建立在兩個不同概念的混淆之上。領域知識指的是手工編寫的特徵、工程化的先驗，以及為了讓系統洞察特定領域而設計的規則。「苦澀的教訓」（The Bitter Lesson）所針對的正是這一點，而且這樣做是對的。隨著規模增加，編入明確領域知識的系統一直被超越。</p>
+<p>領域專門化則不同：它是決定將<a href="https://huggingface.co/blog/Dharma-AI/direct-preference-optimization-beyond-chatbots" target="_blank" rel="noreferrer">系統的資源、架構與訓練導向一組有邊界的任務</a>，而不是把它們廣泛分散出去。這不是把某個領域的知識編碼進系統，而是關於範圍的決策。</p>
+<p>論文精確地劃分了這項差異：</p>
+<p>「領域知識的效用遞減，和領域專門化的效用是兩回事。隨著規模化推進，我們會需要更少關於蛋白質的知識，就能建立一個進行蛋白質摺疊的系統；然而，這樣的系統仍然會受益於專注在蛋白質上。」（Goldfeder 等，2026）</p>
+<p>規模化改變的是系統能從資料中學到什麼。它並不改變一件事：把資源集中在有限的任務集合上，是否會勝過把資源分散到無限制的範圍中。「苦澀的教訓」與專門化論點運作在不同維度：前者描述知識應該如何取得，後者描述系統應該被指向什麼目標。兩者可以同時成立。規模化改變了系統學習的機制；但它沒有消除那個讓<a href="https://huggingface.co/blog/Dharma-AI/specialization-beats-scale" target="_blank" rel="noreferrer">適配性比廣度更有價值</a>的限制。</p>
+<p>在四種分析傳統中，同樣的模式透過不同路徑浮現。這不是一個需要解釋的巧合，而是證據本身。</p>
+<p>當有限資源遇上選擇壓力時，無論是在最佳化問題、生態系、市場，或一次訓練流程中，適配性都一再勝過廣度。具體機制不同，時間尺度不同，選擇單位也不同。但結構性的動態是相同的，並且產生相同的結果。</p>
+<p>定理並不是生物學中這種模式的成因。生物學也不是市場中這種模式的成因。兩者都不是機器學習中這種模式的成因。它們面對的是同一個底層限制：在資源稀缺下要有表現，就需要集中。定理從數學上確立的事，演化史以經驗證據加以確認，競爭市場以制度運作加以展現，而機器學習則從架構上重新發現。</p>
+<p>專精化不是一種偏好。它是在有限資源遇上績效要求時浮現出來的結果。</p>
+<p>如果你正在評估領域聚焦如何影響組織內的 AI 表現，或正在內部建立採取專精策略的論述，我們很想了解你的情境。<a href="https://dharma-ai.com" target="_blank" rel="noreferrer">與 Dharma AI 聯繫。</a></p>
+<h3><strong>主要來源</strong></h3>
+<ul>
+<li>Goldfeder, S., Wyder, M., LeCun, Y., &amp; Shwartz-Ziv, R.（2026）。AI must embrace specialization via superhuman adaptable intelligence。arXiv:2602.23643。</li>
+</ul>
+<h3><strong>來源</strong></h3>
+<ul>
+<li>Wolpert, D.H. &amp; Macready, W.G. (1997)。最佳化的「沒有免費午餐」定理。<em>IEEE Transactions on Evolutionary Computation</em>，1(1)，67–82。</li>
+<li>Forister, M.L., Novotny, V., Panorska, A.K., Baje, L., Basset, Y., Butterill, P.T., &amp; Dyer, L.A. (2012)。植食性昆蟲食性廣度的全球分布。<em>Proceedings of the National Academy of Sciences</em>，109(2)，418–423。</li>
+<li>Futuyma, D.J. &amp; Moreno, G. (1988)。生態專化的演化。<em>Annual Review of Ecology and Systematics</em>，19，207–233。</li>
+<li>Hannan, M.T. &amp; Freeman, J. (1977)。組織的族群生態學。<em>American Journal of Sociology</em>，82(5)，929–964。</li>
+<li>Loasby, B.J. (1983)。知識、學習與企業。引自 Goldfeder 等人（2026）。</li>
+<li>Ruder, S. (2017)。深度神經網路中多任務學習概述。arXiv:1706.05098。</li>
+<li>Fedus, W., Zoph, B., &amp; Shazeer, N. (2022)。Switch transformers：以簡單且高效率的稀疏性擴展至兆級參數模型。<em>Journal of Machine Learning Research</em>，23(120)，1–39。</li>
+<li>Jumper, J., Evans, R., Pritzel, A., Green, T., Figurnov, M., Ronneberger, O., &amp; Hassabis, D. (2021)。使用 AlphaFold 進行高準確度的蛋白質結構預測。<em>Nature</em>，596，583–589。</li>
+<li>Silver, D., Hubert, T., Schrittwieser, J., Antonoglou, I., Lai, M., Guez, A., &amp; Hassabis, D. (2018)。一種透過自我對弈掌握西洋棋、將棋與圍棋的通用強化學習演算法。<em>Science</em>，362(6419)，1140–1144。</li>
+<li>Sutton, R.S. (2019)。苦澀的教訓。取自 <a href="http://www.incompleteideas.net/IncIdeas/BitterLesson.html" target="_blank" rel="noreferrer">http://www.incompleteideas.net/IncIdeas/BitterLesson.html</a></li>
+</ul>
+<h3><strong>延伸閱讀</strong></h3>
+<ul>
+<li><a href="https://huggingface.co/blog/Dharma-AI/specialization-beats-scale" target="_blank" rel="noreferrer">專精勝過規模：多數 AI 採購決策忽略的策略變數</a> — 本文在實證與策略上的互補文章。沒有免費午餐定理說明了為什麼專精在結構上可被預測，而這篇文章則檢視它在實務上表現更好的證據，以及為什麼在多數 AI 採購決策中仍被低估。</li>
+<li><a href="https://huggingface.co/blog/Dharma-AI/text-degeneration-a-production-failure-mode" target="_blank" rel="noreferrer">文字退化：多數基準測試沒有追蹤的生產環境失效模式</a> — 這是一種已有文件記錄的失效模式，會在語言模型超出其有效領域邊界運作時出現。</li>
+<li><a href="https://huggingface.co/blog/Dharma-AI/direct-preference-optimization-beyond-chatbots" target="_blank" rel="noreferrer">超越聊天機器人的直接偏好最佳化</a> — 偏好最佳化技術如何延伸到對話式 AI 以外的專門領域；這正是本文主張在結構上可被預測的領域聚焦策略之具體實例。</li>
+</ul>
+<p><em>探索</em> <a href="https://huggingface.co/Dharma-AI" target="_blank" rel="noreferrer">Hugging Face 上的 Dharma AI</a> <em>，試用我們的互動式展示、下載我們的開源模型，並了解專門化 AI 系統如何在真實企業應用中勝過通用模型。</em></p>
+<h2>超越聊天機器人的直接偏好最佳化</h2>
+<h2>專精勝過規模：多數 AI 採購決策忽略的策略變數</h2>
+<h3>社群</h3>
+<p>我想補充的是，在 AI Agent 的時代，部署一個新的超專精 agent，聚焦在非常狹窄的領域、使用較少的提示詞／脈絡，會帶來較少的幻覺與較低的 token 消耗。這既便宜又方便，所以我認為這是最可能的路徑。</p>
+<p>· <a href="https://huggingface.co/join?next=%2Fblog%2FDharma-AI%2Fwhy-specialization-is-inevitable" target="_blank" rel="noreferrer">註冊</a>或<a href="https://huggingface.co/login?next=%2Fblog%2FDharma-AI%2Fwhy-specialization-is-inevitable" target="_blank" rel="noreferrer">登入</a>以留言</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-b8917bcd294cee1c.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">歐盟推動數位主權：開源AI與著作權規則的衝突</span>
+</a>
+
+<a class="article-sequence-link" href="item-6489036baf2b1df1.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">GSA 採用開源 AI，依新聯邦規則進行採購</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-9d378cdbd00f4064.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：Why Specialization Is Inevitable</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>自動翻譯中文標題</strong>：為什麼專門化勢不可免（Codex）</li><li><strong>原始作者</strong>：Erick Lachmann（json-ld）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-07-05T16:32:06+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-07-05T16:32:06+00:00 本機確認收下並標記為閱讀中 / 超想看；下一步優先進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-9d378cdbd00f4064";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>

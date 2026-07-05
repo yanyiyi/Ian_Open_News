@@ -526,7 +526,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-07-01T02:50:47+00:00</p>
+            <p class="generated">產生時間：2026-07-05T17:15:57+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -560,16 +560,47 @@
       <p class="lede">Workday 推出新策略「Bring it to our shop」，強調將 AI agents 部署於用戶端，藉此強化對核心人事與財務數據的控管。該做法反映企業在開放 AI 架構下的風險管理思維，並探討如何在供應鏈安全與技術治理間取得平衡。</p>
       <div class="tag-chip-list"><span class="tag-chip">AI Agents</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://cdn.thenewstack.io/media/2026/06/3a39199f-patrick-hendry-oid5gxxepbk-unsplash-scaled.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>&quot;Bring it to our shop&quot;: Workday&#x27;s pitch for keeping AI agents close to your most valuable data</h1>
+<p>Check your inbox for a confirmation email where you can adjust your preferences and even join additional groups.</p>
+<p>Follow TNS on your favorite social media networks.</p>
+<p>Become a <a href="https://www.linkedin.com/company/the-new-stack" target="_blank" rel="noreferrer">TNS follower on LinkedIn</a>.</p>
+<h2>“Bring it to our shop”: Workday&#x27;s pitch for keeping AI agents close to your most valuable data</h2>
+<p><strong>Workday, the payroll and HR data platform,</strong> has been pursuing AI and agents for a while, but while other businesses may allow a little room for error, getting a payroll run in Workday 99% right is not exactly good enough.</p>
+<p><a href="https://www.linkedin.com/in/gabemonroy" target="_blank" rel="noreferrer">Gabe Monroy</a>, Workday’s chief technology officer, tells <em>The New Stack</em> that enterprise AI has to clear this bar before anyone will let it near their HR and finance data.</p>
+<p>“There aren’t many systems that are more critical — or less forgiving — than ones that are dealing with people and money,” he says. There’s no tolerance for “well, it works most of the time,” Monroy says in an interview.</p>
+<p>At its <a href="https://blog.workday.com/en-us/workday-devcon-2026-going-agentic-building-future.html" target="_blank" rel="noreferrer">DevCon developer conference</a> in early June, Workday laid out its plans to clear this correctness bar. The company introduced <a href="https://newsroom.workday.com/2026-06-02-Workday-Launches-New-Tools-for-Developers-to-Build,-Connect,-and-Verify-AI-Agents-For-HR,-Finance,-and-IT" target="_blank" rel="noreferrer">Agent-Ready Tools</a>, a set of connectors that let agents act across the platform over the Model Context Protocol (MCP), a Developer Agent that lets people build apps and agents on Workday in plain language, and <a href="https://newsroom.workday.com/2026-06-02-Workday-Launches-Agent-Passport-to-Test,-Verify,-and-Continuously-Monitor-Every-AI-Agent-in-the-Enterprise" target="_blank" rel="noreferrer">Agent Passport</a>, which tests and verifies agents before they go into production and keeps monitoring them after, with Cisco as the first attestation partner.</p>
+<h2>Guardrails belong in the inference engine</h2>
+<p>Monroy spent most of his career in infrastructure and the developer space: at Deis, Microsoft, DigitalOcean, and, most recently, Google. At Google, he focused on building infrastructure for large AI labs to run inference at scale. For someone so focused on infrastructure, coming to Workday might seem a bit like an odd move, but Monroy argues that, at this point, LLM safety is — or at least should be — part of the core infrastructure for enterprises.</p>
+<blockquote>“The stakes are higher … in the world of people and money”</blockquote>
+<p>“The stakes are higher in the world of Workday and in the world of people and money, and that’s something that I was really excited about tackling at Workday specifically — and I do look at it as a core infrastructure,” he says. “A lot of what I’ve been doing in my recent past has been building infrastructure for large AI labs to do inferencing at scale, and what you pick up pretty quickly is that inferencing is probabilistic.</p>
+<p>“[Inferencing] involves prefill and decode, and a whole bunch of really technical machinery in place to stream tokens out to end users, but what is nowhere in that stack today is the concept of native LLM-level enforced guardrails — guardrails that are part of the core inference.”</p>
+<p>In his view, making it safe for enterprises to operate inference at scale has to be done at the inference engine layer. Agent gateways and similar add-ons that wrap the model from the outside sit at the wrong layer, he argues.</p>
+<p>For a system of record like Workday, the system must strictly enforce guardrails on who the user is, what their budget authority is, and where they sit in the org chart. Those constraints, Monroy says, can be wired deep into the inference rather than checked after the fact. “These are things that we have the opportunity to wire deeply into the inferences at a very, very low level, in a way that produces much safer outcomes,” he says.</p>
+<p>Workday’s recent <a href="https://newsroom.workday.com/2025-11-19-Workday-Signs-Definitive-Agreement-to-Acquire-Pipedream" target="_blank" rel="noreferrer">acquisition of Pipedream</a> partially plays into this. With Pipedream, an agent can reach out to third-party systems outside Workday to, for example, pull a policy document from Google Drive, and the platform can then verify that this specific agent has all necessary access rights to do so.</p>
+<h2>“Bring it to our shop”</h2>
+<p>All of those agents need to be managed, of course, and while many SaaS companies are currently <a href="https://thenewstack.io/sap-ai-agent-hub/" target="_blank" rel="noreferrer">building out their own agent platforms and agent orchestration services</a>, seemingly all offering the same services, Monroy argues that orchestration should happen close to the data sources.</p>
+<p>“If you’re trying to run an agent interaction that is integrating with people and money, that orchestration loop should probably happen closer to Workday, ideally on the Workday,” he says. “I do think there is something to be said for inference engines having proximity to the underlying system, because when it comes to a low-level inference engine and runtime perspective, there are some differentiated things you can do at the inference engine level that are only possible due to proximity to.”</p>
+<blockquote>“I do think there is something to be said for inference engines having proximity to the underlying system…”</blockquote>
+<p>He likened it to car repair. If somebody hands you a toolbox, you may or may not be able to fix your car’s problem. “Maybe you’ll get the outcome, but I tell you what, if you really want your car repair done right, bring it to our shop. We got the hydraulic lift, we got the trained engineers who know how to do this stuff, and we got the tools — but our tools are the best in the industry.”</p>
+<p>For the part of an agent’s orchestration loop that has to run next to HR and finance data, “you really should be running that in our shop.”</p>
+<p>For more general-purpose workflows, though, he believes there is room for general-purpose platforms. Not everything needs to run on Workday, after all, and Workday does offer MCP servers that third-party tools can tap into to access its data and tools as well.</p>
+<p>To some degree, every system-of-record vendor is making some version of the <a href="https://thenewstack.io/sap-sapphire-ai-context/" target="_blank" rel="noreferrer">proximity-and-context case</a> right now. Owning the context for AI agents to work with is a <a href="https://thenewstack.io/hyland-enterprise-context-engine-agents/" target="_blank" rel="noreferrer">major moat</a> for these companies, after all, even as APIs and MCP servers allow agents to pull in data across vendors.</p>
+<p>Meanwhile, there is also a group of other companies positioning themselves as neutral parties benefiting from the fact that these other vendors are now opening their platforms to third-party agents. It seems unlikely that, in the long run, enterprises will want to manage multiple agent platforms, but at this point, it is still far from clear in which direction this pendulum will swing.</p>
+<h2>Happy to lose the tooling fight</h2>
+<p>If proximity is where Workday thinks it can win, there is one area where the company doesn’t want to compete: developer tools.</p>
+<p>“We’re not going to differentiate Workday on building better tools for developers,” Monroy says. “We’re going to differentiate on safety, on trust, on the inference engine.” It’s telling that the demos at DevCon ran on Claude Code, Cursor, OpenAI’s Codex, and Google’s Antigravity rather than on anything Workday-branded. “On the tooling front, I’m happy to have Claude Code and Codex and others,” he says.</p>
+<p>It’s no secret that <a href="https://thenewstack.io/github-wants-developers-back/" target="_blank" rel="noreferrer">developer loyalty to AI tools doesn’t really exist</a> at this point. Developers definitely don’t want a one-off tool from a single vendor, and Monroy notes that he isn’t going to ask them to adopt one. Instead, Workday wants to own skills, which he calls “the underlying lingua franca that we’re using to converge across the system.”</p>
+<p>Workday is happy to be the system of record for its vertical and to let others fight over the tools.</p>
+<p>Community created roadmaps, articles, resources and journeys for developers to help you choose your path and grow in your career.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
-<a class="article-sequence-link" href="item-881a0234c53d5361.html">
+<a class="article-sequence-link" href="item-d1ccbeb4b82d3d36.html">
   <span class="article-sequence-label">上一則</span>
-  <span class="article-sequence-title">CDT 聯署反對加州SB 690法案：憂心政府濫用間諜漏洞</span>
+  <span class="article-sequence-title">民主有傾聽問題，這些 AI 工具或許真的能幫上忙</span>
 </a>
 
 <a class="article-sequence-link" href="item-8efe56cd9fcb6599.html">
@@ -587,7 +618,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-6f2acae097ecf360.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：“Bring it to our shop”: Workday’s pitch for keeping AI agents close to your most valuable data</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Frederic Lardinois</li><li><strong>原始網站授權</strong>：未標示</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：“Bring it to our shop”: Workday’s pitch for keeping AI agents close to your most valuable data（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Frederic Lardinois（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-29T16:01:40+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

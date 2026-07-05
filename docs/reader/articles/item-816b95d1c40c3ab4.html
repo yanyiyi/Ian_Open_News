@@ -526,7 +526,7 @@
           <summary aria-label="閱讀版說明">?</summary>
           <div class="site-popover reader-help-panel">
             <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
-            <p class="generated">產生時間：2026-07-01T02:50:47+00:00</p>
+            <p class="generated">產生時間：2026-07-05T17:15:57+00:00</p>
           </div>
         </details>
         <details class="site-menu reader-menu">
@@ -560,16 +560,30 @@
       <p class="lede">Mozilla 的 0DIN 資安團隊發現了一個新的攻擊向量，證明駭客可以藉由武器化的惡意儲存庫（Malicious Repos）來劫持開發者使用的 AI 編碼助理（例如 Claude Code）。該漏洞源於 AI 指令在終端機上的「自動修復錯誤」機制，攻擊者可以透過偽造或操控錯誤日誌訊息，引導 AI 執行有害指令。研究證實此類攻擊可能導致開發者的本地機器受侵害，甚至突破 CI/CD Runner 的安全防護。這對於目前快速擴張的 AI Agent 工具鏈提供極為重要的安全性警示與防禦參考。</p>
       <div class="tag-chip-list"><span class="tag-chip">開放原始碼</span><span class="tag-chip">資安 / 供應鏈</span><span class="tag-chip">Mozilla</span><span class="tag-chip">AI Agents</span></div>
     </article>
-
+    <figure class="article-hero"><img src="https://www.opensourceforu.com/wp-content/uploads/2022/09/firefox-e1662989261433.jpg" alt="" loading="lazy"></figure>
     <section class="article-fulltext-card">
       <div class="section-kicker">全文</div>
-      <h2>尚未載入全文</h2>
-      <div class="article-text article-markdown"><p class='empty'>這篇目前還沒有本機全文。回本機閱讀區按「展開全文」後重新產生 GH Pages 閱讀版，就會帶入這裡。</p></div>
+      <h2>原始主文</h2>
+      <div class="article-text article-markdown"><h1>Mozilla 0DIN: Malicious Repos Can Exploit AI Agents Via Error Logs - Open Source For You</h1>
+<ul>
+<li><a href="https://www.opensourceforu.com/category/types-of-content/news/" target="_blank" rel="noreferrer">News</a></li>
+</ul>
+<h2>Mozilla 0DIN: Malicious Repos Can Exploit AI Agents Via Error Logs</h2>
+<p><em>Mozilla’s 0DIN cybersecurity team has demonstrated how hackers can bypass traditional security tools and hijack developer systems by weaponising the automated error-recovery instincts of AI coding assistants like Claude Code.</em></p>
+<p>Mozilla’s 0DIN researchers have discovered an attack vector that compromises a developer’s local machine or CI/CD runner by weaponising the automated error-recovery behaviour of terminal-based AI coding assistants like Claude Code. Rather than relying on standard code vulnerabilities, the exploit tricks the AI into autonomously executing malicious secondary fixes directly from terminal error logs without waiting for human permission.</p>
+<p>The exploit relies on three distinct levels of indirection to cleanly compromise a system:</p>
+<ul>
+<li>The Bait: A developer instructs their AI assistant to clone a benign, public GitHub repository and run a routine setup step (e.g., <code>pip3 install -r requirements.txt</code>).</li>
+<li>The Forced Error: The installed package is purposefully engineered to fail, throwing a runtime error that instructs the agent to fix the environment by running a specific command: <code>python3 -m axiom init</code>.</li>
+<li>The Payload: Trusting the error output, the AI agent automatically runs the initialization command. This routine silently queries an attacker-controlled DNS TXT record, downloads a hidden base64-encoded payload, and executes it via bash—instantly spawning an interactive reverse shell.</li>
+</ul>
+<p>Because the GitHub repository itself contains zero malicious files, it completely bypasses standard Static Application Security Testing (SAST) tools and Software Bills of Materials (SBOMs). Furthermore, because the malware is hosted in an external DNS record, the attacker can hot-swap the payload at any time without ever pushing a new commit.</p>
+<p>Once active, the reverse shell gives the attacker full control of the host machine under the developer’s exact user privileges, exposing environment variables, cloud API keys, and repository secrets. To neutralize this threat, researchers state that AI vendors must implement mandatory human-in-the-loop validation gates before agents can execute automated error-correction steps or evaluate untrusted network paths.</p></div>
     </section>
     <nav class="article-sequence-nav" aria-label="前後文章">
-<a class="article-sequence-link" href="item-77fa12848bc4b2be.html">
+<a class="article-sequence-link" href="item-702ba242cde72da3.html">
   <span class="article-sequence-label">上一則</span>
-  <span class="article-sequence-title">AI 在大眾文化中的角色：從娛樂到藝術 媒體反思生成內容真偽辨識</span>
+  <span class="article-sequence-title">OECD 2026 公共機構信任驅動因素調查結果</span>
 </a>
 
 <a class="article-sequence-link" href="item-d3576b9618605467.html">
@@ -587,7 +601,7 @@
     <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-816b95d1c40c3ab4.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
   </div>
   <h2>原始 metadata</h2>
-  <ul><li><strong>原始網站標題</strong>：Mozilla 0DIN: Malicious Repos Can Exploit AI Agents Via Error Logs</li><li><strong>原始語言</strong>：未標示</li><li><strong>自動翻譯中文標題</strong>：未標示</li><li><strong>原始作者</strong>：Jiya Jay Singh</li><li><strong>原始網站授權</strong>：未標示</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <ul><li><strong>原始網站標題</strong>：Mozilla 0DIN: Malicious Repos Can Exploit AI Agents Via Error Logs（RSS/頁面標題）</li><li><strong>原始語言</strong>：en（推斷）</li><li><strong>原始作者</strong>：Jiya Jay Singh（RSS）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
   <div class="reader-history">
     <strong>歷程</strong>
     <ul><li>本機決定：accepted-for-editing / 2026-06-30T16:38:57+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。

@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>“You Only Compute Once”: How Clockwork wants to put an end to AI training restarts - Ian Open News</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9deea;
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --accent: #6450dc;
+      --cyan: #0091da;
+      --magenta: #ce0058;
+      --soft: #eef1fb;
+      --link: #193f8f;
+      --paper: #fffdf7;
+      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-heading: "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.62;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .masthead {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .brand {
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .brand:hover { color: var(--ink); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .site-menu { position: relative; }
+    .site-menu summary {
+      list-style: none;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .site-menu summary::-webkit-details-marker { display: none; }
+    .site-menu summary:hover,
+    .site-menu[open] summary { background: var(--soft); border-color: #c8ccef; }
+    .reader-help summary {
+      width: 36px;
+      padding: 0;
+      border-radius: 999px;
+      color: var(--accent);
+    }
+    .site-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      width: min(300px, calc(100vw - 32px));
+      padding: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(15,25,35,.16);
+      z-index: 30;
+    }
+    .reader-help-panel p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .reader-help-panel p:last-child { margin-bottom: 0; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px; }
+    .page-heading { margin: 4px 0 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); letter-spacing: 0; line-height: 1.18; }
+    h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0; line-height: 1.3; }
+    h3 { margin: 0 0 6px; letter-spacing: 0; line-height: 1.35; }
+    p { margin: 8px 0; }
+    a { color: var(--link); overflow-wrap: anywhere; text-underline-offset: 2px; }
+    a:hover { color: var(--accent); }
+    .reader-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .site-popover.reader-nav { display: grid; }
+    .reader-nav a, .button, button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .reader-nav a:hover, .button:hover, button:hover { color: #fff; }
+    .reader-nav a:not(.is-active), .button.secondary { background: var(--cyan); }
+    .button.quiet, button.quiet { background: #273244; }
+    .lede { max-width: 820px; color: var(--muted); }
+    .generated { color: var(--muted); font-size: 13px; }
+    .badge {
+      border-radius: 6px;
+      background: var(--soft);
+      color: #273244;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 850;
+      display: inline-flex;
+      margin: 0 4px 4px 0;
+    }
+    .badge--opentech, .badge--suggest-keep { background: #ece8ff; color: var(--accent); }
+    .badge--opinion { background: #eef1fb; color: #273244; }
+    .badge--neutral { background: #e7f5fc; color: #00699f; }
+    .badge--small-news, .badge--date { background: #fff8db; color: #7a5a00; }
+    .badge--reading { background: #fff8db; color: #7a5a00; }
+    .tag-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #273244;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+    .tag-chip::before {
+      content: "#";
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .help-dot {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+    .story-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 170px auto;
+    }
+    .thumb {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+      font-weight: 900;
+      min-height: 170px;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .story-body { padding: 14px; text-align: left; }
+    .summary { white-space: pre-wrap; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .story-card h2 {
+      text-align: left;
+    }
+    .story-card h2 a {
+      text-decoration: none;
+    }
+    .story-card h2 a:hover,
+    .story-card h2 a:focus-visible {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .news-list { display: grid; gap: 10px; margin-top: 12px; }
+    .news-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--link);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .news-item h3 { margin: 8px 0 10px; font-size: 19px; text-align: left; }
+    .news-item h3 a { color: #4f3ed2; font-weight: 850; text-decoration: none; }
+    .news-item h3 a:hover,
+    .news-item h3 a:focus-visible { color: var(--accent); text-decoration: none; }
+    .news-item .summary { margin: 0; font-size: 16px; line-height: 1.68; }
+    .reader-time-filter {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .reader-time-filter label {
+      display: block;
+      margin: 0 0 5px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+    .reader-time-filter select,
+    .reader-time-filter input {
+      width: 100%;
+      min-width: 190px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+    }
+    .reader-time-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .reader-time-custom[hidden],
+    .reader-hidden-by-time {
+      display: none !important;
+    }
+    .reader-time-filter .generated {
+      margin: 0 0 7px;
+    }
+    .reader-period {
+      margin: 0 0 24px;
+    }
+    .reader-period > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .reader-period > summary::-webkit-details-marker { display: none; }
+    .reader-period h2 {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 22px 0 2px;
+      color: #a3abb8;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-align: center;
+      text-shadow: 0 1px 0 #fff, 0 -1px 0 rgba(15,25,35,.08);
+    }
+    .reader-period h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--line), transparent);
+      z-index: 0;
+    }
+    .reader-period-heading-label {
+      position: relative;
+      z-index: 1;
+      padding: 0 14px;
+      background: var(--bg);
+    }
+    .reader-period-heading-label::after {
+      content: "收合";
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .reader-period:not([open]) .reader-period-heading-label::after {
+      content: "展開";
+    }
+    .reader-period-count {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin: -4px auto 10px;
+      padding: 0 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .reader-period[hidden] {
+      display: none !important;
+    }
+    .reader-more-row {
+      justify-content: center;
+      margin: 8px 0 30px;
+    }
+    .article-top-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+    .article-back-button {
+      background: #273244;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sidebar-toggle {
+      margin-left: auto;
+      padding: 9px 11px;
+    }
+    .article-sidebar-toggle-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+    }
+    .article-sidebar-toggle-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .article-layout { display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }
+    .article-layout.is-sidebar-hidden { grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }
+    .article-layout.is-sidebar-hidden .side-panel { overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }
+    .article-main { display: grid; gap: 18px; min-width: 0; }
+    .article-summary-card, .article-fulltext-card, .side-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .article-summary-card h1 {
+      font-size: clamp(30px, 4.4vw, 46px);
+      line-height: 1.16;
+      margin: 8px 0 10px;
+    }
+    .article-summary-meta { margin-bottom: 8px; }
+    .article-title-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .article-title-link:hover {
+      color: var(--link);
+      text-decoration: underline;
+    }
+    .section-kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+    .article-fulltext-card {
+      background: var(--paper);
+      box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
+    }
+    .article-text {
+      color: #17212f;
+      font-family: var(--article-serif);
+      font-size: 16px;
+      font-weight: 260;
+      letter-spacing: 0;
+      line-height: 2.05;
+      font-kerning: normal;
+      font-variant-ligatures: common-ligatures contextual;
+    }
+    .article-text img { max-width: 100%; height: auto; border-radius: 6px; }
+    .article-hero { margin: 0 0 16px; }
+    .article-hero img { width: 100%; max-height: 380px; object-fit: cover; border-radius: 8px; display: block; border: 1px solid var(--line); }
+    .article-hero figcaption { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .article-text pre { white-space: pre-wrap; overflow: auto; background: #162024; color: #eaf1ec; padding: 12px; border-radius: 8px; }
+    .article-text blockquote {
+      margin: 1.1em 0;
+      padding: .75em 1em;
+      border-left: 4px solid var(--cyan);
+      background: #f7fbfe;
+      color: #30445f;
+    }
+    .article-text h1,
+    .article-text h2,
+    .article-text h3,
+    .article-text h4,
+    .article-text h5 {
+      font-family: var(--article-heading);
+      font-weight: 850;
+      line-height: 1.35;
+      letter-spacing: 0;
+      margin: 1.55em 0 .68em;
+    }
+    .article-text h1 { color: var(--accent); font-size: 28px; margin-top: 0; }
+    .article-text h2 {
+      color: var(--accent);
+      font-size: 22px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(100,80,220,.24);
+    }
+    .article-text h3 {
+      color: var(--accent);
+      font-size: 19px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+    }
+    .article-text h4 {
+      color: #0f1923;
+      font-size: 17px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(15,25,35,.22);
+    }
+    .article-text h5 { color: #0f1923; font-size: 15px; }
+    .article-text p { margin: 0 0 1.25em; }
+    .article-text ul, .article-text ol { margin: 0 0 1.25em 1.4em; padding: 0; }
+    .article-text li { margin: .45em 0; }
+    .article-text strong,
+    .article-text b,
+    .article-text a { font-weight: 550; }
+    .side-panel {
+      position: sticky;
+      top: 84px;
+      min-width: 0;
+      transition: transform .28s ease, opacity .28s ease;
+    }
+    .side-panel h2 { font-size: 18px; margin-top: 18px; }
+    .side-panel h2:first-child { margin-top: 0; }
+    .reader-history {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px solid #e8eaf0;
+      color: #8a93a2;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reader-history > strong {
+      color: #7c8594;
+      font-size: 12px;
+    }
+    .reader-history p { margin: 5px 0 0; }
+    .reader-history ul { margin: 5px 0 0; padding-left: 18px; }
+    .reader-history li { margin: 3px 0; }
+    .article-sequence-nav {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 2px 0 10px;
+    }
+    .article-sequence-link {
+      min-height: 72px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      box-shadow: 0 8px 22px rgba(15,25,35,.10);
+    }
+    .article-sequence-link:hover {
+      border-color: var(--cyan);
+      color: #00699f;
+      background: #eefcff;
+    }
+    .article-sequence-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+    .article-sequence-title {
+      display: block;
+      font-weight: 850;
+      line-height: 1.35;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+    .empty { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    @media (max-width: 820px) {
+      main, .masthead { padding-left: 16px; padding-right: 16px; }
+      .article-layout, .article-layout.is-sidebar-hidden { grid-template-columns: 1fr; gap: 18px; }
+      .article-sequence-nav { grid-template-columns: 1fr; }
+      .side-panel { position: static; }
+      .article-layout.is-sidebar-hidden .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="masthead">
+      <a class="brand" href="../index.html">Ian Open News</a>
+      <div class="header-actions">
+        <details class="site-menu reader-help">
+          <summary aria-label="閱讀版說明">?</summary>
+          <div class="site-popover reader-help-panel">
+            <p>開放科技閱讀版。首頁優先放精選文章與觀點文章，小消息改用列表頁快速掃讀。</p>
+            <p class="generated">產生時間：2026-07-05T17:15:57+00:00</p>
+          </div>
+        </details>
+        <details class="site-menu reader-menu">
+          <summary>Menu</summary>
+          <div class="site-popover">
+
+<nav class="reader-nav" aria-label="閱讀版導覽">
+  <a class="" href="../index.html">精選與觀點</a>
+  <a class="" href="../news.html">小消息</a>
+  <a class="" href="../features.html">專文</a>
+</nav>
+
+          </div>
+        </details>
+      </div>
+    </div>
+  </header>
+  <main>
+<nav class="article-top-nav" aria-label="返回">
+  <a class="button article-back-button" href="../index.html" onclick="if (history.length > 1) { history.back(); return false; }">返回閱讀版</a>
+  <button type="button" class="button quiet article-sidebar-toggle" id="public-article-side-toggle" aria-controls="public-article-side-panel" aria-expanded="true">
+    <span class="article-sidebar-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path><path d="M18 9l-2 3 2 3"></path></svg></span>
+    <span data-sidebar-toggle-label>隱藏資訊欄</span>
+  </button>
+</nav>
+<div class="article-layout" id="public-article-layout">
+  <div class="article-main">
+    <article class="article-summary-card">
+      <div class="article-summary-meta"><span class="badge badge--opentech">開放科技</span><span class="badge badge--suggest-keep">可用材料 / 可進編輯台</span><span class="badge badge--date">2026-07-01 08:00</span></div>
+      <h1><a class="article-title-link" href="https://thenewstack.io/clockwork-torchpass-gpu-migration/" target="_blank" rel="noreferrer" title="開啟原始連結">“You Only Compute Once”: How Clockwork wants to put an end to AI training restarts</a></h1>
+      <p class="lede">On a large enough GPU cluster, something is always breaking. That’s just a fact of life. The standard fix is
+The post “You Only Compute Once”: How Clockwork wants to put an end to AI training restarts appeared first on The New Stack .</p>
+      <div class="tag-chip-list"><span class="tag-chip">開源 AI / OSAID</span></div>
+    </article>
+    <figure class="article-hero"><img src="https://cdn.thenewstack.io/media/2026/07/ffc0a1c7-getty-images-kct0zld_ufo-unsplash-scaled.jpg" alt="" loading="lazy"></figure>
+    <section class="article-fulltext-card">
+      <div class="section-kicker">中文翻譯</div>
+      <h2>中文全文</h2>
+      <div class="article-text article-markdown"><h1>「You Only Compute Once」：Clockwork 想如何終結 AI 訓練重新開始</h1>
+<p>請查看你的收件匣中的確認信，你可以在那裡調整偏好設定，甚至加入其他群組。</p>
+<p>在你常用的社群媒體平台追蹤 TNS。</p>
+<p>成為 <a href="https://www.linkedin.com/company/the-new-stack" target="_blank" rel="noreferrer">TNS 在 LinkedIn 上的追蹤者</a>。</p>
+<h2>「You Only Compute Once」：Clockwork 想如何終結 AI 訓練重新開始</h2>
+<p>在規模夠大的 GPU 叢集上，總會有東西出問題。這就是現實。標準修法是回復到上一個檢查點，然後重新運算從那之後的所有內容，這既慢又昂貴。<a href="https://clockwork.io/" target="_blank" rel="noreferrer">https://clockwork.io/</a> 想讓這種修法成為過去，而且它願意為此提出保證。</p>
+<p>Clockwork 能防止故障中斷訓練執行，基礎在於 TorchPass，也就是 <a href="https://thenewstack.io/clockworks-fleetiq-aims-to-fix-ais-costly-network-bottleneck/" target="_blank" rel="noreferrer">Clockwork 的容錯產品</a>，該產品已在 3 月正式推出。當 GPU 或整個節點故障時，TorchPass 可以把訓練工作的記憶體中狀態，包括模型權重、梯度與最佳化器狀態，移到健康的備用 GPU，或是正在執行較低優先順序工作的 GPU，並讓工作持續執行，通常只需幾分鐘就能復原。</p>
+<p>週三，該公司推出 YOCO Guarantee，也就是「You Only Compute Once」的縮寫。公司保證，在受支援的訓練執行中，90% 的故障都會在不損失進度、不回復檢查點、不重新運算的情況下解決。如果 Clockwork 在某個合約年度未達標，客戶可獲得下次續約或擴充費用 25% 的折抵。</p>
+<blockquote>「AI 團隊需要的是模型完成訓練，不是節點保持在線。」——Clockwork 執行長 Suresh Vasudevan。</blockquote>
+<p>Clockwork 執行長 <a href="https://thenewstack.io/keeping-gpus-ticking-like-clockwork/" target="_blank" rel="noreferrer">Suresh Vasudevan</a> 表示：「AI 團隊需要的是模型完成訓練，不是節點保持在線。業界一直在衡量節點正常運作時間，並把它稱為可靠性。YOCO 讓我們對唯一真正重要的事情負責：你的模型完成訓練。」</p>
+<h2>以即時遷移取代回復檢查點</h2>
+<p>Clockwork 的共同創辦人暨商務長 Dan Zheng 向 <em>The New Stack</em> 說明目前的現況：「如果你定期建立檢查點，然後某個環節出錯，你就得回到上一個檢查點；那可能是一小時、兩小時前。你必須重新計算。」</p>
+<p>當然，這些重新計算的工作沒有一項是免費的。團隊必須為昂貴的 GPU 時間付費，重做已經做過的工作。</p>
+<p>TorchPass 透過在工作仍在執行時移動它，避開這些回滾。「從很高層次來看，我喜歡把它想成幾乎像 vMotion，但這是給 GPU 用的，所以有點像 gMotion，」Zheng 說。他指的是 VMware 用來稱呼<a href="https://blogs.vmware.com/cloud-foundation/2019/07/09/the-vmotion-process-under-the-hood/" target="_blank" rel="noreferrer">在不中斷服務的情況下，將執行中的虛擬機器</a>在實體主機之間轉移的術語。</p>
+<p>但這個替代資源當然必須從某個地方來。「如果其中一張 GPU 故障，而你可以存取一個備用節點，這可以是一個待命節點，也可以是一個正在跑低優先順序工作的節點，」Zheng 說。</p>
+<p>團隊可以預留閒置節點作為專用備援；或者，為了避免替閒置 GPU 付費，也可以讓 TorchPass 從較低優先順序的工作中抽調一個節點，關閉那個工作，把該節點納入訓練叢集，並重建 GPU 之間的連線，讓這次執行從下一個步驟繼續，而不是回到上一個檢查點。</p>
+<p>TorchPass 也不必等到東西真的壞掉才動作。當警訊已經出現時，它可以在故障前先移動工作。「如果溫度超過某個門檻，你就知道 GPU 遲早會故障，」Zheng 說。「那我為什麼不在還能存取 GPU 記憶體時先處理？」</p>
+<h2>如何啟用 TorchPass</h2>
+<p>TorchPass 有兩種模式，主要差異在於各自必須搬移多少狀態，以及因此能多快復原。</p>
+<p>較快的選項具備模型感知能力；依 Zheng 的說法，只需要多寫幾行程式碼。這讓 TorchPass 能精準知道要抓取什麼，因此可以搬移較少資料，並在數十秒內復原。</p>
+<p>另一種則是團隊所稱的「模型透明」模式。使用它時，訓練團隊不需要修改任何訓練程式碼。「我們可以擷取系統層級的快照，」Zheng 說。這是比較容易使用 TorchPass 的方式，但相對地，它會搬移更多資料，且需要幾分鐘才能復原。</p>
+<p>不過，突發當機仍然是問題。畢竟 TorchPass 沒辦法替已經死亡的節點建立快照。針對這種情況，Clockwork 表示，它會從工作已經在執行中的健康資料平行副本，重建遺失 worker 的狀態；這些副本原本就是為了平行運算而存在。</p>
+<p>TorchPass 也有它的限制，Zheng 也承認這點。他說：「如果整個網路都掛了，那你也無能為力。這就像整個停電一樣，沒有人能做什麼。」</p>
+<h2>一次失敗的執行真正要付出什麼代價</h2>
+<p>在大規模環境中，故障並不是罕見事件。Clockwork 的公告引用 Meta FAIR 團隊的研究指出，在一個 1,024 顆 GPU 的叢集上，平均故障間隔時間是 7.9 小時；到了 16,384 顆 GPU，則降到 1.8 小時。Clockwork 表示，結果就是 GPU 叢集實際上只跑出理論效能的 30% 到 50%。但團隊主張，瓶頸不在硬體，而是在硬體周邊的可靠性模型；這套模型假設故障遠比這些叢集實際遇到的情況少得多。</p>
+<p>Clockwork 估計，在典型的 2,048 顆 GPU H200 部署中，由故障導致的重啟，每年會耗掉超過 600 萬美元的無效運算成本。</p>
+<h2>「不是給 Anthropic 和 OpenAI 用的」</h2>
+<p>Zheng 說：「這套解決方案不是給 Anthropic 和 OpenAI 用的，因為他們有足夠深厚的工程實力。也不是給 Google 用的。它真正是給其他所有人用的。」他指的是那些 AI 原生新創、企業，以及量化與生技團隊；這些團隊想要他所說的「前沿 AI 實驗室等級的韌性」，但不想自己打造。</p>
+<p>隨著更多工作從預訓練轉向後訓練與強化學習，這個市場正在成長，也讓比一年前更多的團隊開始面對大型訓練工作。Clockwork 表示，其客戶已包括新型雲端（neocloud）業者 Nebius、Nscale 和 WhiteFiber，以及 DCAI，還有 Uber、Wells Fargo 等企業。</p>
+<p>不過，市場認知仍在追趕中。Zheng 說：「我們談過的很多人太習慣檢查點重啟了，他們甚至不知道還有其他東西可以用。」</p>
+<h2>測試顯示了什麼</h2>
+<p>Clockwork 表示，最常見的替代方案其實就是維持現狀。團隊頻繁建立檢查點，然後在出問題時承擔重新計算的成本。</p>
+<p>另一個是 <a href="https://github.com/meta-pytorch/torchft" target="_blank" rel="noreferrer">TorchFT</a>，這是 Meta 在 2024 年底釋出的開源框架。它的做法是在 GPU 故障時丟棄整個副本群組，讓工作在沒有該群組的情況下繼續執行，直到替換完成。Clockwork 表示，這種做法即使在沒有任何故障發生時，每一步也都會帶來額外開銷；該公司則把 TorchPass 定位為更輕量的選項，適合在數百到一兩千顆 GPU 上執行、故障不會每隔幾分鐘就發生的中等規模工作。</p>
+<p>SemiAnalysis 對 TorchPass 做了一些獨立基準測試。</p>
+<p>SemiAnalysis 技術團隊成員、ClusterMAX 基準測試主要作者 Jordan Nanos 表示：「供應商做一張投影片說自己的產品可行，和把這件事寫進合約裡，是很不一樣的。在我們的測試中，針對在 64 張 H200 組成的叢集上進行 GPT-OSS-120B 訓練，若以工作完成時間和 checkpoint-restart 相比，TorchPass 提供了最快、也最有效率的容錯效能。就這項工作而言，TorchPass 也在 MFU 和每 GPU 每秒 token 數上勝過 TorchFT，同時達到相同的復原時間。YOCO Guarantee 只是反映我們在測試中看到的結果，並把它變成合約承諾。」</p>
+<h2>可靠性作為軟體層</h2>
+<p>Zheng 說：「我喜歡回想我早期在 Google 的日子，例如 Google File System。你用的是通用的旋轉式硬碟，但從開發者的角度來看，你想要的是寫入一次，並確保資料會被持久保存。你不會在意資料中心裡是不是有人需要換一顆硬碟。」</p>
+<p>他說：「我們也需要在軟體層建立這樣的韌性層，讓開發者或 AI 研究者能有更高的信心。你只要專注在訓練上，不必擔心基礎設施。」</p>
+<h2>可觀測性</h2>
+<p>Clockwork 最初來自一個任務和公司現況相當不同的專案：同步伺服器時鐘。但因為這也涉及非常精準地測量這些伺服器之間的延遲，團隊意識到，光是做這件事就能對叢集有很多了解。自那之後，公司持續擴展這方面的能力；值得注意的是，可觀測性至今仍然是 Clockwork 核心工作的一部分。</p>
+<p>Zheng 表示，TorchPass 和 Clockwork 的監控工具彼此互補。他說：「它某種程度上和 TorchPass 相輔相成；只要辨識出問題，就可以進行遷移。」</p>
+<p>這家公司近期許多新工作其實都投入在可觀測性上。Zheng 表示，它的機群監控工具現在可以把 fabric 問題追蹤到特定鏈路或交換器，而 Clockwork 正在和幾家大型雲端營運商試行這項能力。他說，只要夠早發現 GPU 效能劣化或鏈路壅塞，TorchPass 就能在故障真正發生前把工作移走。</p>
+<p>由社群建立的路線圖、文章、資源與學習旅程，協助 開發者選擇自己的道路，並在職涯中持續成長。</p></div>
+    </section>
+    <nav class="article-sequence-nav" aria-label="前後文章">
+<a class="article-sequence-link" href="item-3819e8eaa1fed1fd.html">
+  <span class="article-sequence-label">上一則</span>
+  <span class="article-sequence-title">對抗威權國家假訊息：超越單純平台治理的跨域治理思維</span>
+</a>
+
+<a class="article-sequence-link" href="item-c6be44fe51493170.html">
+  <span class="article-sequence-label">下一則</span>
+  <span class="article-sequence-title">Regulators Can否能真正實施預防性的青少年社群媒體禁令？</span>
+</a>
+</nav>
+  </div>
+
+<aside class="side-panel" id="public-article-side-panel">
+  <h2>我的關鍵紀錄</h2>
+  <textarea id="note-body" placeholder="寫下你想留下的判斷、疑問、台灣脈絡或後續撰稿角度。"></textarea>
+  <div class="actions">
+    <button type="button" id="note-save">儲存到這台瀏覽器</button>
+    <a class="button secondary" href="https://github.com/yanyiyi/Ian_Open_News/new/main/reader-notes?filename=item-8e1fa43a6e1bd25b.md" target="_blank" rel="noreferrer">用 GitHub 建 PR</a>
+  </div>
+  <h2>原始 metadata</h2>
+  <ul><li><strong>原始網站標題</strong>：&quot;You Only Compute Once&quot;: How Clockwork wants to put an end to AI training restarts</li><li><strong>原始語言</strong>：en（html lang）</li><li><strong>自動翻譯中文標題</strong>：「You Only Compute Once」：Clockwork 想如何終結 AI 訓練重新開始（Codex）</li><li><strong>原始作者</strong>：Frederic Lardinois（author）</li><li><strong>原始網站授權</strong>：未標示，推定為著作權保護（推斷）</li><li><strong>正規化授權</strong>：未標示</li></ul>
+  <div class="reader-history">
+    <strong>歷程</strong>
+    <ul><li>本機決定：accepted-for-editing / 2026-07-05T15:29:06+00:00</li><li>審稿備註：RSS 自動抓取，待人工分流與審查。
+2026-07-05T15:29:06+00:00 本機確認收下；下一步進編輯台做摘要、切角與 article 草稿，整理好後再送 PR。</li></ul>
+  </div>
+</aside>
+<script>
+const noteKey = "ian-open-news-note:item-8e1fa43a6e1bd25b";
+const noteBody = document.getElementById("note-body");
+noteBody.value = localStorage.getItem(noteKey) || "";
+document.getElementById("note-save").addEventListener("click", () => {
+  localStorage.setItem(noteKey, noteBody.value);
+});
+const articleLayout = document.getElementById("public-article-layout");
+const articleSidePanel = document.getElementById("public-article-side-panel");
+const articleSideToggle = document.getElementById("public-article-side-toggle");
+const articleSideToggleLabel = articleSideToggle?.querySelector("[data-sidebar-toggle-label]");
+const articleSideStorageKey = "ian-open-news-public-article-sidebar";
+const applyArticleSideState = (hidden) => {
+  articleLayout?.classList.toggle("is-sidebar-hidden", hidden);
+  articleSidePanel?.setAttribute("aria-hidden", hidden ? "true" : "false");
+  articleSideToggle?.setAttribute("aria-expanded", hidden ? "false" : "true");
+  if (articleSideToggleLabel) articleSideToggleLabel.textContent = hidden ? "顯示資訊欄" : "隱藏資訊欄";
+};
+let articleSideHidden = false;
+try {
+  articleSideHidden = localStorage.getItem(articleSideStorageKey) === "hidden";
+} catch (_error) {
+  articleSideHidden = false;
+}
+applyArticleSideState(articleSideHidden);
+articleSideToggle?.addEventListener("click", () => {
+  articleSideHidden = !articleLayout?.classList.contains("is-sidebar-hidden");
+  applyArticleSideState(articleSideHidden);
+  try {
+    localStorage.setItem(articleSideStorageKey, articleSideHidden ? "hidden" : "visible");
+  } catch (_error) {
+    // Keep the visual toggle available without storage.
+  }
+});
+</script>
+
+</div>
+</main>
+
+<script>
+(() => {
+  const button = document.querySelector("[data-reader-more-months]");
+  if (!button) return;
+  let visibleMonths = 1;
+  function sync() {
+    const sections = Array.from(document.querySelectorAll("[data-reader-period]"));
+    let hiddenCount = 0;
+    sections.forEach((section) => {
+      const monthIndex = Number(section.dataset.monthIndex || "999");
+      const hide = monthIndex >= visibleMonths;
+      section.hidden = hide;
+      if (hide) hiddenCount += 1;
+    });
+    button.hidden = hiddenCount === 0;
+  }
+  button.addEventListener("click", () => {
+    visibleMonths += 1;
+    sync();
+  });
+  sync();
+})();
+</script>
+
+
+</body>
+</html>
