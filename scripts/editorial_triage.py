@@ -97,6 +97,101 @@ COMMERCIAL_SOURCE_HINTS = [
 # 跨篇關聯：與庫中 researching/drafting 稿件共用幾個 tag 才算可互為佐證
 XREF_TAG_THRESHOLD = 2
 
+# 命名事件串：同一具名事件在短時間內累積多篇後續稿時，即使單篇密度低也先問。
+NAMED_EVENT_LOOKBACK_DAYS = 21
+NAMED_EVENT_CONTEXT_LIMIT = 5
+GENERIC_EVENT_KEYS = {
+    "ai",
+    "artificial intelligence",
+    "data",
+    "digital",
+    "education",
+    "framework",
+    "governance",
+    "government",
+    "hub",
+    "model",
+    "models",
+    "open source",
+    "open-source",
+    "opensource",
+    "program office",
+    "registry",
+    "rss",
+    "security",
+    "technology",
+    "developer tool",
+    "large language model",
+    "llm",
+    "local model",
+    "open source ai",
+    "open source governance",
+    "responsible ai",
+    "cybersecurity",
+    "data extraction",
+    "data governance",
+    "evidence production",
+    "the",
+    "us",
+    "u.s.",
+    "uk",
+    "eu",
+    "editors choice",
+    "editor's choice",
+    "editors' choice",
+    "digital humanities now",
+    "anthropic",
+    "github",
+    "google",
+    "microsoft",
+    "開放資料",
+    "資料治理",
+    "數據治理",
+    "資料流程",
+    "資料抽取",
+    "資料抽取治理",
+    "結構化抽取",
+    "開源",
+    "開源 ai",
+    "開源 ai 模型",
+    "開放原始碼",
+    "資安",
+    "供應鏈",
+    "證據生產",
+    "證據品質",
+    "ai 教育",
+    "本地模型",
+    "推論框架",
+    "中立市場",
+}
+EVENT_LEADING_WORDS = {
+    "after",
+    "before",
+    "how",
+    "the",
+    "a",
+    "an",
+    "your",
+    "our",
+    "my",
+    "i",
+    "why",
+    "what",
+    "when",
+    "where",
+    "editors",
+    "editor's",
+    "editors'",
+    "choice",
+}
+
+EVENT_ENTITY_PATTERNS = [
+    re.compile(r"\b[A-Z][A-Z0-9]{2,}(?:[-.][A-Z0-9]+)*(?:\s+[0-9][A-Za-z0-9.]*)?\b"),
+    re.compile(r"\b[A-Z][A-Za-z]+(?:\s+[0-9][A-Za-z0-9.]*)+\b"),
+    re.compile(r"\b[A-Z][A-Za-z0-9]+(?:[- ][A-Z][A-Za-z0-9]+){1,4}(?:\s+[0-9][A-Za-z0-9.]*)?\b"),
+    re.compile(r"[「『《]([^」』》]{3,40})[」』》]"),
+]
+
 ENGLISH_TITLE_HINTS = {
     "open source": "開源",
     "open data": "開放資料",
@@ -211,6 +306,158 @@ def parse_record_date(record: dict[str, Any]) -> date | None:
     return None
 
 
+def normalize_event_key(value: object) -> str:
+    text = clean_text(value)
+    text = re.sub(r"^[\s\"'“”‘’《》「」『』()[\]{}:：]+", "", text)
+    text = re.sub(r"[\s\"'“”‘’《》「」『』()[\]{}:：,，.。;；!?！？]+$", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text.casefold()
+
+
+def trim_event_phrase(value: object) -> str:
+    text = clean_text(value)
+    text = re.sub(r"^[\s\"'“”‘’《》「」『』()[\]{}:：]+", "", text)
+    text = re.sub(r"[\s\"'“”‘’《》「」『』()[\]{}:：,，.。;；!?！？]+$", "", text)
+    words = text.split()
+    while words and normalize_event_key(words[0]) in EVENT_LEADING_WORDS:
+        words.pop(0)
+    while words and normalize_event_key(words[-1]) in EVENT_LEADING_WORDS:
+        words.pop()
+    return " ".join(words) if words else text
+
+
+def is_named_event_key(value: object, *, from_keyword: bool = False) -> bool:
+    text = trim_event_phrase(value)
+    norm = normalize_event_key(text)
+    if not norm or norm in GENERIC_EVENT_KEYS:
+        return False
+    if len(norm) < 3:
+        return False
+    if re.search(r"[\u4e00-\u9fff]", text):
+        event_markers = ("管制", "組織", "法案", "委員會", "聯盟", "制度", "計畫")
+        return len(text) >= 4 and any(marker in text for marker in event_markers)
+    if re.search(r"\d", text):
+        return True
+    if re.fullmatch(r"[A-Z][A-Z0-9]{2,}(?:[-.][A-Z0-9]+)*", text):
+        return True
+    if "-" in text and re.search(r"[A-Za-z]", text):
+        return True
+    words = re.findall(r"[A-Za-z][A-Za-z0-9.']*", text)
+    if len(words) >= 2 and len(norm) >= 8:
+        meaningful = [w for w in words if normalize_event_key(w) not in GENERIC_EVENT_KEYS]
+        return len(meaningful) >= 1
+    if from_keyword and len(words) == 1 and len(words[0]) >= 4 and words[0][0].isupper():
+        return True
+    return False
+
+
+def add_named_event_key(keys: dict[str, str], value: object, *, from_keyword: bool = False) -> None:
+    text = trim_event_phrase(value)
+    if not is_named_event_key(text, from_keyword=from_keyword):
+        return
+    norm = normalize_event_key(text)
+    if norm and norm not in keys:
+        keys[norm] = clean_text(text, 80)
+
+
+def track_keyword_pool(keyword_config: dict[str, Any], track: str) -> list[str]:
+    tracks = keyword_config.get("tracks") or {}
+    configs = []
+    if track and isinstance(tracks.get(track), dict):
+        configs.append(tracks[track])
+    if not configs:
+        configs.extend(cfg for cfg in tracks.values() if isinstance(cfg, dict))
+    keywords: list[str] = []
+    for cfg in configs:
+        keywords.extend(cfg.get("keep_keywords") or [])
+        keywords.extend(cfg.get("mechanism_keywords") or [])
+    return [clean_text(keyword) for keyword in keywords if clean_text(keyword)]
+
+
+def named_event_keys_for(record: dict[str, Any], keyword_config: dict[str, Any]) -> dict[str, str]:
+    keys: dict[str, str] = {}
+    triage = record.get("triage") if isinstance(record.get("triage"), dict) else {}
+    for keyword in [*(triage.get("matched_keywords") or []), *(triage.get("mechanism_keywords") or [])]:
+        add_named_event_key(keys, keyword, from_keyword=True)
+
+    text = record_text(record)
+    norm_text = normalized(text)
+    track = clean_text(record.get("track") or "unclassified")
+    for keyword in track_keyword_pool(keyword_config, track):
+        if normalized(keyword) and normalized(keyword) in norm_text:
+            add_named_event_key(keys, keyword, from_keyword=True)
+
+    title = clean_text(record.get("title") or record.get("editorial_title"))
+    for pattern in EVENT_ENTITY_PATTERNS:
+        for match in pattern.finditer(title):
+            phrase = match.group(1) if match.lastindex else match.group(0)
+            add_named_event_key(keys, phrase)
+    return keys
+
+
+def build_named_event_index(
+    prior_records: list[dict[str, Any]],
+    keyword_config: dict[str, Any],
+) -> dict[str, list[dict[str, Any]]]:
+    index: dict[str, list[dict[str, Any]]] = {}
+    for record in prior_records:
+        record_date = parse_record_date(record)
+        if not record_date:
+            continue
+        keys = named_event_keys_for(record, keyword_config)
+        if not keys:
+            continue
+        entry = {
+            "id": clean_text(record.get("id")),
+            "title": clean_text(record.get("editorial_title") or record.get("title"), 120),
+            "date": record_date,
+        }
+        for key, label in keys.items():
+            index.setdefault(key, []).append({**entry, "label": label})
+    for key, entries in index.items():
+        entries.sort(key=lambda entry: entry["date"], reverse=True)
+        index[key] = entries[:NAMED_EVENT_CONTEXT_LIMIT]
+    return index
+
+
+def named_event_chain_hits(
+    record: dict[str, Any],
+    keyword_config: dict[str, Any],
+    context: dict[str, Any],
+) -> list[dict[str, str]]:
+    event_index = context.get("named_event_index") or {}
+    if not event_index:
+        return []
+    cur_id = clean_text(record.get("id"))
+    cur_title = normalize_event_key(record.get("editorial_title") or record.get("title"))
+    cur_date = parse_record_date(record) or date.today()
+    hits: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for key, label in named_event_keys_for(record, keyword_config).items():
+        for prior in event_index.get(key, []):
+            prior_id = clean_text(prior.get("id"))
+            if prior_id and prior_id == cur_id:
+                continue
+            prior_title = normalize_event_key(prior.get("title"))
+            if prior_title and prior_title == cur_title:
+                continue
+            prior_date = prior.get("date")
+            if isinstance(prior_date, date) and abs((cur_date - prior_date).days) > NAMED_EVENT_LOOKBACK_DAYS:
+                continue
+            marker = (key, prior_id or prior_title)
+            if marker in seen:
+                continue
+            seen.add(marker)
+            hits.append({
+                "label": label,
+                "title": clean_text(prior.get("title"), 80),
+                "id": prior_id,
+            })
+            if len(hits) >= 3:
+                return hits
+    return hits
+
+
 def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[str, Any]) -> dict[str, Any]:
     prior_records = [record for record in records if is_prior_collection_record(record)]
     rejected_records = [record for record in records if is_rejected_record(record)]
@@ -236,6 +483,8 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
         reason = clean_text(decision.get("reason"), 120) if isinstance(decision, dict) else ""
         if reason:
             rejected_reasons[reason] += 1
+
+    named_event_index = build_named_event_index(prior_records, keyword_config)
 
     taste = load_taste_profile()
     personal_beats = [b.get("beat") or b.get("signal", "") for b in (taste.get("personal_beats") or [])]
@@ -274,6 +523,7 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
         "personal_beats": personal_beats,
         "tracked_beats": tracked_beats,
         "active_research": active_research,
+        "named_event_index": named_event_index,
     }
 
 
@@ -518,6 +768,20 @@ def evaluate_editorial_triage(
                 recommendation = "suggest-ask"
                 taste_signals.append("商業來源但前段有可萃取概念：" + "、".join(dict.fromkeys(concept_hits[:4]))
                                      + "；先確認再決定，不因來源語氣整篇否決")
+
+    # 命名事件串保護層：同一具名事件近期已有收錄/閱讀中的資料時，後續稿可能補足事件演變。
+    # 單篇密度低仍不直接刪，改 suggest-ask；但 deletion_score >= 4 的明確垃圾/低價值訊號不動。
+    event_hits = named_event_chain_hits(record, keyword_config, context)
+    if event_hits:
+        event_names = "、".join(dict.fromkeys(hit["label"] for hit in event_hits[:3]))
+        prior_names = "；".join(
+            f"《{hit['title']}》({hit['id']})" if hit.get("id") else f"《{hit['title']}》"
+            for hit in event_hits[:2]
+            if hit.get("title")
+        )
+        taste_signals.append("命中近期命名事件串：" + event_names + "；可補足事件演變：" + prior_names)
+        if recommendation == "suggest-skip" and deletion_score < 4:
+            recommendation = "suggest-ask"
 
     # 跨篇關聯層：與庫中 researching/drafting 稿件共用 >= XREF_TAG_THRESHOLD 個 tag 時，
     # 標注可互為佐證，並把保留優先度提升一級（suggest-skip → suggest-review）。
