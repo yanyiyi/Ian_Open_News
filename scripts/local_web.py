@@ -11254,6 +11254,55 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
+    def archive_perplexity_result(self, data: dict[str, list[str]]) -> None:
+        """把 Perplexity 分享頁抓回本機歸檔（.cache/perplexity-research/）。
+
+        只存 .cache、不寫 database；哪些引用值得收，由使用者在入庫建檔區決定。"""
+        session_id = clean_text(form_value(data, "session_id"))
+        share_url = clean_text(form_value(data, "share_url"))
+        back = f"/editor/session?id={quote(session_id)}" if session_id else "/editor"
+        parsed_url = urlparse(share_url)
+        if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc.endswith("perplexity.ai"):
+            self.redirect(back + "&error=perplexity_archive")
+            return
+        try:
+            request = urllib.request.Request(
+                share_url,
+                headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"},
+            )
+            with urllib.request.urlopen(request, timeout=25) as response:
+                page_html = response.read().decode("utf-8", errors="replace")
+        except (urllib.error.URLError, TimeoutError, OSError):
+            self.redirect(back + "&error=perplexity_archive")
+            return
+        text = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", page_html)
+        text = re.sub(r"(?s)<[^>]+>", "\n", text)
+        text = html.unescape(text)
+        lines = [" ".join(line.split()) for line in text.split("\n")]
+        text = "\n".join(line for line in lines if line)
+        citations = [
+            link
+            for link in dict.fromkeys(re.findall(r'href="(https?://[^"]+)"', page_html))
+            if "perplexity.ai" not in link
+        ][:30]
+        out_dir = ROOT / ".cache" / "perplexity-research"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        out_path = out_dir / f"{session_id or 'manual'}-{stamp}.md"
+        citation_lines = "\n".join(f"  - {link}" for link in citations) or "  []"
+        out_path.write_text(
+            "---\n"
+            f"share_url: {share_url}\n"
+            f"session_id: {session_id}\n"
+            f"fetched_at: {datetime.now(timezone.utc).isoformat(timespec='seconds')}\n"
+            "citations:\n"
+            f"{citation_lines}\n"
+            "---\n\n"
+            f"{text}\n",
+            encoding="utf-8",
+        )
+        self.redirect(back + "&saved=perplexity_archived")
+
     def redirect(self, path: str) -> None:
         self.send_response(HTTPStatus.SEE_OTHER)
         self.send_header("Location", path)
@@ -11500,6 +11549,8 @@ class Handler(BaseHTTPRequestHandler):
             self.update_item_title(self.read_form())
         elif parsed.path == "/items/update-metadata":
             self.update_item_metadata(self.read_form())
+        elif parsed.path == "/perplexity/archive":
+            self.archive_perplexity_result(self.read_form())
         elif parsed.path == "/items/translate-zh":
             self.translate_item_zh(self.read_form())
         elif parsed.path == "/recycle-bin/restore":
@@ -12051,6 +12102,50 @@ class Handler(BaseHTTPRequestHandler):
                 f'{rows}</section>'
             )
 
+        # Perplexity 輔助查證：一顆按鈕帶著未解宣稱開 Perplexity（?q= 自動送出），
+        # 查完把分享連結貼回來歸檔到 .cache/perplexity-research/。不自動寫 database。
+        perplexity_block = ""
+        if clean_text(session.get("task_type")) == "factcheck":
+            open_claims = [
+                clean_text(c.get("claim"), 200)
+                for c in (data.get("claims") or [])
+                if isinstance(c, dict) and c.get("status") in {"unclear", "needs-source"} and clean_text(c.get("claim"))
+            ][:5]
+            saved_note = ""
+            if (query.get("saved") or [""])[0] == "perplexity_archived":
+                saved_note = '<div class="notice">已把 Perplexity 查證結果歸檔到 .cache/perplexity-research/，可在 Claude Code 用 /perplexity-research 接著整理。</div>'
+            elif (query.get("error") or [""])[0] == "perplexity_archive":
+                saved_note = '<div class="notice">歸檔失敗：抓不到這個分享連結的內容，請確認網址是 Perplexity 的公開分享頁。</div>'
+            if open_claims:
+                perplexity_query = "請替下列宣稱找出一手來源與原始出處，每一條附可查證的引用連結：\n" + "\n".join(
+                    f"{index}. {claim}" for index, claim in enumerate(open_claims, start=1)
+                )
+                perplexity_href = "https://www.perplexity.ai/?q=" + quote(perplexity_query)
+                claims_hint = f"帶著 {len(open_claims)} 條「需出處／不明」宣稱"
+            else:
+                perplexity_href = ""
+                claims_hint = "這次查核沒有未解宣稱"
+            open_button = (
+                f'<a class="button secondary" href="{h(perplexity_href)}" target="_blank" rel="noopener">'
+                f'{icon_span("search")}<span>用 Perplexity 找一手來源</span></a>'
+                if perplexity_href
+                else '<p class="muted">這次查核沒有「需出處／不明」的宣稱，不需要外部查證。</p>'
+            )
+            perplexity_block = f"""
+<section class="card">
+  <h2>Perplexity 輔助查證</h2>
+  {saved_note}
+  <p class="muted">{h(claims_hint)}。按下開新分頁自動送出查詢；查完在 Perplexity 按「Share」複製連結，貼回下面歸檔。</p>
+  <div class="button-row">{open_button}</div>
+  <form method="post" action="/perplexity/archive" class="button-row" style="margin-top:8px">
+    <input type="hidden" name="session_id" value="{h(session_id)}">
+    <input name="share_url" placeholder="貼上 Perplexity 分享連結（perplexity.ai/search/...）" style="flex:1 1 280px">
+    <button type="submit" class="secondary">{button_content("歸檔查證結果", "save", "")}</button>
+  </form>
+  <p class="help">歸檔只存到本機 .cache/perplexity-research/，不會自動寫進資料庫；哪些引用值得收，仍由你在入庫建檔區決定。</p>
+</section>
+"""
+
         vp_block = ""
         if session.get("suggested_viewpoint_id"):
             vp_block = (
@@ -12510,6 +12605,7 @@ class Handler(BaseHTTPRequestHandler):
 {article_panel}
 {viewpoint_panel}
 {favorites_block}
+{perplexity_block}
 {related_panel}
 <style>
   .editor-session-toolbox summary {{ cursor:pointer; display:flex; align-items:center; gap:8px; }}

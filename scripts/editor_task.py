@@ -592,7 +592,7 @@ def ollama_model(engine: str = "ollama") -> str:
     return model or DEFAULT_OLLAMA_MODEL
 
 
-def run_codex(prompt: str, schema: dict | None, timeout: int, web: bool = False) -> tuple[str, str]:
+def run_codex(prompt: str, schema: dict | None, timeout: int, web: bool = False, model: str = "") -> tuple[str, str]:
     """回傳 (raw_text, model)。有 schema 時 raw_text 為 JSON 字串。"""
     CACHE.mkdir(exist_ok=True)
     output_path = CACHE / "editor-codex-output.txt"
@@ -607,6 +607,8 @@ def run_codex(prompt: str, schema: dict | None, timeout: int, web: bool = False)
         schema_path = CACHE / "editor-codex.schema.json"
         schema_path.write_text(json.dumps(schema, ensure_ascii=False, indent=2), encoding="utf-8")
         command += ["--output-schema", str(schema_path)]
+    if model:
+        command += ["-m", model]
     command += ["-"]
     result = subprocess.run(
         command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=_env()
@@ -614,12 +616,14 @@ def run_codex(prompt: str, schema: dict | None, timeout: int, web: bool = False)
     if result.returncode != 0:
         raise RuntimeError(f"codex exec failed\nSTDOUT:\n{result.stdout[-2000:]}\nSTDERR:\n{result.stderr[-2000:]}")
     text = output_path.read_text(encoding="utf-8") if output_path.exists() else result.stdout
-    return text.strip(), "codex"
+    return text.strip(), model or "codex"
 
 
-def run_claude(prompt: str, timeout: int, web: bool = False) -> tuple[str, str]:
+def run_claude(prompt: str, timeout: int, web: bool = False, model: str = "") -> tuple[str, str]:
     """回傳 (result_text, model)。"""
     command = [cli_path("claude"), "-p", prompt, "--output-format", "json"]
+    if model:
+        command += ["--model", model]
     if web:
         command += ["--allowedTools", "WebSearch", "WebFetch"]
     result = subprocess.run(
@@ -630,34 +634,37 @@ def run_claude(prompt: str, timeout: int, web: bool = False) -> tuple[str, str]:
     payload = json.loads(result.stdout)
     if payload.get("is_error"):
         raise RuntimeError(f"claude returned error: {payload.get('result')}")
-    model = ""
+    used_model = ""
     usage = payload.get("modelUsage")
     if isinstance(usage, dict) and usage:
-        model = sorted(usage.keys())[-1]
-    return clean_text_keep_markdown(payload.get("result")), model
+        used_model = sorted(usage.keys())[-1]
+    return clean_text_keep_markdown(payload.get("result")), used_model or model
 
 
-def run_gemini(prompt: str, schema: dict | None, timeout: int, web: bool = False) -> tuple[str, str]:
+def run_gemini(prompt: str, schema: dict | None, timeout: int, web: bool = False, model: str = "") -> tuple[str, str]:
     """回傳 (result_text, model)。"""
     if schema is not None:
         prompt += f"\n\n請務必輸出 JSON 格式，並完全符合以下 JSON Schema：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
-    command = [cli_path("agy"), "--print", prompt]
+    command = [cli_path("agy")]
+    if model:
+        command += ["--model", model]
+    command += ["--print", prompt]
     result = subprocess.run(
         command, cwd=ROOT, text=True, capture_output=True, timeout=timeout, env=_env()
     )
     if result.returncode != 0:
         raise RuntimeError(f"agy failed\nSTDOUT:\n{result.stdout[-2000:]}\nSTDERR:\n{result.stderr[-2000:]}")
-    return clean_text_keep_markdown(result.stdout), "gemini"
+    return clean_text_keep_markdown(result.stdout), model or "gemini"
 
 
-def run_ollama(prompt: str, schema: dict | None, timeout: int, web: bool = False, engine: str = "ollama") -> tuple[str, str]:
+def run_ollama(prompt: str, schema: dict | None, timeout: int, web: bool = False, engine: str = "ollama", model: str = "") -> tuple[str, str]:
     """回傳 (result_text, model)。Ollama 是本機模型，不支援需要 web search 的任務。"""
     if web:
         raise RuntimeError("Ollama CLI 是本機模型，這個任務需要可上網搜尋的 CLI；請改用 Codex、Claude 或 Gemini。")
     use_json_format = schema is not None
     if schema is not None:
         prompt += f"\n\n請務必只輸出 JSON 物件，且完全符合以下 JSON Schema，不要任何額外說明或 markdown 包裝：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
-    model = ollama_model(engine)
+    model = model.strip() or ollama_model(engine)
     command = [cli_path("ollama"), "run", model, "--nowordwrap", "--hidethinking"]
     if use_json_format:
         command += ["--format", "json"]
@@ -821,6 +828,7 @@ def main() -> None:
     parser.add_argument("--viewpoint-ids", default="", help="逗號分隔、已排序的觀點 id（撰稿段落順序依此）")
     parser.add_argument("--vp-explicit", action="store_true", help="有帶這個就用 --viewpoint-ids 指定的觀點集合（空＝不帶觀點），否則用全部")
     parser.add_argument("--toolbox-state", default="", help="再跑工具箱完整排序/勾選狀態 JSON，供下一輪記住沒選與上下順序")
+    parser.add_argument("--model", default="", help="指定該引擎要用的模型（空＝沿用各 CLI 預設）")
     parser.add_argument("--session-id", default="")
     parser.add_argument("--timeout", type=int, default=1500)
     parser.add_argument("--dry-run", action="store_true")
@@ -862,14 +870,15 @@ def main() -> None:
         schema = schema_for.get(args.task_type)
         web = args.task_type in WEB_TASKS
 
+        requested_model = (args.model or "").strip()
         if args.engine == "codex":
-            raw, model = run_codex(prompt, schema, args.timeout, web=web)
+            raw, model = run_codex(prompt, schema, args.timeout, web=web, model=requested_model)
         elif args.engine == "gemini":
-            raw, model = run_gemini(prompt, schema, args.timeout, web=web)
+            raw, model = run_gemini(prompt, schema, args.timeout, web=web, model=requested_model)
         elif args.engine.startswith("ollama"):
-            raw, model = run_ollama(prompt, schema, args.timeout, web=web, engine=args.engine)
+            raw, model = run_ollama(prompt, schema, args.timeout, web=web, engine=args.engine, model=requested_model)
         else:
-            raw, model = run_claude(prompt, args.timeout, web=web)
+            raw, model = run_claude(prompt, args.timeout, web=web, model=requested_model)
 
         data: dict[str, Any] | None = None
         suggested_vp_id = None
