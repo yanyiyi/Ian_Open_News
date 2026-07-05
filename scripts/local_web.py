@@ -568,6 +568,19 @@ COMMANDS = {
             str(COMMAND_STATUS),
         ],
     },
+    "taste_retro": {
+        "label": "決策回顧：蒸餾收/不收模式成提案",
+        "description": "統計轉系統以來的收/不收決策（關鍵字命中仍被拒率、來源拒收率、under/over-collected），再由選定引擎蒸餾成 system-change-proposals 提案；提案要在洞察頁人工核准後才會套用。建議兩週跑一次。",
+        "button": "跑決策回顧",
+        "command": [
+            sys.executable,
+            str(ROOT / "scripts" / "taste_retro.py"),
+            "--engine",
+            "claude",
+            "--status-file",
+            str(COMMAND_STATUS),
+        ],
+    },
     "export_sqlite": {
         "label": "匯出 SQLite",
         "description": "把 JSONL 正本轉成 .cache/knowledge.sqlite，方便用資料庫工具查詢。",
@@ -3197,7 +3210,7 @@ def metric_tile(value: object, label: str, href: str = "", hint: str = "", class
 def command_card(name: str, config: dict) -> str:
     icon = COMMAND_ICONS.get(name, "read")
     shortcut = COMMAND_SHORTCUTS.get(name, "")
-    supports_provider = "--provider" in (config.get("command") or [])
+    supports_provider = "--provider" in (config.get("command") or []) or "--engine" in (config.get("command") or [])
     if supports_provider:
         engine_buttons = "".join(
             f"<button type='button' class='secondary' data-engine-job "
@@ -8860,7 +8873,7 @@ def page(title: str, body: str) -> bytes:
 
   const commandTimerFor = (commandName) => {{
     if (commandName === "fetch_rss") return startRssStatusPolling();
-    if (commandName === "enrich_reader_metadata" || commandName === "codex_enrich_reviews" || commandName === "codex_review_batch" || commandName === "triage_cluster") return startCommandStatusPolling(commandName);
+    if (commandName === "enrich_reader_metadata" || commandName === "codex_enrich_reviews" || commandName === "codex_review_batch" || commandName === "triage_cluster" || commandName === "taste_retro") return startCommandStatusPolling(commandName);
     return startElapsedStatus();
   }};
 
@@ -13533,6 +13546,14 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         <button type="submit" class="button secondary" style="width:100%"{batch_close_disabled}>批次結案（{len(analyzed_ready)} 筆可結案）</button>
       </form>
       {batch_hint}
+    </div>
+    <div>
+      <form method="post" action="/commands/run" data-command-form>
+        <input type="hidden" name="command" value="taste_retro">
+        <select name="provider" aria-label="決策回顧引擎" style="width:100%;margin-bottom:6px">{option_list([(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER], "claude")}</select>
+        <button type="submit" class="button secondary" style="width:100%">{button_content("跑決策回顧（產生提案）", "chart", "")}</button>
+      </form>
+      <p class="section-sub" style="margin:4px 0 0">統計收/不收模式並蒸餾成下方提案；核准後才會套用。建議兩週一次。</p>
     </div>
   </div>
 </section>
