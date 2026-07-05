@@ -50,6 +50,11 @@ body:
       description: 說明它和主線、OCF、台灣、社群、公共利益或後續行動的關係。
     validations:
       required: true
+  - type: textarea
+    id: submitter_background
+    attributes:
+      label: 你的背景／和這主題的關係
+      description: 讓 Ian 知道你為什麼關注這個題目、你的視角是什麼
   - type: checkboxes
     id: source_type
     attributes:
