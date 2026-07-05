@@ -20,10 +20,11 @@
   <key>StartInterval</key>
   <integer>3600</integer>
 
+  <!-- log 一律放 ~/Library/Logs：放 ~/Documents 可能被 TCC 擋成 EX_CONFIG 78 -->
   <key>StandardOutPath</key>
-  <string>/Users/ianliu/Documents/Ian_Open_News/.cache/launchd-rss-fetch.log</string>
+  <string>/Users/ianliu/Library/Logs/ian-open-news-rss-fetch.log</string>
 
   <key>StandardErrorPath</key>
-  <string>/Users/ianliu/Documents/Ian_Open_News/.cache/launchd-rss-fetch.err</string>
+  <string>/Users/ianliu/Library/Logs/ian-open-news-rss-fetch.err</string>
 </dict>
 </plist>

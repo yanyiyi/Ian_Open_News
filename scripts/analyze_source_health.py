@@ -113,6 +113,14 @@ def assess_source(source: dict, items: list[dict], rejected: list[dict], candida
         suggested_status = "archived"
         suggested_frequency = source.get("fetch_frequency", "daily")
         reason = "這個來源已封存，不列入追蹤建議。"
+    elif last_fetch_status == "bridge-unreachable":
+        # bridge（例如自架 RSSHub）離線是基礎設施問題，不是來源本身壞掉：
+        # 不建議 pause，等 bridge 回來下一輪就會恢復。
+        level = "watch"
+        recommendation = "檢查 bridge 服務"
+        suggested_status = source.get("status", "active")
+        suggested_frequency = source.get("fetch_frequency", "daily")
+        reason = clean_text(rss_health.get("last_error"), 160) or "bridge 離線，非來源本身問題。"
     elif last_fetch_status == "failed":
         level = "danger"
         recommendation = "檢查或暫停來源"
@@ -186,6 +194,49 @@ def assess_source(source: dict, items: list[dict], rejected: list[dict], candida
     }
 
 
+ROLLUP_MIN_GROUP = 3
+ROLLUP_FAILED_RATIO = 0.8
+ROLLUP_FAILED_STATUSES = {"failed", "bridge-unreachable"}
+
+
+def apply_served_via_rollup(updated_sources: list[dict]) -> list[str]:
+    """同一個 bridge（served_via）整組失敗時，彙整成一則警報而不是 N 則。
+
+    直接改寫 updated_sources 內各筆的 health_assessment，回傳每組一行的摘要。
+    """
+    groups: dict[str, list[dict]] = {}
+    for source in updated_sources:
+        served_via = clean_text(source.get("served_via"))
+        if served_via and source.get("status") != "archived":
+            groups.setdefault(served_via, []).append(source)
+
+    summary_lines = []
+    for served_via, members in sorted(groups.items()):
+        if len(members) < ROLLUP_MIN_GROUP:
+            continue
+        failed = [
+            member
+            for member in members
+            if clean_text((member.get("rss_health") or {}).get("last_fetch_status")) in ROLLUP_FAILED_STATUSES
+        ]
+        if len(failed) / len(members) < ROLLUP_FAILED_RATIO:
+            continue
+        rollup = {"served_via": served_via, "failed": len(failed), "total": len(members)}
+        for member in members:
+            assessment = member.get("health_assessment")
+            if not isinstance(assessment, dict):
+                continue
+            assessment["rollup"] = rollup
+            assessment["reason"] = (
+                f"served_via={served_via} 整組失敗（{len(failed)}/{len(members)}），"
+                "請先檢查 bridge 服務，而不是逐筆暫停來源。"
+            )
+        summary_lines.append(
+            f"[rollup] served_via={served_via}: {len(failed)}/{len(members)} 筆失敗，疑似 bridge 整組離線"
+        )
+    return summary_lines
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Update per-RSS-source health assessment metadata.")
     parser.add_argument("--sources", type=Path, default=SOURCES)
@@ -215,12 +266,16 @@ def main() -> None:
         updated_sources.append(updated)
         summary[assessment["level"]] += 1
 
+    rollup_lines = apply_served_via_rollup(updated_sources)
+
     if not args.dry_run:
         write_jsonl(args.sources, updated_sources)
 
     print(f"sources checked: {len(sources)}")
     for level, count in summary.most_common():
         print(f"{level}: {count}")
+    for line in rollup_lines:
+        print(line)
     print("suggestions updated in database/sources.jsonl" if not args.dry_run else "dry run only")
 
 

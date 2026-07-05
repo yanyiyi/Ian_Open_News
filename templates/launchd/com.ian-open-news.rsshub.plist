@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ian-open-news.rsshub</string>
+
+  <!-- Node 源碼直跑路線（見 templates/rsshub/README.md）。
+       Docker 路線不需要這個 plist：Docker Desktop / OrbStack 自己會開機啟動容器。 -->
+  <key>WorkingDirectory</key>
+  <string>/Users/ianliu/Apps/rsshub</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>pnpm</string>
+    <string>start</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- 只綁 127.0.0.1，不暴露 LAN -->
+    <key>LISTEN_INADDR_ANY</key>
+    <string>0</string>
+    <key>PORT</key>
+    <string>1200</string>
+    <key>NODE_ENV</key>
+    <string>production</string>
+    <!-- launchd 環境沒有 shell PATH，補上 homebrew 與 npm 全域 bin -->
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+
+  <!-- log 一律放 ~/Library/Logs：放 ~/Documents 會被 TCC 擋成 EX_CONFIG 78 -->
+  <key>StandardOutPath</key>
+  <string>/Users/ianliu/Library/Logs/ian-open-news-rsshub.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/ianliu/Library/Logs/ian-open-news-rsshub.err</string>
+</dict>
+</plist>

@@ -1,0 +1,25 @@
+# RSSHub 自架範本（Docker 路線）
+# 用法：docker compose -f templates/rsshub/docker-compose.yml up -d
+# 只綁 127.0.0.1，不暴露 LAN；遠端存取請走 Tailscale（見 docs/remote-access.md）。
+# 對應的來源紀錄請在 database/sources.jsonl 加 served_via: "rsshub@local"。
+services:
+  rsshub:
+    image: diygod/rsshub
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1200:1200"
+    environment:
+      NODE_ENV: production
+      CACHE_TYPE: redis
+      REDIS_URL: "redis://redis:6379/"
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:

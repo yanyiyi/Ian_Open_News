@@ -654,6 +654,36 @@ def source_due_for_fetch(source: dict, now: datetime, *, include_on_update: bool
     return True, ""
 
 
+def bridge_base_url(source: dict) -> str:
+    """served_via 來源（例如自架 RSSHub）的 bridge 主機位址；非 bridge 來源回空字串。"""
+    if not clean_text(source.get("served_via")):
+        return ""
+    parsed = urlparse(source.get("feed_url", ""))
+    if not parsed.scheme or not parsed.netloc:
+        return ""
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def bridge_is_reachable(base_url: str, timeout: int, cache: dict[str, bool]) -> bool:
+    """探測 bridge 是否在線；同一次執行內同主機只探一次。
+
+    只要主機有回應（含 404）就算在線——RSS-Bridge 沒有 /healthz，
+    真正要防的是「Docker/服務沒開」這種連線層失敗。
+    """
+    if base_url in cache:
+        return cache[base_url]
+    probe_url = base_url.rstrip("/") + "/healthz"
+    request = urllib.request.Request(probe_url, headers={"User-Agent": "ian-open-news-bridge-preflight"})
+    try:
+        with urllib.request.urlopen(request, timeout=min(timeout, 10)):
+            cache[base_url] = True
+    except urllib.error.HTTPError:
+        cache[base_url] = True
+    except (urllib.error.URLError, TimeoutError, OSError):
+        cache[base_url] = False
+    return cache[base_url]
+
+
 def source_keyword_filter(record: dict, source: dict) -> tuple[bool, str]:
     required = list_field(source.get("required_keywords"))
     excluded = list_field(source.get("excluded_keywords"))
@@ -885,6 +915,7 @@ def main() -> None:
             }
         return source_stats[source_id]
 
+    bridge_status_cache: dict[str, bool] = {}
     for source_index, source in enumerate(selected_sources, start=1):
         stats = stats_for(source)
         write_status(
@@ -903,6 +934,14 @@ def main() -> None:
                 "source_stats": source_stats,
             },
         )
+        bridge_base = bridge_base_url(source)
+        if bridge_base and not bridge_is_reachable(bridge_base, args.timeout, bridge_status_cache):
+            stats["last_fetch_status"] = "bridge-unreachable"
+            stats["last_error"] = (
+                f"bridge {bridge_base} 未上線（served_via={clean_text(source.get('served_via'))}），"
+                "本輪跳過；請先啟動 bridge 服務。"
+            )
+            continue
         try:
             content = read_feed_bytes(source["feed_url"], args.timeout, args.user_agent)
             try:
