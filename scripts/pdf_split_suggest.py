@@ -20,7 +20,9 @@ STATUS = ROOT / ".cache" / "pdf-split-status.json"
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    # Use only physical newlines as JSONL delimiters. str.splitlines() also
+    # splits on U+2028/U+2029, which can appear inside scraped article text.
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
 
 
 def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
