@@ -89,6 +89,31 @@
    - 閱讀區顯示已確認收錄或小消息。
    - 讀完如果覺得文章很好，可在單篇頁填「我的關鍵紀錄」，再按「用我的觀點重新送 skill」。
 
+## 2026-07 新增機制（分群、學習迴圈、遠端、投稿、Perplexity）
+
+這批機制全部是 additive：單篇挑選流程原樣保留，AI 只分堆與預選，落地一律人工批次確認。
+
+- **AI 分群建議**：入庫建檔區右側批次工具按「跑 AI 分群」（引擎可選隨機或任一 CLI），
+  `scripts/triage_cluster.py` 會依「會被抓在一起寫成文章」的主題分群（以過去 articles /
+  editor sessions / material-links 為 ground truth），給每群建議動作與每篇三層閱讀深度
+  （小消息／知識級／必深讀）。工具列「分群檢視」把同群卡片收成一組、collect 群自動預選，
+  批次按鈕與單篇按鈕都照舊。只有同主題群才提供「全選這群」；未分群項目維持單篇挑選。
+- **決策學習迴圈**：`scripts/taste_retro.py` 定期（建議兩週一次）把收/不收紀錄蒸餾成
+  `database/system-change-proposals.jsonl` 的提案；人工核准後 `scripts/apply_taste_proposals.py`
+  才會落地到 taste-profile / triage-keywords，並提示重跑關鍵字初篩。
+- **遠端工作**：Tailscale 直連 local_web（見 [remote-access.md](remote-access.md)），
+  手機分流與桌機完全等價。私人 Google Sheet 只能當單向唯讀鏡像
+  （`scripts/export_mirror_sheet.py`，選配）。
+- **協作者投稿**：GitHub Issue Form（knowledge-intake，含投稿人背景欄）→
+  `scripts/import_submissions.py` 匯入候選佇列（`origin: contributor`），收不收由 Ian 在
+  入庫建檔區決定。
+- **Perplexity 輔助查證**：查核 session 頁一顆按鈕帶未解宣稱開 Perplexity；
+  分享連結貼回即歸檔 `.cache/perplexity-research/`（不自動寫資料庫）。Claude Code 內可用
+  `/perplexity-research` 接著整理與挑選引用。
+- **非 RSS 來源**：RSSHub / bridge 出身欄位（`served_via`、`bridge`）、bridge 離線整組
+  彙報與遷移工具見 [facebook-inoreader-alternatives.md](facebook-inoreader-alternatives.md)
+  與 `templates/rsshub/`。
+
 ## 受 toomore 內部分享啟發的鏈條
 
 這條 rules + agents 的 skill 流程靈感，汲取自同事 toomore 於 OCF 六月內部知識分享的 agents writing pipeline 簡報。本 repo 不保存原始簡報檔；以下是依其「找題、備料、主 session 起草、平行審稿與查核」觀念，發展成本專案 RSS 待整理與知識 brief 流程的版本。

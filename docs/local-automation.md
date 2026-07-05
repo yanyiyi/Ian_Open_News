@@ -58,3 +58,16 @@ launchctl unload ~/Library/LaunchAgents/com.ian.opennews.rss-fetch.plist
 5. 純小消息按「直接送 PR（小消息）」。
 
 GitHub Actions 的 `.github/workflows/daily-rss-fetch.yml` 現在只保留手動執行，用來在 GitHub 上產生候選 artifact 或 SQLite 查詢檔，不再每天自動開 PR。
+
+## RSSHub（非 RSS 來源的 bridge，選配）
+
+沒有原生 RSS 的站（PTT、Dcard、巴哈等）可自架 RSSHub 轉成 feed，
+兩條跑法（Docker 或 Node 直跑）與 launchd 範本見
+[templates/rsshub/README.md](../templates/rsshub/README.md)。
+來源紀錄加 `served_via`/`bridge` 出身欄位後，bridge 離線時
+`fetch_rss.py` 會整組跳過記 `bridge-unreachable`（不會整批誤報 failed），
+`analyze_source_health.py` 也會把整組失敗彙整成一行警報。
+換主機用 `python3 scripts/rebuild_bridge_feeds.py --served-via rsshub@local --base <新位址> --dry-run`。
+
+注意：launchd plist 的 log 一律指到 `~/Library/Logs/`，
+放 `~/Documents` 可能被 macOS TCC 擋成 EX_CONFIG 78。
