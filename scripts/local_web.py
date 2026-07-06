@@ -2581,6 +2581,315 @@ def form_value(data: dict[str, list[str]], key: str, default: str = "") -> str:
     return clean_text((data.get(key) or [default])[0])
 
 
+def raw_form_value(data: dict[str, list[str]], key: str, default: str = "") -> str:
+    return (data.get(key) or [default])[0]
+
+
+def add_query_param(path: str, **params: str) -> str:
+    separator = "&" if "?" in path else "?"
+    return path + separator + urlencode(params)
+
+
+def yaml_scalar(value: object) -> str:
+    return json.dumps(str(value or ""), ensure_ascii=False)
+
+
+def is_perplexity_url(value: object) -> bool:
+    parsed = urlparse(clean_text(value))
+    host = (parsed.hostname or "").casefold()
+    return parsed.scheme in {"http", "https"} and (host == "perplexity.ai" or host.endswith(".perplexity.ai"))
+
+
+def extract_perplexity_page(page_html: str) -> tuple[str, list[str]]:
+    text = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", page_html)
+    text = re.sub(r"(?s)<[^>]+>", "\n", text)
+    text = html.unescape(text)
+    lines = [" ".join(line.split()) for line in text.split("\n")]
+    text = "\n".join(line for line in lines if line)
+    citations = [
+        link
+        for link in dict.fromkeys(re.findall(r'href="(https?://[^"]+)"', page_html))
+        if "perplexity.ai" not in link
+    ][:30]
+    return text, citations
+
+
+def clean_url_for_archive(value: str) -> str:
+    return canonical_item_url(value.rstrip('.,;:!?)>"\'】』」'))
+
+
+def extract_urls_from_text(text: str) -> list[str]:
+    seen: set[str] = set()
+    urls: list[str] = []
+    for match in re.finditer(r"https?://[^\s<>()\]\"']+", text or ""):
+        url = clean_url_for_archive(html.unescape(match.group(0)))
+        if url and url not in seen:
+            seen.add(url)
+            urls.append(url)
+    return urls
+
+
+def perplexity_research_links(markdown: str, citations: list[str] | None = None) -> list[dict]:
+    links: list[dict] = []
+    seen: set[str] = set()
+    for link in extract_markdown_links(markdown):
+        url = canonical_item_url(link.get("url"))
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        links.append(link)
+    for url in (citations or []) + extract_urls_from_text(markdown):
+        url = canonical_item_url(url)
+        if not url or url in seen or "perplexity.ai" in url:
+            continue
+        seen.add(url)
+        links.append(
+            {
+                "index": len(links),
+                "url": url,
+                "label": host_label(url),
+                "title": title_from_url_path(url) or host_label(url),
+                "context": "",
+            }
+        )
+    return links
+
+
+def write_perplexity_archive(
+    *,
+    session_id: str,
+    share_url: str,
+    body_text: str,
+    citations: list[str],
+    fetch_status: str,
+    fetch_error: str = "",
+    out_dir: Path | None = None,
+) -> Path:
+    target_dir = out_dir or (ROOT / ".cache" / "perplexity-research")
+    target_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    safe_session = re.sub(r"[^A-Za-z0-9_.-]+", "-", session_id or "manual").strip("-") or "manual"
+    out_path = target_dir / f"{safe_session}-{stamp}.md"
+    citation_lines = "\n".join(f"  - {yaml_scalar(link)}" for link in citations) or "  []"
+    out_path.write_text(
+        "---\n"
+        f"share_url: {yaml_scalar(share_url)}\n"
+        f"session_id: {yaml_scalar(session_id)}\n"
+        f"fetched_at: {yaml_scalar(datetime.now(timezone.utc).isoformat(timespec='seconds'))}\n"
+        f"fetch_status: {yaml_scalar(fetch_status)}\n"
+        f"fetch_error: {yaml_scalar(fetch_error)}\n"
+        "citations:\n"
+        f"{citation_lines}\n"
+        "---\n\n"
+        f"{body_text}\n",
+        encoding="utf-8",
+    )
+    return out_path
+
+
+def parse_yamlish_value(value: str) -> str:
+    value = value.strip()
+    if not value:
+        return ""
+    try:
+        parsed = json.loads(value)
+        return clean_text(parsed)
+    except json.JSONDecodeError:
+        return clean_text(value.strip("\"'"))
+
+
+def parse_perplexity_archive(text: str) -> tuple[dict, str]:
+    metadata: dict[str, object] = {}
+    body = text
+    if text.startswith("---"):
+        parts = text.split("---", 2)
+        if len(parts) == 3:
+            raw_meta = parts[1]
+            body = parts[2].strip()
+            current_key = ""
+            for line in raw_meta.splitlines():
+                if line.startswith("  - ") and current_key:
+                    metadata.setdefault(current_key, []).append(parse_yamlish_value(line[4:]))  # type: ignore[union-attr]
+                    continue
+                if ":" not in line:
+                    current_key = ""
+                    continue
+                key, value = line.split(":", 1)
+                current_key = clean_text(key)
+                if value.strip():
+                    metadata[current_key] = parse_yamlish_value(value)
+                else:
+                    metadata[current_key] = []
+    return metadata, body
+
+
+def load_perplexity_archives(session_id: str, limit: int = 5) -> list[dict]:
+    session_id = clean_text(session_id)
+    out_dir = ROOT / ".cache" / "perplexity-research"
+    if not out_dir.exists():
+        return []
+    records: list[dict] = []
+    for path in sorted(out_dir.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        metadata, body = parse_perplexity_archive(text)
+        if clean_text(metadata.get("session_id")) != session_id:
+            continue
+        citations = [clean_text(link) for link in (metadata.get("citations") or []) if clean_text(link)]  # type: ignore[union-attr]
+        records.append(
+            {
+                "path": path,
+                "metadata": metadata,
+                "body": body,
+                "links": perplexity_research_links(body, citations),
+            }
+        )
+        if len(records) >= limit:
+            break
+    return records
+
+
+def perplexity_bookmarklet(session_id: str, endpoint: str) -> str:
+    endpoint_js = json.dumps(endpoint, ensure_ascii=False)
+    session_js = json.dumps(clean_text(session_id), ensure_ascii=False)
+    script = (
+        "(()=>{"
+        f"const endpoint={endpoint_js},sid={session_js};"
+        "const clean=s=>(s||'').replace(/\\s+/g,' ').trim();"
+        "const esc=s=>clean(s).replace(/[\\[\\]]/g,'').slice(0,180);"
+        "const seen=new Set();"
+        "const links=Array.from(document.links).map(a=>{"
+        "const href=a.href||'';"
+        "if(!/^https?:\\/\\//.test(href)||seen.has(href))return'';"
+        "seen.add(href);"
+        "return '- ['+esc(a.innerText||a.getAttribute('aria-label')||href)+']('+href+')';"
+        "}).filter(Boolean).slice(0,120).join('\\n');"
+        "const text=['# '+clean(document.title),location.href,document.body?document.body.innerText:''].join('\\n\\n');"
+        "const payload=text+'\\n\\n## Links\\n'+links;"
+        "const form=document.createElement('form');"
+        "form.method='POST';form.action=endpoint;form.style.display='none';"
+        "const add=(name,value)=>{const field=document.createElement('textarea');field.name=name;field.value=value;form.appendChild(field);};"
+        "add('session_id',sid);add('share_url',location.href);add('pasted_text',payload);"
+        "document.body.appendChild(form);form.submit();"
+        "})()"
+    )
+    return "javascript:" + quote(script, safe=":/?&=,;()+-*._~!'")
+
+
+def source_title_from_link(link: dict) -> str:
+    title = clean_text(link.get("title"), 160)
+    label = clean_text(link.get("label"), 80)
+    url = clean_text(link.get("url"))
+    if title and title.casefold() not in {"facebook", "twitter", "linkedin", "x"}:
+        return title
+    if label and len(label) > 5:
+        return label
+    return title_from_url_path(url) or host_label(url) or "Perplexity 引用來源"
+
+
+def item_reference_url(record: dict | None) -> str:
+    if not record:
+        return ""
+    metadata = item_reading_metadata(record)
+    for value in (
+        record.get("url"),
+        metadata.get("canonical_url"),
+        metadata.get("final_url"),
+        metadata.get("source_url"),
+    ):
+        url = canonical_item_url(value)
+        if url:
+            return url
+    return ""
+
+
+def factcheck_open_claims(data: dict, limit: int = 5) -> list[dict]:
+    claims = data.get("claims") if isinstance(data.get("claims"), list) else []
+    return [
+        claim
+        for claim in claims
+        if isinstance(claim, dict)
+        and claim.get("status") in {"unclear", "needs-source"}
+        and clean_text(claim.get("claim"))
+    ][:limit]
+
+
+def build_perplexity_factcheck_prompt(session: dict, lookup: dict[str, dict] | None = None, limit: int = 5) -> str:
+    data = session.get("output_data") if isinstance(session.get("output_data"), dict) else {}
+    open_claims = factcheck_open_claims(data, limit=limit)
+    item_lookup = lookup or {}
+    material_lines: list[str] = []
+    for index, item_id in enumerate(session.get("item_ids") or [], start=1):
+        item_id = clean_text(item_id)
+        record = item_lookup.get(item_id, {})
+        title = editor_item_title(record) if record else clean_text(item_id)
+        url = item_reference_url(record)
+        source_name = clean_text(record.get("source_name"), 120) if record else ""
+        summary = clean_text(record.get("summary") or item_reading_metadata(record).get("description"), 180) if record else ""
+        material_lines.append(
+            "\n".join(
+                part
+                for part in [
+                    f"{index}. {title}",
+                    f"   來源：{source_name}" if source_name else "",
+                    f"   URL：{url}" if url else "   URL：（本機沒有記錄，請用標題找原文）",
+                    f"   摘要：{summary}" if summary else "",
+                ]
+                if part
+            )
+        )
+    source_lines: list[str] = []
+    for index, source in enumerate((data.get("recommended_sources") or [])[:8], start=1):
+        if not isinstance(source, dict):
+            continue
+        title = clean_text(source.get("title"), 160) or "未命名來源"
+        url = clean_text(source.get("url"), 1200)
+        why = clean_text(source.get("why"), 180)
+        source_lines.append(
+            "\n".join(
+                part
+                for part in [
+                    f"{index}. {title}",
+                    f"   URL：{url}" if url else "   URL：（尚未找到，請協助找原始出處）",
+                    f"   用途：{why}" if why else "",
+                ]
+                if part
+            )
+        )
+    claim_lines: list[str] = []
+    status_labels = {"unclear": "不明", "needs-source": "需出處"}
+    for index, claim in enumerate(open_claims, start=1):
+        note = clean_text(claim.get("note"), 240)
+        status = status_labels.get(clean_text(claim.get("status")), clean_text(claim.get("status")) or "待查")
+        claim_lines.append(
+            "\n".join(
+                part
+                for part in [
+                    f"{index}. [{status}] {clean_text(claim.get('claim'))}",
+                    f"   目前查核註記：{note}" if note else "",
+                ]
+                if part
+            )
+        )
+    return "\n\n".join(
+        part
+        for part in [
+            "你是 Ian Open News 的查證助理。請直接查找可引用的一手來源或作者原文，不要只給我搜尋建議。",
+            "重要規則：\n"
+            "1. 先打開／檢索「本次材料」列出的 URL，再往外找補充來源；宣稱提到 RedMonk、OSI、G7、英國政府等來源時，優先查對應的原文網站。\n"
+            "2. 不要用 Facebook、社群轉貼、分享頁、SEO 摘要頁取代原始文章、官方文件、PDF、GitHub / arXiv / 模型卡。\n"
+            "3. 找不到精確原文時，請明確寫「找不到精確出處」，不要假設、不要補不存在的事實。\n"
+            "4. 每條宣稱請回覆：支持狀態、最精確 URL、來源標題/作者/日期、它支持或不支持哪一部分、仍缺的證據。",
+            "本次材料（請先查這些）：\n" + ("\n".join(material_lines) if material_lines else "（沒有材料 URL）"),
+            "已知查核來源或線索：\n" + ("\n".join(source_lines) if source_lines else "（無）"),
+            "待查宣稱：\n" + ("\n".join(claim_lines) if claim_lines else "（這次沒有需出處／不明宣稱）"),
+        ]
+        if part
+    )
+
+
 def selected(value: str, current: str) -> str:
     return " selected" if value == current else ""
 
@@ -11273,48 +11582,79 @@ class Handler(BaseHTTPRequestHandler):
         只存 .cache、不寫 database；哪些引用值得收，由使用者在入庫建檔區決定。"""
         session_id = clean_text(form_value(data, "session_id"))
         share_url = clean_text(form_value(data, "share_url"))
+        pasted_text = clean_markdown_text(raw_form_value(data, "pasted_text"))
         back = f"/editor/session?id={quote(session_id)}" if session_id else "/editor"
-        parsed_url = urlparse(share_url)
-        if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc.endswith("perplexity.ai"):
-            self.redirect(back + "&error=perplexity_archive")
+        if not share_url and not pasted_text:
+            self.redirect(add_query_param(back, error="perplexity_empty"))
             return
-        try:
-            request = urllib.request.Request(
-                share_url,
-                headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"},
+        if share_url and not is_perplexity_url(share_url):
+            self.redirect(add_query_param(back, error="perplexity_url"))
+            return
+        fetch_error = ""
+        page_text = ""
+        citations: list[str] = []
+        if share_url:
+            try:
+                request = urllib.request.Request(
+                    share_url,
+                    headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"},
+                )
+                with urllib.request.urlopen(request, timeout=25) as response:
+                    page_html = response.read(2_000_000).decode("utf-8", errors="replace")
+                page_text, citations = extract_perplexity_page(page_html)
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                fetch_error = clean_text(str(exc), 240)
+        body_parts = []
+        if pasted_text:
+            body_parts.append(pasted_text)
+        if page_text and (not pasted_text or page_text not in pasted_text):
+            if pasted_text:
+                body_parts.append("## 本機自動抓取文字\n\n" + page_text)
+            else:
+                body_parts.append(page_text)
+        fetch_status = "ok" if page_text else "url-archived"
+        if pasted_text and page_text:
+            fetch_status = "manual-paste-and-fetch"
+        elif pasted_text:
+            fetch_status = "manual-paste"
+        if not body_parts:
+            body_parts.append(
+                "本機已保留 Perplexity 分享連結，但無法直接抓取頁面內容。"
+                "這通常是因為 Perplexity 頁面需要登入、JavaScript 或擋掉伺服器端抓取。\n\n"
+                "下一步：回到 Perplexity 頁面全選複製答案，貼回這個表單的「查證結果全文」後再歸檔一次，"
+                "或在 Claude Code 使用 `/perplexity-research` 接著整理這個連結。"
             )
-            with urllib.request.urlopen(request, timeout=25) as response:
-                page_html = response.read().decode("utf-8", errors="replace")
-        except (urllib.error.URLError, TimeoutError, OSError):
-            self.redirect(back + "&error=perplexity_archive")
+        citations = [link.get("url", "") for link in perplexity_research_links("\n\n".join(body_parts), citations)]
+        try:
+            write_perplexity_archive(
+                session_id=session_id,
+                share_url=share_url,
+                body_text="\n\n".join(body_parts),
+                citations=citations,
+                fetch_status=fetch_status,
+                fetch_error=fetch_error,
+            )
+        except OSError:
+            self.redirect(add_query_param(back, error="perplexity_archive"))
             return
-        text = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", page_html)
-        text = re.sub(r"(?s)<[^>]+>", "\n", text)
-        text = html.unescape(text)
-        lines = [" ".join(line.split()) for line in text.split("\n")]
-        text = "\n".join(line for line in lines if line)
-        citations = [
-            link
-            for link in dict.fromkeys(re.findall(r'href="(https?://[^"]+)"', page_html))
-            if "perplexity.ai" not in link
-        ][:30]
+        saved = "perplexity_archived" if page_text or pasted_text else "perplexity_link_archived"
+        self.redirect(add_query_param(back, saved=saved))
+
+    def delete_perplexity_archive(self, data: dict[str, list[str]]) -> None:
+        session_id = clean_text(form_value(data, "session_id"))
+        archive_file = Path(clean_text(form_value(data, "archive_file"))).name
+        back = f"/editor/session?id={quote(session_id)}" if session_id else "/editor"
         out_dir = ROOT / ".cache" / "perplexity-research"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        out_path = out_dir / f"{session_id or 'manual'}-{stamp}.md"
-        citation_lines = "\n".join(f"  - {link}" for link in citations) or "  []"
-        out_path.write_text(
-            "---\n"
-            f"share_url: {share_url}\n"
-            f"session_id: {session_id}\n"
-            f"fetched_at: {datetime.now(timezone.utc).isoformat(timespec='seconds')}\n"
-            "citations:\n"
-            f"{citation_lines}\n"
-            "---\n\n"
-            f"{text}\n",
-            encoding="utf-8",
-        )
-        self.redirect(back + "&saved=perplexity_archived")
+        path = out_dir / archive_file if archive_file else out_dir / "__missing__.md"
+        try:
+            metadata, _body = parse_perplexity_archive(path.read_text(encoding="utf-8"))
+            if clean_text(metadata.get("session_id")) != session_id:
+                raise ValueError("archive belongs to another session")
+            path.unlink()
+        except (OSError, ValueError):
+            self.redirect(add_query_param(back, error="perplexity_delete"))
+            return
+        self.redirect(add_query_param(back, saved="perplexity_deleted"))
 
     def redirect(self, path: str) -> None:
         self.send_response(HTTPStatus.SEE_OTHER)
@@ -11564,6 +11904,8 @@ class Handler(BaseHTTPRequestHandler):
             self.update_item_metadata(self.read_form())
         elif parsed.path == "/perplexity/archive":
             self.archive_perplexity_result(self.read_form())
+        elif parsed.path == "/perplexity/archive/delete":
+            self.delete_perplexity_archive(self.read_form())
         elif parsed.path == "/items/translate-zh":
             self.translate_item_zh(self.read_form())
         elif parsed.path == "/recycle-bin/restore":
@@ -12084,13 +12426,13 @@ class Handler(BaseHTTPRequestHandler):
         favorites_block = ""
         data = session.get("output_data") if isinstance(session.get("output_data"), dict) else {}
         sources = data.get("recommended_sources") if isinstance(data, dict) else None
+        default_track = ""
+        for item_id in session.get("item_ids") or []:
+            rec = lookup.get(item_id)
+            if rec and clean_text(rec.get("track")):
+                default_track = clean_text(rec.get("track"))
+                break
         if sources:
-            default_track = ""
-            for item_id in session.get("item_ids") or []:
-                rec = lookup.get(item_id)
-                if rec and clean_text(rec.get("track")):
-                    default_track = clean_text(rec.get("track"))
-                    break
             rows = ""
             for src in sources:
                 url = clean_text(src.get("url"))
@@ -12119,20 +12461,24 @@ class Handler(BaseHTTPRequestHandler):
         # 查完把分享連結貼回來歸檔到 .cache/perplexity-research/。不自動寫 database。
         perplexity_block = ""
         if clean_text(session.get("task_type")) == "factcheck":
-            open_claims = [
-                clean_text(c.get("claim"), 200)
-                for c in (data.get("claims") or [])
-                if isinstance(c, dict) and c.get("status") in {"unclear", "needs-source"} and clean_text(c.get("claim"))
-            ][:5]
+            open_claims = factcheck_open_claims(data)
             saved_note = ""
             if (query.get("saved") or [""])[0] == "perplexity_archived":
                 saved_note = '<div class="notice">已把 Perplexity 查證結果歸檔到 .cache/perplexity-research/，可在 Claude Code 用 /perplexity-research 接著整理。</div>'
+            elif (query.get("saved") or [""])[0] == "perplexity_link_archived":
+                saved_note = '<div class="notice">已先把 Perplexity 分享連結歸檔到 .cache/perplexity-research/；本機抓不到動態頁內容時，可把 Perplexity 回答全文貼到下方再歸檔一次。</div>'
+            elif (query.get("saved") or [""])[0] == "perplexity_deleted":
+                saved_note = '<div class="notice">已刪除這筆 Perplexity 歸檔。</div>'
+            elif (query.get("error") or [""])[0] == "perplexity_url":
+                saved_note = '<div class="notice">歸檔失敗：請貼上 perplexity.ai 的查詢或分享連結。</div>'
+            elif (query.get("error") or [""])[0] == "perplexity_empty":
+                saved_note = '<div class="notice">歸檔失敗：請貼 Perplexity 分享連結，或直接貼上查證結果全文。</div>'
             elif (query.get("error") or [""])[0] == "perplexity_archive":
-                saved_note = '<div class="notice">歸檔失敗：抓不到這個分享連結的內容，請確認網址是 Perplexity 的公開分享頁。</div>'
+                saved_note = '<div class="notice">歸檔失敗：本機無法寫入 .cache/perplexity-research/，請稍後再試。</div>'
+            elif (query.get("error") or [""])[0] == "perplexity_delete":
+                saved_note = '<div class="notice">刪除失敗：找不到這筆歸檔，或它不屬於這個 session。</div>'
             if open_claims:
-                perplexity_query = "請替下列宣稱找出一手來源與原始出處，每一條附可查證的引用連結：\n" + "\n".join(
-                    f"{index}. {claim}" for index, claim in enumerate(open_claims, start=1)
-                )
+                perplexity_query = build_perplexity_factcheck_prompt(session, lookup)
                 perplexity_href = "https://www.perplexity.ai/?q=" + quote(perplexity_query)
                 claims_hint = f"帶著 {len(open_claims)} 條「需出處／不明」宣稱"
             else:
@@ -12144,18 +12490,87 @@ class Handler(BaseHTTPRequestHandler):
                 if perplexity_href
                 else '<p class="muted">這次查核沒有「需出處／不明」的宣稱，不需要外部查證。</p>'
             )
+            host = clean_text(self.headers.get("Host")) or "127.0.0.1:8766"
+            endpoint = f"http://{host}/perplexity/archive"
+            bookmarklet_href = perplexity_bookmarklet(session_id, endpoint)
+            archive_cards = ""
+            for archive in load_perplexity_archives(session_id):
+                meta = archive["metadata"]
+                body_md = clean_markdown_text(archive["body"])
+                links = archive["links"][:20]
+                source_forms = ""
+                for link in links:
+                    url = clean_text(link.get("url"))
+                    title = source_title_from_link(link)
+                    summary = clean_text(link.get("context"), 500)
+                    source_forms += f"""
+  <form class="editor-fav-form perplexity-source-form" method="post" action="/items" data-async-collect>
+    <input type="hidden" name="url" value="{h(url)}">
+    <input type="hidden" name="source_name" value="Perplexity 查證來源">
+    <input type="hidden" name="track" value="{h(default_track or 'unclassified')}">
+    <input type="hidden" name="format" value="json">
+    <label>標題<input name="title" value="{h(title)}"></label>
+    <label>備註<textarea name="summary" rows="2">{h(summary)}</textarea></label>
+    <div class="button-row">
+      <a class="button button-small quiet" href="{h(url)}" target="_blank" rel="noopener">開啟來源</a>
+      <button type="submit" class="button button-small">+ 新增到入庫建檔區</button>
+    </div>
+  </form>"""
+                if not source_forms:
+                    source_forms = '<p class="muted">這筆歸檔目前沒有解析到外部引用連結。</p>'
+                status = clean_text(meta.get("fetch_status")) or "archived"
+                share_url = clean_text(meta.get("share_url"))
+                share_link = f' · <a href="{h(share_url)}" target="_blank" rel="noopener">Perplexity 原頁</a>' if share_url else ""
+                archive_file = Path(archive["path"]).name
+                archive_cards += f"""
+<details class="perplexity-archive-card" open>
+  <summary class="perplexity-archive-summary">
+    <span><strong>{h(editor_relative_time(meta.get("fetched_at")) or "已歸檔")}</strong> <span class="tag-pill">{h(status)}</span>{share_link}</span>
+    <form class="perplexity-delete-form" method="post" action="/perplexity/archive/delete" onclick="event.stopPropagation()" onsubmit="return window.confirm('刪除這筆 Perplexity 歸檔？')">
+      <input type="hidden" name="session_id" value="{h(session_id)}">
+      <input type="hidden" name="archive_file" value="{h(archive_file)}">
+      <button type="submit" class="button button-small quiet archive-delete-button" title="刪除這筆歸檔" aria-label="刪除這筆歸檔">×</button>
+    </form>
+  </summary>
+  <div class="perplexity-source-grid">{source_forms}</div>
+  <details class="perplexity-archive-body">
+    <summary>查看貼回內容</summary>
+    <div class="article-text article-markdown">{markdown_to_html(body_md)}</div>
+  </details>
+</details>"""
+            archived_block = (
+                f"""
+  <section class="perplexity-archives">
+    <h3>已歸檔查證結果</h3>
+    <p class="help">貼回來的內容會留在這裡，引用連結可直接加入入庫建檔區，之後照單篇材料審核流程處理。</p>
+    {archive_cards}
+  </section>"""
+                if archive_cards
+                else ""
+            )
             perplexity_block = f"""
 <section class="card">
   <h2>Perplexity 輔助查證</h2>
   {saved_note}
-  <p class="muted">{h(claims_hint)}。按下開新分頁自動送出查詢；查完在 Perplexity 按「Share」複製連結，貼回下面歸檔。</p>
+  <p class="muted">{h(claims_hint)}。按下開新分頁自動送出查詢；查完後可以貼分享連結，也可以直接把 Perplexity 回答全文貼回來。</p>
   <div class="button-row">{open_button}</div>
-  <form method="post" action="/perplexity/archive" class="button-row" style="margin-top:8px">
+  <details class="perplexity-bookmarklet-panel" open>
+    <summary><strong>一鍵送回本機</strong></summary>
+    <p class="help">把下面這顆拖到瀏覽器書籤列；在 Perplexity 結果頁按它，會自動把頁面文字與引用連結送回這個查核 session。</p>
+    <a class="button quiet" href="{h(bookmarklet_href)}">{icon_span("save")}<span>送回 Ian Open News</span></a>
+  </details>
+  <form method="post" action="/perplexity/archive" class="perplexity-archive-form">
     <input type="hidden" name="session_id" value="{h(session_id)}">
-    <input name="share_url" placeholder="貼上 Perplexity 分享連結（perplexity.ai/search/...）" style="flex:1 1 280px">
+    <label>Perplexity 分享連結（選填）
+      <input name="share_url" placeholder="https://www.perplexity.ai/search/...">
+    </label>
+    <label>查證結果全文（選填，可直接貼）
+      <textarea name="pasted_text" rows="10" placeholder="回到 Perplexity 全選複製答案，貼在這裡；系統會解析裡面的引用連結並顯示成可加入的材料。"></textarea>
+    </label>
     <button type="submit" class="secondary">{button_content("歸檔查證結果", "save", "")}</button>
   </form>
-  <p class="help">歸檔只存到本機 .cache/perplexity-research/，不會自動寫進資料庫；哪些引用值得收，仍由你在入庫建檔區決定。</p>
+  <p class="help">歸檔只存到本機 .cache/perplexity-research/，不會自動寫進資料庫；解析出的來源要按「新增到入庫建檔區」才會進資料庫。</p>
+  {archived_block}
 </section>
 """
 
@@ -12652,6 +13067,10 @@ class Handler(BaseHTTPRequestHandler):
   .editor-vp-quickform, .editor-session-toolbox-form {{ margin-top:10px; }}
   .editor-vp-quickform input, .editor-vp-quickform textarea, .editor-session-toolbox-form textarea, .editor-session-toolbox-form select {{ width:100%; max-width:560px; box-sizing:border-box; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; margin-bottom:6px; }}
   .editor-vp-extract {{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }}
+  .perplexity-archive-summary {{ cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; }}
+  .perplexity-archive-summary > span {{ min-width:0; overflow-wrap:anywhere; }}
+  .perplexity-delete-form {{ margin:0; flex:0 0 auto; }}
+  .perplexity-delete-form .archive-delete-button {{ width:28px; height:28px; min-width:0; padding:0; border-radius:999px; line-height:1; font-size:18px; }}
   @media (max-width: 900px) {{ .editor-toolbox-grid {{ grid-template-columns:1fr; }} .editor-session-toolbox-form .editor-control-grid {{ grid-template-columns:1fr; }} }}
 </style>
 <script>
@@ -15288,6 +15707,20 @@ function enterClusterView(data) {{
       syncSelection();
     }});
     summary.appendChild(selectAll);
+    const deselectAll = document.createElement("button");
+    deselectAll.type = "button";
+    deselectAll.className = "quiet button-small cluster-deselect-all";
+    deselectAll.textContent = "全不勾這群";
+    deselectAll.addEventListener("click", (event) => {{
+      event.preventDefault();
+      event.stopPropagation();
+      cards.forEach((card) => {{
+        const box = card.querySelector(".item-select");
+        if (box && card.isConnected) box.checked = false;
+      }});
+      syncSelection();
+    }});
+    summary.appendChild(deselectAll);
     if (cluster.suggested_action === "merge-into-item" && cluster.merge_target_item_id) {{
       const mergeLink = document.createElement("a");
       mergeLink.className = "button secondary button-small";
