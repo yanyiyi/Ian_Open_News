@@ -362,6 +362,7 @@ DATA_AUTOCOMMIT_FILES = [
     INSIGHT_REPORTS,
     SYSTEM_CHANGE_PROPOSALS,
     TASTE_PROFILE,
+    fulltext_store.FULLTEXT_DIR,  # 全文側檔目錄：跟主檔一起 commit，避免 git 裡漂移
 ]
 TRANSLATION_SOURCE_MARKDOWN_LIMIT = 42000
 TRANSLATION_SOURCE_TEXT_LIMIT = 36000
@@ -22742,27 +22743,32 @@ if (document.readyState === "loading") {{
         page_js = """
 <script>
 (() => {
-  const commandWindow = document.getElementById("command-window");
-  const commandTitle = document.getElementById("command-title");
-  const commandStatus = document.getElementById("command-status");
-  const commandOutput = document.getElementById("command-output");
-  const commandLoading = document.getElementById("command-loading");
+  // #command-window 在 </main> 之後才解析，這段 script 在 main 內：元素要在事件發生當下才查。
+  const windowParts = () => ({
+    root: document.getElementById("command-window"),
+    title: document.getElementById("command-title"),
+    status: document.getElementById("command-status"),
+    output: document.getElementById("command-output"),
+    loading: document.getElementById("command-loading")
+  });
   const showWindow = (label) => {
-    if (!commandWindow) return;
-    commandTitle.textContent = label || "推播通知";
-    commandStatus.textContent = "已送出，正在推播...";
-    commandOutput.hidden = true;
-    commandOutput.textContent = "";
-    commandLoading.hidden = false;
-    commandWindow.classList.add("is-visible");
-    commandWindow.setAttribute("aria-hidden", "false");
+    const parts = windowParts();
+    if (!parts.root) return;
+    parts.title.textContent = label || "推播通知";
+    parts.status.textContent = "已送出，正在推播...";
+    parts.output.hidden = true;
+    parts.output.textContent = "";
+    parts.loading.hidden = false;
+    parts.root.classList.add("is-visible");
+    parts.root.setAttribute("aria-hidden", "false");
   };
   const finishWindow = (message, output) => {
-    if (!commandWindow) return;
-    commandStatus.textContent = message;
-    commandLoading.hidden = true;
-    commandOutput.hidden = !output;
-    commandOutput.textContent = output || "";
+    const parts = windowParts();
+    if (!parts.root) return;
+    parts.status.textContent = message;
+    parts.loading.hidden = true;
+    parts.output.hidden = !output;
+    parts.output.textContent = output || "";
   };
   const fetchHeaders = {
     "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",

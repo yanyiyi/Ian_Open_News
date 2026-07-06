@@ -74,7 +74,7 @@ def latest_deliveries(notified_records: list[dict[str, Any]]) -> dict[str, dict[
     tracked: dict[str, dict[str, Any]] = {}
     for record in notified_records:
         event_key = clean_text(record.get("event_key"))
-        if not event_key or record.get("action") != "sent":
+        if not event_key or record.get("action") not in {"sent", "sent-partial"}:
             continue
         entry = tracked.setdefault(
             event_key,

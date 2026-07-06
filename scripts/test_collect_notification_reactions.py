@@ -73,6 +73,19 @@ class LatestDeliveriesTest(unittest.TestCase):
         msg_map = collect.telegram_message_map(tracked)
         self.assertEqual(msg_map[("-100123", 7)], "item:translated-review:item-a")
 
+    def test_latest_deliveries_includes_partial_sends(self) -> None:
+        records = [
+            {
+                "action": "sent-partial",
+                "event_key": "item:translated-review:item-c",
+                "title": "文章 C",
+                "deliveries": [{"channel": "telegram", "chat_id": "-100123", "message_id": 9}],
+                "delivery_failures": [{"channel": "slack", "error": "channel_not_found"}],
+            }
+        ]
+        tracked = collect.latest_deliveries(records)
+        self.assertEqual(tracked["item:translated-review:item-c"]["telegram"]["message_id"], 9)
+
 
 class TelegramUpdateTest(unittest.TestCase):
     def setUp(self) -> None:

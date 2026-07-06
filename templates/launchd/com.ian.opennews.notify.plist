@@ -6,15 +6,21 @@
   <key>Label</key>
   <string>com.ian.opennews.notify</string>
 
-  <key>WorkingDirectory</key>
-  <string>/Users/ianliu/Documents/Ian_Open_News</string>
-
+  <!-- 不設 WorkingDirectory（Documents 受 TCC 保護會出錯）；腳本內部用絕對路徑。 -->
+  <!-- 固定用 Homebrew python：launchd 極簡 PATH 下 /usr/bin/env 會解析到
+       CommandLineTools 的 python，該執行檔沒有 ~/Documents 的 TCC 權限，
+       會一直 Operation not permitted。比照 com.ian-open-news.local-web 的做法。 -->
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/bin/env</string>
-    <string>python3</string>
+    <string>/opt/homebrew/bin/python3</string>
     <string>/Users/ianliu/Documents/Ian_Open_News/scripts/notify_ready_items.py</string>
   </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
 
   <!-- 每 5 分鐘巡一次；腳本本身會等內容待滿 15 分鐘才送，並跳過起算前舊內容。 -->
   <key>StartInterval</key>
