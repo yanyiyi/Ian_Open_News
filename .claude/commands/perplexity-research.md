@@ -11,14 +11,20 @@
 
 ## 流程
 
-### A. 分享連結模式（最穩，優先）
+### A. 分享連結模式（注意：多半會被擋）
 
-1. 用 WebFetch 抓分享頁，抽出答案本文與引用連結。
-2. 寫入 `.cache/perplexity-research/<slug>-<UTC時間戳>.md`，YAML frontmatter 含
+**Perplexity 用 Cloudflare 擋所有機器抓取（實測回 403「Just a moment...」殼頁），
+WebFetch 大概率拿不到內文。** 先試一次，被擋就直接走 B 或 C，不要重試硬抓。
+
+1. 用 WebFetch 抓分享頁；若回來的是 JS 驗證殼頁或空殼，改走 B/C。
+2. 成功才寫入 `.cache/perplexity-research/<slug>-<UTC時間戳>.md`，YAML frontmatter 含
    `share_url`、`fetched_at`、`citations`（引用 URL 陣列）。
 3. 向 Ian 條列引用清單（標題＋網址＋一句它支持了什麼），問他哪些要收。
 4. 他挑了才動作：走 local_web 的「新增到入庫建檔區」同款欄位（POST /items，
    `source_name: 查證來源`），或把重點寫進 `knowledge/` 筆記。**沒挑的不動。**
+
+提醒 Ian：查核 session 頁的「送回 Ian Open News」書籤鈕是最穩路徑——
+用他已登入的瀏覽器直送，完全不經伺服器抓取。
 
 ### B. 瀏覽器模式（分頁還開著、還沒按 Share 時）
 

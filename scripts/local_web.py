@@ -1260,11 +1260,20 @@ def build_url_preview(url: str, track: str, title: str = "") -> dict:
     }
 
 
-def load_jsonl(path: Path) -> list[dict]:
-    if not path.exists():
-        return []
+# 大檔解析快取：items.jsonl / rejected-items.jsonl 已達 25MB/15MB，每個請求重複
+# json 解析是「存取資料庫很慢」的主因。以 (mtime_ns, size) 為 key 快取解析結果；
+# 檔案被任何行程改動（本行程 write/append、fetch_rss cron、editor_task）mtime 就變，
+# 快取自動失效。只快取超過門檻的大檔，小檔重讀便宜、也縮小共享物件的暴露面。
+# 注意：回傳的是「新 list 殼 + 共享的 row dict」。呼叫端就地改 row 後必須立刻
+# write_jsonl（本 repo 既有慣例，且都在 DB_WRITE_LOCK 內），寫檔即失效自癒。
+_JSONL_CACHE: dict[str, tuple[int, int, list[dict]]] = {}
+_JSONL_CACHE_LOCK = threading.Lock()
+_JSONL_CACHE_MIN_BYTES = 256 * 1024
+
+
+def _parse_jsonl_text(path: Path, text: str) -> list[dict]:
     records = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").split("\n"), start=1):
+    for line_number, line in enumerate(text.split("\n"), start=1):
         if not line.strip():
             continue
         try:
@@ -1272,6 +1281,28 @@ def load_jsonl(path: Path) -> list[dict]:
         except json.JSONDecodeError as exc:
             print(f"warning: skip invalid JSONL {path}:{line_number}: {exc}", file=sys.stderr)
     return records
+
+
+def load_jsonl(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    stat = path.stat()
+    if stat.st_size < _JSONL_CACHE_MIN_BYTES:
+        return _parse_jsonl_text(path, path.read_text(encoding="utf-8"))
+    key = str(path)
+    with _JSONL_CACHE_LOCK:
+        cached = _JSONL_CACHE.get(key)
+        if cached and cached[0] == stat.st_mtime_ns and cached[1] == stat.st_size:
+            return list(cached[2])
+    records = _parse_jsonl_text(path, path.read_text(encoding="utf-8"))
+    with _JSONL_CACHE_LOCK:
+        _JSONL_CACHE[key] = (stat.st_mtime_ns, stat.st_size, records)
+    return list(records)
+
+
+def invalidate_jsonl_cache(path: Path) -> None:
+    with _JSONL_CACHE_LOCK:
+        _JSONL_CACHE.pop(str(path), None)
 
 
 def load_json(path: Path) -> dict:
@@ -1295,6 +1326,7 @@ def write_jsonl(path: Path, records: list[dict]) -> None:
     text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
     with DB_WRITE_LOCK:  # 避免並發寫入交錯把檔案寫壞
         path.write_text(text, encoding="utf-8")
+        invalidate_jsonl_cache(path)
 
 
 def append_jsonl(path: Path, record: dict) -> None:
@@ -1309,6 +1341,7 @@ def append_jsonl(path: Path, record: dict) -> None:
             if needs_newline:
                 handle.write("\n")
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+        invalidate_jsonl_cache(path)
 
 
 def upsert_jsonl(path: Path, record: dict) -> None:
@@ -2600,6 +2633,26 @@ def is_perplexity_url(value: object) -> bool:
     return parsed.scheme in {"http", "https"} and (host == "perplexity.ai" or host.endswith(".perplexity.ai"))
 
 
+PERPLEXITY_JS_SHELL_MARKERS = (
+    "just a moment",
+    "enable javascript",
+    "checking your browser",
+    "verifying you are human",
+    "attention required",
+    "cf-challenge",
+)
+
+
+def looks_like_js_shell(text: str) -> bool:
+    """判斷抓回來的是不是 Cloudflare/JS 驗證殼頁（Perplexity 對伺服器端抓取一律回這種）。
+
+    真正的結果頁抽出文字遠多於幾百字；殼頁只有一句 challenge 文案。"""
+    compact = " ".join((text or "").split()).casefold()
+    if len(compact) < 400:
+        return True
+    return any(marker in compact[:600] for marker in PERPLEXITY_JS_SHELL_MARKERS)
+
+
 def extract_perplexity_page(page_html: str) -> tuple[str, list[str]]:
     text = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", page_html)
     text = re.sub(r"(?s)<[^>]+>", "\n", text)
@@ -2749,6 +2802,30 @@ def load_perplexity_archives(session_id: str, limit: int = 5) -> list[dict]:
         if len(records) >= limit:
             break
     return records
+
+
+DEFAULT_BRIDGE_BASE = "http://127.0.0.1:1200"
+_BRIDGE_PROBE_CACHE: dict[str, tuple[float, bool]] = {}
+
+
+def bridge_online(base_url: str = DEFAULT_BRIDGE_BASE, ttl_seconds: float = 60.0) -> bool:
+    """探測本機 RSSHub bridge 是否在線；結果快取 60 秒，避免每次 render 都打一發。"""
+    now = time.monotonic()
+    cached = _BRIDGE_PROBE_CACHE.get(base_url)
+    if cached and now - cached[0] < ttl_seconds:
+        return cached[1]
+    probe_url = base_url.rstrip("/") + "/healthz"
+    online = False
+    try:
+        request = urllib.request.Request(probe_url, headers={"User-Agent": "ian-open-news-bridge-ui-probe"})
+        with urllib.request.urlopen(request, timeout=1.5):
+            online = True
+    except urllib.error.HTTPError:
+        online = True  # 有回應就代表服務在線
+    except (urllib.error.URLError, TimeoutError, OSError):
+        online = False
+    _BRIDGE_PROBE_CACHE[base_url] = (now, online)
+    return online
 
 
 def perplexity_bookmarklet(session_id: str, endpoint: str) -> str:
@@ -11592,8 +11669,11 @@ class Handler(BaseHTTPRequestHandler):
             return
         fetch_error = ""
         page_text = ""
+        js_blocked = False
         citations: list[str] = []
-        if share_url:
+        # 只在沒貼全文時才試伺服器端抓取：Perplexity 對機器抓取回 Cloudflare 殼頁
+        # （實測 403 + "Just a moment..."），成功機率極低，貼了全文就不必白抓一趟。
+        if share_url and not pasted_text:
             try:
                 request = urllib.request.Request(
                     share_url,
@@ -11602,6 +11682,14 @@ class Handler(BaseHTTPRequestHandler):
                 with urllib.request.urlopen(request, timeout=25) as response:
                     page_html = response.read(2_000_000).decode("utf-8", errors="replace")
                 page_text, citations = extract_perplexity_page(page_html)
+                if page_text and looks_like_js_shell(page_text):
+                    js_blocked = True
+                    fetch_error = "Perplexity 回傳 JS 驗證殼頁（Just a moment...），伺服器端抓不到內文"
+                    page_text = ""
+                    citations = []
+            except urllib.error.HTTPError as exc:
+                js_blocked = exc.code in {403, 429, 503}
+                fetch_error = clean_text(str(exc), 240)
             except (urllib.error.URLError, TimeoutError, OSError) as exc:
                 fetch_error = clean_text(str(exc), 240)
         body_parts = []
@@ -11612,17 +11700,22 @@ class Handler(BaseHTTPRequestHandler):
                 body_parts.append("## 本機自動抓取文字\n\n" + page_text)
             else:
                 body_parts.append(page_text)
-        fetch_status = "ok" if page_text else "url-archived"
-        if pasted_text and page_text:
-            fetch_status = "manual-paste-and-fetch"
-        elif pasted_text:
+        if pasted_text:
             fetch_status = "manual-paste"
+        elif page_text:
+            fetch_status = "ok"
+        elif js_blocked:
+            fetch_status = "js-blocked"
+        else:
+            fetch_status = "url-archived"
         if not body_parts:
             body_parts.append(
-                "本機已保留 Perplexity 分享連結，但無法直接抓取頁面內容。"
-                "這通常是因為 Perplexity 頁面需要登入、JavaScript 或擋掉伺服器端抓取。\n\n"
-                "下一步：回到 Perplexity 頁面全選複製答案，貼回這個表單的「查證結果全文」後再歸檔一次，"
-                "或在 Claude Code 使用 `/perplexity-research` 接著整理這個連結。"
+                "本機已保留 Perplexity 分享連結，但 Perplexity 用 Cloudflare 擋掉了伺服器端抓取"
+                "（回傳 JS 驗證殼頁），這是它對所有機器抓取的一貫行為，不是本機設定問題。\n\n"
+                "拿回內文的兩條路（都在人在場、最少動作）：\n"
+                "1. 在 Perplexity 結果頁按書籤列上的「送回 Ian Open News」書籤鈕——"
+                "用你已登入的瀏覽器直接送回，100% 拿得到內容（推薦）。\n"
+                "2. 全選複製答案，貼回表單的「查證結果全文」再歸檔一次。"
             )
         citations = [link.get("url", "") for link in perplexity_research_links("\n\n".join(body_parts), citations)]
         try:
@@ -12552,21 +12645,22 @@ class Handler(BaseHTTPRequestHandler):
 <section class="card">
   <h2>Perplexity 輔助查證</h2>
   {saved_note}
-  <p class="muted">{h(claims_hint)}。按下開新分頁自動送出查詢；查完後可以貼分享連結，也可以直接把 Perplexity 回答全文貼回來。</p>
+  <p class="muted">{h(claims_hint)}。按下開新分頁自動送出查詢；查完用書籤鈕一鍵送回（推薦），或全選複製貼回下面表單。</p>
   <div class="button-row">{open_button}</div>
   <details class="perplexity-bookmarklet-panel" open>
-    <summary><strong>一鍵送回本機</strong></summary>
-    <p class="help">把下面這顆拖到瀏覽器書籤列；在 Perplexity 結果頁按它，會自動把頁面文字與引用連結送回這個查核 session。</p>
+    <summary><strong>一鍵送回本機（推薦）</strong></summary>
+    <p class="help">把下面這顆拖到瀏覽器書籤列；在 Perplexity 結果頁按它，會用你已登入的瀏覽器把頁面文字與引用連結直接送回這個查核 session——不經過伺服器抓取，不會被 JS 驗證擋。</p>
     <a class="button quiet" href="{h(bookmarklet_href)}">{icon_span("save")}<span>送回 Ian Open News</span></a>
   </details>
   <form method="post" action="/perplexity/archive" class="perplexity-archive-form">
     <input type="hidden" name="session_id" value="{h(session_id)}">
-    <label>Perplexity 分享連結（選填）
-      <input name="share_url" placeholder="https://www.perplexity.ai/search/...">
-    </label>
-    <label>查證結果全文（選填，可直接貼）
+    <label>查證結果全文（建議路徑之二：直接貼）
       <textarea name="pasted_text" rows="10" placeholder="回到 Perplexity 全選複製答案，貼在這裡；系統會解析裡面的引用連結並顯示成可加入的材料。"></textarea>
     </label>
+    <label>Perplexity 分享連結（選填，只當出處紀錄）
+      <input name="share_url" placeholder="https://www.perplexity.ai/search/...">
+    </label>
+    <p class="help">注意：Perplexity 用 Cloudflare 擋機器抓取，只貼連結拿不到內文（會標成 js-blocked）；內文請用上面的書籤鈕或直接貼全文。</p>
     <button type="submit" class="secondary">{button_content("歸檔查證結果", "save", "")}</button>
   </form>
   <p class="help">歸檔只存到本機 .cache/perplexity-research/，不會自動寫進資料庫；解析出的來源要按「新增到入庫建檔區」才會進資料庫。</p>
@@ -21300,6 +21394,11 @@ if (document.readyState === "loading") {{
         current_group_is_new = current_group not in source_group_values(existing_sources)
         group_input_value = current_group if current_group_is_new else ""
         group_input_hidden = "" if current_group_is_new else " hidden"
+        bridge_status_line = (
+            "本機 RSSHub（127.0.0.1:1200）目前：<strong>在線</strong>。"
+            if bridge_online()
+            else "本機 RSSHub（127.0.0.1:1200）目前：<strong>未啟動</strong>——啟動方式見 templates/rsshub/README.md。"
+        )
         health_card = ""
         if source_id:
             health = source_health_summary(
@@ -21357,6 +21456,12 @@ if (document.readyState === "loading") {{
   <label>Site URL</label>
   <input name="site_url" value="{h(source.get('site_url', ''))}" placeholder="https://example.com/" data-preview-site-url>
   <p class="help">原始網站首頁，方便之後回去確認來源脈絡。</p>
+  <label>Bridge 代號（served_via，選填）</label>
+  <input name="served_via" value="{h(source.get('served_via', ''))}" placeholder="rsshub@local">
+  <p class="help">沒有原生 RSS、靠本機 RSSHub 轉出 feed 的來源才填（Feed URL 填 http://127.0.0.1:1200/&lt;route&gt;）。填了之後 bridge 離線時整組跳過並記 bridge-unreachable，不會誤報成來源壞掉。{bridge_status_line}</p>
+  <label>Bridge route（選填）</label>
+  <input name="bridge" value="{h(source.get('bridge', ''))}" placeholder="ptt/bbs/Tech_Job">
+  <p class="help">RSSHub 的 route 路徑，供日後換主機批次重組 feed URL（scripts/rebuild_bridge_feeds.py）。加來源前先 curl http://127.0.0.1:1200/&lt;route&gt; 確認回 XML。</p>
   <div class="preview-panel" data-preview-panel hidden>
     <div class="preview-status" data-preview-status>等待網址。</div>
     <div class="preview-result" data-preview-result></div>
@@ -21403,6 +21508,13 @@ if (document.readyState === "loading") {{
             "excluded_keywords": form_lines(form_value(data, "excluded_keywords")),
             "notes": form_value(data, "notes"),
         }
+        # bridge 出身欄位（選填）：只在有值時寫入，保持沒用到 bridge 的來源紀錄乾淨
+        served_via = clean_text(form_value(data, "served_via"))
+        bridge_route = clean_text(form_value(data, "bridge"))
+        if served_via:
+            record["served_via"] = served_via
+        if bridge_route:
+            record["bridge"] = bridge_route
         keywords_changed = bool(existing_id) and source_keyword_signature(existing_source) != source_keyword_signature(record)
         for preserved_key in ["rss_health", "health_assessment", "last_fetched_at"]:
             if preserved_key in existing_source:
