@@ -8460,10 +8460,26 @@ def page(title: str, body: str) -> bytes:
       margin: 14px 0 18px;
     }}
     .notify-stat {{
+      display: block;
       padding: 10px 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }}
+    .notify-stat:hover {{
+      color: var(--ink);
+      border-color: var(--link);
+      box-shadow: 0 8px 18px rgba(15,25,35,.10);
+      transform: translateY(-1px);
+      text-decoration: none;
+    }}
+    .notify-stat.is-active {{
+      border-color: var(--link);
+      box-shadow: 0 0 0 2px rgba(25,63,143,.08);
+      background: #f8fbff;
     }}
     .notify-stat strong {{
       display: block;
@@ -22221,9 +22237,14 @@ if (document.readyState === "loading") {{
         layout = clean_text(form_value(query, "layout")) or "list"
         if layout not in LAYOUT_MODES:
             layout = "list"
+        active_filter = clean_text(form_value(query, "filter")) or "overview"
+        if active_filter not in {"overview", "pending", "ready", "waiting", "legacy", "sent"}:
+            active_filter = "overview"
         auto_min_minutes = getattr(notify_mod, "DEFAULT_MIN_AGE_MINUTES", 15)
         auto_max_days = getattr(notify_mod, "DEFAULT_AUTO_MAX_AGE_DAYS", 7)
+        recent_days = 14
         now_local = datetime.now(LOCAL_TIMEZONE)
+        recent_cutoff = now_local - timedelta(days=recent_days)
         auto_start_dt = notify_mod.resolve_auto_start_at(env, initialize=True)
         fallback_dt = datetime.min.replace(tzinfo=LOCAL_TIMEZONE)
         weekday_labels = ("週一", "週二", "週三", "週四", "週五", "週六", "週日")
@@ -22255,6 +22276,10 @@ if (document.readyState === "loading") {{
         def pending_age(event: object) -> float | None:
             return notify_mod.event_age_minutes(event, now_local)
 
+        def is_waiting_event(event: object) -> bool:
+            age = pending_age(event)
+            return age is not None and age < auto_min_minutes
+
         def event_kind_label(event: object) -> str:
             text = clean_text(getattr(event, "text", ""))
             if text.startswith("【新消息】"):
@@ -22284,6 +22309,14 @@ if (document.readyState === "loading") {{
             key=lambda event: event_local_dt(event) or fallback_dt,
             reverse=True,
         )
+        waiting_pending = [event for event in fresh_pending if is_waiting_event(event)]
+        ready_pending = [event for event in fresh_pending if not is_waiting_event(event)]
+
+        def recent_subset(records: list, dt_getter) -> list:
+            if not records:
+                return []
+            recent = [record for record in records if (dt_getter(record) or fallback_dt) >= recent_cutoff]
+            return recent or records[:12]
 
         def pending_status(event: object, bucket: str) -> tuple[str, str, str]:
             age = pending_age(event)
@@ -22305,7 +22338,7 @@ if (document.readyState === "loading") {{
             if age < auto_min_minutes:
                 remaining = max(1, int(auto_min_minutes - age + 0.999))
                 return (
-                    f"待發 {remaining} 分",
+                    f"剩 {remaining} 分自動發",
                     "notify-status-waiting",
                     f"待滿 {auto_min_minutes} 分鐘後才會被自動推播。",
                 )
@@ -22314,6 +22347,11 @@ if (document.readyState === "loading") {{
         def notification_entry(event: object, bucket: str) -> str:
             parsed = event_local_dt(event)
             status_label, status_class, status_hint = pending_status(event, bucket)
+            status_attrs = f'title="{h(status_hint)}"'
+            ready_at_utc = notify_mod.parse_event_datetime(getattr(event, "ready_at", ""))
+            if bucket == "pending" and ready_at_utc and is_waiting_event(event):
+                countdown_at = (ready_at_utc + timedelta(minutes=auto_min_minutes)).isoformat()
+                status_attrs += f' data-notify-countdown data-countdown-at="{h(countdown_at)}"'
             image_url = clean_text(getattr(event, "image_url", ""))
             image_html = (
                 f'<a class="notify-thumb" href="{h(image_url)}" target="_blank" rel="noopener">'
@@ -22330,7 +22368,7 @@ if (document.readyState === "loading") {{
     <div class="notify-entry-meta">
       <span class="notify-date-chip">{h(date_chip(parsed))}</span>
       <span class="notify-date-chip">{h(event_kind_label(event))}</span>
-      <span class="notify-status-chip {h(status_class)}" title="{h(status_hint)}">{h(status_label)}</span>
+      <span class="notify-status-chip {h(status_class)}" {status_attrs}>{h(status_label)}</span>
     </div>
     <h3>{h(getattr(event, 'title', ''))}</h3>
     <p class="notify-url"><a href="{h(getattr(event, 'url', ''))}" target="_blank" rel="noopener">{h(getattr(event, 'url', ''))}</a></p>
@@ -22378,18 +22416,21 @@ if (document.readyState === "loading") {{
                 )
             return "".join(pieces)
 
-        def notify_layout_toggle(section_id: str, current: str) -> str:
-            modes = (("list", "清單", "list"), ("card", "卡片", "card"), ("compact", "精簡", "compact"))
-            buttons = []
-            for mode, label, icon_name in modes:
-                active = " is-active" if mode == current else ""
-                buttons.append(
-                    f'<button type="button" class="layout-toggle-button{active}" '
-                    f'data-layout-target="{h(section_id)}" data-layout-mode="{h(mode)}" '
-                    f'aria-pressed="{str(mode == current).lower()}" title="{h(label)}">'
-                    f'{layout_icon(icon_name)}<span>{h(label)}</span></button>'
-                )
-            return f'<div class="layout-toggle" role="group" aria-label="顯示模式">{"".join(buttons)}</div>'
+        def filter_url(filter_name: str) -> str:
+            params: dict[str, str] = {}
+            if filter_name != "overview":
+                params["filter"] = filter_name
+            if layout != "list":
+                params["layout"] = layout
+            return "/notifications" + (f"?{urlencode(params)}" if params else "")
+
+        def stat_card(filter_name: str, count: int, label: str, hint: str = "") -> str:
+            active = " is-active" if active_filter == filter_name else ""
+            title_attr = f' title="{h(hint)}"' if hint else ""
+            return (
+                f'<a class="notify-stat{active}" href="{h(filter_url(filter_name))}"{title_attr}>'
+                f"<strong>{count}</strong><span class=\"muted\">{h(label)}</span></a>"
+            )
 
         def reaction_summary(event_key: str) -> str:
             entry = reactions.get(event_key)
@@ -22414,9 +22455,6 @@ if (document.readyState === "loading") {{
                 if bits:
                     parts.append(f"{channel_label}：{'，'.join(bits)}")
             return "；".join(parts)
-
-        pending_html = render_event_groups(fresh_pending, "pending", "目前沒有新的待發內容。")
-        legacy_html = render_event_groups(legacy_pending, "legacy", "目前沒有舊未發內容。")
 
         def history_status(action: str) -> tuple[str, str]:
             if action == "sent-partial":
@@ -22503,9 +22541,117 @@ if (document.readyState === "loading") {{
                 )
             return "".join(pieces)
 
-        history_html = render_history_groups(history)
-        waiting_count = sum(1 for event in fresh_pending if (pending_age(event) or 0) < auto_min_minutes)
-        ready_count = len(fresh_pending) - waiting_count
+        waiting_count = len(waiting_pending)
+        ready_count = len(ready_pending)
+        legacy_recent = recent_subset(legacy_pending, event_local_dt)
+        history_recent = recent_subset(history, record_local_dt)
+
+        def count_label(display_count: int, total_count: int) -> str:
+            if display_count == total_count:
+                return f"{total_count} 筆"
+            return f"{display_count} / {total_count} 筆"
+
+        def section_details(
+            title: str,
+            display_count: int,
+            total_count: int,
+            note: str,
+            content_html: str,
+            *,
+            open_section: bool = True,
+        ) -> str:
+            open_attr = " open" if open_section else ""
+            note_html = f'<p class="notify-section-note">{h(note)}</p>' if note else ""
+            section_id = f"notify-section-{period_key_from_label(title)}"
+            return f"""
+      <details class="reader-period-details notify-period-details" id="{h(section_id)}"{open_attr}>
+        <summary class="reader-period-heading">
+          <span class="reader-period-heading-label">{h(title)}</span>
+          <span class="reader-period-count">{h(count_label(display_count, total_count))}</span>
+        </summary>
+        {note_html}
+        {content_html}
+      </details>
+"""
+
+        pending_title = "待發區"
+        pending_note = f"新產出的內容先放這裡；未滿 {auto_min_minutes} 分鐘會顯示倒數，待滿後整批推播會自動處理，也可以逐筆立即送出。"
+        pending_records = fresh_pending
+        pending_total = len(fresh_pending)
+        pending_empty = "目前沒有新的待發內容。"
+        if active_filter == "ready":
+            pending_title = "可自動發"
+            pending_note = "已待滿緩衝時間，背景排程會在下一次巡檢送出；也可以逐筆立即送出。"
+            pending_records = ready_pending
+            pending_total = ready_count
+            pending_empty = "目前沒有可自動發的內容。"
+        elif active_filter == "waiting":
+            pending_title = f"等待 {auto_min_minutes} 分鐘"
+            pending_note = "這些內容尚未待滿緩衝時間；倒數到 0 後會進入可自動發。"
+            pending_records = waiting_pending
+            pending_total = waiting_count
+            pending_empty = "目前沒有正在等待倒數的內容。"
+
+        sections: list[str] = []
+        if active_filter in {"pending", "ready", "waiting"} or (active_filter == "overview" and fresh_pending):
+            pending_html = render_event_groups(pending_records, "pending", pending_empty)
+            sections.append(
+                section_details(
+                    pending_title,
+                    len(pending_records),
+                    pending_total,
+                    pending_note,
+                    pending_html,
+                    open_section=True,
+                )
+            )
+        if active_filter in {"overview", "legacy"}:
+            legacy_html = render_event_groups(legacy_recent, "legacy", "目前沒有舊未發內容。")
+            sections.append(
+                section_details(
+                    f"舊未發（最近 {recent_days} 天）",
+                    len(legacy_recent),
+                    len(legacy_pending),
+                    f"這些是起算前、超過自動送出窗口或缺少時間標記的舊內容；先顯示最近 {recent_days} 天，避免 backlog 一次攤開。",
+                    legacy_html,
+                    open_section=active_filter == "legacy" or (active_filter == "overview" and not fresh_pending),
+                )
+            )
+        if active_filter in {"overview", "sent"}:
+            history_html = render_history_groups(history_recent)
+            sections.append(
+                section_details(
+                    f"已推播紀錄（最近 {recent_days} 天）",
+                    len(history_recent),
+                    len(history),
+                    f"顯示最近 {recent_days} 天的發送紀錄；表情與回覆要按右側「收集表情與回覆」才會更新。",
+                    history_html,
+                    open_section=True,
+                )
+            )
+        filter_note = ""
+        if active_filter != "overview":
+            filter_labels = {
+                "pending": "待發區",
+                "ready": "可自動發",
+                "waiting": f"等待 {auto_min_minutes} 分鐘",
+                "legacy": "舊未發",
+                "sent": "已發紀錄",
+            }
+            filter_note = (
+                f'<p class="notify-section-note">目前篩選：{h(filter_labels.get(active_filter, active_filter))}。'
+                f'<a href="/notifications">看全部</a></p>'
+            )
+        notification_sections_html = "".join(sections)
+        stats_html = "".join(
+            [
+                stat_card("pending", len(fresh_pending), "待發區", "所有起算後、尚未送出的新內容"),
+                stat_card("ready", ready_count, "可自動發", "已待滿 15 分鐘，背景排程可送出"),
+                stat_card("waiting", waiting_count, f"等待 {auto_min_minutes} 分鐘", "尚在緩衝倒數中的內容"),
+                stat_card("legacy", len(legacy_pending), "舊未發", "起算前或超過自動窗口的舊內容"),
+                stat_card("sent", len(history), "已發紀錄", "已送出或已標記的推播紀錄"),
+            ]
+        )
 
         def secret_field(key: str, label: str, hint: str = "") -> str:
             current = clean_text(env.get(key))
@@ -22555,38 +22701,11 @@ if (document.readyState === "loading") {{
   <section class="workspace-main">
     <h1>推播通知</h1>
     <p class="muted">完成專文（狀態「已發布」）與「有中文翻譯＋AI 推薦」的文章會進入通知隊列。自動推播起算於 {h(auto_start_label)}；之後產出的新內容先在待發區停留 {auto_min_minutes} 分鐘。整批推播只處理待滿時間且不超過 {auto_max_days} 天的內容，起算前內容歸在舊未發保留手動處理。送出後會記錄在 .cache/notified-events.jsonl，表情與回覆要按右側「收集表情與回覆」才會更新。</p>
-    <div class="notify-summary-grid">
-      <div class="notify-stat"><strong>{len(fresh_pending)}</strong><span class="muted">待發區</span></div>
-      <div class="notify-stat"><strong>{ready_count}</strong><span class="muted">可自動發</span></div>
-      <div class="notify-stat"><strong>{waiting_count}</strong><span class="muted">等待 {auto_min_minutes} 分鐘</span></div>
-      <div class="notify-stat"><strong>{len(legacy_pending)}</strong><span class="muted">舊未發</span></div>
-      <div class="notify-stat"><strong>{len(history)}</strong><span class="muted">已發紀錄</span></div>
-    </div>
-    {notify_layout_toggle("notify-events", layout)}
+    <div class="notify-summary-grid">{stats_html}</div>
+    {filter_note}
+    {layout_toggle("notify-events", layout)}
     <section class="notify-layout" id="notify-events" data-layout="{h(layout)}" data-layout-persist>
-      <details class="reader-period-details notify-period-details" open>
-        <summary class="reader-period-heading">
-          <span class="reader-period-heading-label">待發區</span>
-          <span class="reader-period-count">{len(fresh_pending)} 筆</span>
-        </summary>
-        <p class="notify-section-note">新產出的內容先放這裡；未滿 {auto_min_minutes} 分鐘會顯示倒數，待滿後整批推播會自動處理，也可以逐筆立即送出。</p>
-        {pending_html}
-      </details>
-      <details class="reader-period-details notify-period-details">
-        <summary class="reader-period-heading">
-          <span class="reader-period-heading-label">舊未發</span>
-          <span class="reader-period-count">{len(legacy_pending)} 筆</span>
-        </summary>
-        <p class="notify-section-note">這些是超過自動送出窗口或缺少時間標記的舊內容；保留在這裡供手動送出或之後整批標記。</p>
-        {legacy_html}
-      </details>
-      <details class="reader-period-details notify-period-details" open>
-        <summary class="reader-period-heading">
-          <span class="reader-period-heading-label">已推播紀錄</span>
-          <span class="reader-period-count">{len(history)} 筆</span>
-        </summary>
-        {history_html}
-      </details>
+      {notification_sections_html}
     </section>
   </section>
   <aside class="workspace-sidebar" id="notify-sidebar">
@@ -22649,6 +22768,33 @@ if (document.readyState === "loading") {{
     "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
     "X-Requested-With": "local-web-fetch"
   };
+  const formatCountdown = (ms) => {
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  };
+  const updateNotifyCountdowns = () => {
+    document.querySelectorAll("[data-notify-countdown]").forEach((node) => {
+      const target = new Date(node.dataset.countdownAt || "").getTime();
+      if (!Number.isFinite(target)) return;
+      const remaining = target - Date.now();
+      if (remaining <= 0) {
+        node.textContent = "可自動發";
+        node.classList.remove("notify-status-waiting");
+        node.classList.add("notify-status-ready");
+        node.removeAttribute("data-notify-countdown");
+        node.title = "背景推播指令會處理；也可以手動立即送。";
+        return;
+      }
+      node.textContent = `剩 ${formatCountdown(remaining)} 自動發`;
+      node.title = "待滿緩衝時間後才會被自動推播；背景排程最慢下一次巡檢送出。";
+    });
+  };
+  updateNotifyCountdowns();
+  window.setInterval(updateNotifyCountdowns, 1000);
 
   document.querySelectorAll("form[data-notify-run-form]").forEach((form) => {
     form.addEventListener("submit", async (event) => {
