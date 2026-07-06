@@ -32,6 +32,7 @@ from zoneinfo import ZoneInfo
 
 from editorial_triage import build_editorial_context, evaluate_editorial_triage
 from fetch_rss import evaluate_triage
+import fulltext_store
 from page_metadata import (
     attrs_from_tag,
     complete_item_metadata,
@@ -777,7 +778,14 @@ def host_label(url: str) -> str:
     return host or url
 
 
-def source_add_href(feed_url: str, track: str, name: str = "", site_url: str = "") -> str:
+def source_add_href(
+    feed_url: str,
+    track: str,
+    name: str = "",
+    site_url: str = "",
+    served_via: str = "",
+    bridge: str = "",
+) -> str:
     params = {
         "track": track if track in TRACK_META else "digital-humanities-local-knowledge",
         "source_type": "rss",
@@ -786,6 +794,10 @@ def source_add_href(feed_url: str, track: str, name: str = "", site_url: str = "
         "site_url": site_url,
         "name": name or host_label(feed_url),
     }
+    if served_via:
+        params["served_via"] = served_via
+    if bridge:
+        params["bridge"] = bridge.lstrip("/")
     return "/sources/new?" + urlencode(params)
 
 
@@ -1349,6 +1361,10 @@ def write_status_json(path: Path, record: dict) -> None:
 
 def write_jsonl(path: Path, records: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path in (ITEMS, REJECTED_ITEMS) and fulltext_store.sidecar_enabled():
+        # 全文側檔：帶著 inline 重欄位的 record（剛翻譯/enrich/或被 hydrate 過）
+        # 在這裡統一抽回 database/fulltext/，主檔只留瘦身欄位，呼叫端零改動。
+        fulltext_store.dehydrate_items(records)
     text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
     with DB_WRITE_LOCK:  # 避免並發寫入交錯把檔案寫壞
         path.write_text(text, encoding="utf-8")
@@ -1357,6 +1373,8 @@ def write_jsonl(path: Path, records: list[dict]) -> None:
 
 def append_jsonl(path: Path, record: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path in (ITEMS, REJECTED_ITEMS) and fulltext_store.sidecar_enabled():
+        fulltext_store.dehydrate_item(record)  # 全文側檔：與 write_jsonl 同一約定
     with DB_WRITE_LOCK:  # 避免並發 append 與整檔覆寫交錯
         needs_newline = path.exists() and path.stat().st_size > 0
         if needs_newline:
@@ -4257,10 +4275,20 @@ def item_tag_text_haystack(item: dict) -> str:
     return "\n".join(clean_text(part, 3000) for part in parts if part).casefold()
 
 
+def item_fulltext_search_text(item: dict, limit: int = 50000) -> str:
+    metadata = item_reading_metadata(item)
+    parts = []
+    for key, value in metadata.items():
+        if fulltext_store.is_heavy_key(str(key)) and value:
+            parts.append(value)
+    return "\n".join(clean_text(part, limit) for part in parts if part)
+
+
 def item_workflow_search_haystack(item: dict) -> str:
     metadata = item_reading_metadata(item)
     triage = item.get("triage") if isinstance(item.get("triage"), dict) else {}
     editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
+    fulltext_search = item_fulltext_search_text(item)
     model_parts: list[object] = []
     for provider, review in record_model_reviews(item):
         model_parts.extend([
@@ -4302,7 +4330,10 @@ def item_workflow_search_haystack(item: dict) -> str:
         editorial.get("content_kind_label"),
         *model_parts,
     ]
-    return "\n".join(clean_text(part, 1000) for part in parts if part).casefold()
+    haystack = "\n".join(clean_text(part, 1000) for part in parts if part)
+    if fulltext_search:
+        haystack = f"{haystack}\n{fulltext_search}" if haystack else fulltext_search
+    return haystack.casefold()
 
 
 def item_matches_text_filter(item: dict, query: object) -> bool:
@@ -5090,6 +5121,9 @@ def item_codex_review(item: dict) -> dict:
 
 
 def item_reading_metadata(item: dict) -> dict:
+    # 全文側檔透明水合：重欄位拆到 database/fulltext/ 之後，讀取端一律經過這裡，
+    # 有側檔就併回原位（inline 優先），呼叫端看到的形狀與拆分前完全相同。
+    fulltext_store.hydrate_item(item)
     metadata = item.get("reading_metadata")
     return metadata if isinstance(metadata, dict) else {}
 
@@ -12027,6 +12061,8 @@ class Handler(BaseHTTPRequestHandler):
                     "name": clean_text(unquote((query.get("name") or [""])[0])),
                     "feed_url": clean_text(unquote((query.get("feed_url") or [""])[0])),
                     "site_url": clean_text(unquote((query.get("site_url") or [""])[0])),
+                    "served_via": clean_text(unquote((query.get("served_via") or [""])[0])),
+                    "bridge": clean_text(unquote((query.get("bridge") or [""])[0])),
                 }
             )
         elif parsed.path == "/sources/edit":
@@ -12035,6 +12071,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(load_json(RSS_FETCH_STATUS))
         elif parsed.path == "/api/rsshub-detect":
             target = clean_text((query.get("url") or [""])[0])
+            track = clean_text((query.get("track") or ["digital-humanities-local-knowledge"])[0])
+            if track not in TRACK_META:
+                track = "digital-humanities-local-knowledge"
             if not target.startswith(("http://", "https://")):
                 self.send_json({"ok": False, "error": "請提供 http(s) 網址", "candidates": []})
             elif not bridge_online():
@@ -12044,7 +12083,21 @@ class Handler(BaseHTTPRequestHandler):
                     "candidates": [],
                 })
             else:
-                self.send_json({"ok": True, "candidates": detect_rsshub_routes(target)})
+                candidates = detect_rsshub_routes(target)
+                for candidate in candidates:
+                    route = clean_text(candidate.get("route"))
+                    feed_url = clean_text(candidate.get("feed_url"))
+                    title = clean_text(candidate.get("title"), 160) or route or host_label(target)
+                    if feed_url:
+                        candidate["add_url"] = source_add_href(
+                            feed_url,
+                            track,
+                            title,
+                            target,
+                            served_via="rsshub@local",
+                            bridge=route,
+                        )
+                self.send_json({"ok": True, "candidates": candidates})
         elif parsed.path == "/api/triage-clusters":
             payload = load_json(TRIAGE_CLUSTERS)
             if not isinstance(payload, dict) or not payload.get("clusters"):
@@ -20690,7 +20743,11 @@ if (document.readyState === "loading") {{
     <div class="preview-status" data-preview-status>等待網址。</div>
     <div class="preview-result" data-preview-result></div>
   </div>
-  <button type="button" class="secondary" data-preview-button>{button_content("抓取頁面資訊", "preview", "M")}</button>
+  <div class="button-row">
+    <button type="button" class="secondary" data-preview-button>{button_content("抓取頁面資訊", "preview", "M")}</button>
+    <button type="button" class="secondary" id="item-rsshub-detect-button">{button_content("找 RSSHub 來源", "search", "")}</button>
+  </div>
+  <div id="item-rsshub-detect-result" class="preview-panel" hidden></div>
   <label>來源 / 網站 / 作者</label>
   <input name="source_name" placeholder="例如：報導者、Open Knowledge Foundation" data-preview-source-name>
   <p class="help">不知道作者時，先填網站或組織名稱。</p>
@@ -20709,6 +20766,64 @@ if (document.readyState === "loading") {{
   <button type="submit">把這頁存進待整理</button>
   <p class="help">送出後會寫進 database/items.jsonl，狀態是 inbox，還不會自動發布。</p>
 </form>
+<script>
+(() => {{
+  const button = document.getElementById("item-rsshub-detect-button");
+  const panel = document.getElementById("item-rsshub-detect-result");
+  if (!button || !panel) return;
+  const form = button.closest("form");
+  const input = (name) => form.querySelector(`[name="${{name}}"]`);
+  const renderCandidate = (candidate) => {{
+    const row = document.createElement("div");
+    row.className = "button-row";
+    row.style.marginBottom = "6px";
+    const link = document.createElement("a");
+    link.className = candidate.verified ? "button button-small" : "button secondary button-small";
+    link.href = candidate.add_url || "/sources/new";
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = candidate.verified ? "可用：開來源表單" : "未驗證：開來源表單";
+    row.appendChild(link);
+    const hint = document.createElement("span");
+    hint.className = "muted break-anywhere";
+    hint.textContent = (candidate.title || candidate.route || "") + " · " + (candidate.route || "");
+    row.appendChild(hint);
+    return row;
+  }};
+  button.addEventListener("click", async () => {{
+    const target = (input("url")?.value || "").trim();
+    const track = (input("track")?.value || "").trim();
+    panel.hidden = false;
+    if (!target) {{
+      panel.textContent = "請先貼網址。";
+      return;
+    }}
+    panel.textContent = "偵測中…";
+    button.disabled = true;
+    try {{
+      const query = new URLSearchParams({{url: target, track}});
+      const response = await fetch("/api/rsshub-detect?" + query.toString(), {{
+        headers: {{ "X-Requested-With": "local-web-fetch" }},
+      }});
+      const payload = await response.json();
+      if (!payload.ok) {{
+        panel.textContent = payload.error || "偵測失敗。";
+        return;
+      }}
+      if (!payload.candidates.length) {{
+        panel.textContent = "沒有找到對應 RSSHub route。";
+        return;
+      }}
+      panel.textContent = "";
+      payload.candidates.forEach((candidate) => panel.appendChild(renderCandidate(candidate)));
+    }} catch (error) {{
+      panel.textContent = "偵測失敗：" + error;
+    }} finally {{
+      button.disabled = false;
+    }}
+  }});
+}})();
+</script>
 """
         self.send_html("加入收藏", body)
 
@@ -21683,7 +21798,11 @@ if (document.readyState === "loading") {{
     panel.textContent = "偵測中…（比對 radar 規則並逐條試抓，最多十幾秒）";
     button.disabled = true;
     try {{
-      const response = await fetch("/api/rsshub-detect?url=" + encodeURIComponent(target), {{
+      const detectQuery = new URLSearchParams({{
+        url: target,
+        track: input("track")?.value || "",
+      }});
+      const response = await fetch("/api/rsshub-detect?" + detectQuery.toString(), {{
         headers: {{ "X-Requested-With": "local-web-fetch" }},
       }});
       const payload = await response.json();
@@ -21854,6 +21973,399 @@ if (document.readyState === "loading") {{
             self.send_json({"ok": bool(result.get("ok")), "message": message, "count": report["count"]})
             return
         self.redirect(f"/integrity?msg={quote(message)}")
+
+    # ------------------------------------------------------------------ #
+    # 推播通知（Slack / Telegram）
+    # ------------------------------------------------------------------ #
+    def show_notifications(self, query: dict[str, list[str]]) -> None:
+        import notify_ready_items as notify_mod
+
+        env = notify_mod.merged_env()
+        base_url = clean_text(env.get("ION_PUBLIC_BASE_URL")) or notify_mod.DEFAULT_READER_BASE_URL
+        events = notify_mod.collect_events(
+            load_jsonl(ARTICLES),
+            load_jsonl(ITEMS),
+            base_url,
+            set(notify_mod.DEFAULT_ITEM_STATUSES),
+        )
+        state_records = load_jsonl(NOTIFY_STATE)
+        notified_keys = {clean_text(r.get("event_key")) for r in state_records if clean_text(r.get("event_key"))}
+        pending = [event for event in events if event.event_key not in notified_keys]
+
+        latest_by_key: dict[str, dict] = {}
+        for record in state_records:
+            key = clean_text(record.get("event_key"))
+            if key:
+                latest_by_key[key] = record
+        history = sorted(latest_by_key.values(), key=lambda r: clean_text(r.get("sent_at")), reverse=True)[:200]
+        reactions = load_json(NOTIFY_REACTIONS).get("events", {})
+        if not isinstance(reactions, dict):
+            reactions = {}
+
+        slack_webhook_ready = bool(clean_text(env.get("ION_SLACK_WEBHOOK_URL")))
+        slack_bot_ready = bool(clean_text(env.get("ION_SLACK_BOT_TOKEN")) and clean_text(env.get("ION_SLACK_CHANNEL_ID")))
+        telegram_ready = bool(clean_text(env.get("ION_TELEGRAM_BOT_TOKEN")) and clean_text(env.get("ION_TELEGRAM_CHAT_ID")))
+        try:
+            active_channels = notify_mod.parse_channels([], env)
+        except SystemExit:
+            active_channels = []
+
+        kind_labels = {"article": "完成專文", "item": "推薦文章"}
+        action_labels = {"sent": "已推播", "marked-existing": "標記為已通知"}
+
+        def reaction_summary(event_key: str) -> str:
+            entry = reactions.get(event_key)
+            if not isinstance(entry, dict):
+                return ""
+            parts = []
+            for channel_key, channel_label in (("slack", "Slack"), ("telegram", "Telegram")):
+                channel_data = entry.get(channel_key)
+                if not isinstance(channel_data, dict):
+                    continue
+                bits = []
+                counts = channel_data.get("reaction_counts")
+                if isinstance(counts, dict) and counts:
+                    top = sorted(counts.items(), key=lambda kv: -int(kv[1] or 0))[:6]
+                    if channel_key == "slack":
+                        bits.append(" ".join(f":{name}:×{count}" for name, count in top))
+                    else:
+                        bits.append(" ".join(f"{name}×{count}" for name, count in top))
+                replies = channel_data.get("replies")
+                if isinstance(replies, list) and replies:
+                    bits.append(f"回覆 {len(replies)} 則")
+                if bits:
+                    parts.append(f"{channel_label}：{'，'.join(bits)}")
+            return "；".join(parts)
+
+        pending_cards = []
+        for event in pending:
+            pending_cards.append(
+                f"""
+<article class="card" data-notify-card>
+  <p class="muted">{h(kind_labels.get(event.kind, event.kind))}</p>
+  <strong>{h(event.title)}</strong>
+  <details>
+    <summary>預覽訊息內容</summary>
+    <pre style="white-space: pre-wrap;">{h(event.text)}</pre>
+  </details>
+  <p><a href="{h(event.url)}" target="_blank" rel="noopener">{h(event.url)}</a></p>
+  <form method="post" action="/notifications/resend" data-notify-run-form data-label="推播：{h(event.title)}">
+    <input type="hidden" name="kind" value="{h(event.kind)}">
+    <input type="hidden" name="id" value="{h(event.record_id)}">
+    <input type="hidden" name="mode" value="send">
+    <button type="submit">只送這則</button>
+    <span class="muted" data-notify-status></span>
+  </form>
+</article>
+"""
+            )
+        pending_html = "".join(pending_cards) or '<p class="muted">目前沒有待推播的新內容。</p>'
+
+        history_rows = []
+        for record in history:
+            sent_at = clean_text(record.get("sent_at")).replace("T", " ")[:16]
+            kind = clean_text(record.get("kind"))
+            action = clean_text(record.get("action"))
+            record_id = clean_text(record.get("record_id"))
+            url = clean_text(record.get("url"))
+            title = clean_text(record.get("title"), 120) or record_id
+            channels_label = "、".join(clean_text(c) for c in record.get("channels", []) if clean_text(c))
+            summary = reaction_summary(clean_text(record.get("event_key")))
+            title_html = f'<a href="{h(url)}" target="_blank" rel="noopener">{h(title)}</a>' if url else h(title)
+            resend_form = ""
+            if kind in {"article", "item"} and record_id:
+                resend_form = f"""
+    <form method="post" action="/notifications/resend" data-notify-run-form data-label="重送：{h(title)}">
+      <input type="hidden" name="kind" value="{h(kind)}">
+      <input type="hidden" name="id" value="{h(record_id)}">
+      <input type="hidden" name="mode" value="resend">
+      <button type="submit" class="quiet">重送</button>
+      <span class="muted" data-notify-status></span>
+    </form>"""
+            history_rows.append(
+                f"""
+  <tr>
+    <td class="muted" style="white-space: nowrap;">{h(sent_at)}</td>
+    <td>{h(kind_labels.get(kind, kind))}</td>
+    <td>{title_html}</td>
+    <td class="muted">{h(channels_label)}</td>
+    <td class="muted">{h(action_labels.get(action, action))}</td>
+    <td>{h(summary) or '<span class="muted">—</span>'}</td>
+    <td>{resend_form}</td>
+  </tr>"""
+            )
+        history_html = (
+            f"""
+<div style="overflow-x: auto;">
+<table>
+  <thead>
+    <tr><th>時間</th><th>類型</th><th>標題</th><th>頻道</th><th>狀態</th><th>表情與回覆</th><th></th></tr>
+  </thead>
+  <tbody>{''.join(history_rows)}</tbody>
+</table>
+</div>"""
+            if history_rows
+            else '<p class="muted">還沒有推播紀錄。第一次啟用時，建議先在右側按「全部標為已通知」，避免把既有內容一次灌進頻道。</p>'
+        )
+
+        def secret_field(key: str, label: str, hint: str = "") -> str:
+            current = clean_text(env.get(key))
+            if current:
+                tail = current[-4:] if len(current) > 8 else ""
+                placeholder = f"已設定（結尾 …{tail}）" if tail else "已設定"
+            else:
+                placeholder = "未設定"
+            hint_html = f'<p class="muted" style="margin: 2px 0 0;">{h(hint)}</p>' if hint else ""
+            return f"""
+      <div class="sidebar-field-group">
+        <label for="notify-{h(key)}">{h(label)}</label>
+        <input type="text" id="notify-{h(key)}" name="{h(key)}" value="" placeholder="{h(placeholder)}" autocomplete="off" data-secret-input>
+        {hint_html}
+      </div>"""
+
+        def status_dot(ready: bool, label: str, detail: str) -> str:
+            state = "已設定" if ready else "未設定"
+            return f'<p style="margin: 4px 0;"><strong>{h(label)}</strong>：{h(state)}<span class="muted">（{h(detail)}）</span></p>'
+
+        active_label = "、".join(active_channels) if active_channels else "無（沒設定任何頻道，推播會失敗）"
+
+        command_forms = []
+        for name in ("notify_dry_run", "notify_send", "notify_mark_existing", "notify_collect_reactions"):
+            config = COMMANDS.get(name) or {}
+            command_forms.append(
+                f"""
+    <section class="card">
+      <h3>{h(config.get('label', name))}</h3>
+      <p class="muted">{h(config.get('description', ''))}</p>
+      <form method="post" action="/commands/run" data-command-form>
+        <input type="hidden" name="command" value="{h(name)}">
+        <button type="submit">{h(config.get('button', '執行'))}</button>
+      </form>
+    </section>"""
+            )
+
+        body = f"""
+{back_nav_html(self.same_origin_referer_path("/"))}
+<div class="workspace-toolbar">
+  {workspace_sidebar_toggle("notify-workspace", "notify-sidebar", "notifications", "推播工具")}
+</div>
+<div class="workspace-layout" id="notify-workspace">
+  <section class="workspace-main">
+    <h1>推播通知</h1>
+    <p class="muted">完成專文（狀態「已發布」）與「有中文翻譯＋AI 推薦」的文章，會列進待推播清單；送出後記錄在 .cache/notified-events.jsonl，不會重複推播。表情與回覆要按右側「收集表情與回覆」才會更新。</p>
+    <h2>待推播（{len(pending)}）</h2>
+    <div class="list">{pending_html}</div>
+    <h2>已推播紀錄（{len(history)}）</h2>
+    {history_html}
+  </section>
+  <aside class="workspace-sidebar" id="notify-sidebar">
+    <section class="card workspace-sidebar-section">
+      <h3>頻道狀態</h3>
+      {status_dot(slack_webhook_ready, "Slack Webhook", "只能發訊息，追不到表情")}
+      {status_dot(slack_bot_ready, "Slack Bot Token", "可發訊息並收表情與回覆")}
+      {status_dot(telegram_ready, "Telegram Bot", "可發訊息並收表情與回覆")}
+      <p style="margin: 4px 0;"><strong>實際會送的頻道</strong>：{h(active_label)}</p>
+    </section>
+{''.join(command_forms)}
+    <section class="card workspace-sidebar-section">
+      <h3>頻道設定</h3>
+      <p class="muted">存到 .cache/notify-secrets.env（不進 git）。留空表示不變；填一個「-」表示清除。若 shell 已有同名環境變數，會以環境變數為準。</p>
+      <form method="post" action="/notifications/save-channels" data-notify-settings-form>
+{secret_field("ION_SLACK_WEBHOOK_URL", "Slack Incoming Webhook URL", "api.slack.com/apps → Incoming Webhooks")}
+{secret_field("ION_SLACK_BOT_TOKEN", "Slack Bot Token（xoxb-…）", "要收表情需 reactions:read、channels:history 權限")}
+{secret_field("ION_SLACK_CHANNEL_ID", "Slack 頻道 ID（C…）", "頻道詳細資料最下方可複製")}
+{secret_field("ION_TELEGRAM_BOT_TOKEN", "Telegram Bot Token", "跟 @BotFather 申請")}
+{secret_field("ION_TELEGRAM_CHAT_ID", "Telegram Chat ID", "群組通常是 -100 開頭")}
+{secret_field("ION_PUBLIC_BASE_URL", "公開閱讀版網址", "預設 https://technews.ospo.tw/reader")}
+{secret_field("ION_NOTIFY_CHANNELS", "限定頻道（選填）", "例如 slack,telegram；留空自動判斷")}
+        <div class="button-row">
+          <button type="submit">儲存頻道設定</button>
+          <span class="muted" data-notify-status></span>
+        </div>
+      </form>
+    </section>
+  </aside>
+</div>
+"""
+        page_js = """
+<script>
+(() => {
+  const commandWindow = document.getElementById("command-window");
+  const commandTitle = document.getElementById("command-title");
+  const commandStatus = document.getElementById("command-status");
+  const commandOutput = document.getElementById("command-output");
+  const commandLoading = document.getElementById("command-loading");
+  const showWindow = (label) => {
+    if (!commandWindow) return;
+    commandTitle.textContent = label || "推播通知";
+    commandStatus.textContent = "已送出，正在推播...";
+    commandOutput.hidden = true;
+    commandOutput.textContent = "";
+    commandLoading.hidden = false;
+    commandWindow.classList.add("is-visible");
+    commandWindow.setAttribute("aria-hidden", "false");
+  };
+  const finishWindow = (message, output) => {
+    if (!commandWindow) return;
+    commandStatus.textContent = message;
+    commandLoading.hidden = true;
+    commandOutput.hidden = !output;
+    commandOutput.textContent = output || "";
+  };
+  const fetchHeaders = {
+    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    "X-Requested-With": "local-web-fetch"
+  };
+
+  document.querySelectorAll("form[data-notify-run-form]").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      if (!window.fetch) return;
+      event.preventDefault();
+      const button = event.submitter || form.querySelector("button");
+      const statusEl = form.querySelector("[data-notify-status]");
+      if (button) button.disabled = true;
+      if (statusEl) statusEl.textContent = "送出中…";
+      showWindow(form.dataset.label);
+      const data = new URLSearchParams(new FormData(form));
+      data.set("format", "json");
+      let ok = false;
+      try {
+        const response = await fetch(form.action, {method: "POST", headers: fetchHeaders, body: data});
+        const payload = await response.json();
+        ok = response.ok && payload && payload.ok !== false;
+        finishWindow(ok ? "完成。" : "推播失敗。", (payload && payload.output) || (payload && payload.error) || "");
+        if (statusEl) statusEl.textContent = ok ? "已送出" : "失敗，詳見右下角視窗";
+      } catch (error) {
+        finishWindow("推播失敗。", String(error));
+        if (statusEl) statusEl.textContent = "失敗，詳見右下角視窗";
+      }
+      if (ok) {
+        const card = form.closest("[data-notify-card]");
+        if (card) card.style.opacity = "0.55";
+        if (button) button.textContent = "已送出";
+      } else if (button) {
+        button.disabled = false;
+      }
+    });
+  });
+
+  const settingsForm = document.querySelector("form[data-notify-settings-form]");
+  if (settingsForm) {
+    settingsForm.addEventListener("submit", async (event) => {
+      if (!window.fetch) return;
+      event.preventDefault();
+      const button = settingsForm.querySelector("button[type=submit]");
+      const statusEl = settingsForm.querySelector("[data-notify-status]");
+      if (button) button.disabled = true;
+      if (statusEl) statusEl.textContent = "儲存中…";
+      const data = new URLSearchParams(new FormData(settingsForm));
+      data.set("format", "json");
+      try {
+        const response = await fetch(settingsForm.action, {method: "POST", headers: fetchHeaders, body: data});
+        const payload = await response.json();
+        if (!response.ok || (payload && payload.ok === false)) {
+          throw new Error((payload && payload.error) || ("HTTP " + response.status));
+        }
+        if (statusEl) statusEl.textContent = (payload && payload.message) || "已儲存";
+        settingsForm.querySelectorAll("input[data-secret-input]").forEach((input) => {
+          const value = input.value.trim();
+          if (value === "-") input.placeholder = "未設定";
+          else if (value) input.placeholder = "已設定";
+          input.value = "";
+        });
+      } catch (error) {
+        if (statusEl) statusEl.textContent = String(error);
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+  }
+})();
+</script>
+"""
+        self.send_html("推播通知", body + page_js)
+
+    def resend_notification(self, data: dict[str, list[str]]) -> None:
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
+        kind = clean_text(form_value(data, "kind"))
+        record_id = clean_text(form_value(data, "id"))
+        mode = clean_text(form_value(data, "mode")) or "send"
+        if kind not in {"article", "item"} or not re.fullmatch(r"[A-Za-z0-9_-]+", record_id or ""):
+            if wants_json:
+                self.send_json({"ok": False, "error": "參數不正確。"}, HTTPStatus.BAD_REQUEST)
+                return
+            self.send_html("推播失敗", "<h1>推播失敗</h1><p>參數不正確。</p>", HTTPStatus.BAD_REQUEST)
+            return
+        command = [
+            sys.executable,
+            str(ROOT / "scripts" / "notify_ready_items.py"),
+            "--kind",
+            "articles" if kind == "article" else "items",
+            "--id",
+            record_id,
+        ]
+        if mode == "resend":
+            command.append("--force")
+        write_json(
+            COMMAND_STATUS,
+            {
+                "command": "notify_resend",
+                "state": "running",
+                "message": f"正在推播：{record_id}",
+                "started_at": now_iso(),
+            },
+        )
+        try:
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=120)
+        except subprocess.TimeoutExpired as exc:
+            result = subprocess.CompletedProcess(
+                command,
+                124,
+                stdout=clean_text(exc.stdout or ""),
+                stderr=(clean_text(exc.stderr or "") + "\n指令逾時。").strip(),
+            )
+        output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
+        ok = result.returncode == 0
+        if ok and "sent=0" in output:
+            output = (output.strip() + "\n（沒有推播任何訊息：可能已送過、內容條件不符，或這筆不在待推播清單。要重送請用「重送」。）").strip()
+        write_json(
+            COMMAND_STATUS,
+            {
+                "command": "notify_resend",
+                "state": "done" if ok else "failed",
+                "message": "完成" if ok else "推播失敗",
+                "returncode": result.returncode,
+                "finished_at": now_iso(),
+            },
+        )
+        if wants_json:
+            self.send_json({"ok": ok, "returncode": result.returncode, "output": output})
+            return
+        self.redirect("/notifications")
+
+    def save_notify_channels(self, data: dict[str, list[str]]) -> None:
+        import notify_ready_items as notify_mod
+
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
+        stored = notify_mod.load_env_file()
+        changed: list[str] = []
+        for key in notify_mod.CHANNEL_ENV_KEYS:
+            value = form_value(data, key).strip()
+            if not value:
+                continue
+            if value == "-":
+                if key in stored:
+                    stored.pop(key)
+                    changed.append(key)
+            elif stored.get(key) != value:
+                stored[key] = value
+                changed.append(key)
+        notify_mod.save_env_file(stored)
+        message = ("已更新：" + "、".join(changed)) if changed else "沒有變更。"
+        if wants_json:
+            self.send_json({"ok": True, "message": message})
+            return
+        self.redirect("/notifications")
 
     def run_command(self, data: dict[str, list[str]]) -> None:
         command_name = form_value(data, "command")

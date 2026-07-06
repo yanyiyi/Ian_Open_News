@@ -13,12 +13,24 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import fulltext_store
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ITEMS = ROOT / "database" / "items.jsonl"
 DEFAULT_ARTICLES = ROOT / "database" / "articles.jsonl"
 DEFAULT_STATE = ROOT / ".cache" / "notified-events.jsonl"
+DEFAULT_ENV_FILE = ROOT / ".cache" / "notify-secrets.env"
 DEFAULT_READER_BASE_URL = "https://technews.ospo.tw/reader"
+
+CHANNEL_ENV_KEYS = (
+    "ION_SLACK_WEBHOOK_URL",
+    "ION_SLACK_BOT_TOKEN",
+    "ION_SLACK_CHANNEL_ID",
+    "ION_TELEGRAM_BOT_TOKEN",
+    "ION_TELEGRAM_CHAT_ID",
+    "ION_PUBLIC_BASE_URL",
+    "ION_NOTIFY_CHANNELS",
+)
 
 DEFAULT_ITEM_STATUSES = {
     "triaged",
@@ -100,6 +112,36 @@ def append_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
             fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
 
 
+def load_env_file(path: Path = DEFAULT_ENV_FILE) -> dict[str, str]:
+    """KEY=VALUE 格式的本機密鑰檔（.cache 內、不進 git）；LaunchAgent 啟動時拿不到 shell 環境變數，用這個補。"""
+    if not path.exists():
+        return {}
+    values: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip("'\"")
+        if key:
+            values[key] = value
+    return values
+
+
+def save_env_file(values: dict[str, str], path: Path = DEFAULT_ENV_FILE) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [f"{key}={value}" for key, value in sorted(values.items()) if clean_text(value)]
+    path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+    path.chmod(0o600)
+
+
+def merged_env(path: Path = DEFAULT_ENV_FILE) -> dict[str, str]:
+    env = load_env_file(path)
+    env.update(os.environ)
+    return env
+
+
 def safe_id(value: object, fallback: str) -> str:
     cleaned = re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(value) or fallback).strip("-")
     return cleaned or fallback
@@ -139,6 +181,7 @@ def first_markdown_paragraph(markdown: object, limit: int = 280) -> str:
 
 
 def reading_metadata(record: dict[str, Any]) -> dict[str, Any]:
+    fulltext_store.hydrate_item(record)
     metadata = record.get("reading_metadata")
     return metadata if isinstance(metadata, dict) else {}
 
@@ -343,22 +386,30 @@ def load_notified_keys(path: Path) -> set[str]:
     return {clean_text(row.get("event_key")) for row in load_jsonl(path) if clean_text(row.get("event_key"))}
 
 
-def event_state_records(events: list[NotificationEvent], channels: list[str], action: str) -> list[dict[str, Any]]:
+def event_state_record(
+    event: NotificationEvent,
+    channels: list[str],
+    action: str,
+    deliveries: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    channel_list = channels or ["none"]
-    return [
-        {
-            "action": action,
-            "channels": channel_list,
-            "event_key": event.event_key,
-            "kind": event.kind,
-            "record_id": event.record_id,
-            "sent_at": now,
-            "title": event.title,
-            "url": event.url,
-        }
-        for event in events
-    ]
+    record: dict[str, Any] = {
+        "action": action,
+        "channels": channels or ["none"],
+        "event_key": event.event_key,
+        "kind": event.kind,
+        "record_id": event.record_id,
+        "sent_at": now,
+        "title": event.title,
+        "url": event.url,
+    }
+    if deliveries:
+        record["deliveries"] = deliveries
+    return record
+
+
+def event_state_records(events: list[NotificationEvent], channels: list[str], action: str) -> list[dict[str, Any]]:
+    return [event_state_record(event, channels, action) for event in events]
 
 
 def parse_channels(values: list[str], env: dict[str, str]) -> list[str]:
@@ -372,7 +423,7 @@ def parse_channels(values: list[str], env: dict[str, str]) -> list[str]:
             if channel:
                 channels.append(channel)
     if not channels:
-        if env.get("ION_SLACK_WEBHOOK_URL"):
+        if env.get("ION_SLACK_WEBHOOK_URL") or (env.get("ION_SLACK_BOT_TOKEN") and env.get("ION_SLACK_CHANNEL_ID")):
             channels.append("slack")
         if env.get("ION_TELEGRAM_BOT_TOKEN") and env.get("ION_TELEGRAM_CHAT_ID"):
             channels.append("telegram")
@@ -382,11 +433,14 @@ def parse_channels(values: list[str], env: dict[str, str]) -> list[str]:
     return list(dict.fromkeys(channels))
 
 
-def post_json(url: str, payload: dict[str, Any], timeout: int) -> bytes:
+def post_json(url: str, payload: dict[str, Any], timeout: int, headers: dict[str, str] | None = None) -> bytes:
+    request_headers = {"Content-Type": "application/json"}
+    if headers:
+        request_headers.update(headers)
     request = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers=request_headers,
         method="POST",
     )
     try:
@@ -399,20 +453,58 @@ def post_json(url: str, payload: dict[str, Any], timeout: int) -> bytes:
         raise RuntimeError(str(exc)) from exc
 
 
-def send_slack(event: NotificationEvent, env: dict[str, str], timeout: int) -> None:
+def parse_slack_post_message(body: bytes) -> dict[str, Any]:
+    payload = json.loads(body.decode("utf-8"))
+    if not payload.get("ok"):
+        raise RuntimeError(f"Slack chat.postMessage failed: {payload.get('error', 'unknown error')}")
+    return {
+        "channel": "slack",
+        "method": "bot",
+        "slack_channel": clean_text(payload.get("channel")),
+        "ts": clean_text(payload.get("ts")),
+    }
+
+
+def parse_telegram_send_message(body: bytes, chat_id: str) -> dict[str, Any]:
+    payload = json.loads(body.decode("utf-8"))
+    if not payload.get("ok"):
+        raise RuntimeError(f"Telegram sendMessage failed: {payload.get('description', 'unknown error')}")
+    result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
+    chat = result.get("chat") if isinstance(result.get("chat"), dict) else {}
+    return {
+        "channel": "telegram",
+        "chat_id": clean_text(chat.get("id")) or chat_id,
+        "message_id": result.get("message_id"),
+    }
+
+
+def send_slack(event: NotificationEvent, env: dict[str, str], timeout: int) -> dict[str, Any]:
+    token = clean_text(env.get("ION_SLACK_BOT_TOKEN"))
+    channel_id = clean_text(env.get("ION_SLACK_CHANNEL_ID"))
+    if token and channel_id:
+        body = post_json(
+            "https://slack.com/api/chat.postMessage",
+            {"channel": channel_id, "text": event.text},
+            timeout,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        return parse_slack_post_message(body)
     webhook = clean_text(env.get("ION_SLACK_WEBHOOK_URL"))
     if not webhook:
-        raise RuntimeError("ION_SLACK_WEBHOOK_URL is not set")
+        raise RuntimeError(
+            "Set ION_SLACK_WEBHOOK_URL, or ION_SLACK_BOT_TOKEN plus ION_SLACK_CHANNEL_ID for reaction tracking"
+        )
     post_json(webhook, {"text": event.text}, timeout)
+    return {"channel": "slack", "method": "webhook"}
 
 
-def send_telegram(event: NotificationEvent, env: dict[str, str], timeout: int) -> None:
+def send_telegram(event: NotificationEvent, env: dict[str, str], timeout: int) -> dict[str, Any]:
     token = clean_text(env.get("ION_TELEGRAM_BOT_TOKEN"))
     chat_id = clean_text(env.get("ION_TELEGRAM_CHAT_ID"))
     if not token or not chat_id:
         raise RuntimeError("ION_TELEGRAM_BOT_TOKEN and ION_TELEGRAM_CHAT_ID must both be set")
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    post_json(
+    body = post_json(
         url,
         {
             "chat_id": chat_id,
@@ -421,14 +513,17 @@ def send_telegram(event: NotificationEvent, env: dict[str, str], timeout: int) -
         },
         timeout,
     )
+    return parse_telegram_send_message(body, chat_id)
 
 
-def send_event(event: NotificationEvent, channels: list[str], env: dict[str, str], timeout: int) -> None:
+def send_event(event: NotificationEvent, channels: list[str], env: dict[str, str], timeout: int) -> list[dict[str, Any]]:
+    deliveries: list[dict[str, Any]] = []
     for channel in channels:
         if channel == "slack":
-            send_slack(event, env, timeout)
+            deliveries.append(send_slack(event, env, timeout))
         elif channel == "telegram":
-            send_telegram(event, env, timeout)
+            deliveries.append(send_telegram(event, env, timeout))
+    return deliveries
 
 
 def print_event_preview(event: NotificationEvent) -> None:
@@ -442,7 +537,7 @@ def main() -> None:
     parser.add_argument("--items", type=Path, default=DEFAULT_ITEMS)
     parser.add_argument("--articles", type=Path, default=DEFAULT_ARTICLES)
     parser.add_argument("--state", type=Path, default=DEFAULT_STATE)
-    parser.add_argument("--base-url", default=os.environ.get("ION_PUBLIC_BASE_URL", DEFAULT_READER_BASE_URL))
+    parser.add_argument("--base-url", default=merged_env().get("ION_PUBLIC_BASE_URL") or DEFAULT_READER_BASE_URL)
     parser.add_argument("--kind", choices=["all", "articles", "items"], default="all")
     parser.add_argument("--status", action="append", default=[], help="Allowed item status. Can be repeated.")
     parser.add_argument("--id", action="append", default=[], help="Only consider a specific article or item id. Can be repeated.")
@@ -455,7 +550,7 @@ def main() -> None:
     parser.add_argument("--timeout", type=int, default=10)
     args = parser.parse_args()
 
-    env = dict(os.environ)
+    env = merged_env()
     channels = parse_channels(args.channel, env)
     allowed_statuses = set(args.status or DEFAULT_ITEM_STATUSES)
     selected_ids = {clean_text(value) for value in args.id if clean_text(value)}
@@ -490,16 +585,16 @@ def main() -> None:
             "or ION_TELEGRAM_BOT_TOKEN plus ION_TELEGRAM_CHAT_ID, or run --dry-run."
         )
 
-    sent: list[NotificationEvent] = []
+    sent = 0
     for event in pending:
         try:
-            send_event(event, channels, env, args.timeout)
+            deliveries = send_event(event, channels, env, args.timeout)
         except RuntimeError as exc:
             print(f"failed: {event.event_key}: {exc}", file=sys.stderr)
             raise SystemExit(1) from exc
-        sent.append(event)
-    append_jsonl(args.state, event_state_records(sent, channels, "sent"))
-    print(f"eligible={len(events)} sent={len(sent)} channels={','.join(channels) or 'none'} state={args.state}")
+        append_jsonl(args.state, [event_state_record(event, channels, "sent", deliveries)])
+        sent += 1
+    print(f"eligible={len(events)} sent={sent} channels={','.join(channels) or 'none'} state={args.state}")
 
 
 if __name__ == "__main__":

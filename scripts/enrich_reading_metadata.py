@@ -7,6 +7,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import fulltext_store
 from page_metadata import complete_item_metadata, enrich_item_metadata
 
 
@@ -192,6 +193,7 @@ def main() -> None:
             continue
         if args.reader_only and not is_reader_item(item):
             continue
+        fulltext_store.hydrate_item(item)  # 全文側檔併回，讓 missing/enrich 判斷看到完整欄位
         if args.only_missing_image and has_image(item):
             continue
         if args.only_missing_reader_data and not missing_reader_fields(item):
@@ -260,6 +262,8 @@ def main() -> None:
         items[item_index] = updated
 
     if not args.dry_run:
+        if fulltext_store.sidecar_enabled():
+            fulltext_store.dehydrate_items(items)  # 正式啟用側檔後，重欄位抽回側檔
         write_jsonl(args.items, items)
     skipped = max(0, len(candidates) - checked)
     write_status(

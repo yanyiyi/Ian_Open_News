@@ -4,6 +4,7 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -200,6 +201,35 @@ class ManualItemAutofillTest(unittest.TestCase):
         self.assertEqual(candidates[0]["display_title"], "開源政策如何成形")
         self.assertEqual(candidates[0]["original_title"], "How open source policy moves")
         self.assertIn("nl-cand-original", local_web.newsletter_link_title_html(candidates[0]))
+
+    def test_source_add_href_prefills_rsshub_bridge_fields(self) -> None:
+        href = local_web.source_add_href(
+            "http://127.0.0.1:1200/ptt/bbs/Tech_Job",
+            "open-tech-open-industry",
+            "PTT Tech Job",
+            "https://www.ptt.cc/bbs/Tech_Job/index.html",
+            served_via="rsshub@local",
+            bridge="ptt/bbs/Tech_Job",
+        )
+        query = parse_qs(urlparse(href).query)
+
+        self.assertEqual(query["feed_url"], ["http://127.0.0.1:1200/ptt/bbs/Tech_Job"])
+        self.assertEqual(query["site_url"], ["https://www.ptt.cc/bbs/Tech_Job/index.html"])
+        self.assertEqual(query["served_via"], ["rsshub@local"])
+        self.assertEqual(query["bridge"], ["ptt/bbs/Tech_Job"])
+
+    def test_workflow_search_haystack_includes_fulltext_fields(self) -> None:
+        item = {
+            "id": "item-fulltext",
+            "title": "普通標題",
+            "reading_metadata": {
+                "codex_translated_article_markdown_zh": "# 中文全文\n\n這裡提到罕見詞彙：浮動資料信託。",
+                "edited_markdown": "# 編輯版\n\n另一個罕見詞彙：自治資料庫。",
+            },
+        }
+
+        self.assertTrue(local_web.item_matches_text_filter(item, "浮動資料信託"))
+        self.assertTrue(local_web.item_matches_text_filter(item, "自治資料庫"))
 
 
 if __name__ == "__main__":

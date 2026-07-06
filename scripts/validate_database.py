@@ -5,6 +5,8 @@ import json
 import sys
 from pathlib import Path
 
+import fulltext_store
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DATABASE = ROOT / "database"
@@ -44,6 +46,52 @@ def validate_unique(records: list[dict], path: Path) -> None:
         if record_id in seen:
             raise ValueError(f"{path}:{record['_line']}: duplicate id {record_id}; first seen on line {seen[record_id]}")
         seen[record_id] = record["_line"]
+
+
+def validate_fulltext_sidecars(
+    items: list[dict],
+    rejected_items: list[dict],
+    items_path: Path,
+    rejected_items_path: Path,
+) -> list[str]:
+    errors: list[str] = []
+    records_by_id: dict[str, tuple[dict, Path]] = {}
+    for record in items:
+        record_id = str(record.get("id") or "")
+        if record_id:
+            records_by_id[record_id] = (record, items_path)
+    for record in rejected_items:
+        record_id = str(record.get("id") or "")
+        if record_id:
+            records_by_id[record_id] = (record, rejected_items_path)
+
+    if not fulltext_store.FULLTEXT_DIR.exists():
+        return errors
+
+    for path in sorted(fulltext_store.FULLTEXT_DIR.glob("*.json")):
+        item_id = path.stem
+        if item_id not in records_by_id:
+            errors.append(f"{path}: fulltext sidecar has no matching item id: {item_id}")
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            errors.append(f"{path}: invalid JSON: {exc}")
+            continue
+        if not isinstance(payload, dict):
+            errors.append(f"{path}: fulltext sidecar must be an object")
+            continue
+        record, record_path = records_by_id[item_id]
+        metadata = record.get("reading_metadata") if isinstance(record.get("reading_metadata"), dict) else {}
+        for key, value in payload.items():
+            if not fulltext_store.is_heavy_key(str(key)):
+                errors.append(f"{path}: sidecar key is not a fulltext field: {key}")
+            inline_value = metadata.get(key)
+            if inline_value and value and inline_value != value:
+                errors.append(
+                    f"{path}: sidecar field {key} differs from inline reading_metadata on {record_path}:{record.get('_line', '?')}"
+                )
+    return errors
 
 
 def validate() -> list[str]:
@@ -101,6 +149,8 @@ def validate() -> list[str]:
     duplicated_archives = item_ids & rejected_item_ids
     for item_id in sorted(duplicated_archives):
         errors.append(f"{rejected_items_path}: duplicate active/rejected item id {item_id}")
+
+    errors.extend(validate_fulltext_sidecars(items, rejected_items, items_path, rejected_items_path))
 
     for source in sources:
         try:

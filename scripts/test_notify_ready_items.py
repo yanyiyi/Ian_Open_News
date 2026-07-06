@@ -8,6 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import fulltext_store  # noqa: E402
 import notify_ready_items as notify  # noqa: E402
 
 
@@ -115,6 +116,54 @@ class NotifyReadyItemsTest(unittest.TestCase):
             notify.append_jsonl(state, notify.event_state_records([event], ["slack"], "sent"))
 
             self.assertEqual(notify.load_notified_keys(state), {"item:translated-review:item-a"})
+
+    def test_parse_channels_accepts_slack_bot_without_webhook(self) -> None:
+        channels = notify.parse_channels(
+            [],
+            {"ION_SLACK_BOT_TOKEN": "xoxb-test", "ION_SLACK_CHANNEL_ID": "C123"},
+        )
+
+        self.assertEqual(channels, ["slack"])
+
+    def test_item_event_hydrates_translation_from_sidecar(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_dir = fulltext_store.FULLTEXT_DIR
+            fulltext_store.FULLTEXT_DIR = Path(tmpdir)
+            fulltext_store._STORE_CACHE.clear()
+            try:
+                item = {
+                    "id": "item-sidecar",
+                    "status": "ready",
+                    "title": "Original Title",
+                    "track": "open-tech-open-industry",
+                    "reading_metadata": {},
+                    "editorial_triage": {
+                        "codex_review": {
+                            "zh_title": "中文標題",
+                            "one_line_recommendation": "值得讀。",
+                            "reasons": ["一", "二", "三"],
+                            "needs_fulltext": False,
+                        }
+                    },
+                }
+                fulltext_store.dehydrate_item(
+                    {
+                        "id": "item-sidecar",
+                        "reading_metadata": {"codex_translated_article_markdown_zh": "# 中文全文"},
+                    }
+                )
+
+                event = notify.item_event(
+                    item,
+                    "https://example.test/reader",
+                    notify.DEFAULT_ITEM_STATUSES,
+                    include_needs_fulltext=False,
+                )
+            finally:
+                fulltext_store.FULLTEXT_DIR = original_dir
+                fulltext_store._STORE_CACHE.clear()
+
+        self.assertIsNotNone(event)
 
 
 if __name__ == "__main__":
