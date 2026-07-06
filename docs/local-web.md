@@ -22,6 +22,8 @@ http://127.0.0.1:8765
 
 如果 `8765` 已經被其他服務占用，程式會自動往後找下一個可用 port，例如 `8766`、`8767`，並在終端機印出實際網址。
 
+日常使用建議走 LaunchAgent（`~/Library/LaunchAgents/com.ian-open-news.local-web.plist`）：開機自動啟動，固定 `--port 8766`，不掃 port。手動再跑一份 `local_web.py` 前先確認 8766 是否已在服務，避免同一資料庫兩個服務並存。
+
 ## 加收藏
 
 打開 `http://127.0.0.1:8765/items/new`，填標題、網址、主線、摘要與備註。送出後會新增：
@@ -200,6 +202,25 @@ python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --di
 ```
 
 抓到的新資料會先 append 到 `.cache/rss-candidates.jsonl`，並顯示在「RSS 待整理」的 `RSS 新進` 卡片。你按確認收或直接送 PR 時，系統才會把它寫進 `database/items.jsonl` 並套用決定。
+
+## 編輯台
+
+「編輯台」(`/editor`) 把「挑材料 → 選引擎與寫文模式 → 產出草稿」收成一個工作台；只有經過編輯台產出的稿件才稱為 article（專題文章）。任務類型（選法檢查、撰稿、查核找原文、萃取觀點）、觀點庫串聯與查核行為的完整說明見 [workflow.md](workflow.md) 的「編輯台（Editor Console）」一節。
+
+## 更新線上閱讀版（產出公開站）
+
+首頁「本機指令」區有「更新線上閱讀版」按鈕，執行：
+
+```bash
+python3 scripts/render_ghpages_reader.py
+```
+
+行為與注意事項：
+
+- **全量重產**：每次讀完整 `database/items.jsonl` 與 `database/articles.jsonl`，重寫 `docs/reader/` 下所有頁面（首頁、小消息、專文列表與單篇、每篇材料頁、標籤與來源索引），並清掉已不存在項目的舊 HTML。
+- **只發布公開範圍**：`track` 為開放科技主線、`kind` 屬精選文章／觀點文章／小消息的項目；專文要 `status: published` 才會出現在 features。
+- **完成後自動 commit**：訊息格式「產出 M 月 D 日 …… 線上版」。push 到 GitHub 後由 GitHub Pages 對外服務（technews.ospo.tw）。
+- **手動觸發**：目前沒有排程或 CI 自動跑；資料庫更新後要記得回首頁按這顆按鈕，線上版才會跟上。
 
 ## 本機指令按鈕
 

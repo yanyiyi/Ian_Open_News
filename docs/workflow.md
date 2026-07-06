@@ -114,6 +114,14 @@
   彙報與遷移工具見 [facebook-inoreader-alternatives.md](facebook-inoreader-alternatives.md)
   與 `templates/rsshub/`。
 
+### 決策學習迴圈操作步驟
+
+建議兩週跑一次，三步都是手動、可分開執行：
+
+1. **蒸餾**：`python3 scripts/taste_retro.py`（首跑可加 `--dry-run` 先看報告；`--since YYYY-MM-DD` 可限定範圍，預設從上次執行點接續；`--skip-ai` 只跑統計不叫 AI）。結果寫進 `database/system-change-proposals.jsonl`，狀態為待審。
+2. **人工核准**：在本機網頁 `/insights` 的「程式提案追蹤」逐條看提案，或直接審 `database/system-change-proposals.jsonl`，把要採用的提案標成 `approved`。不核准就不會有任何落地。
+3. **套用**：`python3 scripts/apply_taste_proposals.py --all-approved`（或 `--id <提案id>` 逐條套；先加 `--dry-run` 預覽）。落地目標是 taste-profile 與 `database/triage-keywords.json`，套完依提示重跑關鍵字初篩（`python3 scripts/apply_triage_keywords.py`）。
+
 ## 受 toomore 內部分享啟發的鏈條
 
 這條 rules + agents 的 skill 流程靈感，汲取自同事 toomore 於 OCF 六月內部知識分享的 agents writing pipeline 簡報。本 repo 不保存原始簡報檔；以下是依其「找題、備料、主 session 起草、平行審稿與查核」觀念，發展成本專案 RSS 待整理與知識 brief 流程的版本。

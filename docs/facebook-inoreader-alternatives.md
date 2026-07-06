@@ -197,7 +197,7 @@ bridge 只是把抓取動作搬到伺服器執行，能不能連到取決於 bri
 - [ ] **階段 0（零程式）**：RedMonk 直接用 `https://redmonk.com/sogrady/feed/` 加成 `rss` 來源；沒原生 feed 的站先用 Google Alerts（查詢 `site:網域`，遞送選 RSS，頻率設「隨時」才會出現 RSS 選項）加成 `google-alert`。
 - [ ] **階段 1（小改 local_web）**：`/sources/new` 主動探測常見 feed 路徑與 `<link rel=alternate>`，探到自動填；探不到給退路捷徑。**注意：避開會 autosave 的 `/articles/edit`。**
 - [x] **階段 2（已存在）**：手動捕捉走既有 `manual-web` bookmarklet；可再補 iOS 捷徑一鍵 POST。
-- [x] **階段 3 的程式面（2026-07-06 完成）**：`served_via`/`bridge` 出身欄位、`fetch_rss.py` bridge preflight（離線整組記 `bridge-unreachable`）、`analyze_source_health.py` rollup（整組失敗只報一行）、`scripts/rebuild_bridge_feeds.py`（換主機批次重組）、`scripts/audit_bridge_migration.py`（FB/monitor 唯讀盤點）、`templates/rsshub/`（Docker 與 Node 直跑兩條路線＋launchd 範本）都已入庫。**尚待使用者決定**：RSSHub 執行環境本體（裝 Docker/OrbStack，或核准 Node 源碼 clone+install）。
+- [x] **階段 3 的程式面（2026-07-06 完成）**：`served_via`/`bridge` 出身欄位、`fetch_rss.py` bridge preflight（離線整組記 `bridge-unreachable`）、`analyze_source_health.py` rollup（整組失敗只報一行）、`scripts/rebuild_bridge_feeds.py`（換主機批次重組）、`scripts/audit_bridge_migration.py`（FB/monitor 唯讀盤點）、`templates/rsshub/`（Docker 與 Node 直跑兩條路線＋launchd 範本）都已入庫。**執行環境已拍板（2026-07-06）：走 Docker（路線 A）**——`docker compose -f templates/rsshub/docker-compose.yml up -d` 啟動後，用 `curl -s http://127.0.0.1:1200/healthz` 驗證，再把 route 依 `templates/rsshub/README.md` 加進 `database/sources.jsonl`。前置條件是機器上裝好 Docker Desktop 或 OrbStack。
 - **既有 43 筆 facebook + 9 筆 inoreader-monitor：依使用者裁示暫不遷移**，想看時跑 `python3 scripts/audit_bridge_migration.py` 取得逐筆建議（上次盤點：29/43 FB 來源無歷史價值訊號，可考慮 archive）。
 
 參考：
