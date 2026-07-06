@@ -102,10 +102,17 @@ def clean_text(value: object, limit: int | None = None) -> str:
 def load_jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+    records = [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+    if path.name in ("items.jsonl", "rejected-items.jsonl"):
+        import fulltext_store
+        fulltext_store.hydrate_items(records)
+    return records
 
 
 def write_jsonl(path: Path, records: list[dict]) -> None:
+    if path.name in ("items.jsonl", "rejected-items.jsonl"):
+        import fulltext_store
+        fulltext_store.dehydrate_items(records)
     path.parent.mkdir(parents=True, exist_ok=True)
     text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
     path.write_text(text, encoding="utf-8")

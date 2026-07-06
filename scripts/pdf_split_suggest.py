@@ -22,7 +22,11 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
         return []
     # Use only physical newlines as JSONL delimiters. str.splitlines() also
     # splits on U+2028/U+2029, which can appear inside scraped article text.
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+    records = [json.loads(line) for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+    if path.name in ("items.jsonl", "rejected-items.jsonl"):
+        import fulltext_store
+        fulltext_store.hydrate_items(records)
+    return records
 
 
 def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
@@ -33,6 +37,9 @@ def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
 
 
 def write_status(path: Path, payload: dict[str, Any]) -> None:
+    if path.name in ("items.jsonl", "rejected-items.jsonl"):
+        import fulltext_store
+        fulltext_store.dehydrate_items(records)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 

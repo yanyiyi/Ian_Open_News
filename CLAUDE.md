@@ -31,6 +31,7 @@
 
 - brief 寫到 `knowledge/<track>/briefs/YYYY-MM-DD-slug.md`，骨架用 [templates/knowledge-brief.md](templates/knowledge-brief.md)。
 - 改 `database/items.jsonl` 時，沿用既有欄位，只改該動的（通常是 `status`、`summary`、`review.*`）。一筆一行，不要重排其他行。
+- 全文重欄位（`article_markdown`、`article_text`、`edited_markdown`、`*translated_article_markdown_zh`）存在 `database/fulltext/<item-id>.json` 側檔，主檔不放全文。程式一律經 `scripts/fulltext_store.py` 的 hydrate/dehydrate 讀寫（各 script 的 load/write 邊界已接好）；手改資料時別把全文塞回主檔。
 - `status` 取值見 `database/taxonomy.json`：`inbox → triaged → researching → drafting → reviewing → fact-checking → ready → published`（或 `archived`）。
 - 審稿與查核事件可追加到 `database/review-events.jsonl`。
 - 動完資料庫跑 `python3 scripts/validate_database.py` 確認沒破壞格式。

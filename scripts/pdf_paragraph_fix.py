@@ -45,6 +45,9 @@ def load_jsonl(path: Path) -> list[dict]:
                 rows.append(json.loads(line))
             except json.JSONDecodeError:
                 continue
+    if path.name in ("items.jsonl", "rejected-items.jsonl"):
+        import fulltext_store
+        fulltext_store.hydrate_items(rows)
     return rows
 
 

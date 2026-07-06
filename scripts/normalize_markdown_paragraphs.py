@@ -43,10 +43,16 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
             records.append(json.loads(line))
         except json.JSONDecodeError as exc:
             raise ValueError(f"{path}:{line_number}: invalid JSON: {exc}") from exc
+    if path.name in ("items.jsonl", "rejected-items.jsonl"):
+        import fulltext_store
+        fulltext_store.hydrate_items(records)
     return records
 
 
 def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
+    if path.name in ("items.jsonl", "rejected-items.jsonl"):
+        import fulltext_store
+        fulltext_store.dehydrate_items(records)
     path.parent.mkdir(parents=True, exist_ok=True)
     text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
     tmp = path.with_name(path.name + ".tmp")

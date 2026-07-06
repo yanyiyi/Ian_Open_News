@@ -185,8 +185,11 @@ class MarkdownRenderingTest(unittest.TestCase):
             local_web.write_jsonl(candidates_path, [])
             original_items = local_web.ITEMS
             original_candidates = local_web.CANDIDATES
+            original_fulltext_dir = local_web.fulltext_store.FULLTEXT_DIR
             local_web.ITEMS = items_path
             local_web.CANDIDATES = candidates_path
+            local_web.fulltext_store.FULLTEXT_DIR = Path(tmp) / "fulltext"
+            local_web.fulltext_store._STORE_CACHE.clear()
             try:
                 handler = local_web.Handler.__new__(local_web.Handler)
                 markdown = "第一行\n第二行\n\n下一段"
@@ -197,10 +200,15 @@ class MarkdownRenderingTest(unittest.TestCase):
                     "original",
                     "test",
                 )
-                stored = local_web.load_jsonl(items_path)[0]["reading_metadata"]["edited_markdown"]
+                # 寫入後重欄位在側檔，讀回要經 hydrate 才是完整形狀
+                record = local_web.load_jsonl(items_path)[0]
+                local_web.fulltext_store.hydrate_item(record)
+                stored = record["reading_metadata"]["edited_markdown"]
             finally:
                 local_web.ITEMS = original_items
                 local_web.CANDIDATES = original_candidates
+                local_web.fulltext_store.FULLTEXT_DIR = original_fulltext_dir
+                local_web.fulltext_store._STORE_CACHE.clear()
 
         self.assertTrue(saved)
         self.assertEqual(stored, markdown)
@@ -232,15 +240,22 @@ class MarkdownRenderingTest(unittest.TestCase):
             local_web.write_jsonl(candidates_path, [])
             original_items = local_web.ITEMS
             original_candidates = local_web.CANDIDATES
+            original_fulltext_dir = local_web.fulltext_store.FULLTEXT_DIR
             local_web.ITEMS = items_path
             local_web.CANDIDATES = candidates_path
+            local_web.fulltext_store.FULLTEXT_DIR = Path(tmp) / "fulltext"
+            local_web.fulltext_store._STORE_CACHE.clear()
             try:
                 handler = local_web.Handler.__new__(local_web.Handler)
                 cleared = handler._clear_edited_markdown("item-test", "clear test")
-                metadata = local_web.load_jsonl(items_path)[0]["reading_metadata"]
+                record = local_web.load_jsonl(items_path)[0]
+                local_web.fulltext_store.hydrate_item(record)
+                metadata = record["reading_metadata"]
             finally:
                 local_web.ITEMS = original_items
                 local_web.CANDIDATES = original_candidates
+                local_web.fulltext_store.FULLTEXT_DIR = original_fulltext_dir
+                local_web.fulltext_store._STORE_CACHE.clear()
 
         self.assertTrue(cleared)
         self.assertEqual(metadata["article_markdown"], original)
