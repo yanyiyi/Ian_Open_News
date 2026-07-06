@@ -391,6 +391,7 @@ def event_state_record(
     channels: list[str],
     action: str,
     deliveries: list[dict[str, Any]] | None = None,
+    failures: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     record: dict[str, Any] = {
@@ -405,6 +406,8 @@ def event_state_record(
     }
     if deliveries:
         record["deliveries"] = deliveries
+    if failures:
+        record["delivery_failures"] = failures
     return record
 
 
@@ -516,14 +519,23 @@ def send_telegram(event: NotificationEvent, env: dict[str, str], timeout: int) -
     return parse_telegram_send_message(body, chat_id)
 
 
-def send_event(event: NotificationEvent, channels: list[str], env: dict[str, str], timeout: int) -> list[dict[str, Any]]:
+def send_event(
+    event: NotificationEvent,
+    channels: list[str],
+    env: dict[str, str],
+    timeout: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     deliveries: list[dict[str, Any]] = []
+    failures: list[dict[str, str]] = []
     for channel in channels:
-        if channel == "slack":
-            deliveries.append(send_slack(event, env, timeout))
-        elif channel == "telegram":
-            deliveries.append(send_telegram(event, env, timeout))
-    return deliveries
+        try:
+            if channel == "slack":
+                deliveries.append(send_slack(event, env, timeout))
+            elif channel == "telegram":
+                deliveries.append(send_telegram(event, env, timeout))
+        except RuntimeError as exc:
+            failures.append({"channel": channel, "error": clean_text(exc, 1000)})
+    return deliveries, failures
 
 
 def print_event_preview(event: NotificationEvent) -> None:
@@ -586,15 +598,26 @@ def main() -> None:
         )
 
     sent = 0
+    partial = 0
+    failed = 0
     for event in pending:
-        try:
-            deliveries = send_event(event, channels, env, args.timeout)
-        except RuntimeError as exc:
-            print(f"failed: {event.event_key}: {exc}", file=sys.stderr)
-            raise SystemExit(1) from exc
-        append_jsonl(args.state, [event_state_record(event, channels, "sent", deliveries)])
-        sent += 1
-    print(f"eligible={len(events)} sent={sent} channels={','.join(channels) or 'none'} state={args.state}")
+        deliveries, failures = send_event(event, channels, env, args.timeout)
+        for failure in failures:
+            print(f"failed: {event.event_key}: {failure['channel']}: {failure['error']}", file=sys.stderr)
+        if deliveries:
+            action = "sent-partial" if failures else "sent"
+            append_jsonl(args.state, [event_state_record(event, channels, action, deliveries, failures)])
+            sent += 1
+            if failures:
+                partial += 1
+        else:
+            failed += 1
+    print(
+        f"eligible={len(events)} sent={sent} partial={partial} failed={failed} "
+        f"channels={','.join(channels) or 'none'} state={args.state}"
+    )
+    if failed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

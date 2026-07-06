@@ -4,6 +4,7 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -164,6 +165,47 @@ class NotifyReadyItemsTest(unittest.TestCase):
                 fulltext_store._STORE_CACHE.clear()
 
         self.assertIsNotNone(event)
+
+    def test_send_event_collects_channel_failures_without_stopping(self) -> None:
+        event = notify.NotificationEvent(
+            event_key="article:published:art-test",
+            kind="article",
+            record_id="art-test",
+            title="Title",
+            text="Message",
+            url="https://example.test/reader/features/art-test.html",
+        )
+
+        with (
+            mock.patch.object(notify, "send_slack", side_effect=RuntimeError("Slack chat.postMessage failed: not_in_channel")),
+            mock.patch.object(notify, "send_telegram", return_value={"channel": "telegram", "message_id": 123}),
+        ):
+            deliveries, failures = notify.send_event(event, ["slack", "telegram"], {}, 10)
+
+        self.assertEqual(deliveries, [{"channel": "telegram", "message_id": 123}])
+        self.assertEqual(failures, [{"channel": "slack", "error": "Slack chat.postMessage failed: not_in_channel"}])
+
+    def test_event_state_record_can_store_delivery_failures(self) -> None:
+        event = notify.NotificationEvent(
+            event_key="article:published:art-test",
+            kind="article",
+            record_id="art-test",
+            title="Title",
+            text="Message",
+            url="https://example.test/reader/features/art-test.html",
+        )
+
+        record = notify.event_state_record(
+            event,
+            ["slack", "telegram"],
+            "sent-partial",
+            [{"channel": "telegram", "message_id": 123}],
+            [{"channel": "slack", "error": "not_in_channel"}],
+        )
+
+        self.assertEqual(record["action"], "sent-partial")
+        self.assertEqual(record["deliveries"], [{"channel": "telegram", "message_id": 123}])
+        self.assertEqual(record["delivery_failures"], [{"channel": "slack", "error": "not_in_channel"}])
 
 
 if __name__ == "__main__":

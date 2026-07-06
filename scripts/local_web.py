@@ -22011,7 +22011,7 @@ if (document.readyState === "loading") {{
             active_channels = []
 
         kind_labels = {"article": "完成專文", "item": "推薦文章"}
-        action_labels = {"sent": "已推播", "marked-existing": "標記為已通知"}
+        action_labels = {"sent": "已推播", "sent-partial": "部分推播", "marked-existing": "標記為已通知"}
 
         def reaction_summary(event_key: str) -> str:
             entry = reactions.get(event_key)
@@ -22335,6 +22335,7 @@ if (document.readyState === "loading") {{
                 "state": "done" if ok else "failed",
                 "message": "完成" if ok else "推播失敗",
                 "returncode": result.returncode,
+                "output": output[-4000:],
                 "finished_at": now_iso(),
             },
         )
