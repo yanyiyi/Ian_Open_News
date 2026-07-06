@@ -20,7 +20,10 @@ DEFAULT_ITEMS = ROOT / "database" / "items.jsonl"
 DEFAULT_ARTICLES = ROOT / "database" / "articles.jsonl"
 DEFAULT_STATE = ROOT / ".cache" / "notified-events.jsonl"
 DEFAULT_ENV_FILE = ROOT / ".cache" / "notify-secrets.env"
+DEFAULT_AUTO_START_FILE = ROOT / ".cache" / "notify-auto-start.txt"
 DEFAULT_READER_BASE_URL = "https://technews.ospo.tw/reader"
+DEFAULT_MIN_AGE_MINUTES = 15
+DEFAULT_AUTO_MAX_AGE_DAYS = 7
 
 CHANNEL_ENV_KEYS = (
     "ION_SLACK_WEBHOOK_URL",
@@ -30,6 +33,7 @@ CHANNEL_ENV_KEYS = (
     "ION_TELEGRAM_CHAT_ID",
     "ION_PUBLIC_BASE_URL",
     "ION_NOTIFY_CHANNELS",
+    "ION_NOTIFY_AUTO_START_AT",
 )
 
 DEFAULT_ITEM_STATUSES = {
@@ -74,6 +78,8 @@ REVIEW_KEYS = (
     "ollama_twinkle_review",
 )
 
+IMAGE_URL_RE = re.compile(r"^https?://.+\.(?:avif|gif|jpe?g|png|svg|webp)(?:[?#].*)?$", re.IGNORECASE)
+
 
 @dataclass(frozen=True)
 class NotificationEvent:
@@ -83,6 +89,8 @@ class NotificationEvent:
     title: str
     text: str
     url: str
+    ready_at: str = ""
+    image_url: str = ""
 
 
 def clean_text(value: object, limit: int = 0) -> str:
@@ -90,6 +98,174 @@ def clean_text(value: object, limit: int = 0) -> str:
     if limit and len(text) > limit:
         return text[: max(0, limit - 1)].rstrip() + "…"
     return text
+
+
+def parse_event_datetime(value: object) -> datetime | None:
+    text = clean_text(value)
+    if not text:
+        return None
+    normalized = text.replace("Z", "+00:00").replace("/", "-")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        match = re.search(r"(\d{4})[-.](\d{1,2})[-.](\d{1,2})", normalized)
+        if not match:
+            return None
+        year, month, day = (int(part) for part in match.groups())
+        try:
+            parsed = datetime(year, month, day)
+        except ValueError:
+            return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def event_age_minutes(event: NotificationEvent, now: datetime | None = None) -> float | None:
+    ready_at = parse_event_datetime(event.ready_at)
+    if not ready_at:
+        return None
+    current = now.astimezone(timezone.utc) if now else datetime.now(timezone.utc)
+    return (current - ready_at).total_seconds() / 60
+
+
+def resolve_auto_start_at(
+    env: dict[str, str],
+    path: Path = DEFAULT_AUTO_START_FILE,
+    explicit: object = "",
+    initialize: bool = False,
+) -> datetime | None:
+    text = clean_text(explicit) or clean_text(env.get("ION_NOTIFY_AUTO_START_AT"))
+    if not text and path.exists():
+        text = clean_text(path.read_text(encoding="utf-8"))
+    if not text and initialize:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        text = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        path.write_text(text + "\n", encoding="utf-8")
+    return parse_event_datetime(text)
+
+
+def filter_events_for_auto_send(
+    events: list[NotificationEvent],
+    min_age_minutes: int = DEFAULT_MIN_AGE_MINUTES,
+    max_age_days: int = DEFAULT_AUTO_MAX_AGE_DAYS,
+    now: datetime | None = None,
+    auto_start_at: datetime | None = None,
+) -> list[NotificationEvent]:
+    if min_age_minutes <= 0 and max_age_days <= 0:
+        return events
+    filtered: list[NotificationEvent] = []
+    max_age_minutes = max_age_days * 24 * 60 if max_age_days > 0 else 0
+    for event in events:
+        ready_at = parse_event_datetime(event.ready_at)
+        if auto_start_at and ready_at and ready_at < auto_start_at.astimezone(timezone.utc):
+            continue
+        age = event_age_minutes(event, now)
+        if age is None:
+            continue
+        if min_age_minutes > 0 and age < min_age_minutes:
+            continue
+        if max_age_minutes > 0 and age > max_age_minutes:
+            continue
+        filtered.append(event)
+    return filtered
+
+
+def first_text_value(record: dict[str, Any], keys: tuple[str, ...]) -> str:
+    for key in keys:
+        value = clean_text(record.get(key))
+        if value:
+            return value
+    return ""
+
+
+def record_ready_at(record: dict[str, Any]) -> str:
+    ready_at = first_text_value(
+        record,
+        (
+            "ready_at",
+            "published_at",
+            "updated_at",
+            "reviewed_at",
+            "created_at",
+            "captured_at",
+            "date",
+        ),
+    )
+    if ready_at:
+        return ready_at
+    for container_key in ("editorial_triage", "reading_metadata", "metadata"):
+        container = record.get(container_key)
+        if isinstance(container, dict):
+            ready_at = first_text_value(container, ("ready_at", "updated_at", "reviewed_at", "created_at"))
+            if ready_at:
+                return ready_at
+    return ""
+
+
+def clean_image_url(value: object) -> str:
+    text = clean_text(value)
+    return text if IMAGE_URL_RE.match(text) else ""
+
+
+def first_image_url(value: object, allow_url_key: bool = False) -> str:
+    if isinstance(value, str):
+        return clean_image_url(value)
+    if isinstance(value, list):
+        for item in value:
+            found = first_image_url(item, allow_url_key=allow_url_key)
+            if found:
+                return found
+        return ""
+    if isinstance(value, dict):
+        if allow_url_key:
+            found = clean_image_url(value.get("url"))
+            if found:
+                return found
+        priority_keys = (
+            "image_url",
+            "image",
+            "og_image",
+            "lead_image_url",
+            "cover_image",
+            "cover_image_url",
+            "thumbnail",
+            "thumbnail_url",
+        )
+        for key in priority_keys:
+            if key in value:
+                found = first_image_url(value.get(key), allow_url_key=True)
+                if found:
+                    return found
+        for nested in value.values():
+            if isinstance(nested, (dict, list)):
+                found = first_image_url(nested, allow_url_key=False)
+                if found:
+                    return found
+    return ""
+
+
+def record_image_url(record: dict[str, Any]) -> str:
+    for key in (
+        "image_url",
+        "image",
+        "og_image",
+        "lead_image_url",
+        "cover_image",
+        "cover_image_url",
+        "thumbnail",
+        "thumbnail_url",
+    ):
+        found = first_image_url(record.get(key))
+        if found:
+            return found
+    for container_key in ("reading_metadata", "metadata", "page_metadata", "open_graph"):
+        container = record.get(container_key)
+        if isinstance(container, dict):
+            found = first_image_url(container)
+            if found:
+                return found
+    return ""
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -255,6 +431,23 @@ def item_display_kind(record: dict[str, Any], review: dict[str, Any] | None = No
     return explicit or "needs-review"
 
 
+def item_notification_prefix(kind: str) -> str:
+    if kind == "small-news":
+        return "【新消息】"
+    return "【新議題】"
+
+
+def event_notification_label(event: NotificationEvent) -> str:
+    match = re.match(r"^【([^】]+)】", event.text)
+    if match:
+        return match.group(1)
+    if event.kind == "article":
+        return "新專文"
+    if event.kind == "item":
+        return "新議題"
+    return event.kind
+
+
 def public_reader_article_url(item_id: str, base_url: str) -> str:
     return f"{base_url.rstrip('/')}/articles/{safe_id(item_id, 'item')}.html"
 
@@ -290,7 +483,7 @@ def article_event(article: dict[str, Any], base_url: str) -> NotificationEvent |
         or first_markdown_paragraph(article.get("body_markdown"), 360)
     )
     url = public_reader_feature_url(article_id, base_url)
-    pieces = [f"Ian Open News 新專文：{title}"]
+    pieces = [f"【新專文】{title}"]
     if excerpt:
         pieces.extend(["", excerpt])
     pieces.extend(["", url])
@@ -301,6 +494,8 @@ def article_event(article: dict[str, Any], base_url: str) -> NotificationEvent |
         title=title,
         text="\n".join(pieces),
         url=url,
+        ready_at=record_ready_at(article),
+        image_url=record_image_url(article),
     )
 
 
@@ -327,7 +522,7 @@ def item_event(record: dict[str, Any], base_url: str, allowed_statuses: set[str]
     kind = item_display_kind(record, review)
     url = public_reader_article_url(item_id, base_url)
     pieces = [
-        f"Ian Open News 推薦閱讀：{title}",
+        f"{item_notification_prefix(kind)}{title}",
         "",
         one_line,
         "",
@@ -344,6 +539,8 @@ def item_event(record: dict[str, Any], base_url: str, allowed_statuses: set[str]
         title=title,
         text="\n".join(pieces),
         url=url,
+        ready_at=record_ready_at(record),
+        image_url=record_image_url(record),
     )
 
 
@@ -372,7 +569,7 @@ def collect_events(
             event = item_event(item, base_url, allowed_statuses, include_needs_fulltext)
             if event:
                 events.append(event)
-    events.sort(key=lambda event: (event.kind, event.title, event.record_id))
+    events.sort(key=lambda event: (event.ready_at or "", event.kind, event.title, event.record_id))
     return events
 
 
@@ -393,11 +590,16 @@ def event_state_record(
         "channels": channels or ["none"],
         "event_key": event.event_key,
         "kind": event.kind,
+        "notification_label": event_notification_label(event),
         "record_id": event.record_id,
         "sent_at": now,
         "title": event.title,
         "url": event.url,
     }
+    if event.ready_at:
+        record["ready_at"] = event.ready_at
+    if event.image_url:
+        record["image_url"] = event.image_url
     if deliveries:
         record["deliveries"] = deliveries
     if failures:
@@ -475,13 +677,26 @@ def parse_telegram_send_message(body: bytes, chat_id: str) -> dict[str, Any]:
     }
 
 
+def slack_message_payload(event: NotificationEvent) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "text": event.text,
+        "unfurl_links": True,
+        "unfurl_media": True,
+    }
+    if event.image_url:
+        payload["attachments"] = [{"fallback": event.title, "image_url": event.image_url}]
+    return payload
+
+
 def send_slack(event: NotificationEvent, env: dict[str, str], timeout: int) -> dict[str, Any]:
     token = clean_text(env.get("ION_SLACK_BOT_TOKEN"))
     channel_id = clean_text(env.get("ION_SLACK_CHANNEL_ID"))
     if token and channel_id:
+        payload = slack_message_payload(event)
+        payload["channel"] = channel_id
         body = post_json(
             "https://slack.com/api/chat.postMessage",
-            {"channel": channel_id, "text": event.text},
+            payload,
             timeout,
             headers={"Authorization": f"Bearer {token}"},
         )
@@ -491,7 +706,7 @@ def send_slack(event: NotificationEvent, env: dict[str, str], timeout: int) -> d
         raise RuntimeError(
             "Set ION_SLACK_WEBHOOK_URL, or ION_SLACK_BOT_TOKEN plus ION_SLACK_CHANNEL_ID for reaction tracking"
         )
-    post_json(webhook, {"text": event.text}, timeout)
+    post_json(webhook, slack_message_payload(event), timeout)
     return {"channel": "slack", "method": "webhook"}
 
 
@@ -554,6 +769,24 @@ def main() -> None:
     parser.add_argument("--mark-existing", action="store_true", help="Record eligible events as already handled without sending.")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--timeout", type=int, default=10)
+    parser.add_argument(
+        "--min-age-minutes",
+        type=int,
+        default=DEFAULT_MIN_AGE_MINUTES,
+        help="For automatic sends, wait until content has been pending this many minutes. Use 0 to disable.",
+    )
+    parser.add_argument(
+        "--max-age-days",
+        type=int,
+        default=DEFAULT_AUTO_MAX_AGE_DAYS,
+        help="For automatic sends, ignore older backlog beyond this many days. Use 0 to disable.",
+    )
+    parser.add_argument(
+        "--auto-start-at",
+        default="",
+        help="Only auto-send content ready at or after this timestamp. Defaults to env/file and initializes .cache/notify-auto-start.txt.",
+    )
+    parser.add_argument("--auto-start-file", type=Path, default=DEFAULT_AUTO_START_FILE)
     args = parser.parse_args()
 
     env = merged_env()
@@ -571,6 +804,14 @@ def main() -> None:
     )
     notified = load_notified_keys(args.state) if not args.force else set()
     pending = [event for event in events if event.event_key not in notified]
+    if not selected_ids and not args.mark_existing and not args.force:
+        auto_start_at = resolve_auto_start_at(env, args.auto_start_file, args.auto_start_at, initialize=True)
+        pending = filter_events_for_auto_send(
+            pending,
+            args.min_age_minutes,
+            args.max_age_days,
+            auto_start_at=auto_start_at,
+        )
     if args.limit > 0:
         pending = pending[: args.limit]
 

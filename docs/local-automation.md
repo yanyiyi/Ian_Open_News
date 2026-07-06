@@ -69,14 +69,16 @@ python3 scripts/notify_ready_items.py --dry-run
 
 這支腳本會掃兩種資料：
 
-1. `database/articles.jsonl` 裡 `status: published` 的專文：通知文案使用文章摘要、`summary`、`dek` 或正文第一段。
-2. `database/items.jsonl` 裡已有中文翻譯與 AI 閱讀建議的資料池文章：通知文案使用 `editorial_triage.*_review.one_line_recommendation` 與前三個 `reasons`，不把 AI 摘要當主通知文案。
+1. `database/articles.jsonl` 裡 `status: published` 的專文：通知文案使用 `【新專文】`，後面接文章摘要、`summary`、`dek` 或正文第一段。
+2. `database/items.jsonl` 裡已有中文翻譯與 AI 閱讀建議的資料池文章：小消息使用 `【新消息】`，材料庫／議題型內容使用 `【新議題】`；通知文案使用 `editorial_triage.*_review.one_line_recommendation` 與前三個 `reasons`，不把 AI 摘要當主通知文案。
 
 去重狀態會寫在：
 
 ```text
 .cache/notified-events.jsonl
 ```
+
+自動推播會以 `.cache/notify-auto-start.txt` 或 `ION_NOTIFY_AUTO_START_AT` 作為起算時間。起算前已存在的未發內容會保留在通知頁的「舊未發」，不會被背景排程掃出去；起算後新產出的內容會先待滿 15 分鐘再送。
 
 ### Slack Incoming Webhook
 
@@ -125,6 +127,19 @@ python3 scripts/notify_ready_items.py --mark-existing
 
 ```bash
 python3 scripts/notify_ready_items.py
+```
+
+若要讓本機每 5 分鐘自動巡一次，安裝 launchd 範本：
+
+```bash
+cp templates/launchd/com.ian.opennews.notify.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.ian.opennews.notify.plist
+```
+
+關掉自動巡檢：
+
+```bash
+launchctl unload ~/Library/LaunchAgents/com.ian.opennews.notify.plist
 ```
 
 常用選項：

@@ -678,13 +678,13 @@ COMMANDS = {
     },
     "notify_dry_run": {
         "label": "預覽待推播內容",
-        "description": "掃描已發布專文與「有中文翻譯＋AI 推薦」的文章，列出會送出的訊息全文，不會真的推播。",
+        "description": "掃描已發布專文與「有中文翻譯＋AI 推薦」的文章，只列出符合 15 分鐘緩衝與自動窗口的訊息全文，不會真的推播。",
         "button": "預覽待推播",
         "command": [sys.executable, str(ROOT / "scripts" / "notify_ready_items.py"), "--dry-run"],
     },
     "notify_send": {
         "label": "推播新完成內容",
-        "description": "把還沒通知過的新專文與推薦文章送到 Slack / Telegram，送出後記錄到 .cache/notified-events.jsonl 避免重複。",
+        "description": "把還沒通知過、已待滿 15 分鐘且不屬於舊 backlog 的新專文、新消息與新議題送到 Slack / Telegram，送出後記錄到 .cache/notified-events.jsonl 避免重複。",
         "button": "推播到 Slack / Telegram",
         "command": [sys.executable, str(ROOT / "scripts" / "notify_ready_items.py")],
     },
@@ -7383,6 +7383,15 @@ def page(title: str, body: str) -> bytes:
       box-shadow: none;
       filter: none;
     }}
+    .button-small {{
+      min-height: 30px;
+      padding: 6px 9px;
+      gap: 6px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.2;
+      box-shadow: none;
+    }}
     .button-row {{ display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }}
     .button-row .button, .button-row button {{ margin-top: 0; }}
     .button-opentech {{ background: var(--ocf-primary); }}
@@ -8444,6 +8453,195 @@ def page(title: str, body: str) -> bytes:
       gap: 8px;
       margin: 8px 0 30px;
     }}
+    .notify-summary-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 14px 0 18px;
+    }}
+    .notify-stat {{
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }}
+    .notify-stat strong {{
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+    }}
+    .notify-layout {{
+      display: grid;
+      gap: 18px;
+      margin-top: 12px;
+    }}
+    .notify-section-note {{
+      margin: -6px 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }}
+    .notify-entry-grid {{
+      display: grid;
+      gap: 10px;
+    }}
+    .notify-entry {{
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }}
+    .notify-entry.has-image {{
+      grid-template-columns: 92px minmax(0, 1fr) auto;
+    }}
+    .notify-thumb {{
+      display: block;
+      width: 92px;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border-radius: 6px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+    }}
+    .notify-thumb img {{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }}
+    .notify-entry-body {{
+      min-width: 0;
+      display: grid;
+      gap: 7px;
+    }}
+    .notify-entry h3 {{
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.35;
+    }}
+    .notify-entry-meta {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }}
+    .notify-date-chip,
+    .notify-status-chip {{
+      display: inline-flex;
+      align-items: center;
+      min-height: 23px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--soft);
+      color: var(--muted);
+      line-height: 1.2;
+    }}
+    .notify-status-ready {{
+      background: #e7f7ef;
+      color: #167047;
+      border-color: #b9e7cf;
+    }}
+    .notify-status-waiting {{
+      background: #fff7df;
+      color: #8a5b00;
+      border-color: #f1d48b;
+    }}
+    .notify-status-legacy {{
+      background: #f3f4f6;
+      color: #4b5563;
+      border-color: #d8dee8;
+    }}
+    .notify-status-sent {{
+      background: #e8f1ff;
+      color: #225ea8;
+      border-color: #c7dcfb;
+    }}
+    .notify-status-partial {{
+      background: #fff1e8;
+      color: #a64d14;
+      border-color: #f5c7a9;
+    }}
+    .notify-url {{
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-size: 13px;
+    }}
+    .notify-preview summary {{
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }}
+    .notify-preview pre {{
+      margin: 8px 0 0;
+      max-height: 220px;
+      overflow: auto;
+      white-space: pre-wrap;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px;
+      background: #f8fafc;
+      font-size: 12px;
+    }}
+    .notify-entry-actions {{
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+      min-width: 120px;
+      margin: 0;
+    }}
+    .notify-entry-actions button {{
+      margin-top: 0;
+    }}
+    .notify-reaction-summary,
+    .notify-failure-summary {{
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }}
+    .notify-command-card {{
+      padding: 0;
+      overflow: hidden;
+    }}
+    .notify-command-card > summary {{
+      cursor: pointer;
+      list-style: none;
+      padding: 12px;
+      font-weight: 900;
+    }}
+    .notify-command-card > summary::-webkit-details-marker {{ display: none; }}
+    .notify-command-card > div {{
+      padding: 0 12px 12px;
+    }}
+    .notify-layout[data-layout="card"] .notify-entry-grid {{
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }}
+    .notify-layout[data-layout="card"] .notify-entry,
+    .notify-layout[data-layout="card"] .notify-entry.has-image {{
+      grid-template-columns: minmax(0, 1fr);
+    }}
+    .notify-layout[data-layout="card"] .notify-thumb {{
+      width: 100%;
+      aspect-ratio: 16 / 9;
+    }}
+    .notify-layout[data-layout="compact"] .notify-entry,
+    .notify-layout[data-layout="compact"] .notify-entry.has-image {{
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding: 9px 10px;
+    }}
+    .notify-layout[data-layout="compact"] .notify-thumb,
+    .notify-layout[data-layout="compact"] .notify-preview,
+    .notify-layout[data-layout="compact"] .notify-url {{
+      display: none;
+    }}
     .reader-card {{
       display: grid;
       grid-template-rows: 160px auto;
@@ -8916,6 +9114,14 @@ def page(title: str, body: str) -> bytes:
       .metric-row {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .layout-toggle {{ width: 100%; justify-content: space-between; }}
       .layout-toggle-button {{ flex: 1 1 0; }}
+      .notify-entry,
+      .notify-entry.has-image,
+      .notify-layout[data-layout="compact"] .notify-entry,
+      .notify-layout[data-layout="compact"] .notify-entry.has-image {{
+        grid-template-columns: 1fr;
+      }}
+      .notify-entry-actions {{ justify-content: flex-start; min-width: 0; }}
+      .notify-thumb {{ width: min(220px, 100%); }}
       .reader-inbox-row {{ grid-template-columns: 9px minmax(0, 1fr) auto; gap: 9px; }}
       .reader-row-source {{ display: none; }}
       .reader-row-main {{ display: block; }}
@@ -22010,8 +22216,180 @@ if (document.readyState === "loading") {{
         except SystemExit:
             active_channels = []
 
-        kind_labels = {"article": "完成專文", "item": "推薦文章"}
+        kind_labels = {"article": "新專文", "item": "新議題"}
         action_labels = {"sent": "已推播", "sent-partial": "部分推播", "marked-existing": "標記為已通知"}
+        layout = clean_text(form_value(query, "layout")) or "list"
+        if layout not in LAYOUT_MODES:
+            layout = "list"
+        auto_min_minutes = getattr(notify_mod, "DEFAULT_MIN_AGE_MINUTES", 15)
+        auto_max_days = getattr(notify_mod, "DEFAULT_AUTO_MAX_AGE_DAYS", 7)
+        now_local = datetime.now(LOCAL_TIMEZONE)
+        auto_start_dt = notify_mod.resolve_auto_start_at(env, initialize=True)
+        fallback_dt = datetime.min.replace(tzinfo=LOCAL_TIMEZONE)
+        weekday_labels = ("週一", "週二", "週三", "週四", "週五", "週六", "週日")
+
+        def event_local_dt(event: object) -> datetime | None:
+            parsed = notify_mod.parse_event_datetime(getattr(event, "ready_at", ""))
+            return parsed.astimezone(LOCAL_TIMEZONE) if parsed else None
+
+        def record_local_dt(record: dict) -> datetime | None:
+            parsed = parse_loose_date(record.get("sent_at") or record.get("ready_at"))
+            return parsed.astimezone(LOCAL_TIMEZONE) if parsed else None
+
+        def period_label_from_dt(parsed: datetime | None) -> str:
+            if not parsed:
+                return "未標示時間"
+            week_number = ((parsed.day - 1) // 7) + 1
+            return f"{parsed.year} 年 {parsed.month} 月 Week {week_number}"
+
+        def period_key_from_label(label: str) -> str:
+            return re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]+", "-", label).strip("-") or "undated"
+
+        def date_chip(parsed: datetime | None) -> str:
+            if not parsed:
+                return "未標時間"
+            return f"{parsed.year}-{parsed.month:02d}-{parsed.day:02d} {weekday_labels[parsed.weekday()]} {parsed.hour:02d}:{parsed.minute:02d}"
+
+        auto_start_label = date_chip(auto_start_dt.astimezone(LOCAL_TIMEZONE) if auto_start_dt else None)
+
+        def pending_age(event: object) -> float | None:
+            return notify_mod.event_age_minutes(event, now_local)
+
+        def event_kind_label(event: object) -> str:
+            text = clean_text(getattr(event, "text", ""))
+            if text.startswith("【新消息】"):
+                return "新消息"
+            if text.startswith("【新議題】"):
+                return "新議題"
+            if text.startswith("【新專文】"):
+                return "新專文"
+            return kind_labels.get(getattr(event, "kind", ""), clean_text(getattr(event, "kind", "")))
+
+        def is_legacy_pending(event: object) -> bool:
+            ready_at = notify_mod.parse_event_datetime(getattr(event, "ready_at", ""))
+            if auto_start_dt and ready_at and ready_at < auto_start_dt:
+                return True
+            age = pending_age(event)
+            if age is None:
+                return True
+            return auto_max_days > 0 and age > auto_max_days * 24 * 60
+
+        fresh_pending = sorted(
+            [event for event in pending if not is_legacy_pending(event)],
+            key=lambda event: event_local_dt(event) or fallback_dt,
+            reverse=True,
+        )
+        legacy_pending = sorted(
+            [event for event in pending if is_legacy_pending(event)],
+            key=lambda event: event_local_dt(event) or fallback_dt,
+            reverse=True,
+        )
+
+        def pending_status(event: object, bucket: str) -> tuple[str, str, str]:
+            age = pending_age(event)
+            if bucket == "legacy":
+                ready_at = notify_mod.parse_event_datetime(getattr(event, "ready_at", ""))
+                if auto_start_dt and ready_at and ready_at < auto_start_dt:
+                    return (
+                        "舊未發",
+                        "notify-status-legacy",
+                        f"早於自動推播起算時間 {auto_start_label}，保留手動處理。",
+                    )
+                return (
+                    "舊未發",
+                    "notify-status-legacy",
+                    f"超過自動送出的 {auto_max_days} 天窗口，保留手動處理。",
+                )
+            if age is None:
+                return ("未標時間", "notify-status-legacy", "缺少可推播時間，保留手動處理。")
+            if age < auto_min_minutes:
+                remaining = max(1, int(auto_min_minutes - age + 0.999))
+                return (
+                    f"待發 {remaining} 分",
+                    "notify-status-waiting",
+                    f"待滿 {auto_min_minutes} 分鐘後才會被自動推播。",
+                )
+            return ("可自動發", "notify-status-ready", "背景推播指令會處理；也可以手動立即送。")
+
+        def notification_entry(event: object, bucket: str) -> str:
+            parsed = event_local_dt(event)
+            status_label, status_class, status_hint = pending_status(event, bucket)
+            image_url = clean_text(getattr(event, "image_url", ""))
+            image_html = (
+                f'<a class="notify-thumb" href="{h(image_url)}" target="_blank" rel="noopener">'
+                f'<img src="{h(image_url)}" alt=""></a>'
+                if image_url
+                else ""
+            )
+            image_class = " has-image" if image_html else ""
+            manual_label = "手動送出" if bucket == "legacy" else "立即送出"
+            return f"""
+<article class="notify-entry{image_class}" data-notify-card>
+  {image_html}
+  <div class="notify-entry-body">
+    <div class="notify-entry-meta">
+      <span class="notify-date-chip">{h(date_chip(parsed))}</span>
+      <span class="notify-date-chip">{h(event_kind_label(event))}</span>
+      <span class="notify-status-chip {h(status_class)}" title="{h(status_hint)}">{h(status_label)}</span>
+    </div>
+    <h3>{h(getattr(event, 'title', ''))}</h3>
+    <p class="notify-url"><a href="{h(getattr(event, 'url', ''))}" target="_blank" rel="noopener">{h(getattr(event, 'url', ''))}</a></p>
+    <details class="notify-preview">
+      <summary>預覽訊息內容</summary>
+      <pre>{h(getattr(event, 'text', ''))}</pre>
+    </details>
+  </div>
+  <form class="notify-entry-actions" method="post" action="/notifications/resend" data-notify-run-form data-label="推播：{h(getattr(event, 'title', ''))}">
+    <input type="hidden" name="kind" value="{h(getattr(event, 'kind', ''))}">
+    <input type="hidden" name="id" value="{h(getattr(event, 'record_id', ''))}">
+    <input type="hidden" name="mode" value="send">
+    <button type="submit" class="button-small">{h(manual_label)}</button>
+    <span class="muted" data-notify-status></span>
+  </form>
+</article>
+"""
+
+        def render_event_groups(events_to_render: list[object], bucket: str, empty_message: str) -> str:
+            if not events_to_render:
+                return f'<p class="muted">{h(empty_message)}</p>'
+            groups: dict[str, list[object]] = defaultdict(list)
+            for event in events_to_render:
+                groups[period_label_from_dt(event_local_dt(event))].append(event)
+            pieces = []
+            ordered_labels = sorted(
+                groups,
+                key=lambda label: max((event_local_dt(event) or fallback_dt) for event in groups[label]),
+                reverse=True,
+            )
+            for label in ordered_labels:
+                records = groups[label]
+                section_id = f"notify-{bucket}-{period_key_from_label(label)}"
+                rows = "".join(notification_entry(event, bucket) for event in records)
+                pieces.append(
+                    f"""
+<details class="reader-period-details notify-period-details" id="{h(section_id)}" open>
+  <summary class="reader-period-heading">
+    <span class="reader-period-heading-label">{h(label)}</span>
+    <span class="reader-period-count">{len(records)} 筆</span>
+  </summary>
+  <div class="notify-entry-grid">{rows}</div>
+</details>
+"""
+                )
+            return "".join(pieces)
+
+        def notify_layout_toggle(section_id: str, current: str) -> str:
+            modes = (("list", "清單", "list"), ("card", "卡片", "card"), ("compact", "精簡", "compact"))
+            buttons = []
+            for mode, label, icon_name in modes:
+                active = " is-active" if mode == current else ""
+                buttons.append(
+                    f'<button type="button" class="layout-toggle-button{active}" '
+                    f'data-layout-target="{h(section_id)}" data-layout-mode="{h(mode)}" '
+                    f'aria-pressed="{str(mode == current).lower()}" title="{h(label)}">'
+                    f'{layout_icon(icon_name)}<span>{h(label)}</span></button>'
+                )
+            return f'<div class="layout-toggle" role="group" aria-label="顯示模式">{"".join(buttons)}</div>'
 
         def reaction_summary(event_key: str) -> str:
             entry = reactions.get(event_key)
@@ -22037,33 +22415,18 @@ if (document.readyState === "loading") {{
                     parts.append(f"{channel_label}：{'，'.join(bits)}")
             return "；".join(parts)
 
-        pending_cards = []
-        for event in pending:
-            pending_cards.append(
-                f"""
-<article class="card" data-notify-card>
-  <p class="muted">{h(kind_labels.get(event.kind, event.kind))}</p>
-  <strong>{h(event.title)}</strong>
-  <details>
-    <summary>預覽訊息內容</summary>
-    <pre style="white-space: pre-wrap;">{h(event.text)}</pre>
-  </details>
-  <p><a href="{h(event.url)}" target="_blank" rel="noopener">{h(event.url)}</a></p>
-  <form method="post" action="/notifications/resend" data-notify-run-form data-label="推播：{h(event.title)}">
-    <input type="hidden" name="kind" value="{h(event.kind)}">
-    <input type="hidden" name="id" value="{h(event.record_id)}">
-    <input type="hidden" name="mode" value="send">
-    <button type="submit">只送這則</button>
-    <span class="muted" data-notify-status></span>
-  </form>
-</article>
-"""
-            )
-        pending_html = "".join(pending_cards) or '<p class="muted">目前沒有待推播的新內容。</p>'
+        pending_html = render_event_groups(fresh_pending, "pending", "目前沒有新的待發內容。")
+        legacy_html = render_event_groups(legacy_pending, "legacy", "目前沒有舊未發內容。")
 
-        history_rows = []
-        for record in history:
-            sent_at = clean_text(record.get("sent_at")).replace("T", " ")[:16]
+        def history_status(action: str) -> tuple[str, str]:
+            if action == "sent-partial":
+                return (action_labels.get(action, action), "notify-status-partial")
+            if action == "sent":
+                return (action_labels.get(action, action), "notify-status-sent")
+            return (action_labels.get(action, action), "notify-status-legacy")
+
+        def history_entry(record: dict) -> str:
+            parsed = record_local_dt(record)
             kind = clean_text(record.get("kind"))
             action = clean_text(record.get("action"))
             record_id = clean_text(record.get("record_id"))
@@ -22071,42 +22434,78 @@ if (document.readyState === "loading") {{
             title = clean_text(record.get("title"), 120) or record_id
             channels_label = "、".join(clean_text(c) for c in record.get("channels", []) if clean_text(c))
             summary = reaction_summary(clean_text(record.get("event_key")))
+            status_label, status_class = history_status(action)
             title_html = f'<a href="{h(url)}" target="_blank" rel="noopener">{h(title)}</a>' if url else h(title)
+            failures = record.get("delivery_failures") if isinstance(record.get("delivery_failures"), list) else []
+            failure_bits = []
+            for failure in failures:
+                if isinstance(failure, dict):
+                    failure_bits.append(f"{clean_text(failure.get('channel'))}: {clean_text(failure.get('error'), 220)}")
+            failure_html = f'<p class="notify-failure-summary">失敗：{h("；".join(failure_bits))}</p>' if failure_bits else ""
             resend_form = ""
             if kind in {"article", "item"} and record_id:
                 resend_form = f"""
-    <form method="post" action="/notifications/resend" data-notify-run-form data-label="重送：{h(title)}">
+    <form class="notify-entry-actions" method="post" action="/notifications/resend" data-notify-run-form data-label="重送：{h(title)}">
       <input type="hidden" name="kind" value="{h(kind)}">
       <input type="hidden" name="id" value="{h(record_id)}">
       <input type="hidden" name="mode" value="resend">
-      <button type="submit" class="quiet">重送</button>
+      <button type="submit" class="button-small quiet">重送</button>
       <span class="muted" data-notify-status></span>
     </form>"""
-            history_rows.append(
-                f"""
-  <tr>
-    <td class="muted" style="white-space: nowrap;">{h(sent_at)}</td>
-    <td>{h(kind_labels.get(kind, kind))}</td>
-    <td>{title_html}</td>
-    <td class="muted">{h(channels_label)}</td>
-    <td class="muted">{h(action_labels.get(action, action))}</td>
-    <td>{h(summary) or '<span class="muted">—</span>'}</td>
-    <td>{resend_form}</td>
-  </tr>"""
+            reaction_html = (
+                f'<p class="notify-reaction-summary">{h(summary)}</p>'
+                if summary
+                else '<p class="notify-reaction-summary">尚未收集到表情或回覆。</p>'
             )
-        history_html = (
-            f"""
-<div style="overflow-x: auto;">
-<table>
-  <thead>
-    <tr><th>時間</th><th>類型</th><th>標題</th><th>頻道</th><th>狀態</th><th>表情與回覆</th><th></th></tr>
-  </thead>
-  <tbody>{''.join(history_rows)}</tbody>
-</table>
-</div>"""
-            if history_rows
-            else '<p class="muted">還沒有推播紀錄。第一次啟用時，建議先在右側按「全部標為已通知」，避免把既有內容一次灌進頻道。</p>'
-        )
+            return f"""
+<article class="notify-entry" data-notify-card>
+  <div class="notify-entry-body">
+    <div class="notify-entry-meta">
+      <span class="notify-date-chip">{h(date_chip(parsed))}</span>
+      <span class="notify-date-chip">{h(clean_text(record.get('notification_label')) or kind_labels.get(kind, kind))}</span>
+      <span class="notify-date-chip">{h(channels_label or "未標頻道")}</span>
+      <span class="notify-status-chip {h(status_class)}">{h(status_label)}</span>
+    </div>
+    <h3>{title_html}</h3>
+    {reaction_html}
+    {failure_html}
+  </div>
+  {resend_form}
+</article>
+"""
+
+        def render_history_groups(records: list[dict]) -> str:
+            if not records:
+                return '<p class="muted">還沒有推播紀錄。第一次啟用時，建議先在右側按「全部標為已通知」，避免把既有內容一次灌進頻道。</p>'
+            groups: dict[str, list[dict]] = defaultdict(list)
+            for record in records:
+                groups[period_label_from_dt(record_local_dt(record))].append(record)
+            pieces = []
+            ordered_labels = sorted(
+                groups,
+                key=lambda label: max((record_local_dt(record) or fallback_dt) for record in groups[label]),
+                reverse=True,
+            )
+            for label in ordered_labels:
+                records_for_label = groups[label]
+                section_id = f"notify-history-{period_key_from_label(label)}"
+                rows = "".join(history_entry(record) for record in records_for_label)
+                pieces.append(
+                    f"""
+<details class="reader-period-details notify-period-details" id="{h(section_id)}" open>
+  <summary class="reader-period-heading">
+    <span class="reader-period-heading-label">{h(label)}</span>
+    <span class="reader-period-count">{len(records_for_label)} 筆</span>
+  </summary>
+  <div class="notify-entry-grid">{rows}</div>
+</details>
+"""
+                )
+            return "".join(pieces)
+
+        history_html = render_history_groups(history)
+        waiting_count = sum(1 for event in fresh_pending if (pending_age(event) or 0) < auto_min_minutes)
+        ready_count = len(fresh_pending) - waiting_count
 
         def secret_field(key: str, label: str, hint: str = "") -> str:
             current = clean_text(env.get(key))
@@ -22132,16 +22531,19 @@ if (document.readyState === "loading") {{
         command_forms = []
         for name in ("notify_dry_run", "notify_send", "notify_mark_existing", "notify_collect_reactions"):
             config = COMMANDS.get(name) or {}
+            open_attr = " open" if name in {"notify_dry_run", "notify_send"} else ""
             command_forms.append(
                 f"""
-    <section class="card">
-      <h3>{h(config.get('label', name))}</h3>
+    <details class="card workspace-sidebar-section notify-command-card"{open_attr}>
+      <summary>{h(config.get('label', name))}</summary>
+      <div>
       <p class="muted">{h(config.get('description', ''))}</p>
       <form method="post" action="/commands/run" data-command-form>
         <input type="hidden" name="command" value="{h(name)}">
-        <button type="submit">{h(config.get('button', '執行'))}</button>
+        <button type="submit" class="button-small">{h(config.get('button', '執行'))}</button>
       </form>
-    </section>"""
+      </div>
+    </details>"""
             )
 
         body = f"""
@@ -22152,11 +22554,40 @@ if (document.readyState === "loading") {{
 <div class="workspace-layout" id="notify-workspace">
   <section class="workspace-main">
     <h1>推播通知</h1>
-    <p class="muted">完成專文（狀態「已發布」）與「有中文翻譯＋AI 推薦」的文章，會列進待推播清單；送出後記錄在 .cache/notified-events.jsonl，不會重複推播。表情與回覆要按右側「收集表情與回覆」才會更新。</p>
-    <h2>待推播（{len(pending)}）</h2>
-    <div class="list">{pending_html}</div>
-    <h2>已推播紀錄（{len(history)}）</h2>
-    {history_html}
+    <p class="muted">完成專文（狀態「已發布」）與「有中文翻譯＋AI 推薦」的文章會進入通知隊列。自動推播起算於 {h(auto_start_label)}；之後產出的新內容先在待發區停留 {auto_min_minutes} 分鐘。整批推播只處理待滿時間且不超過 {auto_max_days} 天的內容，起算前內容歸在舊未發保留手動處理。送出後會記錄在 .cache/notified-events.jsonl，表情與回覆要按右側「收集表情與回覆」才會更新。</p>
+    <div class="notify-summary-grid">
+      <div class="notify-stat"><strong>{len(fresh_pending)}</strong><span class="muted">待發區</span></div>
+      <div class="notify-stat"><strong>{ready_count}</strong><span class="muted">可自動發</span></div>
+      <div class="notify-stat"><strong>{waiting_count}</strong><span class="muted">等待 {auto_min_minutes} 分鐘</span></div>
+      <div class="notify-stat"><strong>{len(legacy_pending)}</strong><span class="muted">舊未發</span></div>
+      <div class="notify-stat"><strong>{len(history)}</strong><span class="muted">已發紀錄</span></div>
+    </div>
+    {notify_layout_toggle("notify-events", layout)}
+    <section class="notify-layout" id="notify-events" data-layout="{h(layout)}" data-layout-persist>
+      <details class="reader-period-details notify-period-details" open>
+        <summary class="reader-period-heading">
+          <span class="reader-period-heading-label">待發區</span>
+          <span class="reader-period-count">{len(fresh_pending)} 筆</span>
+        </summary>
+        <p class="notify-section-note">新產出的內容先放這裡；未滿 {auto_min_minutes} 分鐘會顯示倒數，待滿後整批推播會自動處理，也可以逐筆立即送出。</p>
+        {pending_html}
+      </details>
+      <details class="reader-period-details notify-period-details">
+        <summary class="reader-period-heading">
+          <span class="reader-period-heading-label">舊未發</span>
+          <span class="reader-period-count">{len(legacy_pending)} 筆</span>
+        </summary>
+        <p class="notify-section-note">這些是超過自動送出窗口或缺少時間標記的舊內容；保留在這裡供手動送出或之後整批標記。</p>
+        {legacy_html}
+      </details>
+      <details class="reader-period-details notify-period-details" open>
+        <summary class="reader-period-heading">
+          <span class="reader-period-heading-label">已推播紀錄</span>
+          <span class="reader-period-count">{len(history)} 筆</span>
+        </summary>
+        {history_html}
+      </details>
+    </section>
   </section>
   <aside class="workspace-sidebar" id="notify-sidebar">
     <section class="card workspace-sidebar-section">
@@ -22167,8 +22598,9 @@ if (document.readyState === "loading") {{
       <p style="margin: 4px 0;"><strong>實際會送的頻道</strong>：{h(active_label)}</p>
     </section>
 {''.join(command_forms)}
-    <section class="card workspace-sidebar-section">
-      <h3>頻道設定</h3>
+    <details class="card workspace-sidebar-section notify-command-card" open>
+      <summary>頻道設定</summary>
+      <div>
       <p class="muted">存到 .cache/notify-secrets.env（不進 git）。留空表示不變；填一個「-」表示清除。若 shell 已有同名環境變數，會以環境變數為準。</p>
       <form method="post" action="/notifications/save-channels" data-notify-settings-form>
 {secret_field("ION_SLACK_WEBHOOK_URL", "Slack Incoming Webhook URL", "api.slack.com/apps → Incoming Webhooks")}
@@ -22179,11 +22611,12 @@ if (document.readyState === "loading") {{
 {secret_field("ION_PUBLIC_BASE_URL", "公開閱讀版網址", "預設 https://technews.ospo.tw/reader")}
 {secret_field("ION_NOTIFY_CHANNELS", "限定頻道（選填）", "例如 slack,telegram；留空自動判斷")}
         <div class="button-row">
-          <button type="submit">儲存頻道設定</button>
+          <button type="submit" class="button-small">儲存頻道設定</button>
           <span class="muted" data-notify-status></span>
         </div>
       </form>
-    </section>
+      </div>
+    </details>
   </aside>
 </div>
 """
@@ -22303,6 +22736,10 @@ if (document.readyState === "loading") {{
             "articles" if kind == "article" else "items",
             "--id",
             record_id,
+            "--min-age-minutes",
+            "0",
+            "--max-age-days",
+            "0",
         ]
         if mode == "resend":
             command.append("--force")

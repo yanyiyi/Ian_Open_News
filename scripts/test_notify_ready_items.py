@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -23,6 +24,8 @@ class NotifyReadyItemsTest(unittest.TestCase):
                 "body_markdown": "# 我的專文\n\n這是文章導言，適合作為摘要。\n\n第二段。",
                 "track": "open-tech-open-industry",
                 "tags": ["開放資料"],
+                "published_at": "2026-07-06T09:30:00+08:00",
+                "image_url": "https://example.test/cover.jpg",
             },
             "https://example.test/reader",
         )
@@ -30,10 +33,12 @@ class NotifyReadyItemsTest(unittest.TestCase):
         self.assertIsNotNone(event)
         assert event is not None
         self.assertEqual(event.event_key, "article:published:art-test")
-        self.assertIn("Ian Open News 新專文：我的專文", event.text)
+        self.assertIn("【新專文】我的專文", event.text)
         self.assertIn("這是文章導言，適合作為摘要。", event.text)
         self.assertIn("https://example.test/reader/features/art-test.html", event.text)
         self.assertNotIn("開放科技與開放產業發展", event.text)
+        self.assertEqual(event.ready_at, "2026-07-06T09:30:00+08:00")
+        self.assertEqual(event.image_url, "https://example.test/cover.jpg")
 
     def test_item_event_uses_one_line_and_three_reasons_instead_of_summary(self) -> None:
         event = notify.item_event(
@@ -67,7 +72,7 @@ class NotifyReadyItemsTest(unittest.TestCase):
         self.assertIsNotNone(event)
         assert event is not None
         self.assertEqual(event.event_key, "item:translated-review:item-test")
-        self.assertIn("Ian Open News 推薦閱讀：中文標題", event.text)
+        self.assertIn("【新消息】中文標題", event.text)
         self.assertIn("這篇適合讀", event.text)
         self.assertIn("1. 第一個理由。", event.text)
         self.assertIn("2. 第二個理由。", event.text)
@@ -75,6 +80,35 @@ class NotifyReadyItemsTest(unittest.TestCase):
         self.assertNotIn("這段摘要不應該成為通知主體", event.text)
         self.assertNotIn("數位人文與在地知識建構", event.text)
         self.assertNotIn("純新聞 / 小消息", event.text)
+
+    def test_triaged_material_event_uses_new_issue_prefix(self) -> None:
+        event = notify.item_event(
+            {
+                "id": "item-issue",
+                "status": "triaged",
+                "local_decision": {"action": "accepted-for-editing"},
+                "reading_metadata": {
+                    "translated_article_markdown_zh": "# 中文全文\n\n第一段。",
+                    "og_image": "https://example.test/issue.png",
+                },
+                "editorial_triage": {
+                    "codex_review": {
+                        "zh_title": "材料庫題目",
+                        "one_line_recommendation": "這篇可以收進材料庫。",
+                        "reasons": ["一", "二", "三"],
+                        "needs_fulltext": False,
+                    }
+                },
+            },
+            "https://example.test/reader",
+            notify.DEFAULT_ITEM_STATUSES,
+            include_needs_fulltext=False,
+        )
+
+        self.assertIsNotNone(event)
+        assert event is not None
+        self.assertIn("【新議題】材料庫題目", event.text)
+        self.assertEqual(event.image_url, "https://example.test/issue.png")
 
     def test_item_event_skips_reviews_that_still_need_fulltext_by_default(self) -> None:
         item = {
@@ -120,6 +154,66 @@ class NotifyReadyItemsTest(unittest.TestCase):
             notify.append_jsonl(state, notify.event_state_records([event], ["slack"], "sent"))
 
             self.assertEqual(notify.load_notified_keys(state), {"item:translated-review:item-a"})
+
+    def test_auto_send_filter_waits_and_skips_old_backlog(self) -> None:
+        now = datetime(2026, 7, 6, 12, 0, tzinfo=timezone.utc)
+        waiting = notify.NotificationEvent(
+            "item:waiting",
+            "item",
+            "waiting",
+            "Waiting",
+            "Message",
+            "https://example.test/waiting",
+            ready_at=(now - timedelta(minutes=10)).isoformat(),
+        )
+        ready = notify.NotificationEvent(
+            "item:ready",
+            "item",
+            "ready",
+            "Ready",
+            "Message",
+            "https://example.test/ready",
+            ready_at=(now - timedelta(minutes=20)).isoformat(),
+        )
+        old = notify.NotificationEvent(
+            "item:old",
+            "item",
+            "old",
+            "Old",
+            "Message",
+            "https://example.test/old",
+            ready_at=(now - timedelta(days=9)).isoformat(),
+        )
+
+        filtered = notify.filter_events_for_auto_send([waiting, ready, old], now=now)
+
+        self.assertEqual(filtered, [ready])
+
+    def test_auto_send_filter_skips_events_before_auto_start(self) -> None:
+        now = datetime(2026, 7, 6, 12, 0, tzinfo=timezone.utc)
+        auto_start = now - timedelta(minutes=30)
+        before_start = notify.NotificationEvent(
+            "item:before-start",
+            "item",
+            "before-start",
+            "Before",
+            "Message",
+            "https://example.test/before",
+            ready_at=(now - timedelta(minutes=40)).isoformat(),
+        )
+        after_start = notify.NotificationEvent(
+            "item:after-start",
+            "item",
+            "after-start",
+            "After",
+            "Message",
+            "https://example.test/after",
+            ready_at=(now - timedelta(minutes=20)).isoformat(),
+        )
+
+        filtered = notify.filter_events_for_auto_send([before_start, after_start], now=now, auto_start_at=auto_start)
+
+        self.assertEqual(filtered, [after_start])
 
     def test_parse_channels_accepts_slack_bot_without_webhook(self) -> None:
         channels = notify.parse_channels(
