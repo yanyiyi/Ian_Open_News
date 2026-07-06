@@ -11141,20 +11141,33 @@ OMNIBAR_JS = """
 
 ARTICLE_EDITOR_CSS = """
 <style>
-  .article-editor { display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,380px); gap:16px; align-items:start; }
-  .article-main, .article-sidebar { display:grid; gap:14px; }
-  .article-title-input { width:100%; font-size:20px; font-weight:700; padding:10px 12px; border:1px solid var(--border,#cbd5e1); border-radius:10px; box-sizing:border-box; }
+  .article-editor-toolbar { margin: 4px 0 12px; }
+  .article-editor { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,360px); gap:18px; align-items:start; transition:grid-template-columns .28s ease, gap .28s ease; }
+  .article-editor.is-sidebar-hidden { grid-template-columns:minmax(0,1fr) minmax(0,0px); gap:0; }
+  .article-main, .article-sidebar { display:grid; gap:14px; min-width:0; }
+  .article-main > .card, .article-sidebar > .card { min-width:0; }
+  .article-title-input { width:100%; font-size:20px; font-weight:700; padding:10px 12px; border:1px solid var(--border,#cbd5e1); border-radius:8px; box-sizing:border-box; }
   .article-saved { font-size:13px; color:var(--muted,#64748b); min-height:18px; }
-  .article-sidebar .card { padding:14px; }
+  .article-sidebar { position:sticky; top:78px; max-height:calc(100vh - 96px); overflow:auto; overscroll-behavior:contain; align-self:start; transition:transform .28s ease, opacity .28s ease; }
+  .article-editor.is-sidebar-hidden .article-sidebar { overflow:hidden; transform:translateX(24px); opacity:0; pointer-events:none; }
+  .article-sidebar .card { padding:14px; display:grid; gap:10px; }
+  .article-sidebar h2 { margin:0; font-size:17px; }
+  .article-sidebar h3 { margin:8px 0 0; font-size:14px; }
+  .article-sidebar .help, .article-sidebar .muted { font-size:13px; line-height:1.45; }
+  .article-sidebar .button-row { gap:6px; }
+  .article-sidebar .button-row .button, .article-sidebar .button-row button { min-height:30px; padding:6px 8px; border-radius:6px; font-size:12px; line-height:1.2; box-shadow:none; }
+  .article-sidebar .button-row svg, .article-sidebar .button svg { width:14px; height:14px; }
   .article-pick-list, .article-search-results { display:grid; gap:8px; }
-  .article-search-results { max-height:40vh; overflow:auto; padding-right:2px; }
-  .article-pick-card { border:1px solid var(--line,#e2e8f0); border-radius:8px; padding:8px 10px; background:#fff; display:grid; gap:6px; }
-  .article-pick-title { font-weight:600; }
-  .article-pick-summary { font-size:13px; color:var(--muted,#64748b); margin:0; }
+  .article-search-results { max-height:min(34vh,320px); overflow:auto; padding-right:2px; }
+  .article-pick-card { min-width:0; border:1px solid var(--line,#e2e8f0); border-radius:8px; padding:8px 10px; background:#fff; display:grid; gap:6px; }
+  .article-pick-title { font-weight:600; overflow-wrap:anywhere; }
+  .article-pick-summary { font-size:13px; color:var(--muted,#64748b); margin:0; overflow-wrap:anywhere; }
   .article-pick-meta { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
   .article-search-row { margin-bottom:8px; }
   .article-search-row input { width:100%; box-sizing:border-box; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; }
-  .article-claim { border:1px solid var(--line,#e2e8f0); border-radius:8px; padding:8px 10px; margin-bottom:8px; }
+  .article-refresh-banner { border:1px solid var(--line,#e2e8f0); border-left:4px solid var(--ocf-cyan,#00a1cf); border-radius:8px; padding:8px 10px; display:grid; gap:8px; }
+  .article-refresh-banner p { margin:0; }
+  .article-claim { border:1px solid var(--line,#e2e8f0); border-radius:8px; padding:8px 10px; margin-bottom:0; overflow-wrap:anywhere; }
   .article-claim p { margin:6px 0 0; font-size:13px; color:var(--muted,#475569); }
   .article-claim .badge { border:0; color:#fff; }
   .article-claim .badge--fc-ok { background:var(--ocf-primary,#6450dc); color:#fff; }
@@ -11162,7 +11175,20 @@ ARTICLE_EDITOR_CSS = """
   .article-claim .badge--fc-bad { background:#dc2626; color:#fff; }
   .article-field { display:block; font-size:14px; font-weight:600; margin:0 0 4px; }
   .article-field select { width:100%; padding:8px; border-radius:8px; border:1px solid var(--border,#cbd5e1); font:inherit; }
-  @media (max-width:900px) { .article-editor { grid-template-columns:1fr; } .article-search-results { max-height:none; } }
+  .article-main .easymde-host { min-width:0; overflow:hidden; }
+  .easymde-host .EasyMDEContainer, .easymde-host .CodeMirror, .easymde-host .editor-preview, .easymde-host .editor-preview-side { min-width:0; max-width:100%; box-sizing:border-box; }
+  .easymde-host .editor-toolbar { max-width:100%; box-sizing:border-box; display:flex; flex-wrap:wrap; gap:4px; padding:8px; }
+  .easymde-host .CodeMirror { width:100% !important; min-height:min(72vh,760px); }
+  .easymde-host .CodeMirror-scroll { min-height:min(72vh,760px); }
+  .easymde-host .CodeMirror pre.CodeMirror-line, .easymde-host .CodeMirror pre.CodeMirror-line-like, .easymde-host .editor-preview, .easymde-host .editor-preview-side { overflow-wrap:anywhere; word-break:break-word; }
+  @media (max-width:900px) {
+    .article-editor, .article-editor.is-sidebar-hidden { grid-template-columns:1fr; gap:18px; }
+    .article-sidebar { position:static; max-height:none; order:-1; }
+    .article-editor.is-sidebar-hidden .article-sidebar { display:none; }
+    .article-search-results { max-height:none; }
+    .article-editor-toolbar { justify-content:stretch; }
+    .article-editor-toolbar .workspace-sidebar-toggle { width:100%; justify-content:center; }
+  }
 </style>
 """
 
@@ -11286,6 +11312,7 @@ ARTICLE_EDITOR_JS = """
     easymde = new EasyMDE({
       element: bodyArea,
       autoDownloadFontAwesome: false,
+      lineWrapping: true,
       spellChecker: false,
       status: ["lines", "words"],
       placeholder: "在這裡順稿。右側「事實查核守則」對照有沒有寫翻原本查核過的地方。",
@@ -14836,7 +14863,10 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 
         body_html = f"""
 {back_nav_html(self.same_origin_referer_path(back_href), "回編輯歷程")}
-<section class="article-editor">
+<div class="workspace-toolbar article-editor-toolbar">
+  {workspace_sidebar_toggle("article-editor-workspace", "article-editor-sidebar", "article-editor", "編修工具")}
+</div>
+<section class="article-editor" id="article-editor-workspace">
   <div class="article-main">
     <div class="card">
       <div class="section-kicker">編修台 · 專文</div>
@@ -14847,7 +14877,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <textarea id="article-body">{h(body)}</textarea>
     </div>
   </div>
-  <aside class="article-sidebar">
+  <aside class="article-sidebar" id="article-editor-sidebar">
     <div class="card">
       <h2>事實查核守則</h2>
       <p class="help">建立這篇時，已快照同組材料最近一次查核的結論。順稿時對照，別寫翻已經查核過的地方。</p>
