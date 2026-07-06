@@ -6,11 +6,11 @@ RSSHub 把沒有 RSS 的網站（PTT、Dcard、巴哈姆特、噗浪等）轉成
 
 ```jsonc
 {
-  "feed_url": "http://127.0.0.1:1200/ptt/hot",
+  "feed_url": "http://127.0.0.1:1200/hackernews/best",
   "source_type": "rss",            // 抓取路徑完全沿用既有 fetch_rss.py
   "served_via": "rsshub@local",    // 標記這條靠哪個 bridge
-  "bridge": "ptt/hot",             // route 名，換主機時重組 feed_url 用
-  "site_url": "https://www.ptt.cc/bbs/"
+  "bridge": "hackernews/best",     // route 名，換主機時重組 feed_url 用
+  "site_url": "https://news.ycombinator.com/best"
 }
 ```
 

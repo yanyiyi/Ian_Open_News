@@ -1,0 +1,52 @@
+name: Deploy reader to GitHub Pages
+
+# 線上閱讀版（technews.ospo.tw）由此 workflow 建置部署：
+# push 到 main 時全量重產 docs/reader/，HTML 產物不進 git。
+# 施工背景與回滾方式見 docs/ghpages-actions-plan.md。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "database/**"
+      - "scripts/render_ghpages_reader.py"
+      - "scripts/local_web.py"
+      - "scripts/fulltext_store.py"
+      - "docs/index.html"
+      - "docs/CNAME"
+      - "docs/reader/assets/**"
+      - ".github/workflows/deploy-reader.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Render reader pages
+        run: python3 scripts/render_ghpages_reader.py
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
