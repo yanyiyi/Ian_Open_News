@@ -207,20 +207,16 @@ python3 scripts/fetch_rss.py --candidate-output .cache/rss-candidates.jsonl --di
 
 「編輯台」(`/editor`) 把「挑材料 → 選引擎與寫文模式 → 產出草稿」收成一個工作台；只有經過編輯台產出的稿件才稱為 article（專題文章）。任務類型（選法檢查、撰稿、查核找原文、萃取觀點）、觀點庫串聯與查核行為的完整說明見 [workflow.md](workflow.md) 的「編輯台（Editor Console）」一節。
 
-## 更新線上閱讀版（產出公開站）
+## 線上閱讀版（公開站）怎麼更新
 
-首頁「本機指令」區有「更新線上閱讀版」按鈕，執行：
+線上版（technews.ospo.tw）由 GitHub Actions 自動建置部署：push 到 main 且 `database/**` 等相關路徑有變動時，`.github/workflows/deploy-reader.yml` 會跑 `render_ghpages_reader.py` 全量重產並直接部署。**HTML 產物不進版控**（`.gitignore` 已排除 `docs/reader/*.html` 與 `articles/`、`features/`、`tags/`），只有 `docs/reader/assets/` 圖片快取與手寫的 `docs/index.html` 留在 git。
 
-```bash
-python3 scripts/render_ghpages_reader.py
-```
+行為重點：
 
-行為與注意事項：
-
-- **全量重產**：每次讀完整 `database/items.jsonl` 與 `database/articles.jsonl`，重寫 `docs/reader/` 下所有頁面（首頁、小消息、專文列表與單篇、每篇材料頁、標籤與來源索引），並清掉已不存在項目的舊 HTML。
+- **全量重產**：每次讀完整 `database/items.jsonl` 與 `database/articles.jsonl`，重寫首頁、小消息、專文列表與單篇、每篇材料頁、標籤索引。
 - **只發布公開範圍**：`track` 為開放科技主線、`kind` 屬精選文章／觀點文章／小消息的項目；專文要 `status: published` 才會出現在 features。
-- **完成後自動 commit**：訊息格式「產出 M 月 D 日 …… 線上版」。push 到 GitHub 後由 GitHub Pages 對外服務（technews.ospo.tw）。
-- **手動觸發**：目前沒有排程或 CI 自動跑；資料庫更新後要記得回首頁按這顆按鈕，線上版才會跟上。
+- **本機預覽**：首頁「本機指令」區的「重產本機閱讀版預覽」按鈕只在本機重產 `docs/reader/`，不會 commit；想先看再 push 時用它。
+- 施工背景與回滾方式見 [ghpages-actions-plan.md](ghpages-actions-plan.md)。
 
 ## 本機指令按鈕
 

@@ -598,8 +598,8 @@ COMMANDS = {
     },
     "render_ghpages_reader": {
         "label": "產生 GitHub Pages 閱讀版",
-        "description": "輸出 docs/reader/index.html（開放科技主線的精選文章、小消息與觀點文章），以及狀態為「已發布」的專文（features.html）；完成後會直接送一個線上版 commit。",
-        "button": "更新線上閱讀版",
+        "description": "在本機重產 docs/reader/ 預覽頁（開放科技主線的精選文章、小消息、觀點文章與已發布專文）。線上版（technews.ospo.tw）由 GitHub Actions 在 push 後自動建置部署，這裡不再送 commit。",
+        "button": "重產本機閱讀版預覽",
         "command": [sys.executable, str(ROOT / "scripts" / "render_ghpages_reader.py")],
     },
     "enrich_reader_metadata": {
@@ -2409,17 +2409,8 @@ def _record_apply_run(rpt_id: str, engine: str, output: str, diff_text: str, cha
     write_jsonl(INSIGHT_REPORTS, reports)
 
 
-def online_reader_commit_message(dt: datetime | None = None) -> str:
-    current = dt.astimezone(LOCAL_TIMEZONE) if dt else datetime.now(LOCAL_TIMEZONE)
-    return f"產出 {current.month} 月 {current.day} 日 {current.hour}時{current.minute}分{current.second}秒 線上版"
-
-
 def data_autocommit_file_labels() -> list[str]:
     return [str(path.relative_to(ROOT)) for path in DATA_AUTOCOMMIT_FILES]
-
-
-def online_reader_file_labels() -> list[str]:
-    return ["docs/reader"]
 
 
 def data_autocommit_status(state: str, message: str = "", **extra: object) -> dict:
@@ -2506,87 +2497,6 @@ def commit_database_state(trigger: str = "manual") -> dict:
                 trigger=trigger,
                 files=data_autocommit_file_labels(),
             )
-
-
-def commit_online_reader_output() -> dict:
-    labels = online_reader_file_labels()
-    started_at = datetime.now(LOCAL_TIMEZONE)
-    try:
-        status = subprocess.run(
-            ["git", "status", "--porcelain", "--", *labels],
-            cwd=ROOT,
-            text=True,
-            capture_output=True,
-            timeout=20,
-        )
-        if status.returncode != 0:
-            return {
-                "state": "failed",
-                "message": "線上版 commit 前檢查 git 狀態失敗。",
-                "files": labels,
-                "output": status.stderr.strip() or status.stdout.strip(),
-                "returncode": status.returncode,
-            }
-        if not status.stdout.strip():
-            return {
-                "state": "no-changes",
-                "message": "線上版沒有需要 commit 的變更。",
-                "files": labels,
-                "returncode": 0,
-            }
-
-        add = subprocess.run(
-            ["git", "add", "--", *labels],
-            cwd=ROOT,
-            text=True,
-            capture_output=True,
-            timeout=30,
-        )
-        if add.returncode != 0:
-            return {
-                "state": "failed",
-                "message": "線上版 git add 沒有成功。",
-                "files": labels,
-                "output": add.stdout + ("\nSTDERR:\n" + add.stderr if add.stderr else ""),
-                "returncode": add.returncode,
-            }
-
-        message = online_reader_commit_message(started_at)
-        commit = subprocess.run(
-            ["git", "commit", "-m", message, "--", *labels],
-            cwd=ROOT,
-            text=True,
-            capture_output=True,
-            timeout=120,
-        )
-        output = commit.stdout + ("\nSTDERR:\n" + commit.stderr if commit.stderr else "")
-        if commit.returncode != 0:
-            return {
-                "state": "failed",
-                "message": "線上版 commit 沒有成功。",
-                "files": labels,
-                "commit_message": message,
-                "output": output,
-                "returncode": commit.returncode,
-            }
-        rev = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, text=True, capture_output=True, timeout=20)
-        commit_id = clean_text(rev.stdout)
-        return {
-            "state": "committed",
-            "message": f"已送出線上版 commit {commit_id}。",
-            "files": labels,
-            "commit": commit_id,
-            "commit_message": message,
-            "output": output,
-            "returncode": 0,
-        }
-    except (OSError, subprocess.SubprocessError) as exc:
-        return {
-            "state": "failed",
-            "message": f"線上版 commit 發生錯誤：{exc}",
-            "files": labels,
-            "returncode": 1,
-        }
 
 
 def start_data_autocommit_worker() -> None:
@@ -4918,7 +4828,7 @@ def public_reader_article_url(item: dict) -> str:
 
 
 def public_reader_feature_url(article: dict) -> str:
-    """專文的公開線上版 URL（狀態為 published、跑過更新線上閱讀版後才存在）。"""
+    """專文的公開線上版 URL（狀態為 published、push 後由 Actions 部署才存在）。"""
     article_id = re.sub(r"[^a-zA-Z0-9_-]+", "-", clean_text(article.get("id")) or "article").strip("-")
     return f"{ONLINE_READER_BASE_URL}/features/{article_id}.html"
 
@@ -4998,10 +4908,10 @@ def publish_page_card(page_type: str, key: str, title: str, blurb: str = "") -> 
     active_class = " is-on" if published else ""
     public_url = page_public_url(page_type, slug)
     url_panel = (
-        f'<p class="help">下次更新線上閱讀版後生效：<a href="{h(public_url)}" target="_blank" rel="noopener" data-publish-url>{h(public_url)}</a></p>'
+        f'<p class="help">push 後由 Actions 自動部署生效：<a href="{h(public_url)}" target="_blank" rel="noopener" data-publish-url>{h(public_url)}</a></p>'
         f'<button type="button" class="button button-small quiet" data-copy-publish-url="{h(public_url)}">複製網址</button>'
         if published
-        else '<p class="help" data-publish-url>公開後，這裡會顯示可分享網址；下次更新線上閱讀版後才會正式存在。</p>'
+        else '<p class="help" data-publish-url>公開後，這裡會顯示可分享網址；push 後由 Actions 自動部署才會正式存在。</p>'
     )
     return f"""
 <section class="card publish-page-card" data-publish-card>
@@ -10114,14 +10024,14 @@ def page(title: str, body: str) -> bytes:
         if (button) button.classList.toggle("is-on", published);
         if (label) label.textContent = published ? "已公開" : "未公開";
         if (actionInput) actionInput.value = published ? "unpublish" : "publish";
-        if (message) message.textContent = published ? "下次更新線上閱讀版後生效。" : "已取消公開；下次更新線上閱讀版後會清掉頁面。";
+        if (message) message.textContent = published ? "push 後由 Actions 自動部署生效。" : "已取消公開；push 後由 Actions 自動部署會清掉頁面。";
         if (output) {{
           if (published) {{
             const url = payload.public_url || "";
-            output.innerHTML = '<p class="help">下次更新線上閱讀版後生效：<a href="' + escapeHTML(url) + '" target="_blank" rel="noopener" data-publish-url>' + escapeHTML(url) + '</a></p><button type="button" class="button button-small quiet" data-copy-publish-url="' + escapeHTML(url) + '">複製網址</button>';
+            output.innerHTML = '<p class="help">push 後由 Actions 自動部署生效：<a href="' + escapeHTML(url) + '" target="_blank" rel="noopener" data-publish-url>' + escapeHTML(url) + '</a></p><button type="button" class="button button-small quiet" data-copy-publish-url="' + escapeHTML(url) + '">複製網址</button>';
             setupPublishCopyButtons(output);
           }} else {{
-            output.innerHTML = '<p class="help" data-publish-url>公開已關閉；下次更新線上閱讀版後會清掉對應 HTML。</p>';
+            output.innerHTML = '<p class="help" data-publish-url>公開已關閉；push 後由 Actions 自動部署會清掉對應 HTML。</p>';
           }}
         }}
       }} catch (error) {{
@@ -15189,7 +15099,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <select id="article-status">{status_options}</select>
       <label class="article-field" for="article-license" style="margin-top:10px;">授權</label>
       <select id="article-license">{license_options}</select>
-      <p class="help" style="margin-top:6px;">狀態設為「已發布」並按首頁的「更新線上閱讀版」後，會產出公開線上版：<br><a href="{h(public_reader_feature_url(article))}" target="_blank" rel="noopener">{h(public_reader_feature_url(article))}</a></p>
+      <p class="help" style="margin-top:6px;">狀態設為「已發布」後，資料庫變更 push 到 GitHub 時會由 Actions 自動部署公開線上版：<br><a href="{h(public_reader_feature_url(article))}" target="_blank" rel="noopener">{h(public_reader_feature_url(article))}</a></p>
       <h3 style="margin-top:12px;">標籤</h3>
       <form data-tag-picker data-article-tags class="tag-picker" onsubmit="return false">{tag_controls}</form>
     </div>
@@ -15347,7 +15257,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         <a class="button" href="/articles/edit?id={quote(article_id)}">{button_content("進編修台編輯", "edit")}</a>
         {f'<a class="button secondary" href="{h(public_reader_feature_url(article))}" target="_blank" rel="noopener">{button_content("看線上版", "globe")}</a>' if clean_text(article.get("status")) == "published" else ""}
       </div>
-      {'' if clean_text(article.get("status")) == "published" else '<p class="muted">狀態設為「已發布」並更新線上閱讀版後，會有公開線上版。</p>'}
+      {'' if clean_text(article.get("status")) == "published" else '<p class="muted">狀態設為「已發布」並 push 後，Actions 會自動部署公開線上版。</p>'}
     </div>
     {hero_html}
     <article class="card editor-output article-markdown">{body_html}</article>
@@ -18983,7 +18893,7 @@ if (document.readyState === "loading") {{
                     "published": published,
                     "public_url": public_url,
                     "blurb": record.get("blurb", ""),
-                    "message": "下次更新線上閱讀版後生效。",
+                    "message": "push 後由 Actions 自動部署生效。",
                 }
             )
             return
@@ -23037,26 +22947,14 @@ if (document.readyState === "loading") {{
         response_returncode = result.returncode
         status_extra: dict[str, object] = {}
         if ok and command_name == "render_ghpages_reader":
-            online_commit = commit_online_reader_output()
-            commit_output = "\n".join(
-                line
-                for line in [
-                    clean_text(online_commit.get("message")),
-                    f"commit: {clean_text(online_commit.get('commit'))}" if online_commit.get("commit") else "",
-                    f"message: {clean_text(online_commit.get('commit_message'))}" if online_commit.get("commit_message") else "",
-                    clean_text(online_commit.get("output")),
+            output = "\n\n".join(
+                part
+                for part in [
+                    output.strip(),
+                    "本機預覽已重產。線上版由 GitHub Actions 在 push 後自動建置部署，不需要（也不會）在本機 commit docs/reader。",
                 ]
-                if line
+                if part
             )
-            output = "\n\n".join(part for part in [output.strip(), "線上版 commit：\n" + (commit_output or "(沒有變更需要 commit)")] if part)
-            status_extra = {
-                "online_reader_commit_state": online_commit.get("state"),
-                "online_reader_commit": online_commit.get("commit"),
-                "online_reader_commit_message": online_commit.get("commit_message"),
-            }
-            if online_commit.get("state") == "failed":
-                ok = False
-                response_returncode = int(online_commit.get("returncode") or 1)
         write_json(
             COMMAND_STATUS,
             {

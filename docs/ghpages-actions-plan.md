@@ -1,6 +1,6 @@
 # 施工計畫：線上閱讀版改由 GitHub Actions 建置部署（產物不入 git）
 
-狀態：已核准方向，待施工（2026-07-06 規劃）。
+狀態：步驟 1–4 已完成（2026-07-06 施工）：workflow 上線並驗證綠燈、Pages 來源已切到 GitHub Actions（`build_type: workflow`，網域與憑證保留）、794 個 HTML 產物已移出版控、local_web 按鈕改為純本機預覽。剩驗收觀察期（步驟 5）。
 
 ## 為什麼要改
 
