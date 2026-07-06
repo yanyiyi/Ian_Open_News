@@ -1,0 +1,4 @@
+{
+ "article_markdown": "# Triage of changes on 2026-06-11\nLaunchpad\nLP #2008721 docker.io — ubuntu_docker_smoke_test fails on trusty\nThe main task was marked as fix released. I took the opportunity to also mark trusty as won’t fix, as that is EOSS, and left a comment.\nLP #2080474 multipath-tools — [SRU] cannot install Ubuntu Server over a multipath disk u…",
+ "article_text": "Launchpad\nLP #2008721 docker.io — ubuntu_docker_smoke_test fails on trusty\nThe main task was marked as fix released. I took the opportunity to also mark trusty as won’t fix, as that is EOSS, and left a comment.\nLP #2080474 multipath-tools — [SRU] cannot install Ubuntu Server over a multipath disk u…"
+}

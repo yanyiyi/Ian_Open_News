@@ -1,0 +1,4 @@
+{
+ "article_markdown": "# Upcoming updates to the Ubuntu image retention policy on Azure\nWe are planning an update to the Ubuntu image retention policy on Azure that will begin taking effect in late August 2026. While our current policy retains the last 90 release images per plan or SKU, the new policy will retain the last 20 versions (keeping at least six months of images). This will n…",
+ "article_text": "We are planning an update to the Ubuntu image retention policy on Azure that will begin taking effect in late August 2026. While our current policy retains the last 90 release images per plan or SKU, the new policy will retain the last 20 versions (keeping at least six months of images). This will n…"
+}
