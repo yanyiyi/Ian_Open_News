@@ -8,3 +8,10 @@ __pycache__/
 docs/reader/articles/* [0-9].html
 docs/reader/articles/* [0-9][0-9].html
 database/* [0-9]*.jsonl
+# 線上閱讀版 HTML 產物：由 GitHub Actions（deploy-reader.yml）建置部署，不進版控
+# 圖片與 vendor 快取（docs/reader/assets/）仍進版控，CI 不重抓外站資源
+docs/reader/*.html
+docs/reader/articles/
+docs/reader/features/
+docs/reader/tags/
+docs/reader/sources/
