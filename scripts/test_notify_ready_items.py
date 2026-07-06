@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import notify_ready_items as notify  # noqa: E402
+
+
+class NotifyReadyItemsTest(unittest.TestCase):
+    def test_published_article_event_uses_article_excerpt(self) -> None:
+        event = notify.article_event(
+            {
+                "id": "art-test",
+                "status": "published",
+                "title": "我的專文",
+                "body_markdown": "# 我的專文\n\n這是文章導言，適合作為摘要。\n\n第二段。",
+                "track": "open-tech-open-industry",
+                "tags": ["開放資料"],
+            },
+            "https://example.test/reader",
+        )
+
+        self.assertIsNotNone(event)
+        assert event is not None
+        self.assertEqual(event.event_key, "article:published:art-test")
+        self.assertIn("Ian Open News 新專文：我的專文", event.text)
+        self.assertIn("這是文章導言，適合作為摘要。", event.text)
+        self.assertIn("https://example.test/reader/features/art-test.html", event.text)
+
+    def test_item_event_uses_one_line_and_three_reasons_instead_of_summary(self) -> None:
+        event = notify.item_event(
+            {
+                "id": "item-test",
+                "status": "ready",
+                "title": "Original Title",
+                "track": "digital-humanities-local-knowledge",
+                "reading_metadata": {
+                    "translated_article_markdown_zh": "# 中文全文\n\n第一段。",
+                },
+                "editorial_triage": {
+                    "codex_review": {
+                        "zh_title": "中文標題",
+                        "one_line_recommendation": "這篇適合讀，因為它提供公共資料治理切角。",
+                        "reasons": [
+                            "第一個理由。",
+                            "第二個理由。",
+                            "第三個理由。",
+                        ],
+                        "summary": "這段摘要不應該成為通知主體。",
+                        "needs_fulltext": False,
+                    }
+                },
+            },
+            "https://example.test/reader",
+            notify.DEFAULT_ITEM_STATUSES,
+            include_needs_fulltext=False,
+        )
+
+        self.assertIsNotNone(event)
+        assert event is not None
+        self.assertEqual(event.event_key, "item:translated-review:item-test")
+        self.assertIn("Ian Open News 推薦閱讀：中文標題", event.text)
+        self.assertIn("這篇適合讀", event.text)
+        self.assertIn("1. 第一個理由。", event.text)
+        self.assertIn("2. 第二個理由。", event.text)
+        self.assertIn("3. 第三個理由。", event.text)
+        self.assertNotIn("這段摘要不應該成為通知主體", event.text)
+
+    def test_item_event_skips_reviews_that_still_need_fulltext_by_default(self) -> None:
+        item = {
+            "id": "item-needs-fulltext",
+            "status": "ready",
+            "reading_metadata": {"translated_article_markdown_zh": "# 中文全文\n\n第一段。"},
+            "editorial_triage": {
+                "codex_review": {
+                    "one_line_recommendation": "一句話。",
+                    "reasons": ["一", "二", "三"],
+                    "needs_fulltext": True,
+                }
+            },
+        }
+
+        skipped = notify.item_event(
+            item,
+            "https://example.test/reader",
+            notify.DEFAULT_ITEM_STATUSES,
+            include_needs_fulltext=False,
+        )
+        included = notify.item_event(
+            item,
+            "https://example.test/reader",
+            notify.DEFAULT_ITEM_STATUSES,
+            include_needs_fulltext=True,
+        )
+
+        self.assertIsNone(skipped)
+        self.assertIsNotNone(included)
+
+    def test_notified_state_filters_pending_events(self) -> None:
+        event = notify.NotificationEvent(
+            event_key="item:translated-review:item-a",
+            kind="item",
+            record_id="item-a",
+            title="Title",
+            text="Message",
+            url="https://example.test/reader/articles/item-a.html",
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = Path(tmpdir) / "notified-events.jsonl"
+            notify.append_jsonl(state, notify.event_state_records([event], ["slack"], "sent"))
+
+            self.assertEqual(notify.load_notified_keys(state), {"item:translated-review:item-a"})
+
+
+if __name__ == "__main__":
+    unittest.main()

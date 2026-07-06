@@ -59,6 +59,89 @@ launchctl unload ~/Library/LaunchAgents/com.ian.opennews.rss-fetch.plist
 
 GitHub Actions 的 `.github/workflows/daily-rss-fetch.yml` 現在只保留手動執行，用來在 GitHub 上產生候選 artifact 或 SQLite 查詢檔，不再每天自動開 PR。
 
+## Slack / Telegram 推播（選配）
+
+若要在有新完成內容時推播到 Slack 或 Telegram，使用：
+
+```bash
+python3 scripts/notify_ready_items.py --dry-run
+```
+
+這支腳本會掃兩種資料：
+
+1. `database/articles.jsonl` 裡 `status: published` 的專文：通知文案使用文章摘要、`summary`、`dek` 或正文第一段。
+2. `database/items.jsonl` 裡已有中文翻譯與 AI 閱讀建議的資料池文章：通知文案使用 `editorial_triage.*_review.one_line_recommendation` 與前三個 `reasons`，不把 AI 摘要當主通知文案。
+
+去重狀態會寫在：
+
+```text
+.cache/notified-events.jsonl
+```
+
+### Slack Incoming Webhook
+
+在 Slack 建立 app 後開啟 `Incoming Webhooks`，把 webhook URL 放在環境變數：
+
+```bash
+export ION_SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
+```
+
+只送 Slack：
+
+```bash
+python3 scripts/notify_ready_items.py --channel slack
+```
+
+### Telegram Bot
+
+用 `@BotFather` 建 bot，將 bot 加到群組或頻道後設定：
+
+```bash
+export ION_TELEGRAM_BOT_TOKEN="123456:abc..."
+export ION_TELEGRAM_CHAT_ID="-1001234567890"
+```
+
+只送 Telegram：
+
+```bash
+python3 scripts/notify_ready_items.py --channel telegram
+```
+
+### 第一次上線
+
+第一次設定時建議先看會送什麼：
+
+```bash
+python3 scripts/notify_ready_items.py --dry-run
+```
+
+如果不想把舊文章一次全部送出，先把目前符合條件的內容標記為已處理：
+
+```bash
+python3 scripts/notify_ready_items.py --mark-existing
+```
+
+之後新內容才會真的推播：
+
+```bash
+python3 scripts/notify_ready_items.py
+```
+
+常用選項：
+
+```bash
+python3 scripts/notify_ready_items.py --kind articles
+python3 scripts/notify_ready_items.py --kind items
+python3 scripts/notify_ready_items.py --id item-xxxxxxxx
+python3 scripts/notify_ready_items.py --force --id art-xxxxxxxx
+```
+
+預設公開網址是 `https://technews.ospo.tw/reader`。若測試站或分支站不同，可改：
+
+```bash
+ION_PUBLIC_BASE_URL="https://example.test/reader" python3 scripts/notify_ready_items.py --dry-run
+```
+
 ## RSSHub（非 RSS 來源的 bridge，選配）
 
 沒有原生 RSS 的站（PTT、Dcard、巴哈等）可自架 RSSHub 轉成 feed，

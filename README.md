@@ -136,3 +136,11 @@ python3 scripts/codex_enrich_reviews.py --target both --workflow-scope --limit 1
 - Facebook 頁面與 Inoreader `keyword-monitoring-*` 不是公開 RSS，預設不會抓；替代方案見 [docs/facebook-inoreader-alternatives.md](docs/facebook-inoreader-alternatives.md)。
 
 細節見 [docs/workflow.md](docs/workflow.md)。
+
+完成內容也可以推播到 Slack / Telegram。伺服器端腳本是：
+
+```bash
+python3 scripts/notify_ready_items.py --dry-run
+```
+
+第一次上線可先用 `--mark-existing` 避免把舊文章全部送出；Slack Incoming Webhook、Telegram bot token 與環境變數設定見 [docs/local-automation.md](docs/local-automation.md#slack--telegram-推播選配)。
