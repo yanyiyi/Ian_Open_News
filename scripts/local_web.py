@@ -80,6 +80,8 @@ _LOCAL_WEB_LOCK_HANDLE = None
 INSIGHT_STATUS = ROOT / ".cache" / "insight-status.json"
 PDF_SPLIT_STATUS = ROOT / ".cache" / "pdf-split-status.json"
 TRANSLATE_STATUS = ROOT / ".cache" / "translate-status.json"
+NOTIFY_STATE = ROOT / ".cache" / "notified-events.jsonl"
+NOTIFY_REACTIONS = ROOT / ".cache" / "notification-reactions.json"
 PDF_UPLOADS = ROOT / ".cache" / "uploads"
 EDITOR_TASK_LABELS = {
     "theme-check": "選法檢查",
@@ -672,6 +674,30 @@ COMMANDS = {
         "description": "只看每個檔案改了多少行，不展開完整內容。",
         "button": "看每個檔案改多少",
         "command": ["git", "diff", "--stat"],
+    },
+    "notify_dry_run": {
+        "label": "預覽待推播內容",
+        "description": "掃描已發布專文與「有中文翻譯＋AI 推薦」的文章，列出會送出的訊息全文，不會真的推播。",
+        "button": "預覽待推播",
+        "command": [sys.executable, str(ROOT / "scripts" / "notify_ready_items.py"), "--dry-run"],
+    },
+    "notify_send": {
+        "label": "推播新完成內容",
+        "description": "把還沒通知過的新專文與推薦文章送到 Slack / Telegram，送出後記錄到 .cache/notified-events.jsonl 避免重複。",
+        "button": "推播到 Slack / Telegram",
+        "command": [sys.executable, str(ROOT / "scripts" / "notify_ready_items.py")],
+    },
+    "notify_mark_existing": {
+        "label": "把現有內容標為已通知",
+        "description": "第一次啟用推播前先跑這個：把目前所有符合條件的內容記為已通知（不送出），避免一次灌爆頻道。",
+        "button": "全部標為已通知",
+        "command": [sys.executable, str(ROOT / "scripts" / "notify_ready_items.py"), "--mark-existing"],
+    },
+    "notify_collect_reactions": {
+        "label": "收集表情與回覆",
+        "description": "向 Telegram 與 Slack 收回推播訊息收到的表情符號與回覆，寫入 .cache/notification-reactions.json。Slack 需要 Bot Token 模式；Telegram 群組要把 bot 設為管理員才收得到表情。",
+        "button": "收集表情與回覆",
+        "command": [sys.executable, str(ROOT / "scripts" / "collect_notification_reactions.py")],
     },
 }
 
@@ -2826,6 +2852,113 @@ def bridge_online(base_url: str = DEFAULT_BRIDGE_BASE, ttl_seconds: float = 60.0
         online = False
     _BRIDGE_PROBE_CACHE[base_url] = (now, online)
     return online
+
+
+_RADAR_RULES_CACHE: dict[str, tuple[float, dict]] = {}
+
+
+def load_radar_rules(base_url: str = DEFAULT_BRIDGE_BASE, ttl_seconds: float = 3600.0) -> dict:
+    """從本機 RSSHub 拉 radar 規則（貼網址→route 的比對原料），快取 1 小時。"""
+    now = time.monotonic()
+    cached = _RADAR_RULES_CACHE.get(base_url)
+    if cached and now - cached[0] < ttl_seconds:
+        return cached[1]
+    rules: dict = {}
+    try:
+        request = urllib.request.Request(
+            base_url.rstrip("/") + "/api/radar/rules",
+            headers={"User-Agent": "ian-open-news-radar-probe"},
+        )
+        with urllib.request.urlopen(request, timeout=10) as response:
+            payload = json.loads(response.read().decode("utf-8", errors="replace"))
+        if isinstance(payload, dict):
+            rules = payload
+    except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError):
+        rules = {}
+    _RADAR_RULES_CACHE[base_url] = (now, rules)
+    return rules
+
+
+def match_radar_path(pattern: str, path: str) -> dict[str, str] | None:
+    """比對 radar 的 express 風格路徑樣板（/bbs/:board/index.html）；回參數 dict 或 None。"""
+    pattern_parts = [p for p in pattern.split("/") if p]
+    path_parts = [p for p in path.split("/") if p]
+    params: dict[str, str] = {}
+    if len(pattern_parts) != len(path_parts):
+        return None
+    for pat, actual in zip(pattern_parts, path_parts):
+        if pat.startswith(":"):
+            name = pat[1:].rstrip("?")
+            if not actual:
+                return None
+            params[name] = actual
+        elif pat == "*":
+            continue
+        elif pat != actual:
+            return None
+    return params
+
+
+def detect_rsshub_routes(target_url: str, base_url: str = DEFAULT_BRIDGE_BASE) -> list[dict]:
+    """給一個網站網址，回可用的 RSSHub route 候選（已探測驗證回 XML 的排前面）。"""
+    parsed = urlparse(target_url)
+    host = (parsed.hostname or "").casefold()
+    path = parsed.path or "/"
+    if not host:
+        return []
+    rules = load_radar_rules(base_url)
+    candidates: list[dict] = []
+    seen_routes: set[str] = set()
+    for domain, config in rules.items():
+        domain_cf = domain.casefold()
+        if host != domain_cf and not host.endswith("." + domain_cf):
+            continue
+        subdomain = host[: -len(domain_cf)].rstrip(".") if host != domain_cf else ""
+        site_name = clean_text(config.get("_name"), 60) if isinstance(config, dict) else ""
+        for sub_key, rule_list in (config or {}).items():
+            if sub_key == "_name" or not isinstance(rule_list, list):
+                continue
+            # radar 慣例：「.」對應根網域（www 視同根），其他 key 對應特定子網域
+            if sub_key == ".":
+                if subdomain not in {"", "www"}:
+                    continue
+            elif sub_key != "*" and sub_key != subdomain:
+                continue
+            for rule in rule_list:
+                target = rule.get("target")
+                if not isinstance(target, str) or not target.startswith("/"):
+                    continue  # target 是 JS function 的規則序列化後會缺，跳過
+                for pattern in rule.get("source") or []:
+                    if not isinstance(pattern, str):
+                        continue
+                    params = match_radar_path(pattern, path)
+                    if params is None:
+                        continue
+                    route = target
+                    for name, value in params.items():
+                        route = route.replace(f":{name}?", quote(value, safe="")).replace(f":{name}", quote(value, safe=""))
+                    route = re.sub(r"/:[A-Za-z0-9_]+\?", "", route)  # 沒填到的選用參數整段拿掉
+                    if ":" in route or route in seen_routes:
+                        continue
+                    seen_routes.add(route)
+                    candidates.append({
+                        "route": route.lstrip("/"),
+                        "feed_url": base_url.rstrip("/") + route,
+                        "title": " · ".join(part for part in [site_name, clean_text(rule.get("title"), 60)] if part),
+                    })
+                    break
+    # 逐條探測（最多 5 條），真的回 XML 的標 verified 並排前面
+    for candidate in candidates[:5]:
+        candidate["verified"] = False
+        try:
+            request = urllib.request.Request(candidate["feed_url"], headers={"User-Agent": "ian-open-news-radar-probe"})
+            with urllib.request.urlopen(request, timeout=12) as response:
+                head = response.read(600).decode("utf-8", errors="replace").lstrip()
+            candidate["verified"] = head.startswith("<?xml") or "<rss" in head[:200] or "<feed" in head[:200]
+        except (urllib.error.URLError, TimeoutError, OSError):
+            pass
+    candidates.sort(key=lambda c: not c.get("verified"))
+    return candidates[:8]
 
 
 def perplexity_bookmarklet(session_id: str, endpoint: str) -> str:
@@ -8800,6 +8933,7 @@ def page(title: str, body: str) -> bytes:
           <a href="/keywords">{icon_span("filter", "F")}關鍵字</a>
           <a href="/sources">{icon_span("source", "S")}RSS 來源</a>
           <a href="/insights">{icon_span("note", "I")}決策洞察{_insights_nav_badge()}</a>
+          <a href="/notifications">{icon_span("share", "T")}推播通知</a>
         </div>
       </details>
     </nav>
@@ -11872,6 +12006,18 @@ class Handler(BaseHTTPRequestHandler):
             self.show_source_edit(query)
         elif parsed.path == "/api/rss-status":
             self.send_json(load_json(RSS_FETCH_STATUS))
+        elif parsed.path == "/api/rsshub-detect":
+            target = clean_text((query.get("url") or [""])[0])
+            if not target.startswith(("http://", "https://")):
+                self.send_json({"ok": False, "error": "請提供 http(s) 網址", "candidates": []})
+            elif not bridge_online():
+                self.send_json({
+                    "ok": False,
+                    "error": "本機 RSSHub（127.0.0.1:1200）未啟動，請先啟動再偵測。",
+                    "candidates": [],
+                })
+            else:
+                self.send_json({"ok": True, "candidates": detect_rsshub_routes(target)})
         elif parsed.path == "/api/triage-clusters":
             payload = load_json(TRIAGE_CLUSTERS)
             if not isinstance(payload, dict) or not payload.get("clusters"):
@@ -11923,6 +12069,8 @@ class Handler(BaseHTTPRequestHandler):
             if requested and clean_text(status.get("item_id")) and clean_text(status.get("item_id")) != requested:
                 status = {"state": "running", "message": "翻譯啟動中…"}
             self.send_json(status)
+        elif parsed.path == "/notifications":
+            self.show_notifications(query)
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
 
@@ -12067,6 +12215,10 @@ class Handler(BaseHTTPRequestHandler):
             self.close_all_resolved_divergences(self.read_form())
         elif parsed.path == "/insights/save-taste-profile":
             self.save_taste_profile_edit(self.read_form())
+        elif parsed.path == "/notifications/resend":
+            self.resend_notification(self.read_form())
+        elif parsed.path == "/notifications/save-channels":
+            self.save_notify_channels(self.read_form())
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
 
@@ -21466,7 +21618,11 @@ if (document.readyState === "loading") {{
     <div class="preview-status" data-preview-status>等待網址。</div>
     <div class="preview-result" data-preview-result></div>
   </div>
-  <button type="button" class="secondary" data-preview-button>{button_content("抓取來源資訊", "rss", "R")}</button>
+  <div class="button-row">
+    <button type="button" class="secondary" data-preview-button>{button_content("抓取來源資訊", "rss", "R")}</button>
+    <button type="button" class="secondary" id="rsshub-detect-button">{button_content("偵測 RSSHub route", "search", "")}</button>
+  </div>
+  <div id="rsshub-detect-result" class="preview-panel" hidden></div>
   <label>必須包含的關鍵字</label>
   <textarea name="required_keywords" placeholder="一行一個；留空代表不限制">{h(source_keywords_text(source, 'required_keywords'))}</textarea>
   <p class="help">若有填，RSS 單篇標題、摘要、標籤、來源或網址至少要命中其中一個才會進入庫建檔區；編輯後存檔會重盤點這個來源的入庫建檔項目並重新抓一次。</p>
@@ -21479,6 +21635,68 @@ if (document.readyState === "loading") {{
   <button type="submit">儲存這個來源</button>
   <p class="help">送出後會寫進 database/sources.jsonl。要抓新資料，可以在來源列表或來源頁按「更新」。</p>
 </form>
+<script>
+(() => {{
+  const button = document.getElementById("rsshub-detect-button");
+  const panel = document.getElementById("rsshub-detect-result");
+  if (!button || !panel) return;
+  const form = button.closest("form");
+  const input = (name) => form.querySelector(`[name="${{name}}"]`);
+  button.addEventListener("click", async () => {{
+    const target = (input("site_url")?.value || input("feed_url")?.value || "").trim();
+    if (!target) {{
+      panel.hidden = false;
+      panel.textContent = "請先在 Site URL 貼上想追的網站網址，再按偵測。";
+      return;
+    }}
+    panel.hidden = false;
+    panel.textContent = "偵測中…（比對 radar 規則並逐條試抓，最多十幾秒）";
+    button.disabled = true;
+    try {{
+      const response = await fetch("/api/rsshub-detect?url=" + encodeURIComponent(target), {{
+        headers: {{ "X-Requested-With": "local-web-fetch" }},
+      }});
+      const payload = await response.json();
+      if (!payload.ok) {{
+        panel.textContent = payload.error || "偵測失敗。";
+        return;
+      }}
+      if (!payload.candidates.length) {{
+        panel.textContent = "這個網站沒有對得上的 RSSHub route。退路：找原生 RSS、建 Google Alert（site:網域），或用手動收藏。";
+        return;
+      }}
+      panel.textContent = "";
+      payload.candidates.forEach((candidate) => {{
+        const row = document.createElement("div");
+        row.className = "button-row";
+        row.style.marginBottom = "6px";
+        const pick = document.createElement("button");
+        pick.type = "button";
+        pick.className = candidate.verified ? "button-small" : "secondary button-small";
+        pick.textContent = (candidate.verified ? "可用：" : "未驗證：") + (candidate.title || candidate.route);
+        pick.title = candidate.feed_url;
+        pick.addEventListener("click", () => {{
+          input("feed_url").value = candidate.feed_url;
+          input("served_via").value = "rsshub@local";
+          input("bridge").value = candidate.route;
+          if (input("source_type")) input("source_type").value = "rss";
+          panel.textContent = "已填入 " + candidate.feed_url + "，其餘欄位照常填完按儲存即可。";
+        }});
+        row.appendChild(pick);
+        const hint = document.createElement("span");
+        hint.className = "muted";
+        hint.textContent = candidate.route;
+        row.appendChild(hint);
+        panel.appendChild(row);
+      }});
+    }} catch (error) {{
+      panel.textContent = "偵測失敗：" + error;
+    }} finally {{
+      button.disabled = false;
+    }}
+  }});
+}})();
+</script>
 """
         self.send_html(title, body)
 
