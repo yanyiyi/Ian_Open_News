@@ -15769,7 +15769,11 @@ function enterClusterView(data) {{
 
 function exitClusterView() {{
   if (!clusterViewOn || !clusterOriginalOrder || !itemsList) return;
-  clusterOriginalOrder.forEach((node) => itemsList.appendChild(node));
+  // 只把還在畫面上的節點帶回清單；批次處理掉的卡片已 detach，
+  // 直接 appendChild 會讓已處理項目復活（曾造成「送出後不斷冒回來」）。
+  clusterOriginalOrder.forEach((node) => {{
+    if (node.isConnected && !node.classList?.contains("is-removing")) itemsList.appendChild(node);
+  }});
   itemsList.querySelectorAll(".cluster-group, .cluster-ungrouped-heading").forEach((node) => node.remove());
   clusterOriginalOrder = null;
   setClusterToggleState(false);
@@ -15861,6 +15865,10 @@ function removeCards(ids) {{
       if (card.isConnected) {{
         card.remove();
       }}
+    }});
+    // 分群檢視下整群處理完就收掉空群框，標題數字不會留著騙人
+    document.querySelectorAll(".cluster-group").forEach((group) => {{
+      if (!group.querySelector(".candidate-card")) group.remove();
     }});
     syncSelection();
   }}, 260);
