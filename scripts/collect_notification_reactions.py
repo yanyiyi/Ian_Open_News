@@ -11,11 +11,14 @@ which Slack/Telegram messages belong to which event, then:
   bot mode) with reactions:read + channels:history scopes. Webhook-only
   deliveries carry no message ts, so they cannot be tracked.
 
-Aggregated results are written to `.cache/notification-reactions.json`.
+Aggregated results are written to `.cache/notification-reactions.json`, and any
+event whose feedback changed since the last run is appended to
+`database/notification-feedback.jsonl` (append-only 正本，餵給學習迴圈與洞察）。
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import urllib.error
@@ -32,6 +35,7 @@ from notify_ready_items import clean_text, load_jsonl, merged_env, post_json  # 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_STATE = ROOT / ".cache" / "notified-events.jsonl"
 DEFAULT_OUTPUT = ROOT / ".cache" / "notification-reactions.json"
+DEFAULT_FEEDBACK_DB = ROOT / "database" / "notification-feedback.jsonl"
 REPLY_TEXT_LIMIT = 280
 MAX_REPLIES_PER_EVENT = 50
 
@@ -268,6 +272,76 @@ def collect_slack(state: dict[str, Any], tracked: dict[str, dict[str, Any]], env
     return changed
 
 
+def parse_event_target(event_key: str) -> tuple[str, str]:
+    """`article:published:<id>` → ("article", id)；`item:translated-review:<id>` → ("item", id)。"""
+    parts = event_key.split(":")
+    if len(parts) >= 3 and parts[0] and parts[-1]:
+        return parts[0], parts[-1]
+    return "", ""
+
+
+def merged_feedback(event_state: dict[str, Any]) -> tuple[dict[str, int], list[dict[str, Any]]]:
+    """跨 Slack/Telegram 合併表情計數與回覆，回覆帶 channel 標記。"""
+    counts: dict[str, int] = {}
+    replies: list[dict[str, Any]] = []
+    for channel in ("telegram", "slack"):
+        channel_state = event_state.get(channel) or {}
+        for emoji, total in (channel_state.get("reaction_counts") or {}).items():
+            if isinstance(total, int) and total > 0:
+                counts[emoji] = counts.get(emoji, 0) + total
+        for reply in channel_state.get("replies") or []:
+            if isinstance(reply, dict):
+                replies.append({"channel": channel, **reply})
+    return counts, replies
+
+
+def feedback_fingerprint(counts: dict[str, int], replies: list[dict[str, Any]]) -> str:
+    payload = json.dumps(
+        {
+            "counts": counts,
+            "replies": sorted(
+                str(reply.get("message_id") or reply.get("ts") or "") + ":" + str(reply.get("channel") or "")
+                for reply in replies
+            ),
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+    )
+    return hashlib.sha1(payload.encode("utf-8")).hexdigest()
+
+
+def sync_feedback_to_database(state: dict[str, Any], feedback_path: Path) -> int:
+    """把有變化的事件回饋快照追加進 database 正本；用 fingerprint 去重。"""
+    written = 0
+    for event_key, event_state in sorted((state.get("events") or {}).items()):
+        if not isinstance(event_state, dict):
+            continue
+        counts, replies = merged_feedback(event_state)
+        if not counts and not replies:
+            continue
+        fingerprint = feedback_fingerprint(counts, replies)
+        if event_state.get("db_fingerprint") == fingerprint:
+            continue
+        target_kind, target_id = parse_event_target(event_key)
+        record = {
+            "id": "nf-" + hashlib.sha1(f"{event_key}:{fingerprint}".encode("utf-8")).hexdigest()[:16],
+            "event_key": event_key,
+            "target_kind": target_kind,
+            "target_id": target_id,
+            "title": clean_text(event_state.get("title")),
+            "url": clean_text(event_state.get("url")),
+            "reaction_counts": counts,
+            "replies": replies,
+            "collected_at": utc_now(),
+        }
+        feedback_path.parent.mkdir(parents=True, exist_ok=True)
+        with feedback_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+        event_state["db_fingerprint"] = fingerprint
+        written += 1
+    return written
+
+
 def stamp_events(state: dict[str, Any], tracked: dict[str, dict[str, Any]]) -> None:
     now = utc_now()
     for event_key, entry in tracked.items():
@@ -284,6 +358,8 @@ def main() -> None:
     parser.add_argument("--skip-telegram", action="store_true")
     parser.add_argument("--skip-slack", action="store_true")
     parser.add_argument("--timeout", type=int, default=15)
+    parser.add_argument("--feedback-db", type=Path, default=DEFAULT_FEEDBACK_DB, help="回饋正本 JSONL（append-only）")
+    parser.add_argument("--no-db-sync", action="store_true", help="只更新 .cache 彙整檔，不寫回 database")
     args = parser.parse_args()
 
     env = merged_env()
@@ -298,11 +374,13 @@ def main() -> None:
         slack_changed = collect_slack(state, tracked, env, args.timeout)
 
     stamp_events(state, tracked)
+    synced = 0 if args.no_db_sync else sync_feedback_to_database(state, args.feedback_db)
     save_state(args.output, state)
     trackable = sum(1 for entry in tracked.values() if entry.get("telegram") or entry.get("slack"))
     print(
         f"tracked={len(tracked)} trackable={trackable} "
-        f"telegram_updates={telegram_changed} slack_messages={slack_changed} output={args.output}"
+        f"telegram_updates={telegram_changed} slack_messages={slack_changed} "
+        f"db_synced={synced} output={args.output}"
     )
 
 

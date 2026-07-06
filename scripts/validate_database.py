@@ -249,6 +249,22 @@ def validate() -> list[str]:
         except ValueError as exc:
             errors.append(str(exc))
 
+    feedback_path = DATABASE / "notification-feedback.jsonl"
+    feedback = load_jsonl(feedback_path)
+    validate_unique(feedback, feedback_path)
+    for record in feedback:
+        try:
+            require(record, feedback_path, "event_key")
+            require(record, feedback_path, "target_kind")
+            require(record, feedback_path, "target_id")
+            require(record, feedback_path, "collected_at")
+            if not isinstance(record.get("reaction_counts"), dict):
+                errors.append(f"{feedback_path}:{record.get('_line', '?')}: reaction_counts must be an object")
+            if not isinstance(record.get("replies"), list):
+                errors.append(f"{feedback_path}:{record.get('_line', '?')}: replies must be a list")
+        except ValueError as exc:
+            errors.append(str(exc))
+
     for article in articles:
         try:
             require(article, articles_path, "title")

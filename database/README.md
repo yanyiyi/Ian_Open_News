@@ -10,6 +10,7 @@
 - `items.jsonl`：活躍知識項目資料庫，由 Inoreader starred、Excel、人工收下的 RSS 候選與人工 PR 更新；已不收的資料不留在這裡。
 - `rejected-items.jsonl`：不收學習檔，存放從 `items.jsonl` 移出的拒收資料與 RSS 新進拒收資料，供後續分析拒收原因、去重與本機規則初篩使用。
 - `review-events.jsonl`：審稿與查核事件，可人工追加。
+- `notification-feedback.jsonl`：推播（Slack/Telegram）表情與回覆的回流正本，由 `scripts/collect_notification_reactions.py` 追加。每行是一個事件的回饋快照（append-only，同狀態不重複追加），`target_kind`/`target_id` 對回 article 或 item。
 - `schema.sql`：SQLite 輸出 schema。
 
 ## Item 欄位

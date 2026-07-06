@@ -58,6 +58,7 @@ SOURCES = DATABASE / "sources.jsonl"
 ITEMS = DATABASE / "items.jsonl"
 REJECTED_ITEMS = DATABASE / "rejected-items.jsonl"
 REVIEW_EVENTS = DATABASE / "review-events.jsonl"
+NOTIFICATION_FEEDBACK = DATABASE / "notification-feedback.jsonl"
 PUBLISHED_PAGES = DATABASE / "published-pages.jsonl"
 TRIAGE_KEYWORDS = DATABASE / "triage-keywords.json"
 CANDIDATES = ROOT / ".cache" / "rss-candidates.jsonl"
@@ -362,6 +363,7 @@ DATA_AUTOCOMMIT_FILES = [
     INSIGHT_REPORTS,
     SYSTEM_CHANGE_PROPOSALS,
     TASTE_PROFILE,
+    NOTIFICATION_FEEDBACK,  # 推播表情/回覆回流正本（collect_notification_reactions 追加）
     fulltext_store.FULLTEXT_DIR,  # 全文側檔目錄：跟主檔一起 commit，避免 git 裡漂移
 ]
 TRANSLATION_SOURCE_MARKDOWN_LIMIT = 42000
@@ -1481,8 +1483,32 @@ def local_time_label(dt: datetime | None = None) -> str:
     return f"{current.month:02d} 月 {current.day:02d} 日 {current.hour:02d} 時 {current.minute:02d} 分 {current.second:02d} 秒"
 
 
-def data_commit_message(dt: datetime | None = None) -> str:
-    return f"閱讀資料庫自訂紀錄 {local_time_label(dt)} 的更新"
+def data_commit_summary(status_output: str) -> str:
+    """把 git status --porcelain 輸出濃縮成「這批動了什麼」的短摘要。"""
+    names: list[str] = []
+    fulltext = 0
+    for line in (status_output or "").splitlines():
+        path = line[3:].strip().strip('"')
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        if not path:
+            continue
+        if path.startswith("database/fulltext/"):
+            fulltext += 1
+            continue
+        stem = Path(path).stem
+        if stem and stem not in names:
+            names.append(stem)
+    if fulltext:
+        names.append(f"fulltext×{fulltext}")
+    if len(names) > 6:
+        names = names[:6] + ["等"]
+    return "、".join(names)
+
+
+def data_commit_message(dt: datetime | None = None, summary: str = "") -> str:
+    base = f"閱讀資料庫自訂紀錄 {local_time_label(dt)} 的更新"
+    return f"{base}（{summary}）" if summary else base
 
 
 # ------------------------------------------------------------------ #
@@ -2458,7 +2484,7 @@ def commit_database_state(trigger: str = "manual") -> dict:
 
             labels = data_autocommit_file_labels()
             subprocess.run(["git", "add", "--", *labels], cwd=ROOT, check=True, text=True, capture_output=True, timeout=30)
-            message = data_commit_message(started_at)
+            message = data_commit_message(started_at, data_commit_summary(status_output))
             commit = subprocess.run(
                 ["git", "commit", "-m", message, "--", *labels],
                 cwd=ROOT,

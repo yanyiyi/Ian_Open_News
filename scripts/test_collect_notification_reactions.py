@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -156,6 +157,54 @@ class TelegramUpdateTest(unittest.TestCase):
         self.assertTrue(collect.apply_telegram_update(self.state, self.msg_map, update))
         telegram = self.state["events"]["item:translated-review:item-a"]["telegram"]
         self.assertEqual(telegram["reaction_counts"], {"❤️": 3})
+
+
+class FeedbackDbSyncTest(unittest.TestCase):
+    def _event_state(self) -> dict:
+        return {
+            "title": "測試文章",
+            "url": "https://example.com/a",
+            "telegram": {
+                "reaction_counts": {"👍": 2},
+                "replies": [{"message_id": 9, "from": "ian", "text": "好文", "date": 1}],
+            },
+            "slack": {"reaction_counts": {"+1": 1}, "replies": []},
+        }
+
+    def test_merged_feedback_combines_channels(self) -> None:
+        counts, replies = collect.merged_feedback(self._event_state())
+        self.assertEqual(counts, {"👍": 2, "+1": 1})
+        self.assertEqual(len(replies), 1)
+        self.assertEqual(replies[0]["channel"], "telegram")
+
+    def test_parse_event_target(self) -> None:
+        self.assertEqual(collect.parse_event_target("article:published:art-1"), ("article", "art-1"))
+        self.assertEqual(collect.parse_event_target("item:translated-review:item-a"), ("item", "item-a"))
+        self.assertEqual(collect.parse_event_target("weird"), ("", ""))
+
+    def test_sync_appends_once_per_fingerprint(self) -> None:
+        state = {"events": {"article:published:art-1": self._event_state()}}
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db = Path(tmpdir) / "notification-feedback.jsonl"
+            self.assertEqual(collect.sync_feedback_to_database(state, db), 1)
+            # 同一狀態重跑不重複追加
+            self.assertEqual(collect.sync_feedback_to_database(state, db), 0)
+            # 表情變化後追加新快照
+            state["events"]["article:published:art-1"]["telegram"]["reaction_counts"] = {"👍": 3}
+            self.assertEqual(collect.sync_feedback_to_database(state, db), 1)
+            lines = [json.loads(line) for line in db.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(len(lines), 2)
+            self.assertEqual(lines[0]["target_kind"], "article")
+            self.assertEqual(lines[0]["target_id"], "art-1")
+            self.assertEqual(lines[1]["reaction_counts"]["👍"], 3)
+            self.assertNotEqual(lines[0]["id"], lines[1]["id"])
+
+    def test_sync_skips_empty_events(self) -> None:
+        state = {"events": {"item:translated-review:item-a": {"title": "x", "telegram": {}}}}
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db = Path(tmpdir) / "notification-feedback.jsonl"
+            self.assertEqual(collect.sync_feedback_to_database(state, db), 0)
+            self.assertFalse(db.exists())
 
 
 if __name__ == "__main__":

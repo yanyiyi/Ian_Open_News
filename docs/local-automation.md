@@ -169,3 +169,15 @@ ION_PUBLIC_BASE_URL="https://example.test/reader" python3 scripts/notify_ready_i
 
 注意：launchd plist 的 log 一律指到 `~/Library/Logs/`，
 放 `~/Documents` 可能被 macOS TCC 擋成 EX_CONFIG 78。
+
+### 表情與回覆回流（閉環）
+
+推播出去的內容收到的 emoji 表情與回覆，用收集腳本拉回來：
+
+```bash
+python3 scripts/collect_notification_reactions.py
+```
+
+（本機網頁通知頁的「收集表情與回覆」按鈕跑的就是這支。）除了更新 `.cache/notification-reactions.json` 彙整檔，**有變化的事件會同步追加一筆快照到 `database/notification-feedback.jsonl` 正本**（append-only，同狀態不重複追加），之後決策學習迴圈與洞察分析就能把讀者回饋當訊號用。只想更新快取不寫回資料庫時加 `--no-db-sync`。
+
+限制照舊：Slack 需要 bot 模式（`ION_SLACK_BOT_TOKEN`，webhook 送出的訊息追不到）；Telegram 群組表情需要 bot 是管理員。
