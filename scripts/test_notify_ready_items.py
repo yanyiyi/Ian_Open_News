@@ -33,6 +33,7 @@ class NotifyReadyItemsTest(unittest.TestCase):
         self.assertIn("Ian Open News 新專文：我的專文", event.text)
         self.assertIn("這是文章導言，適合作為摘要。", event.text)
         self.assertIn("https://example.test/reader/features/art-test.html", event.text)
+        self.assertNotIn("開放科技與開放產業發展", event.text)
 
     def test_item_event_uses_one_line_and_three_reasons_instead_of_summary(self) -> None:
         event = notify.item_event(
@@ -72,6 +73,8 @@ class NotifyReadyItemsTest(unittest.TestCase):
         self.assertIn("2. 第二個理由。", event.text)
         self.assertIn("3. 第三個理由。", event.text)
         self.assertNotIn("這段摘要不應該成為通知主體", event.text)
+        self.assertNotIn("數位人文與在地知識建構", event.text)
+        self.assertNotIn("純新聞 / 小消息", event.text)
 
     def test_item_event_skips_reviews_that_still_need_fulltext_by_default(self) -> None:
         item = {

@@ -293,9 +293,6 @@ def article_event(article: dict[str, Any], base_url: str) -> NotificationEvent |
     pieces = [f"Ian Open News 新專文：{title}"]
     if excerpt:
         pieces.extend(["", excerpt])
-    meta = meta_line(article)
-    if meta:
-        pieces.extend(["", meta])
     pieces.extend(["", url])
     return NotificationEvent(
         event_key=f"article:published:{article_id}",
@@ -339,9 +336,6 @@ def item_event(record: dict[str, Any], base_url: str, allowed_statuses: set[str]
         f"2. {reasons[1]}",
         f"3. {reasons[2]}",
     ]
-    meta = meta_line(record, kind)
-    if meta:
-        pieces.extend(["", meta])
     pieces.extend(["", url])
     return NotificationEvent(
         event_key=f"item:translated-review:{item_id}",
