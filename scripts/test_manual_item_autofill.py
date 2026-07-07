@@ -202,6 +202,37 @@ class ManualItemAutofillTest(unittest.TestCase):
         self.assertEqual(candidates[0]["original_title"], "How open source policy moves")
         self.assertIn("nl-cand-original", local_web.newsletter_link_title_html(candidates[0]))
 
+    def test_newsletter_link_candidates_keep_translated_title_after_tracking_resolution(self) -> None:
+        tracking_url = "https://click.mlsend.com/link/c/YT0xMjM"
+        real_url = "https://example.org/news/open-source-policy"
+        item = {
+            "url": "https://newsletter.example.org/archive",
+            "reading_metadata": {
+                "article_markdown": f"""
+## [How open source policy moves]({tracking_url})
+
+[Read more]({tracking_url})
+""",
+                "translated_article_markdown_zh": f"""
+## [開源政策如何成形]({tracking_url})
+
+[閱讀更多]({tracking_url})
+""",
+            },
+        }
+        original_resolver = local_web.resolve_tracking_links
+        local_web.resolve_tracking_links = lambda urls: {tracking_url: real_url}
+        try:
+            candidates, _skipped = local_web.newsletter_link_candidates(item)
+        finally:
+            local_web.resolve_tracking_links = original_resolver
+
+        self.assertEqual(candidates[0]["url"], real_url)
+        self.assertEqual(candidates[0]["tracking_url"], tracking_url)
+        self.assertEqual(candidates[0]["title"], "How open source policy moves")
+        self.assertEqual(candidates[0]["display_title"], "開源政策如何成形")
+        self.assertEqual(candidates[0]["original_title"], "How open source policy moves")
+
     def test_source_add_href_prefills_rsshub_bridge_fields(self) -> None:
         href = local_web.source_add_href(
             "http://127.0.0.1:1200/ptt/bbs/Tech_Job",

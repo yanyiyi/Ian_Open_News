@@ -67,6 +67,7 @@ RSS_FETCH_STATUS = ROOT / ".cache" / "rss-fetch-status.json"
 DATA_COMMIT_STATUS = ROOT / ".cache" / "data-autocommit-status.json"
 COMMAND_STATUS = ROOT / ".cache" / "command-status.json"
 TRIAGE_CLUSTERS = ROOT / ".cache" / "triage-clusters.json"
+TRACKING_LINK_CACHE = ROOT / ".cache" / "tracking-link-cache.json"
 VIEWPOINTS = DATABASE / "viewpoints.jsonl"
 MATERIAL_LINKS = DATABASE / "material-links.jsonl"
 ARTICLES = DATABASE / "articles.jsonl"
@@ -5071,10 +5072,8 @@ def publish_page_card(page_type: str, key: str, title: str, blurb: str = "") -> 
 """
 
 
-def resolve_final_url(url: str, timeout: int = 12) -> tuple[str, str]:
-    url = unwrap_google_alert_url(clean_text(url))
-    if not url:
-        return "", "網址是空的。"
+def _follow_redirects(url: str, timeout: int) -> tuple[str, str]:
+    """跟著 HTTP 跳轉走到最終落點，回傳 (final_url, error)。HEAD 被擋就退回 GET。"""
     headers = {"User-Agent": "IanOpenNewsBot/1.0 (+https://github.com/)"}
     for method in ["HEAD", "GET"]:
         request = urllib.request.Request(url, headers=headers, method=method)
@@ -5090,6 +5089,111 @@ def resolve_final_url(url: str, timeout: int = 12) -> tuple[str, str]:
                 continue
             return "", str(exc)
     return "", "無法解析跳轉網址。"
+
+
+def resolve_final_url(url: str, timeout: int = 12) -> tuple[str, str]:
+    url = unwrap_google_alert_url(clean_text(url))
+    if not url:
+        return "", "網址是空的。"
+    return _follow_redirects(url, timeout)
+
+
+# 短網址與電子報點擊追蹤：連結本身是不透明的追蹤碼或縮址（e.g. click.mlsend.com/link/c/...、
+# bit.ly/xxx），真正落點只能靠跟著 30x 跳轉才拿得到。這些一律先解析成真實網址，再拿真實網址去
+# 分類、去重與建材料，避免整篇電子報被拆成一堆指向追蹤網域的假來源。這裡不是只給某一則用，
+# 任何來源的短網址／追蹤連結都會走同一套還原。
+#
+# 縮址服務（精確 host 比對，去掉 www 前綴）：本質就是跳轉，解析必安全。
+SHORT_URL_HOSTS = frozenset({
+    "bit.ly", "bitly.com", "j.mp", "t.co", "tinyurl.com", "tiny.cc", "ow.ly",
+    "buff.ly", "goo.gl", "g.co", "is.gd", "v.gd", "rebrand.ly", "cutt.ly",
+    "shorturl.at", "rb.gy", "t.ly", "s.id", "lnkd.in", "dlvr.it", "trib.al",
+    "hubs.ly", "hubs.la", "fb.me", "wp.me", "amzn.to", "flip.it", "ift.tt",
+    "mtr.cool", "clck.ru", "mjt.lu",
+    # 媒體品牌縮址
+    "nyti.ms", "wapo.st", "reut.rs", "bbc.in", "econ.st", "on.ft.com",
+    "theatln.tc", "cnn.it", "nbcnews.to", "apne.ws", "spoti.fi", "apple.co",
+})
+
+# 電子報 / 行銷 EDM 點擊追蹤網域。含「/」的標記比對 host+path（如 beehiiv 的 /redirect），
+# 其餘只比對 host，避免 query 參數裡出現同字串就誤判。
+TRACKING_REDIRECT_HOST_MARKERS = (
+    "mlsend.com",         # MailerLite 點擊追蹤
+    "mailerlite",         # MailerLite 其他追蹤網域
+    "list-manage.com",    # Mailchimp
+    "mailchi.mp",         # Mailchimp 縮址
+    "sendgrid.net",       # SendGrid（ct.sendgrid.net、url*.sendgrid…）
+    "sparkpostmail",      # SparkPost
+    "mailgun.org",        # Mailgun
+    "mandrillapp.com",    # Mandrill
+    "hubspotlinks.com",   # HubSpot
+    "hs-sites.com",       # HubSpot
+    "rs6.net",            # Constant Contact（r20.rs6.net）
+    "klaviyo",            # Klaviyo（trk.klaviyo.com 等）
+    "convertkit",         # ConvertKit（click.convertkit-mail…）
+    "exct.net",           # Salesforce Marketing Cloud
+    "exacttarget",        # Salesforce Marketing Cloud
+    "activehosted.com",   # ActiveCampaign
+    "sailthru.com",       # Sailthru
+    "marketo",            # Marketo
+    "beehiiv.com/redirect",
+    "substack.com/redirect",
+)
+
+
+def is_short_or_tracking_url(url: str) -> bool:
+    """判斷是否為短網址或電子報點擊追蹤連結（需要跟跳轉才拿得到真實網址）。
+    高信心、保守：命中的都是本質上就會跳轉的服務，所以解析或（失敗時）略過都安全。"""
+    parsed = urlparse(clean_text(url))
+    host = parsed.netloc.casefold().removeprefix("www.")
+    if not host:
+        return False
+    if host in SHORT_URL_HOSTS:
+        return True
+    host_and_path = f"{host}{parsed.path}".casefold()
+    for marker in TRACKING_REDIRECT_HOST_MARKERS:
+        if ("/" in marker and marker in host_and_path) or ("/" not in marker and marker in host):
+            return True
+    return False
+
+
+def _load_tracking_link_cache() -> dict:
+    data = load_json(TRACKING_LINK_CACHE)
+    return data if isinstance(data, dict) else {}
+
+
+def resolve_tracking_links(urls: list[str], timeout: int = 8, max_workers: int = 8) -> dict[str, str]:
+    """把一批短網址／追蹤跳轉網址解析成真實網址，回傳 {原始網址: 真實網址}。
+    有磁碟快取（.cache/tracking-link-cache.json），解析失敗的原始網址不進 mapping（呼叫端沿用原值）。
+    只對 is_short_or_tracking_url 命中的網址發網路請求；其餘直接原樣回傳。"""
+    tracking = [u for u in dict.fromkeys(clean_text(u) for u in urls) if u and is_short_or_tracking_url(u)]
+    if not tracking:
+        return {}
+    cache = _load_tracking_link_cache()
+    resolved: dict[str, str] = {}
+    to_fetch: list[str] = []
+    for url in tracking:
+        cached = cache.get(url)
+        if isinstance(cached, str):
+            if cached:
+                resolved[url] = cached
+        else:
+            to_fetch.append(url)
+    if to_fetch:
+        from concurrent.futures import ThreadPoolExecutor
+
+        def worker(u: str) -> tuple[str, str]:
+            final, _error = _follow_redirects(u, timeout)
+            return u, canonical_item_url(final)
+
+        with ThreadPoolExecutor(max_workers=min(max_workers, len(to_fetch))) as pool:
+            for original, final in pool.map(worker, to_fetch):
+                # 快取成功的落點；解析失敗或落點還是追蹤網域記成空字串，避免每次 render 都重打網路。
+                cache[original] = final if (final and not is_short_or_tracking_url(final)) else ""
+                if cache[original]:
+                    resolved[original] = cache[original]
+        write_json(TRACKING_LINK_CACHE, cache)
+    return resolved
 
 
 def personal_note_text(item: dict) -> str:
@@ -5839,11 +5943,16 @@ def newsletter_translated_links_by_url(item: dict) -> dict[str, dict]:
 
 
 def enrich_newsletter_link_display_title(record: dict, translated_links: dict[str, dict]) -> dict:
-    url = canonical_item_url(record.get("url"))
     original_title = clean_text(record.get("title"), 300)
     translated_title = ""
-    if url and url in translated_links:
-        translated_title = clean_text(translated_links[url].get("title"), 300)
+    lookup_urls = [
+        canonical_item_url(record.get("url")),
+        canonical_item_url(record.get("tracking_url")),
+    ]
+    for url in lookup_urls:
+        if url and url in translated_links:
+            translated_title = clean_text(translated_links[url].get("title"), 300)
+            break
     display_title = translated_title or original_title
     enriched = {**record, "display_title": display_title}
     if translated_title and original_title and clean_text(translated_title).casefold() != clean_text(original_title).casefold():
@@ -5873,6 +5982,9 @@ def classify_newsletter_link(item: dict, link: dict) -> tuple[bool, str]:
     context = clean_text(link.get("context"), 800)
     haystack = f"{label}\n{title}\n{url}\n{context}"
     functional_haystack = f"{label}\n{title}\n{url}"
+    if is_short_or_tracking_url(url):
+        # 走到這裡代表 resolve 沒成功（網路失敗或落點還是追蹤／縮址網域），別把追蹤碼當文章來源。
+        return False, "短網址／追蹤連結（無法解析真實網址）"
     if any(domain in host for domain in ["mailerlite", "mailchimp", "list-manage.com", "linkedin.com", "x.com", "twitter.com", "facebook.com"]):
         return False, "功能性或社群連結"
     if re.search(r"/(?:series|categor(?:y|ies)|tags?|authors?|contributors?)(?:/|$)", parsed.path, re.I):
@@ -5893,9 +6005,23 @@ def newsletter_link_candidates(item: dict) -> tuple[list[dict], list[dict]]:
     if not markdown:
         return [], []
     translated_links = newsletter_translated_links_by_url(item)
+    raw_links = extract_markdown_links(markdown, clean_text(item.get("url")))
+    # 先把 click.mlsend.com 這類追蹤跳轉一次解析成真實網址，之後分類／去重／建材料全用真實網址。
+    resolved_map = resolve_tracking_links([link.get("url") for link in raw_links])
     candidates: list[dict] = []
     skipped: list[dict] = []
-    for link in extract_markdown_links(markdown, clean_text(item.get("url"))):
+    seen_urls: set[str] = set()
+    for link in raw_links:
+        original_url = clean_text(link.get("url"))
+        real_url = resolved_map.get(original_url)
+        if real_url and real_url != original_url:
+            link = {**link, "url": real_url, "tracking_url": original_url}
+        # 多個追蹤連結可能解析到同一篇真實文章，解析後再去重一次。
+        dedup_key = canonical_item_url(link.get("url"))
+        if dedup_key and dedup_key in seen_urls:
+            continue
+        if dedup_key:
+            seen_urls.add(dedup_key)
         keep, reason = classify_newsletter_link(item, link)
         record = enrich_newsletter_link_display_title({**link, "reason": reason}, translated_links)
         if keep:
@@ -5957,6 +6083,7 @@ def build_newsletter_child_item(parent: dict, link: dict, captured_at: str, keyw
             "parent_url": clean_text(parent.get("url")),
             "link_label": clean_text(link.get("label")),
             "link_reason": clean_text(link.get("reason")),
+            "link_tracking_url": clean_text(link.get("tracking_url")),
         },
         "review": default_review("從彙整式電子報拆出的子文章；需照一般入庫建檔流程判斷是否收錄。"),
     }
