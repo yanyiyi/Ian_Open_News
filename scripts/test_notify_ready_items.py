@@ -92,6 +92,13 @@ class NotifyReadyItemsTest(unittest.TestCase):
         self.assertIn("<b>重點</b>", event.telegram_text)
         self.assertNotEqual(event.slack_text, event.telegram_text)
         self.assertNotIn("數位人文與在地知識建構", event.text)
+        # 一句話走引言區塊：Slack 用 >，Telegram 用 <blockquote>
+        self.assertIn("> 這篇適合讀", event.slack_text)
+        self.assertIn("<blockquote>", event.telegram_text)
+        self.assertIn("</blockquote>", event.telegram_text)
+        # 重點／摘要小標前面帶 emoji（引言帶頭 + emoji 小標）
+        self.assertRegex(event.slack_text, r".\s*\*重點\*")
+        self.assertRegex(event.slack_text, r".\s*\*摘要\*")
 
     def test_strip_editor_address_preserves_real_person_names(self) -> None:
         self.assertEqual(

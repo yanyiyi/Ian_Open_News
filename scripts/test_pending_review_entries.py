@@ -56,6 +56,36 @@ class PendingReviewEntriesTest(unittest.TestCase):
 
         self.assertEqual(local_web.pending_review_entries([active], [candidate]), [])
 
+    def test_hides_candidate_when_rejected_item_exists(self) -> None:
+        candidate = {
+            "id": "item-1",
+            "status": "inbox",
+            "url": "https://example.com/story",
+        }
+        rejected = {
+            "id": "item-1",
+            "status": "archived",
+            "url": "https://example.com/story",
+            "local_decision": {"action": "rejected"},
+        }
+
+        self.assertEqual(local_web.pending_review_entries([], [candidate], [rejected]), [])
+
+    def test_hides_candidate_with_rejected_canonical_url(self) -> None:
+        candidate = {
+            "id": "candidate-1",
+            "status": "inbox",
+            "url": "https://example.com/story?utm_source=rss",
+        }
+        rejected = {
+            "id": "item-1",
+            "status": "archived",
+            "url": "https://example.com/story",
+            "local_decision": {"action": "rejected"},
+        }
+
+        self.assertEqual(local_web.pending_review_entries([], [candidate], [rejected]), [])
+
     def test_update_item_decision_removes_stale_candidate(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -91,6 +121,52 @@ class PendingReviewEntriesTest(unittest.TestCase):
                 item = local_web.load_jsonl(local_web.ITEMS)[0]
                 self.assertEqual(item["status"], "ready")
                 self.assertEqual(item["local_decision"]["action"], "direct-pr-small-news")
+            finally:
+                for name, value in originals.items():
+                    setattr(local_web, name, value)
+
+    def test_reject_moves_stale_candidate_to_dismissed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            originals = {
+                "ITEMS": local_web.ITEMS,
+                "CANDIDATES": local_web.CANDIDATES,
+                "REJECTED_ITEMS": local_web.REJECTED_ITEMS,
+                "DISMISSED": local_web.DISMISSED,
+                "REVIEW_EVENTS": local_web.REVIEW_EVENTS,
+                "DECISION_DIVERGENCES": local_web.DECISION_DIVERGENCES,
+            }
+            local_web.ITEMS = tmp_path / "items.jsonl"
+            local_web.CANDIDATES = tmp_path / "rss-candidates.jsonl"
+            local_web.REJECTED_ITEMS = tmp_path / "rejected-items.jsonl"
+            local_web.DISMISSED = tmp_path / "dismissed-items.jsonl"
+            local_web.REVIEW_EVENTS = tmp_path / "review-events.jsonl"
+            local_web.DECISION_DIVERGENCES = tmp_path / "decision-divergences.jsonl"
+            try:
+                local_web.write_jsonl(
+                    local_web.ITEMS,
+                    [{"id": "item-1", "status": "inbox", "track": "open-tech-open-industry", "url": "https://example.com/story"}],
+                )
+                local_web.write_jsonl(
+                    local_web.CANDIDATES,
+                    [{"id": "item-1", "status": "inbox", "url": "https://example.com/story?utm_source=rss"}],
+                )
+                local_web.write_jsonl(local_web.REJECTED_ITEMS, [])
+                local_web.write_jsonl(local_web.DISMISSED, [])
+                local_web.write_jsonl(local_web.REVIEW_EVENTS, [])
+                local_web.write_jsonl(local_web.DECISION_DIVERGENCES, [])
+
+                handler = local_web.Handler.__new__(local_web.Handler)
+                self.assertEqual(handler.update_item_decisions(["item-1"], "reject", "活動公告/宣傳"), 1)
+
+                self.assertEqual(local_web.load_jsonl(local_web.ITEMS), [])
+                self.assertEqual(local_web.load_jsonl(local_web.CANDIDATES), [])
+                rejected = local_web.load_jsonl(local_web.REJECTED_ITEMS)
+                dismissed = local_web.load_jsonl(local_web.DISMISSED)
+                self.assertEqual(rejected[0]["id"], "item-1")
+                self.assertEqual(rejected[0]["local_decision"]["action"], "rejected")
+                self.assertEqual(dismissed[0]["id"], "item-1")
+                self.assertEqual(dismissed[0]["reason"], "活動公告/宣傳")
             finally:
                 for name, value in originals.items():
                     setattr(local_web, name, value)

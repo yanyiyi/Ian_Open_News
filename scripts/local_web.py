@@ -5847,14 +5847,23 @@ def is_pending_inbox_item(item: dict) -> bool:
     return item.get("status") == "inbox" and not item_has_completed_intake_decision(item)
 
 
-def pending_review_entries(items: list[dict], candidates: list[dict]) -> list[tuple[str, dict]]:
+def pending_review_entries(
+    items: list[dict],
+    candidates: list[dict],
+    rejected_items: list[dict] | None = None,
+) -> list[tuple[str, dict]]:
     active_ids = {clean_text(item.get("id")) for item in items if clean_text(item.get("id"))}
     active_url_keys = {url_key for item in items for url_key in item_url_keys(item)}
+    rejected_pool = rejected_items if rejected_items is not None else load_jsonl(REJECTED_ITEMS)
+    rejected_ids = {clean_text(item.get("id")) for item in rejected_pool if clean_text(item.get("id"))}
+    rejected_url_keys = {url_key for item in rejected_pool for url_key in item_url_keys(item)}
+    hidden_ids = active_ids | rejected_ids
+    hidden_url_keys = active_url_keys | rejected_url_keys
     pending_candidates = [
         candidate
         for candidate in candidates
-        if clean_text(candidate.get("id")) not in active_ids
-        and not (item_url_keys(candidate) & active_url_keys)
+        if clean_text(candidate.get("id")) not in hidden_ids
+        and not (item_url_keys(candidate) & hidden_url_keys)
     ]
     inbox_items = [item for item in items if is_pending_inbox_item(item)]
     return [("rss", candidate) for candidate in pending_candidates] + [("item", item) for item in inbox_items]
@@ -6852,6 +6861,50 @@ def rejected_archive_record(record: dict, decided_at: str, reason: str = "", mov
         "purpose": "learning-rejection-patterns",
     }
     return item
+
+
+def rss_dismissed_record(candidate: dict, decided_at: str, notes: str, reason: str = "") -> dict:
+    dismissed = {
+        "id": candidate.get("id"),
+        "track": candidate.get("track"),
+        "title": candidate.get("title"),
+        "url": candidate.get("url"),
+        "source_id": candidate.get("source_id"),
+        "source_name": candidate.get("source_name"),
+        "reference": candidate.get("reference", {}),
+        "triage": candidate.get("triage", {}),
+        "dismissed_at": decided_at,
+        "notes": notes,
+    }
+    if reason:
+        dismissed["reason"] = reason
+    return dismissed
+
+
+def prune_candidate_shadows_for_records(records: list[dict], decided_at: str, reason: str = "", notes: str = "") -> int:
+    target_ids = {clean_text(record.get("id")) for record in records if clean_text(record.get("id"))}
+    target_url_keys = {url_key for record in records for url_key in item_url_keys(record)}
+    if not target_ids and not target_url_keys:
+        return 0
+
+    candidates = load_jsonl(CANDIDATES)
+    kept_candidates = []
+    dismissed_candidates = []
+    for candidate in candidates:
+        candidate_id = clean_text(candidate.get("id"))
+        if (candidate_id and candidate_id in target_ids) or (item_url_keys(candidate) & target_url_keys):
+            dismissed_candidates.append(candidate)
+        else:
+            kept_candidates.append(candidate)
+
+    if not dismissed_candidates:
+        return 0
+
+    write_jsonl(CANDIDATES, kept_candidates)
+    dismissed_notes = notes or "已拒收正本，移除同筆 RSS 候選快取。"
+    for candidate in dismissed_candidates:
+        upsert_jsonl(DISMISSED, rss_dismissed_record(candidate, decided_at, dismissed_notes, reason))
+    return len(dismissed_candidates)
 
 
 def rejection_reason_base(reason: object) -> str:
@@ -18772,21 +18825,7 @@ if (document.readyState === "loading") {{
                 upsert_jsonl(REJECTED_ITEMS, archived_item)
         else:
             upsert_jsonl(REJECTED_ITEMS, archived_candidate)
-        dismissed = {
-            "id": candidate.get("id"),
-            "track": candidate.get("track"),
-            "title": candidate.get("title"),
-            "url": candidate.get("url"),
-            "source_id": candidate.get("source_id"),
-            "source_name": candidate.get("source_name"),
-            "reference": candidate.get("reference", {}),
-            "triage": candidate.get("triage", {}),
-            "dismissed_at": decided_at,
-            "notes": notes,
-        }
-        if reason:
-            dismissed["reason"] = reason
-        append_jsonl(DISMISSED, dismissed)
+        upsert_jsonl(DISMISSED, rss_dismissed_record(candidate, decided_at, notes, reason))
         return True
 
     @with_db_write_lock
@@ -18824,6 +18863,7 @@ if (document.readyState === "loading") {{
         decided_at = now_iso()
         events = []
         active_ids = set()
+        rejected_items_for_candidate_prune = []
         changed = 0
         for item in items:
             if item.get("id") not in selected_ids:
@@ -18876,6 +18916,7 @@ if (document.readyState === "loading") {{
             updated_item["review"] = append_review_note(updated_item.get("review") or {}, f"{decided_at} {note}")
             if action == "reject":
                 upsert_jsonl(REJECTED_ITEMS, rejected_archive_record(updated_item, decided_at, reason))
+                rejected_items_for_candidate_prune.append(updated_item)
             else:
                 updated_items.append(updated_item)
                 active_ids.add(str(updated_item.get("id")))
@@ -18885,7 +18926,15 @@ if (document.readyState === "loading") {{
 
         if changed:
             write_jsonl(ITEMS, updated_items)
-            remove_jsonl_ids(CANDIDATES, selected_ids)
+            if rejected_items_for_candidate_prune:
+                prune_candidate_shadows_for_records(
+                    rejected_items_for_candidate_prune,
+                    decided_at,
+                    reason,
+                    f"本機標記不收。原因：{reason}" if reason else "本機標記不收。",
+                )
+            else:
+                remove_jsonl_ids(CANDIDATES, selected_ids)
             remove_jsonl_ids(REJECTED_ITEMS, active_ids)
             remove_jsonl_ids(DISMISSED, active_ids)
             for event in events:
@@ -21284,7 +21333,7 @@ if (document.readyState === "loading") {{
 <h1>手動入庫</h1>
 <p class="lede">用在你看到一篇文章、一個頁面或一個案例，想先丟進入庫建檔區時。這裡新增的是單筆知識項目，不是長期 RSS 來源。</p>
 <div class="button-row"><a class="button secondary" href="/items/upload-pdf">{button_content("上傳 PDF", "text-lines")}</a></div>
-<form class="form-panel tag-picker" method="post" action="/items" data-url-preview-form data-preview-kind="item" data-preview-track-autofill="{track_autofill}" data-tag-picker>
+<form class="form-panel tag-picker" method="post" action="/items" data-url-preview-form data-preview-kind="item" data-preview-track-autofill="{track_autofill}" data-tag-picker data-manual-item-form>
   <label>主線</label>
   <select name="track" data-preview-track>{option_list(TRACKS, current_track)}</select>
   <p class="help">這決定它會出現在「開放科技」或「人文與在地知識」哪一個工作台。</p>
@@ -21323,8 +21372,19 @@ if (document.readyState === "loading") {{
   <label>備註 / 為什麼值得追</label>
   <textarea name="notes" data-preview-notes></textarea>
   <p class="help">寫給未來的自己看：這則資料可能放進哪個議題、有哪些疑問。</p>
-  <button type="submit">把這頁存進待整理</button>
-  <p class="help">送出後會寫進 database/items.jsonl，狀態是 inbox，還不會自動發布。</p>
+  <label>存好之後怎麼分流</label>
+  <div class="card" style="padding:12px 14px">
+    <label style="display:block;font-weight:normal;margin:0 0 6px"><input type="radio" name="post_action" value="accept" style="width:auto" checked> 確認收，直接放入可用材料區</label>
+    <label style="display:block;font-weight:normal;margin:0 0 6px"><input type="radio" name="post_action" value="accept_reading" style="width:auto"> 確認收＋標記閱讀中／超想看</label>
+    <label style="display:block;font-weight:normal;margin:0 0 6px"><input type="radio" name="post_action" value="direct_pr" style="width:auto"> 純事實小消息，直接標記送 PR</label>
+    <label style="display:block;font-weight:normal;margin:0"><input type="radio" name="post_action" value="inbox" style="width:auto"> 先留在入庫建檔區，之後再篩</label>
+  </div>
+  <p class="help">手動入庫通常已經確定要收，所以預設直接進可用材料區，跟入庫建檔區按「確認收」是同一套決定與紀錄，不用再回去按一次。</p>
+  <label style="font-weight:normal"><input type="checkbox" name="run_ai_review" value="1" style="width:auto" checked data-item-ai-review> 存好後接著抓全文＋補 AI 閱讀建議與中文摘要</label>
+  <select name="ai_provider" data-item-ai-provider>{option_list([("random", "隨機挑引擎（失敗自動換下一個）"), *[(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER]], "random")}</select>
+  <p class="help">和 RSS 收件同一套：先抓可讀全文，再生成一句話推薦、三個閱讀理由與中文摘要；進度在右下角狀態列，做完會直接帶你到單篇頁。</p>
+  <button type="submit">存進資料庫並套用分流</button>
+  <p class="help">送出後會寫進 database/items.jsonl 並套用上面的分流決定，還不會自動發布。</p>
 </form>
 <script>
 (() => {{
@@ -21381,6 +21441,55 @@ if (document.readyState === "loading") {{
     }} finally {{
       button.disabled = false;
     }}
+  }});
+}})();
+(() => {{
+  // 手動入庫＋接著跑 AI：有勾 AI 才攔截送出，走 fetch＋右下角狀態列；
+  // 沒勾或環境不支援就走原生 POST，伺服器端一樣會套用分流決定。
+  const form = document.querySelector("form[data-manual-item-form]");
+  if (!form) return;
+  form.addEventListener("submit", async (event) => {{
+    const runAi = form.querySelector("[data-item-ai-review]")?.checked;
+    if (!runAi || !window.fetch || !window.runEngineJob) return;
+    event.preventDefault();
+    const submitBtn = form.querySelector("button[type='submit']");
+    if (submitBtn?.disabled) return;
+    const submitLabel = submitBtn ? submitBtn.textContent : "";
+    if (submitBtn) {{ submitBtn.disabled = true; submitBtn.textContent = "存檔中…"; }}
+    let payload = null;
+    try {{
+      const body = new URLSearchParams(new FormData(form));
+      body.set("format", "json");
+      const response = await fetch(form.getAttribute("action") || "/items", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With": "local-web-fetch" }},
+        body,
+      }});
+      payload = await response.json();
+    }} catch (error) {{
+      payload = {{ ok: false, error: String(error) }};
+    }}
+    if (!payload || payload.ok === false || !payload.item_id) {{
+      if (submitBtn) {{ submitBtn.disabled = false; submitBtn.textContent = submitLabel; }}
+      window.alert("存檔失敗：" + ((payload && (payload.error || payload.message)) || "請稍後再試。"));
+      return;
+    }}
+    const viewUrl = "/items/view?id=" + encodeURIComponent(payload.item_id);
+    if (payload.duplicate) {{
+      window.alert((payload.message || "這個網址已經在資料庫。") + "\\n帶你去現有材料。");
+      window.location.href = viewUrl;
+      return;
+    }}
+    const provider = form.querySelector("[data-item-ai-provider]")?.value || "random";
+    const ok = await window.runEngineJob({{
+      label: "手動入庫＋AI 閱讀建議",
+      url: "/items/codex-review",
+      baseBody: new URLSearchParams({{ id: payload.item_id, with_fulltext: "1", redirect: viewUrl }}),
+      engine: provider,
+      onSuccess: (result) => {{ window.location.href = (result && result.redirect) || viewUrl; }},
+    }});
+    // AI 失敗也照樣去單篇頁：item 已存好並分流，閱讀建議可在單篇頁再重跑。
+    if (!ok) window.location.href = viewUrl;
   }});
 }})();
 </script>
@@ -21667,9 +21776,25 @@ if (document.readyState === "loading") {{
                 },
             )
         append_jsonl(ITEMS, record)
+        item_id = clean_text(record.get("id"))
+        # 手動入庫已是人工決定要收：可直接套用與入庫建檔區相同的三篩選決定
+        post_action = form_value(data, "post_action", "inbox")
+        if post_action not in {"accept", "accept_reading", "direct_pr"}:
+            post_action = "inbox"
+        if post_action != "inbox" and item_id:
+            self.update_item_decisions([item_id], post_action)
+        post_action_message = {
+            "inbox": "已加入入庫建檔區。",
+            "accept": "已存檔並確認收，放入可用材料區。",
+            "accept_reading": "已存檔並確認收，標記閱讀中／超想看。",
+            "direct_pr": "已存檔並標記直接送 PR（小消息）。",
+        }[post_action]
         if async_request:
-            self.send_json({"ok": True, "duplicate": False, "item_id": clean_text(record.get("id")),
-                            "message": "已加入待整理。"})
+            self.send_json({"ok": True, "duplicate": False, "item_id": item_id,
+                            "post_action": post_action, "message": post_action_message})
+            return
+        if item_id:
+            self.redirect(f"/items/view?id={quote(item_id)}&saved=item")
             return
         self.redirect("/?saved=item")
 

@@ -513,12 +513,24 @@ def meta_line(record: dict[str, Any], kind: str = "") -> str:
 
 
 # ── 推播排版 ────────────────────────────────────────────────────────────────
-# 一句話 + 3 個重點 + AI 摘要 + # 標籤 + 連結。Slack 走 mrkdwn（*粗體*），Telegram
-# 走 HTML（<b>粗體</b>, parse_mode=HTML）；內容跟著使用者在 /items/view 勾選的推薦版本
-# 走，送出前所有動態文字都過 strip_editor_address。排版版本由 PUSH_FORMAT 決定。
-PUSH_FORMAT = "v1"  # v1=粗體小標（見 scratchpad 的 push-format mockup）；要換排版改這裡即可。
+# 一句話（引言區塊帶頭）+ 3 個重點 + AI 摘要 + # 標籤 + 連結。Slack 走 mrkdwn
+# （*粗體* 與 > 引言），Telegram 走 HTML（<b> 與 <blockquote>, parse_mode=HTML）；
+# 內容跟著使用者在 /items/view 勾選的推薦版本走，送出前所有動態文字都過
+# strip_editor_address。段落小標的 emoji 依 item id 穩定輪換，整個 feed 看起來多樣、
+# 單筆固定。排版版本由 PUSH_FORMAT 決定。
+PUSH_FORMAT = "quote-emoji"  # 引言帶頭 + emoji 小標（見 scratchpad 的 push-format mockup）。
 
 _HASHTAG_SKIP = re.compile(r"RSS|新聞活動|^rss$", re.IGNORECASE)  # 系統／來源類標籤不進 #
+
+# 段落小標 emoji 池：依 item id 穩定挑一顆，讓不同則快訊有不同組合、看起來多樣。
+_POINTS_EMOJI = ["🔑", "📍", "✅", "🧩", "🎯", "📊", "🗂️"]
+_SUMMARY_EMOJI = ["📝", "📄", "🧾", "📚", "🖋️", "🗒️"]
+
+
+def _pick_emoji(pool: list[str], seed: str, salt: int) -> str:
+    """依 seed（通常是 item id）穩定挑一顆 emoji；不同 salt 讓重點／摘要各自輪換。"""
+    basis = sum((seed or "x").encode("utf-8")) + salt
+    return pool[basis % len(pool)]
 
 
 def _tg_escape(text: object) -> str:
@@ -557,27 +569,38 @@ def build_channel_messages(
     summary: str,
     hashtags: list[str],
     url: str,
+    seed: str = "",
 ) -> tuple[str, str, str]:
-    """回傳 (plain, slack_mrkdwn, telegram_html)。plain 供 state 記錄與 --dry-run 預覽（無標記）。"""
+    """回傳 (plain, slack_mrkdwn, telegram_html)。plain 供 state 記錄與 --dry-run 預覽。
+
+    排版：標題（粗體）→ 一句話（引言區塊）→ {emoji} 重點（編號）→ {emoji} 摘要
+    → # 標籤 → 連結。段落小標 emoji 依 seed 穩定輪換。
+    """
     reasons = [reason for reason in (reasons or []) if reason][:3]
     tag_line = " ".join(hashtags) if hashtags else ""
+    points_emoji = _pick_emoji(_POINTS_EMOJI, seed or title, 1)
+    summary_emoji = _pick_emoji(_SUMMARY_EMOJI, seed or title, 2)
 
-    def assemble(bold, esc) -> str:
+    def assemble(bold, quote, esc) -> str:
         parts = [f"{prefix}{bold(esc(title))}"]
         if hook:
-            parts += ["", esc(hook)]
+            parts += ["", quote(esc(hook))]
         if reasons:
-            parts += ["", bold("重點")] + [f"{index}. {esc(reason)}" for index, reason in enumerate(reasons, 1)]
+            parts += ["", f"{points_emoji} {bold('重點')}"] + [
+                f"{index}. {esc(reason)}" for index, reason in enumerate(reasons, 1)
+            ]
         if summary:
-            parts += ["", bold("摘要"), esc(summary)]
+            parts += ["", f"{summary_emoji} {bold('摘要')}", esc(summary)]
         if tag_line:
             parts += ["", esc(tag_line)]
         parts += ["", url]
         return "\n".join(parts)
 
-    plain = assemble(lambda text: text, lambda text: text)
-    slack = assemble(lambda text: f"*{text}*", _slack_escape)
-    telegram = assemble(lambda text: f"<b>{text}</b>", _tg_escape)
+    plain = assemble(lambda text: text, lambda text: f"「{text}」", lambda text: text)
+    slack = assemble(lambda text: f"*{text}*", lambda text: f"> {text}", _slack_escape)
+    telegram = assemble(
+        lambda text: f"<b>{text}</b>", lambda text: f"<blockquote>{text}</blockquote>", _tg_escape
+    )
     return plain, slack, telegram
 
 
@@ -595,7 +618,7 @@ def article_event(article: dict[str, Any], base_url: str) -> NotificationEvent |
     )
     url = public_reader_feature_url(article_id, base_url)
     hashtags = hashtags_from_tags(article.get("tags"))
-    plain, slack, telegram = build_channel_messages("【新專文】", title, excerpt, [], "", hashtags, url)
+    plain, slack, telegram = build_channel_messages("【新專文】", title, excerpt, [], "", hashtags, url, seed=article_id)
     return NotificationEvent(
         event_key=f"article:published:{article_id}",
         kind="article",
@@ -635,7 +658,7 @@ def item_event(record: dict[str, Any], base_url: str, allowed_statuses: set[str]
     prefix = item_notification_prefix(item_display_kind(record, review))
     url = public_reader_article_url(item_id, base_url)
     hashtags = hashtags_from_tags(record.get("tags"))
-    plain, slack, telegram = build_channel_messages(prefix, title, hook, reasons[:3], summary, hashtags, url)
+    plain, slack, telegram = build_channel_messages(prefix, title, hook, reasons[:3], summary, hashtags, url, seed=item_id)
     return NotificationEvent(
         event_key=f"item:translated-review:{item_id}",
         kind="item",
