@@ -91,12 +91,44 @@ class NotificationEvent:
     url: str
     ready_at: str = ""
     image_url: str = ""
+    slack_text: str = ""      # Slack mrkdwn 版；空字串時退回 text
+    telegram_text: str = ""   # Telegram HTML 版（parse_mode=HTML）；空字串時退回 text
 
 
 def clean_text(value: object, limit: int = 0) -> str:
     text = " ".join(str(value or "").split())
     if limit and len(text) > limit:
         return text[: max(0, limit - 1)].rstrip() + "…"
+    return text
+
+
+# ── 移除「給 Ian／值得 Ian／Ian 可以」這類對編輯喊話的字樣 ──────────────────
+# 推播不該出現稱呼編輯的字樣；新資料在 codex_enrich_reviews 存檔時已洗過，
+# 這裡對送出前的內容再過濾一次，兼顧尚未清理的舊資料。與 local_web 同一套規則。
+_EDITOR_ADDRESS_SUBS = [
+    (re.compile(r"^\s*給\s*Ian\s*的[^：:。，,\n]{0,16}?[：:]\s*"), ""),
+    (re.compile(r"^\s*給\s*Ian\s*的?\s*[：:，,、]?\s*"), ""),
+    (re.compile(r"^\s*Ian\s*[：:，,、]\s*"), ""),
+    (re.compile(r"留給\s*Ian\s*人工"), "留待人工"),
+    (re.compile(r"保留給\s*Ian\s*人工"), "保留待人工"),
+    (re.compile(r"給\s*Ian\s*人工"), "待人工"),
+    (re.compile(r"值得\s*Ian(?!\s*Open\s+News)\s*"), "值得"),
+    (re.compile(r"建議\s*Ian(?!\s*Open\s+News)\s*"), "建議"),
+    (re.compile(r"提醒\s*Ian(?!\s*Open\s+News)\s*"), "提醒"),
+    (re.compile(r"Ian\s*(?=可以|應該|可先|不妨|得先|要先|需要|建議|值得|不必|別|請)"), ""),
+    (re.compile(r"^\s*[（(]\s*Ian\s*[)）]\s*[：:，,、]?\s*"), ""),
+]
+
+
+def strip_editor_address(value: object) -> str:
+    """去掉對編輯（Ian）喊話的字樣，只留下判斷本身。"""
+    if value is None:
+        return ""
+    text = str(value)
+    for pattern, repl in _EDITOR_ADDRESS_SUBS:
+        text = pattern.sub(repl, text)
+    text = re.sub(r"^\s*[，,、：:]\s*", "", text)
+    text = re.sub(r"[ \t]{2,}", " ", text).strip()
     return text
 
 
@@ -378,13 +410,23 @@ def translated_markdown(record: dict[str, Any]) -> str:
 
 def item_review(record: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     editorial = editorial_triage(record)
+
+    def usable(review: object) -> bool:
+        if not isinstance(review, dict):
+            return False
+        one_line = clean_text(review.get("one_line_recommendation"))
+        reasons = review.get("reasons")
+        return bool(one_line) and isinstance(reasons, list) and len([r for r in reasons if clean_text(r)]) >= 3
+
+    # 先看使用者在 /items/view 勾選要公開／推播的版本；provider 轉 review_key（ollama-gemma4 -> ollama_gemma4_review）
+    preferred = clean_text(editorial.get("preferred_review_provider"))
+    if preferred:
+        preferred_key = preferred.replace("-", "_") + "_review"
+        if preferred_key in REVIEW_KEYS and usable(editorial.get(preferred_key)):
+            return preferred_key, editorial[preferred_key]
     for key in REVIEW_KEYS:
-        review = editorial.get(key)
-        if isinstance(review, dict):
-            one_line = clean_text(review.get("one_line_recommendation"))
-            reasons = review.get("reasons")
-            if one_line and isinstance(reasons, list) and len([r for r in reasons if clean_text(r)]) >= 3:
-                return key, review
+        if usable(editorial.get(key)):
+            return key, editorial[key]
     return "", {}
 
 
@@ -470,6 +512,75 @@ def meta_line(record: dict[str, Any], kind: str = "") -> str:
     return " / ".join(parts)
 
 
+# ── 推播排版 ────────────────────────────────────────────────────────────────
+# 一句話 + 3 個重點 + AI 摘要 + # 標籤 + 連結。Slack 走 mrkdwn（*粗體*），Telegram
+# 走 HTML（<b>粗體</b>, parse_mode=HTML）；內容跟著使用者在 /items/view 勾選的推薦版本
+# 走，送出前所有動態文字都過 strip_editor_address。排版版本由 PUSH_FORMAT 決定。
+PUSH_FORMAT = "v1"  # v1=粗體小標（見 scratchpad 的 push-format mockup）；要換排版改這裡即可。
+
+_HASHTAG_SKIP = re.compile(r"RSS|新聞活動|^rss$", re.IGNORECASE)  # 系統／來源類標籤不進 #
+
+
+def _tg_escape(text: object) -> str:
+    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _slack_escape(text: object) -> str:
+    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def hashtags_from_tags(tags: object, limit: int = 5) -> list[str]:
+    """把項目 tags 轉成 #hashtag：去空白／括號、遇逗號拆開、濾掉系統標籤、去重。"""
+    result: list[str] = []
+    seen: set[str] = set()
+    for raw in tags or []:
+        for piece in re.split(r"[,，、/]", str(raw)):
+            piece = piece.strip()
+            if not piece or _HASHTAG_SKIP.search(piece):
+                continue
+            piece = re.sub(r"[（(].*?[)）]", "", piece)
+            token = re.sub(r"[^0-9A-Za-z一-鿿_]", "", piece)
+            if not token or token.casefold() in seen:
+                continue
+            seen.add(token.casefold())
+            result.append("#" + token)
+            if len(result) >= limit:
+                return result
+    return result
+
+
+def build_channel_messages(
+    prefix: str,
+    title: str,
+    hook: str,
+    reasons: list[str],
+    summary: str,
+    hashtags: list[str],
+    url: str,
+) -> tuple[str, str, str]:
+    """回傳 (plain, slack_mrkdwn, telegram_html)。plain 供 state 記錄與 --dry-run 預覽（無標記）。"""
+    reasons = [reason for reason in (reasons or []) if reason][:3]
+    tag_line = " ".join(hashtags) if hashtags else ""
+
+    def assemble(bold, esc) -> str:
+        parts = [f"{prefix}{bold(esc(title))}"]
+        if hook:
+            parts += ["", esc(hook)]
+        if reasons:
+            parts += ["", bold("重點")] + [f"{index}. {esc(reason)}" for index, reason in enumerate(reasons, 1)]
+        if summary:
+            parts += ["", bold("摘要"), esc(summary)]
+        if tag_line:
+            parts += ["", esc(tag_line)]
+        parts += ["", url]
+        return "\n".join(parts)
+
+    plain = assemble(lambda text: text, lambda text: text)
+    slack = assemble(lambda text: f"*{text}*", _slack_escape)
+    telegram = assemble(lambda text: f"<b>{text}</b>", _tg_escape)
+    return plain, slack, telegram
+
+
 def article_event(article: dict[str, Any], base_url: str) -> NotificationEvent | None:
     if clean_text(article.get("status")) != "published":
         return None
@@ -477,22 +588,22 @@ def article_event(article: dict[str, Any], base_url: str) -> NotificationEvent |
     if not article_id:
         return None
     title = article_title(article)
-    excerpt = (
+    excerpt = strip_editor_address(
         clean_text(article.get("summary"), 360)
         or clean_text(article.get("dek"), 360)
         or first_markdown_paragraph(article.get("body_markdown"), 360)
     )
     url = public_reader_feature_url(article_id, base_url)
-    pieces = [f"【新專文】{title}"]
-    if excerpt:
-        pieces.extend(["", excerpt])
-    pieces.extend(["", url])
+    hashtags = hashtags_from_tags(article.get("tags"))
+    plain, slack, telegram = build_channel_messages("【新專文】", title, excerpt, [], "", hashtags, url)
     return NotificationEvent(
         event_key=f"article:published:{article_id}",
         kind="article",
         record_id=article_id,
         title=title,
-        text="\n".join(pieces),
+        text=plain,
+        slack_text=slack,
+        telegram_text=telegram,
         url=url,
         ready_at=record_ready_at(article),
         image_url=record_image_url(article),
@@ -514,30 +625,25 @@ def item_event(record: dict[str, Any], base_url: str, allowed_statuses: set[str]
     if bool(review.get("needs_fulltext")) and not include_needs_fulltext:
         return None
 
-    reasons = [clean_text(reason, 220) for reason in review.get("reasons", []) if clean_text(reason)]
+    reasons = [clean_text(strip_editor_address(reason), 220) for reason in review.get("reasons", [])]
+    reasons = [reason for reason in reasons if reason]
     if len(reasons) < 3:
         return None
     title = item_title(record, review)
-    one_line = clean_text(review.get("one_line_recommendation"), 360)
-    kind = item_display_kind(record, review)
+    hook = clean_text(strip_editor_address(review.get("one_line_recommendation")), 360)
+    summary = clean_text(strip_editor_address(review.get("summary")), 600)
+    prefix = item_notification_prefix(item_display_kind(record, review))
     url = public_reader_article_url(item_id, base_url)
-    pieces = [
-        f"{item_notification_prefix(kind)}{title}",
-        "",
-        one_line,
-        "",
-        "值得讀的 3 個理由：",
-        f"1. {reasons[0]}",
-        f"2. {reasons[1]}",
-        f"3. {reasons[2]}",
-    ]
-    pieces.extend(["", url])
+    hashtags = hashtags_from_tags(record.get("tags"))
+    plain, slack, telegram = build_channel_messages(prefix, title, hook, reasons[:3], summary, hashtags, url)
     return NotificationEvent(
         event_key=f"item:translated-review:{item_id}",
         kind="item",
         record_id=item_id,
         title=title,
-        text="\n".join(pieces),
+        text=plain,
+        slack_text=slack,
+        telegram_text=telegram,
         url=url,
         ready_at=record_ready_at(record),
         image_url=record_image_url(record),
@@ -679,7 +785,7 @@ def parse_telegram_send_message(body: bytes, chat_id: str) -> dict[str, Any]:
 
 def slack_message_payload(event: NotificationEvent) -> dict[str, Any]:
     payload: dict[str, Any] = {
-        "text": event.text,
+        "text": event.slack_text or event.text,
         "unfurl_links": True,
         "unfurl_media": True,
     }
@@ -716,15 +822,14 @@ def send_telegram(event: NotificationEvent, env: dict[str, str], timeout: int) -
     if not token or not chat_id:
         raise RuntimeError("ION_TELEGRAM_BOT_TOKEN and ION_TELEGRAM_CHAT_ID must both be set")
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    body = post_json(
-        url,
-        {
-            "chat_id": chat_id,
-            "disable_web_page_preview": False,
-            "text": event.text,
-        },
-        timeout,
-    )
+    payload: dict[str, Any] = {
+        "chat_id": chat_id,
+        "disable_web_page_preview": False,
+        "text": event.telegram_text or event.text,
+    }
+    if event.telegram_text:
+        payload["parse_mode"] = "HTML"
+    body = post_json(url, payload, timeout)
     return parse_telegram_send_message(body, chat_id)
 
 
@@ -749,7 +854,13 @@ def send_event(
 
 def print_event_preview(event: NotificationEvent) -> None:
     print(f"--- {event.event_key}")
-    print(event.text)
+    if event.slack_text or event.telegram_text:
+        print("[Slack mrkdwn]")
+        print(event.slack_text or event.text)
+        print("\n[Telegram HTML]")
+        print(event.telegram_text or event.text)
+    else:
+        print(event.text)
     print()
 
 

@@ -40,26 +40,27 @@ class NotifyReadyItemsTest(unittest.TestCase):
         self.assertEqual(event.ready_at, "2026-07-06T09:30:00+08:00")
         self.assertEqual(event.image_url, "https://example.test/cover.jpg")
 
-    def test_item_event_uses_one_line_and_three_reasons_instead_of_summary(self) -> None:
+    def test_item_event_includes_one_line_reasons_summary_and_hashtags(self) -> None:
         event = notify.item_event(
             {
                 "id": "item-test",
                 "status": "ready",
                 "title": "Original Title",
                 "track": "digital-humanities-local-knowledge",
+                "tags": ["公共資料", "Open Data", "rss"],
                 "reading_metadata": {
                     "translated_article_markdown_zh": "# 中文全文\n\n第一段。",
                 },
                 "editorial_triage": {
                     "codex_review": {
                         "zh_title": "中文標題",
-                        "one_line_recommendation": "這篇適合讀，因為它提供公共資料治理切角。",
+                        "one_line_recommendation": "給 Ian：這篇適合讀，因為它提供公共資料治理切角。",
                         "reasons": [
                             "第一個理由。",
                             "第二個理由。",
                             "第三個理由。",
                         ],
-                        "summary": "這段摘要不應該成為通知主體。",
+                        "summary": "這段摘要現在應該進通知，幫讀者導讀。",
                         "needs_fulltext": False,
                     }
                 },
@@ -72,14 +73,69 @@ class NotifyReadyItemsTest(unittest.TestCase):
         self.assertIsNotNone(event)
         assert event is not None
         self.assertEqual(event.event_key, "item:translated-review:item-test")
+        # 一句話 + 3 個重點 + 摘要三段都在
         self.assertIn("【新消息】中文標題", event.text)
         self.assertIn("這篇適合讀", event.text)
         self.assertIn("1. 第一個理由。", event.text)
-        self.assertIn("2. 第二個理由。", event.text)
         self.assertIn("3. 第三個理由。", event.text)
-        self.assertNotIn("這段摘要不應該成為通知主體", event.text)
+        self.assertIn("這段摘要現在應該進通知", event.text)  # 摘要現在會進推播
+        # 標籤轉 #，系統標籤 rss 被濾掉
+        self.assertIn("#公共資料", event.text)
+        self.assertIn("#OpenData", event.text)
+        self.assertNotIn("#rss", event.text)
+        # 「給 Ian」在任何頻道都不出現
+        self.assertNotIn("給 Ian", event.text)
+        self.assertNotIn("給 Ian", event.slack_text)
+        self.assertNotIn("給 Ian", event.telegram_text)
+        # 頻道排版：Slack 用 *粗體*、Telegram 用 <b>，兩者不同
+        self.assertIn("*重點*", event.slack_text)
+        self.assertIn("<b>重點</b>", event.telegram_text)
+        self.assertNotEqual(event.slack_text, event.telegram_text)
         self.assertNotIn("數位人文與在地知識建構", event.text)
-        self.assertNotIn("純新聞 / 小消息", event.text)
+
+    def test_strip_editor_address_preserves_real_person_names(self) -> None:
+        self.assertEqual(
+            notify.strip_editor_address("英國部長 Ian Murray 出席會議。"),
+            "英國部長 Ian Murray 出席會議。",
+        )
+        self.assertEqual(
+            notify.strip_editor_address("值得 Ian 先收，這是數位公共服務 AI 治理案例。"),
+            "值得先收，這是數位公共服務 AI 治理案例。",
+        )
+        self.assertEqual(
+            notify.strip_editor_address("不值得 Ian Open News 優先處理。"),
+            "不值得 Ian Open News 優先處理。",
+        )
+
+    def test_item_event_honours_preferred_review_provider(self) -> None:
+        item = {
+            "id": "item-pref",
+            "status": "ready",
+            "reading_metadata": {"translated_article_markdown_zh": "# 中文全文\n\n第一段。"},
+            "editorial_triage": {
+                "preferred_review_provider": "gemini",
+                "codex_review": {
+                    "zh_title": "Codex 版",
+                    "one_line_recommendation": "Codex 的一句話。",
+                    "reasons": ["一", "二", "三"],
+                    "needs_fulltext": False,
+                },
+                "gemini_review": {
+                    "zh_title": "Gemini 版",
+                    "one_line_recommendation": "Gemini 的一句話。",
+                    "reasons": ["甲", "乙", "丙"],
+                    "needs_fulltext": False,
+                },
+            },
+        }
+        event = notify.item_event(
+            item, "https://example.test/reader", notify.DEFAULT_ITEM_STATUSES, include_needs_fulltext=False
+        )
+        self.assertIsNotNone(event)
+        assert event is not None
+        self.assertIn("Gemini 的一句話。", event.text)
+        self.assertIn("甲", event.text)
+        self.assertNotIn("Codex 的一句話。", event.text)
 
     def test_triaged_material_event_uses_new_issue_prefix(self) -> None:
         event = notify.item_event(
