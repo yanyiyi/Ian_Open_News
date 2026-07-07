@@ -208,10 +208,46 @@ def historical_bundles(items: list[dict[str, Any]], limit: int = 12) -> list[dic
     return bundles[:limit]
 
 
+def existing_cluster_summaries(clusters: list[dict[str, Any]], titles: dict[str, str]) -> list[dict[str, Any]]:
+    """給後續批次看的既有群組摘要：只帶判斷歸屬需要的欄位，不帶全文。"""
+    summaries = []
+    for cluster in clusters:
+        summaries.append(
+            {
+                "cluster_id": cluster["cluster_id"],
+                "label": cluster["label"],
+                "angle_hint": cluster["angle_hint"],
+                "suggested_action": cluster["suggested_action"],
+                "member_titles": [titles.get(mid, mid) for mid in cluster["member_ids"][:6]],
+            }
+        )
+    return summaries
+
+
+def merge_batch_clusters(merged: list[dict[str, Any]], batch_clusters: list[dict[str, Any]]) -> None:
+    """把一批的分群結果併進累積結果：cluster_id 相同視為加入既有群，否則新開一群。"""
+    by_id = {cluster["cluster_id"]: cluster for cluster in merged}
+    for cluster in batch_clusters:
+        target = by_id.get(cluster["cluster_id"])
+        if target is None:
+            # 撞名但主題不同的機率低（id 帶批次序號時不會撞）；同名一律視為同群。
+            merged.append(cluster)
+            by_id[cluster["cluster_id"]] = cluster
+            continue
+        known = set(target["member_ids"])
+        for member in cluster["members"]:
+            if member["id"] in known:
+                continue
+            target["members"].append(member)
+            target["member_ids"].append(member["id"])
+            known.add(member["id"])
+
+
 def build_prompt(
     digests: list[dict[str, Any]],
     anchors: list[dict[str, Any]],
     bundles: list[dict[str, Any]],
+    existing: list[dict[str, Any]] | None = None,
 ) -> str:
     taste = taste_profile_block()
     schema = cluster_schema()
@@ -240,6 +276,10 @@ def build_prompt(
     if anchors:
         parts.append("進行中稿件（merge_target_item_id 只能從這裡選）：")
         parts.append(json.dumps(anchors, ensure_ascii=False, indent=1))
+        parts.append("")
+    if existing:
+        parts.append("先前批次已建立的群組（本次候選若屬於同一主題，直接沿用該 cluster_id 開一群、members 只列本批新加入的候選；不同主題就新開 cluster_id）：")
+        parts.append(json.dumps(existing, ensure_ascii=False, indent=1))
         parts.append("")
     parts.append("候選資料：")
     parts.append(json.dumps(digests, ensure_ascii=False, indent=1))
@@ -496,8 +536,14 @@ def main() -> int:
     parser.add_argument("--engine", choices=CLUSTER_ENGINES, default="claude")
     parser.add_argument("--model", default="", help="選用：指定引擎的模型（不帶 = 引擎預設）")
     parser.add_argument("--limit", type=int, default=120)
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=25,
+        help="每批丟給模型的筆數；漸進分批跑，單批失敗不影響已完成的批次",
+    )
     parser.add_argument("--track", default="", help="只分某條主線")
-    parser.add_argument("--timeout", type=int, default=900)
+    parser.add_argument("--timeout", type=int, default=900, help="單批 timeout 秒數")
     parser.add_argument("--status-file", type=Path, default=None)
     parser.add_argument("--dry-run", action="store_true", help="只寫 preview 檔，不回寫任何紀錄")
     parser.add_argument("--eval-replay", action="store_true", help="離線評測分群召回率")
@@ -521,38 +567,98 @@ def main() -> int:
         write_status(args.status_file, {"phase": "done", "message": "沒有待分群的候選"})
         print("沒有 pending 候選或 inbox item，無事可做。")
         return 0
-    if len(pool) > args.limit:
-        # 超量時先分「規則建議收/待看」者，其餘留給下一輪。
-        def priority(record: dict[str, Any]) -> int:
-            rec = clean_text((record.get("triage") or {}).get("recommendation"))
-            return {"suggest-collect": 0, "suggest-review": 1, "suggest-ask": 2}.get(rec, 3)
+    # 一律先照規則建議排優先序：分批時最值得看的先跑，中途失敗也已涵蓋高優先者。
+    def priority(record: dict[str, Any]) -> int:
+        rec = clean_text((record.get("triage") or {}).get("recommendation"))
+        return {"suggest-collect": 0, "suggest-review": 1, "suggest-ask": 2}.get(rec, 3)
 
-        pool = sorted(pool, key=priority)[: args.limit]
+    pool = sorted(pool, key=priority)[: args.limit]
 
     anchors = [anchor_digest(i) for i in items if clean_text(i.get("status")) in ANCHOR_STATUSES]
     anchor_ids = {a["item_id"] for a in anchors}
     bundles = historical_bundles(items)
-    digests = [record_digest(record) for record in pool]
-    input_ids = [d["id"] for d in digests]
 
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     run_id = "clu-" + hashlib.sha256(f"{generated_at}-{len(pool)}".encode()).hexdigest()[:12]
-    write_status(
-        args.status_file,
-        {"phase": "clustering", "message": f"以 {args.engine} 分群 {len(pool)} 筆", "run_id": run_id},
-    )
-    prompt = build_prompt(digests, anchors, bundles)
-    used_engine, payload = run_engine(prompt, args, args.engine)
-    result = validate_and_normalize(payload, input_ids, anchor_ids)
 
-    output = {
-        "run_id": run_id,
-        "generated_at": generated_at,
-        "engine": used_engine,
-        "model": args.model,
-        "input_scope": {"pending": len(pending), "inbox": len(inbox), "clustered": len(pool), "track": args.track},
-        **result,
-    }
+    batch_size = max(1, args.batch_size)
+    batches = [pool[i : i + batch_size] for i in range(0, len(pool), batch_size)]
+    titles: dict[str, str] = {}
+    merged_clusters: list[dict[str, Any]] = []
+    ungrouped_ids: list[str] = []
+    failed_ids: list[str] = []
+    notes_parts: list[str] = []
+    engines_used: list[str] = []
+
+    def snapshot(partial: bool) -> dict[str, Any]:
+        return {
+            "run_id": run_id,
+            "generated_at": generated_at,
+            "engine": "、".join(dict.fromkeys(engines_used)) or args.engine,
+            "model": args.model,
+            "partial": partial,
+            "input_scope": {
+                "pending": len(pending),
+                "inbox": len(inbox),
+                "clustered": len(pool),
+                "batches": len(batches),
+                "track": args.track,
+            },
+            "clusters": merged_clusters,
+            "ungrouped_ids": ungrouped_ids,
+            "failed_ids": failed_ids,
+            "notes": clean_text("；".join(part for part in notes_parts if part), 400),
+        }
+
+    for batch_no, batch in enumerate(batches, start=1):
+        digests = [record_digest(record) for record in batch]
+        input_ids = [d["id"] for d in digests]
+        for digest in digests:
+            titles[digest["id"]] = digest.get("zh_title") or digest.get("title") or digest["id"]
+        write_status(
+            args.status_file,
+            {
+                "phase": "clustering",
+                "message": (
+                    f"以 {args.engine} 分群第 {batch_no}/{len(batches)} 批（{len(batch)} 筆，"
+                    f"已完成 {len(merged_clusters)} 群）"
+                ),
+                "run_id": run_id,
+            },
+        )
+        existing = existing_cluster_summaries(merged_clusters, titles)
+        prompt = build_prompt(digests, anchors, bundles, existing=existing)
+        try:
+            used_engine, payload = run_engine(prompt, args, args.engine)
+        except Exception as exc:  # 單批失敗只損失該批，前面批次的結果保留。
+            failed_ids.extend(input_ids)
+            notes_parts.append(f"第 {batch_no} 批失敗（{len(input_ids)} 筆未分群）")
+            print(f"第 {batch_no}/{len(batches)} 批失敗，略過續跑：{exc}", file=sys.stderr)
+            continue
+        engines_used.append(used_engine)
+        result = validate_and_normalize(payload, input_ids, anchor_ids)
+        # 新群若撞到既有 cluster_id 視為「模型指名加入既有群」；為避免模型每批都從
+        # cluster-01 編號造成誤併，只有 id 出現在提示的既有群清單才算指名，其餘改掛批次前綴。
+        existing_ids = {cluster["cluster_id"] for cluster in merged_clusters}
+        prompted_ids = {cluster["cluster_id"] for cluster in existing}
+        for cluster in result["clusters"]:
+            if cluster["cluster_id"] in existing_ids and cluster["cluster_id"] not in prompted_ids:
+                cluster["cluster_id"] = f"b{batch_no:02d}-{cluster['cluster_id']}"
+        merge_batch_clusters(merged_clusters, result["clusters"])
+        ungrouped_ids.extend(uid for uid in result["ungrouped_ids"] if uid not in ungrouped_ids)
+        if result["notes"]:
+            notes_parts.append(result["notes"])
+        # 每批完成即落地最新快照：中途失敗或中斷，已完成的批次不會白跑。
+        target = CLUSTERS_PREVIEW if args.dry_run else CLUSTERS_LATEST
+        target.write_text(json.dumps(snapshot(batch_no < len(batches)), ensure_ascii=False, indent=1), encoding="utf-8")
+
+    if not engines_used:
+        write_status(args.status_file, {"phase": "error", "message": "所有批次都失敗，沒有產出分群", "run_id": run_id})
+        print("所有批次都失敗，沒有產出分群結果。", file=sys.stderr)
+        return 1
+
+    result = {"clusters": merged_clusters, "ungrouped_ids": ungrouped_ids}
+    output = snapshot(False)
     if args.dry_run:
         CLUSTERS_PREVIEW.write_text(json.dumps(output, ensure_ascii=False, indent=1), encoding="utf-8")
         print(f"dry-run：{len(result['clusters'])} 群 / ungrouped {len(result['ungrouped_ids'])} → {CLUSTERS_PREVIEW}")
@@ -569,16 +675,19 @@ def main() -> int:
     if updated_items:
         write_jsonl(ITEMS, items)
 
+    failed_note = f"，{len(failed_ids)} 筆因批次失敗未分群" if failed_ids else ""
     write_status(
         args.status_file,
         {
             "phase": "done",
-            "message": f"分成 {len(result['clusters'])} 群（候選 {updated_candidates} 筆、item {updated_items} 筆已標記）",
+            "message": (
+                f"分成 {len(result['clusters'])} 群（候選 {updated_candidates} 筆、item {updated_items} 筆已標記{failed_note}）"
+            ),
             "run_id": run_id,
         },
     )
     print(
-        f"run {run_id}：{len(result['clusters'])} 群、ungrouped {len(result['ungrouped_ids'])}；"
+        f"run {run_id}：{len(result['clusters'])} 群、ungrouped {len(result['ungrouped_ids'])}{failed_note}；"
         f"回寫候選 {updated_candidates} 筆、items {updated_items} 筆。"
     )
     return 0

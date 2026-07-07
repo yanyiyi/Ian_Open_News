@@ -561,7 +561,7 @@ COMMANDS = {
     },
     "triage_cluster": {
         "label": "AI 分群建議（入庫建檔區）",
-        "description": "把 pending 候選與 inbox 依「會被抓在一起寫成文章」的主題分群，給每群建議動作與每篇三層閱讀深度。只分堆與預選，收不收仍由你批次確認。",
+        "description": "把 pending 候選與 inbox 依「會被抓在一起寫成文章」的主題分群，給每群建議動作與每篇三層閱讀深度。每 25 筆一批漸進跑，單批失敗不影響已完成的批次。只分堆與預選，收不收仍由你批次確認。",
         "button": "跑 AI 分群建議",
         "command": [
             sys.executable,
@@ -4834,6 +4834,10 @@ def clean_restored_recycle_record(record: dict, decided_at: str, source_label: s
         restored.pop(key, None)
     restored["status"] = "inbox"
     restored["priority"] = "normal"
+    # 舊回收紀錄可能沒帶 origin / tags（items.jsonl 的必填欄位）；補上，validate 才不會炸。
+    restored.setdefault("origin", "rss-fetch" if restored.get("source_id") else "manual-web")
+    if not isinstance(restored.get("tags"), list):
+        restored["tags"] = []
     restored["local_decision"] = {
         "action": "restored",
         "decided_at": decided_at,
