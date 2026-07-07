@@ -729,6 +729,38 @@ def clean_text(value: object, limit: int | None = None) -> str:
     return text
 
 
+# ── 移除「給 Ian／值得 Ian／Ian 可以」這類對編輯喊話的字樣 ──────────────────
+# AI 閱讀建議是給編輯內化用的判斷；對外頁與推播都不該出現稱呼編輯的字樣。
+# 新資料在 codex_enrich_reviews 存檔時已洗過，這裡對「顯示端」再過濾一次，
+# 兼顧尚未被 normalize_editor_address.py 清理的舊資料。render_ghpages_reader
+# 直接 import 這支共用。
+_EDITOR_ADDRESS_SUBS = [
+    (re.compile(r"^\s*給\s*Ian\s*的[^：:。，,\n]{0,16}?[：:]\s*"), ""),
+    (re.compile(r"^\s*給\s*Ian\s*的?\s*[：:，,、]?\s*"), ""),
+    (re.compile(r"^\s*Ian\s*[：:，,、]\s*"), ""),
+    (re.compile(r"留給\s*Ian\s*人工"), "留待人工"),
+    (re.compile(r"保留給\s*Ian\s*人工"), "保留待人工"),
+    (re.compile(r"給\s*Ian\s*人工"), "待人工"),
+    (re.compile(r"值得\s*Ian(?!\s*Open\s+News)\s*"), "值得"),
+    (re.compile(r"建議\s*Ian(?!\s*Open\s+News)\s*"), "建議"),
+    (re.compile(r"提醒\s*Ian(?!\s*Open\s+News)\s*"), "提醒"),
+    (re.compile(r"Ian\s*(?=可以|應該|可先|不妨|得先|要先|需要|建議|值得|不必|別|請)"), ""),
+    (re.compile(r"^\s*[（(]\s*Ian\s*[)）]\s*[：:，,、]?\s*"), ""),
+]
+
+
+def strip_editor_address(value: object) -> str:
+    """去掉對編輯（Ian）喊話的字樣，只留下判斷本身（對外頁／推播共用）。"""
+    if value is None:
+        return ""
+    text = str(value)
+    for pattern, repl in _EDITOR_ADDRESS_SUBS:
+        text = pattern.sub(repl, text)
+    text = re.sub(r"^\s*[，,、：:]\s*", "", text)
+    text = re.sub(r"[ \t]{2,}", " ", text).strip()
+    return text
+
+
 def clean_markdown_text(value: object, limit: int | None = None) -> str:
     """Normalize stored Markdown without collapsing user-authored line breaks."""
     if value is None:
@@ -3868,9 +3900,34 @@ def record_model_reviews(record: dict) -> list[tuple[str, dict]]:
     return reviews
 
 
+def preferred_review_provider(record: dict) -> str:
+    """使用者在 /items/view 勾選要公開的推薦 provider；沒選或該版不存在時回空字串。"""
+    editorial = record.get("editorial_triage") if isinstance(record.get("editorial_triage"), dict) else {}
+    provider = clean_text(editorial.get("preferred_review_provider"))
+    if provider and provider in AI_PROVIDER_META and record_model_review(record, provider):
+        return provider
+    return ""
+
+
 def record_preferred_review(record: dict) -> dict:
     reviews = record_model_reviews(record)
-    return reviews[0][1] if reviews else {}
+    if not reviews:
+        return {}
+    preferred = preferred_review_provider(record)
+    if preferred:
+        for provider, review in reviews:
+            if provider == preferred:
+                return review
+    return reviews[0][1]
+
+
+def effective_review_provider(record: dict) -> str:
+    """目前對外／推播實際會用到的推薦 provider：有勾選就用勾選的，否則用最早生成的那筆。"""
+    preferred = preferred_review_provider(record)
+    if preferred:
+        return preferred
+    reviews = record_model_reviews(record)
+    return reviews[0][0] if reviews else ""
 
 
 def candidate_recommendation(candidate: dict) -> str:
@@ -5287,10 +5344,24 @@ def item_provider_translation_is_stale(item: dict, provider: str) -> bool:
     return bool(source_hash and translated_hash and source_hash != translated_hash)
 
 
+def preferred_translation_provider(item: dict) -> str:
+    """使用者勾選要公開的翻譯 provider；沒選或該版沒有翻譯時回空字串。"""
+    metadata = item_reading_metadata(item)
+    provider = clean_text(metadata.get("preferred_translation_provider"))
+    if provider and provider in AI_PROVIDER_META and item_provider_translation_markdown(item, provider):
+        return provider
+    return ""
+
+
 def item_translation_entries(item: dict) -> list[tuple[str, str]]:
     entries: list[tuple[str, str]] = []
     seen_markdown: set[str] = set()
-    for provider in AI_PROVIDER_ORDER:
+    order = list(AI_PROVIDER_ORDER)
+    preferred = preferred_translation_provider(item)
+    if preferred in order:
+        order.remove(preferred)
+        order.insert(0, preferred)
+    for provider in order:
         markdown = item_provider_translation_markdown(item, provider)
         if markdown and markdown not in seen_markdown:
             entries.append((provider, markdown))
@@ -5385,19 +5456,29 @@ def translation_actions_html(item: dict, item_id: str, redirect_to: str) -> str:
 
 def translation_panels_html(item: dict, collapsed: bool = False) -> str:
     metadata = item_reading_metadata(item)
+    entries = item_translation_entries(item)
+    show_pick = len(entries) >= 2 and not collapsed
+    effective = entries[0][0] if entries else ""
+    item_id = clean_text(item.get("id"))
     panels = []
-    for provider, markdown in item_translation_entries(item):
+    for provider, markdown in entries:
         label = ai_provider_label(provider)
         generated_at = translation_meta_value(metadata, provider, "translation_generated_key")
         source = translation_meta_value(metadata, provider, "translation_source_key") or label
         note = translation_meta_value(metadata, provider, "translation_note_key")
         note_html = f"<p class='help'>備註：{h(note)}</p>" if note else ""
+        selector_html = (
+            version_pick_label(item_id, "pubtrans", provider, "/items/select-translation",
+                               provider == effective, "設為對外頁要用的翻譯版本")
+            if show_pick
+            else ""
+        )
         if collapsed:
-            # 已有手動編輯版時，自動翻譯收合起來供比對（point 2）
+            # 已有手動編輯版時，自動翻譯收合起來供比對（point 2）；此時對外用編輯版，翻譯不需勾選
             panels.append(
                 f"""
 <details class="card fulltext-panel source-card source-card--source original-fulltext-collapsible translation-fulltext-collapsible" id="translation-panel-{h(provider)}">
-  <summary><div class="section-kicker">翻譯全文（原始版本）</div></summary>
+  <summary><div class="section-kicker">翻譯全文（原始版本）· {h(label)}</div></summary>
   <p class="help">翻譯來源：{h(source)} · {h(generated_at)}</p>
   {note_html}
   <div class="article-text article-markdown">{markdown_to_html(markdown)}</div>
@@ -5408,7 +5489,7 @@ def translation_panels_html(item: dict, collapsed: bool = False) -> str:
             panels.append(
                 f"""
 <section class="card fulltext-panel source-card source-card--source" id="translation-panel-{h(provider)}">
-  <div class="section-kicker">翻譯全文</div>
+  <div class="source-card__head"><div class="section-kicker">翻譯全文 · {h(label)}</div>{selector_html}</div>
   <p class="help">翻譯來源：{h(source)} · {h(generated_at)}</p>
   {note_html}
   <div class="article-text article-markdown">{markdown_to_html(markdown)}</div>
@@ -6403,10 +6484,22 @@ def item_detail_panel_id(item: dict) -> str:
     return f"candidate-detail-{safe_id}"
 
 
-def model_review_card_html(provider: str, review: dict, compact: bool = False) -> str:
+def version_pick_label(item_id: str, group: str, provider: str, action: str, checked: bool, title: str) -> str:
+    """卡片右上的「設為公開版本」radio；同一 item 同一群組共用 name，瀏覽器自動互斥。"""
+    return (
+        f"<label class='version-pick' title='{h(title)}'>"
+        f"<input type='radio' name='{h(group)}-{h(item_id)}' value='{h(provider)}' "
+        f"data-select-version='{h(action)}' data-item='{h(item_id)}'{' checked' if checked else ''}>"
+        "<span class='version-pick__text'>設為公開版本</span>"
+        "<span class='version-pick__status' data-version-status hidden></span>"
+        "</label>"
+    )
+
+
+def model_review_card_html(provider: str, review: dict, compact: bool = False, item: dict | None = None, show_selector: bool = False, is_public: bool = False) -> str:
     label = ai_provider_label(provider)
-    one_line = workflow_display_text(review.get("one_line_recommendation"), 420)
-    summary = workflow_display_text(review.get("summary"), 900)
+    one_line = workflow_display_text(strip_editor_address(review.get("one_line_recommendation")), 420)
+    summary = workflow_display_text(strip_editor_address(review.get("summary")), 900)
     reasons = review.get("reasons") or []
     reason_rows = "<ol class='reason-list'>" + "".join(f"<li>{h(workflow_display_text(reason))}</li>" for reason in reasons[:3]) + "</ol>" if reasons and not compact else ""
     summary_html = f"<p class='zh-summary'>{h(summary)}</p>" if summary and not compact else ""
@@ -6414,10 +6507,16 @@ def model_review_card_html(provider: str, review: dict, compact: bool = False) -
     confidence_badge = badge(f"信心 {score_label(confidence)}/10", "neutral") if confidence else ""
     generated_badge = badge(str(review.get("generated_at", "")), "neutral") if review.get("generated_at") and not compact else ""
     basis_badge = badge("需要補全文" if review.get("needs_fulltext") else "依可讀資料判斷", "neutral")
+    selector_html = ""
+    if show_selector and item is not None and not compact:
+        selector_html = version_pick_label(
+            clean_text(item.get("id")), "pubrev", provider, "/items/select-review",
+            is_public, "設為對外頁與 Slack/TG 推播要用的推薦版本",
+        )
     return (
         "<div class='source-card source-card--model'>"
-        f"<div class='section-kicker'>{h(label)} 生成</div>"
-        "<h3>給 Ian 的閱讀建議</h3>"
+        f"<div class='source-card__head'><div class='section-kicker'>{h(label)} 生成</div>{selector_html}</div>"
+        "<h3>AI 閱讀建議</h3>"
         f"{badge('來源：' + label, 'suggest-keep')}"
         f"{badge(model_recommendation_label(review), model_recommendation_badge_class(review))}"
         f"{confidence_badge}"
@@ -6508,7 +6607,16 @@ def editorial_triage_html(item: dict, compact: bool = False, reject_action: str 
     if not editorial:
         return "<p class='help'>自動規則判斷：尚未重跑。可到首頁或關鍵字頁按「重新跑本機規則/關鍵字初篩」。</p>"
     display_kind = item_display_kind(item)
-    model_html = "".join(model_review_card_html(provider, review, compact=compact) for provider, review in record_model_reviews(item))
+    reviews = record_model_reviews(item)
+    show_review_pick = len(reviews) >= 2 and not compact
+    effective_review = effective_review_provider(item) if show_review_pick else ""
+    model_html = "".join(
+        model_review_card_html(
+            provider, review, compact=compact, item=item,
+            show_selector=show_review_pick, is_public=(provider == effective_review),
+        )
+        for provider, review in reviews
+    )
     model_html += model_review_actions_html(item, compact=compact)
 
     article_text = item_article_text(item)
@@ -8241,6 +8349,11 @@ def page(title: str, body: str) -> bytes:
     .source-card--source {{ border-left-color: var(--ocf-cyan); background: #f7fbfe; }}
     .source-card--rules {{ border-left-color: #7b8495; background: #fbfcff; }}
     .source-card--empty {{ opacity: .82; }}
+    .source-card__head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }}
+    .version-pick {{ display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); cursor: pointer; white-space: nowrap; flex: 0 0 auto; }}
+    .version-pick input {{ accent-color: var(--ocf-primary); cursor: pointer; margin: 0; }}
+    .version-pick__text {{ user-select: none; }}
+    .version-pick__status {{ font-size: 11px; font-weight: 700; color: var(--ocf-primary); }}
     .score-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; margin: 10px 0; }}
     .score-grid--stages {{ grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); margin-top: 8px; }}
     .score-pill {{ border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 8px 10px; display: grid; gap: 2px; min-height: 58px; }}
@@ -9212,6 +9325,35 @@ def page(title: str, body: str) -> bytes:
     if (!event.altKey) setShortcutMode(false);
   }});
   window.addEventListener("blur", () => setShortcutMode(false));
+
+  // 版本選取：勾選要對外頁／Slack·TG 推播使用的推薦或翻譯版本，就地存檔、不整頁重整。
+  document.addEventListener("change", (event) => {{
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.type !== "radio") return;
+    const action = input.dataset ? input.dataset.selectVersion : "";
+    if (!action) return;
+    const label = input.closest("label");
+    const status = label ? label.querySelector("[data-version-status]") : null;
+    const setStatus = (msg, ok) => {{
+      if (!status) return;
+      status.hidden = false;
+      status.textContent = msg;
+      status.style.color = ok === false ? "#b3261e" : "";
+    }};
+    setStatus("儲存中…", true);
+    fetch(action, {{
+      method: "POST",
+      headers: {{ "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With": "local-web-fetch" }},
+      body: new URLSearchParams({{ id: input.dataset.item || "", provider: input.value || "" }}),
+    }})
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("HTTP " + res.status))))
+      .then((data) => {{
+        if (!data || data.ok !== true) throw new Error((data && data.error) || "儲存失敗");
+        setStatus("✓ 已設為公開版本", true);
+        window.setTimeout(() => {{ if (status) status.hidden = true; }}, 2400);
+      }})
+      .catch((err) => setStatus("儲存失敗：" + ((err && err.message) || err), false));
+  }});
 
   document.querySelectorAll(".nav-menu").forEach((menu) => {{
     const positionMenu = () => {{
@@ -12393,6 +12535,10 @@ class Handler(BaseHTTPRequestHandler):
             self.save_personal_note(self.read_form())
         elif parsed.path == "/items/update-tags":
             self.update_item_tags(self.read_form())
+        elif parsed.path == "/items/select-review":
+            self.select_public_review(self.read_form())
+        elif parsed.path == "/items/select-translation":
+            self.select_public_translation(self.read_form())
         elif parsed.path == "/items/update-track":
             self.update_item_track(self.read_form())
         elif parsed.path == "/items/toggle-reading-priority":
@@ -18883,6 +19029,54 @@ if (document.readyState === "loading") {{
             return
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=tags")
+
+    def _apply_public_selection(self, item_id: str, container: str, field: str, provider: str) -> bool:
+        """把「要公開的版本 provider」寫進 item 的 container（editorial_triage 或 reading_metadata）。"""
+        records = load_jsonl(ITEMS)
+        found = False
+        updated_records = []
+        for item in records:
+            if item.get("id") != item_id:
+                updated_records.append(item)
+                continue
+            found = True
+            record = dict(item)
+            block = dict(record.get(container)) if isinstance(record.get(container), dict) else {}
+            if provider:
+                block[field] = provider
+            else:
+                block.pop(field, None)
+            record[container] = block
+            updated_records.append(record)
+        if found:
+            write_jsonl(ITEMS, updated_records)
+        return found
+
+    def _select_public_version(self, data: dict[str, list[str]], container: str, field: str, saved_flag: str) -> None:
+        item_id = form_value(data, "id")
+        provider = clean_text(form_value(data, "provider")).casefold()
+        if provider not in AI_PROVIDER_META:
+            provider = ""
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
+        found = self._apply_public_selection(item_id, container, field, provider)
+        if not found:
+            if wants_json:
+                self.send_json({"ok": False, "error": "找不到項目"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_html("找不到項目", "<h1>找不到項目</h1><p><a class='button' href='/items'>回入庫建檔區</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        if wants_json:
+            self.send_json({"ok": True, "id": item_id, "provider": provider})
+            return
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
+        separator = "&" if "?" in redirect_to else "?"
+        self.redirect(f"{redirect_to}{separator}saved={saved_flag}")
+
+    def select_public_review(self, data: dict[str, list[str]]) -> None:
+        self._select_public_version(data, "editorial_triage", "preferred_review_provider", "public-review")
+
+    def select_public_translation(self, data: dict[str, list[str]]) -> None:
+        self._select_public_version(data, "reading_metadata", "preferred_translation_provider", "public-translation")
 
     def toggle_reading_priority(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")

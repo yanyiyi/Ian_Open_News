@@ -43,11 +43,13 @@ from local_web import (
     markdown_to_html,
     normalized_title_key,
     public_reader_article_filename,
+    record_preferred_review,
     reader_month_key,
     reader_period_key,
     reader_period_label,
     source_public_slug,
     strip_duplicate_leading_heading,
+    strip_editor_address,
     track_meta,
 )
 
@@ -805,6 +807,30 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       letter-spacing: 0;
       margin-bottom: 4px;
     }}
+    .reading-guide {{
+      border-left: 4px solid var(--accent);
+      background: #fbfaff;
+      display: grid;
+      gap: 10px;
+    }}
+    .reading-guide .section-kicker {{ margin-bottom: 0; }}
+    .reading-guide__hook {{
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.55;
+      color: var(--ink);
+      margin: 0;
+      text-wrap: pretty;
+    }}
+    .reading-guide__points {{
+      margin: 0;
+      padding-left: 1.3em;
+      display: grid;
+      gap: 6px;
+      color: var(--ink);
+    }}
+    .reading-guide__points li {{ line-height: 1.7; }}
+    .reading-guide__summary {{ margin: 0; color: var(--muted); line-height: 1.9; }}
     .article-fulltext-card {{
       background: var(--paper);
       box-shadow: 0 14px 34px rgba(58,45,18,.10), 0 1px 0 rgba(255,255,255,.9) inset;
@@ -1047,6 +1073,37 @@ def metadata_html(item: dict, display_title: str = "") -> str:
     return "<ul>" + "".join(items) + "</ul>"
 
 
+def public_reading_guide_html(item: dict) -> str:
+    """對外頁最前面的「AI 推薦」導讀區塊：一句話 + 3 個重點 + 摘要。
+
+    取用使用者在 /items/view 勾選要公開的那個模型推薦（record_preferred_review 已
+    處理 preferred_review_provider）。只放給讀者導讀用的內容，內部判斷 badge
+    （recommend-skip / 信心 / 需要補全文）不對外。所有文字都先過 strip_editor_address，
+    確保「給 Ian／值得 Ian」這類對編輯喊話不會外洩。
+    """
+    review = record_preferred_review(item)
+    if not isinstance(review, dict) or not review:
+        return ""
+    one_line = clean_text(strip_editor_address(review.get("one_line_recommendation")), 500)
+    reasons = [clean_text(strip_editor_address(reason)) for reason in (review.get("reasons") or [])]
+    reasons = [reason for reason in reasons if reason][:3]
+    summary = clean_text(strip_editor_address(review.get("summary")), 900)
+    if not (one_line or reasons or summary):
+        return ""
+    hook_html = f'<p class="reading-guide__hook">{h(one_line)}</p>' if one_line else ""
+    points_html = ""
+    if reasons:
+        points_html = '<ol class="reading-guide__points">' + "".join(f"<li>{h(reason)}</li>" for reason in reasons) + "</ol>"
+    summary_html = f'<p class="reading-guide__summary">{h(summary)}</p>' if summary else ""
+    return f"""
+    <section class="article-summary-card reading-guide" aria-label="AI 推薦導讀">
+      <div class="section-kicker">AI 推薦</div>
+      {hook_html}
+      {points_html}
+      {summary_html}
+    </section>"""
+
+
 def article_page(item: dict, repo_url: str, branch: str, previous_item: dict | None = None, next_item: dict | None = None) -> str:
     edited_markdown = item_edited_markdown(item)
     translated_markdown = item_translated_markdown(item)
@@ -1149,9 +1206,9 @@ articleSideToggle?.addEventListener("click", () => {{
     <article class="article-summary-card">
       <div class="article-summary-meta">{reader_status_badges(item, has_article_markdown)}</div>
       <h1>{title_html}</h1>
-      <p class="lede">{h(item_zh_summary(item, 620))}</p>
       {public_tag_chips(item, 8)}
     </article>
+    {public_reading_guide_html(item)}
     {hero_html}
     <section class="article-fulltext-card">
       <div class="section-kicker">{h(fulltext_kicker)}</div>
