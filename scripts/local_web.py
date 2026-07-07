@@ -7954,11 +7954,38 @@ def page(title: str, body: str) -> bytes:
     }}
     .source-group-status.is-error {{ color: var(--ocf-magenda); }}
     .source-group table {{ border: 0; border-radius: 0; box-shadow: none; }}
-    .list {{ display: grid; gap: 10px; }}
+    .list {{ display: grid; gap: 10px; min-width: 0; }}
     .list-item {{ border-left: 4px solid var(--ocf-cyan); padding: 10px 12px; background: #fff; border-radius: 6px; }}
     .list-item--opentech {{ border-left-color: var(--ocf-primary); }}
     .list-item--humanities {{ border-left-color: var(--humanities); }}
-    .candidate-card {{ display: grid; gap: 10px; }}
+    .candidate-card {{ display: grid; gap: 10px; min-width: 0; max-width: 100%; }}
+    .candidate-detailed,
+    .candidate-detailed-heading,
+    .candidate-card .source-stack,
+    .candidate-card .source-card,
+    .candidate-card .source-card__head,
+    .candidate-card .tag-chip-list,
+    .candidate-card .button-row {{
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+    }}
+    .candidate-detailed,
+    .candidate-detailed-heading,
+    .candidate-card p,
+    .candidate-card h3,
+    .candidate-card strong,
+    .candidate-card a {{
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }}
+    .candidate-detailed-heading {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }}
+    .candidate-detailed-heading strong {{ min-width: 0; }}
     .candidate-card--suggest-skip {{ border-color: #f1bfd3; }}
     .candidate-card.is-removing {{
       pointer-events: none;
