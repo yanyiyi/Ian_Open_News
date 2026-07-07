@@ -18,6 +18,25 @@ class DataAutocommitFilesTest(unittest.TestCase):
         self.assertIn("database/rejected-items.jsonl", labels)
         self.assertIn("database/review-events.jsonl", labels)
 
+    def test_missing_untracked_optional_files_are_not_git_pathspecs(self) -> None:
+        optional = local_web.DATABASE / "missing-autocommit-test-file.jsonl"
+
+        labels = local_web.data_autocommit_file_labels(paths=[local_web.ITEMS, optional])
+
+        self.assertEqual(labels, ["database/items.jsonl"])
+
+    def test_missing_tracked_paths_stay_available_for_deletions(self) -> None:
+        optional = local_web.DATABASE / "missing-autocommit-test-file.jsonl"
+        optional_label = str(optional.relative_to(local_web.ROOT))
+        original = local_web._git_labels_with_tracked_entries
+        local_web._git_labels_with_tracked_entries = lambda labels: {optional_label}
+        try:
+            labels = local_web.data_autocommit_file_labels(paths=[local_web.ITEMS, optional])
+        finally:
+            local_web._git_labels_with_tracked_entries = original
+
+        self.assertEqual(labels, ["database/items.jsonl", optional_label])
+
     def test_data_commit_summary_condenses_status(self) -> None:
         status = "\n".join(
             [

@@ -2435,8 +2435,40 @@ def _record_apply_run(rpt_id: str, engine: str, output: str, diff_text: str, cha
     write_jsonl(INSIGHT_REPORTS, reports)
 
 
-def data_autocommit_file_labels() -> list[str]:
-    return [str(path.relative_to(ROOT)) for path in DATA_AUTOCOMMIT_FILES]
+def _git_labels_with_tracked_entries(labels: list[str]) -> set[str]:
+    if not labels:
+        return set()
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--", *labels],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    if result.returncode != 0:
+        return set()
+
+    tracked_paths = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    tracked_labels: set[str] = set()
+    for label in labels:
+        prefix = label.rstrip("/") + "/"
+        if any(path == label or path.startswith(prefix) for path in tracked_paths):
+            tracked_labels.add(label)
+    return tracked_labels
+
+
+def data_autocommit_file_labels(paths: list[Path] | None = None, include_missing: bool = False) -> list[str]:
+    candidate_paths = list(paths) if paths is not None else DATA_AUTOCOMMIT_FILES
+    entries = [(path, str(path.relative_to(ROOT))) for path in candidate_paths]
+    if include_missing:
+        return [label for _, label in entries]
+
+    missing_labels = [label for path, label in entries if not path.exists()]
+    tracked_labels = _git_labels_with_tracked_entries(missing_labels)
+    return [label for path, label in entries if path.exists() or label in tracked_labels]
 
 
 def data_autocommit_status(state: str, message: str = "", **extra: object) -> dict:
@@ -2483,7 +2515,24 @@ def commit_database_state(trigger: str = "manual") -> dict:
                 )
 
             labels = data_autocommit_file_labels()
-            subprocess.run(["git", "add", "--", *labels], cwd=ROOT, check=True, text=True, capture_output=True, timeout=30)
+            add = subprocess.run(
+                ["git", "add", "--", *labels],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                timeout=30,
+            )
+            if add.returncode != 0:
+                output = add.stdout + ("\nSTDERR:\n" + add.stderr if add.stderr else "")
+                return data_autocommit_status(
+                    "failed",
+                    "閱讀資料庫 git add 沒有成功。",
+                    trigger=trigger,
+                    files=labels,
+                    git_status=status_output,
+                    output=output,
+                    returncode=add.returncode,
+                )
             message = data_commit_message(started_at, data_commit_summary(status_output))
             commit = subprocess.run(
                 ["git", "commit", "-m", message, "--", *labels],
