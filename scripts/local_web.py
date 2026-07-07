@@ -640,7 +640,7 @@ COMMANDS = {
     },
     "codex_enrich_reviews": {
         "label": "隨機補 AI 閱讀建議與摘要",
-        "description": "針對入庫建檔區與閱讀區中還沒有任何模型 review 的項目，逐筆加權隨機挑一個 CLI 產生給 Ian 的一句話推薦、三個閱讀理由、中文標題與中文摘要；右下角會顯示目前做到第幾筆與項目標題。",
+        "description": "針對入庫建檔區與閱讀區中還沒有任何模型 review 的項目，逐筆加權隨機挑一個 CLI 產生一句話推薦、三個閱讀理由、中文標題與中文摘要；右下角會顯示目前做到第幾筆與項目標題。",
         "button": "隨機補 AI 建議",
         "command": [
             sys.executable,

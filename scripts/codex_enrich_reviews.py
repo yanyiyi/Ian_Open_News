@@ -111,6 +111,47 @@ def clean_text(value: object, limit: int | None = None) -> str:
     return text
 
 
+# ── 移除「給 Ian／值得 Ian／Ian 可以」這類對編輯喊話的字樣 ──────────────────
+# AI 閱讀建議是給編輯內化用的判斷；任何對外輸出（對外頁、Slack/TG 推播、
+# zh_summary）都不該出現稱呼編輯的字樣。這裡在「存進資料庫前」就洗乾淨，
+# 下游一律吃到乾淨資料。scripts/normalize_editor_address.py 共用這支清理舊資料。
+_EDITOR_ADDRESS_SUBS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"^\s*給\s*Ian\s*的[^：:。，,\n]{0,16}?[：:]\s*"), ""),
+    (re.compile(r"^\s*給\s*Ian\s*的?\s*[：:，,、]?\s*"), ""),
+    (re.compile(r"^\s*Ian\s*[：:，,、]\s*"), ""),
+    (re.compile(r"留給\s*Ian\s*人工"), "留待人工"),
+    (re.compile(r"保留給\s*Ian\s*人工"), "保留待人工"),
+    (re.compile(r"給\s*Ian\s*人工"), "待人工"),
+    (re.compile(r"值得\s*Ian(?!\s*Open\s+News)\s*"), "值得"),
+    (re.compile(r"建議\s*Ian(?!\s*Open\s+News)\s*"), "建議"),
+    (re.compile(r"提醒\s*Ian(?!\s*Open\s+News)\s*"), "提醒"),
+    (re.compile(r"Ian\s*(?=可以|應該|可先|不妨|得先|要先|需要|建議|值得|不必|別|請)"), ""),
+    (re.compile(r"^\s*[（(]\s*Ian\s*[)）]\s*[：:，,、]?\s*"), ""),
+]
+
+
+def strip_editor_address(value: object) -> str:
+    """去掉對編輯（Ian）喊話的字樣，只留下判斷本身。"""
+    if value is None:
+        return ""
+    text = str(value)
+    for pattern, repl in _EDITOR_ADDRESS_SUBS:
+        text = pattern.sub(repl, text)
+    text = re.sub(r"^\s*[，,、：:]\s*", "", text)
+    text = re.sub(r"[ \t]{2,}", " ", text).strip()
+    return text
+
+
+def sanitize_review_editor_address(review: dict[str, Any]) -> None:
+    """就地把 review 的對外欄位（一句話、摘要、理由、備註）洗掉編輯稱呼。"""
+    for field in ("one_line_recommendation", "summary", "note"):
+        if review.get(field):
+            review[field] = strip_editor_address(review[field])
+    reasons = review.get("reasons")
+    if isinstance(reasons, list):
+        review["reasons"] = [strip_editor_address(reason) for reason in reasons]
+
+
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
@@ -677,7 +718,7 @@ def build_prompt(batch: list[dict[str, Any]], provider: str = "codex") -> str:
 
 每筆請產生：
 - zh_title：如果原標題是英文，翻成自然繁體中文；如果已是中文，可微調成清楚標題。
-- one_line_recommendation：用「給 Ian 的一句話推薦」語氣，說清楚值不值得先看，以及最有價值的角度。
+- one_line_recommendation：用一句話說清楚值不值得先看，以及最有價值的角度。直接寫判斷本身，不要稱呼任何人名、不要用「給 Ian」「值得 Ian」「Ian 可以」這類對編輯喊話的開頭。
 - reasons：三個「看它的理由」，要是編輯判斷，不要只是重複關鍵字。
 - summary：繁體中文摘要，盡量像人讀完後重寫，避免「這是一篇英文資料，可能和...有關」這種模板句。
 - recommendation：recommend-collect / recommend-review / recommend-skip。
@@ -929,7 +970,7 @@ def formatted_summary(review: dict[str, Any]) -> str:
         [
             f"中文標題：{clean_text(review.get('zh_title'))}",
             "",
-            f"給 Ian 的一句話推薦：{clean_text(review.get('one_line_recommendation'))}",
+            f"一句話推薦：{clean_text(review.get('one_line_recommendation'))}",
             "",
             "三個看它的理由",
             f"1. {reasons[0]}",
@@ -1032,6 +1073,7 @@ def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]], 
         if meta.get("model"):
             provider_review["model"] = meta["model"]
         apply_taiwan_context_guard(record, provider_review)
+        sanitize_review_editor_address(provider_review)
         editorial[meta["review_key"]] = provider_review
         has_codex = isinstance(editorial.get("codex_review"), dict)
         if provider == "codex" or not has_codex:
