@@ -894,6 +894,29 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     .article-text strong,
     .article-text b,
     .article-text a {{ font-weight: 550; }}
+    .pdf-table-scroll {{ overflow-x: auto; margin: 12px 0 18px; }}
+    .pdf-layout-table {{
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      table-layout: auto;
+      font-size: .82em;
+      line-height: 1.35;
+      background: #fff;
+    }}
+    .pdf-layout-table th,
+    .pdf-layout-table td {{
+      min-width: 130px;
+      max-width: 300px;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }}
+    .pdf-layout-table th {{
+      background: var(--soft);
+      font-weight: 750;
+    }}
     .side-panel {{
       position: sticky;
       top: 84px;

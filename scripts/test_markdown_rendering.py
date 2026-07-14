@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import codex_translate_article  # noqa: E402
 import local_web  # noqa: E402
+import render_ghpages_reader  # noqa: E402
 
 
 class MarkdownRenderingTest(unittest.TestCase):
@@ -246,7 +247,8 @@ class MarkdownRenderingTest(unittest.TestCase):
         rendered_spaced = local_web.markdown_to_html("### Delivering the UK Government\u2019 s Test")
 
         self.assertIn(
-            "<h3>Delivering the UK Government&#x27;s Test, Learn and Grow programme</h3>",
+            '<h3 id="delivering-the-uk-governments-test-learn-and-grow-programme">'
+            "Delivering the UK Government&#x27;s Test, Learn and Grow programme</h3>",
             rendered,
         )
         self.assertIn("Government&#x27;s Test", rendered_spaced)
@@ -307,6 +309,44 @@ class MarkdownRenderingTest(unittest.TestCase):
 
         self.assertIn("A | B", rendered)
         self.assertIn("<code>x|y</code>", rendered)
+
+    def test_toc_fragment_links_match_unicode_heading_fallback_ids(self) -> None:
+        rendered = local_web.markdown_to_html(
+            "## 目錄\n\n"
+            "- [1. 引言](#1-引言)\n"
+            "- [附錄 A：開源定義與 OSAI／OSS 比較](#附錄-a開源定義與-osaioss-比較)\n\n"
+            "## 1. 引言\n\n"
+            "## 附錄 A：開源定義與 OSAI／OSS 比較"
+        )
+
+        self.assertIn('<a href="#1-引言">1. 引言</a>', rendered)
+        self.assertIn('<h2 id="1-引言">1. 引言</h2>', rendered)
+        self.assertIn('<a href="#附錄-a開源定義與-osaioss-比較">', rendered)
+        self.assertIn('<h2 id="附錄-a開源定義與-osaioss-比較">', rendered)
+
+    def test_explicit_english_heading_id_is_stable_and_hidden_from_title(self) -> None:
+        rendered = local_web.markdown_to_html(
+            "- [中文章節](#public-sector-ai)\n\n"
+            "## 中文章節 {#public-sector-ai}"
+        )
+
+        self.assertIn('<a href="#public-sector-ai">中文章節</a>', rendered)
+        self.assertIn('<h2 id="public-sector-ai">中文章節</h2>', rendered)
+        self.assertNotIn("{#public-sector-ai}", rendered)
+
+    def test_duplicate_fallback_heading_ids_are_unique(self) -> None:
+        rendered = local_web.markdown_to_html("## 結論\n\n## 結論")
+
+        self.assertIn('<h2 id="結論">結論</h2>', rendered)
+        self.assertIn('<h2 id="結論-1">結論</h2>', rendered)
+
+    def test_public_reader_includes_local_table_layout_styles(self) -> None:
+        rendered = render_ghpages_reader.page_shell("測試", "<p>內容</p>", current="article", depth=1)
+
+        self.assertIn(".pdf-table-scroll { overflow-x: auto; margin: 12px 0 18px; }", rendered)
+        self.assertIn("width: max-content;", rendered)
+        self.assertIn("min-width: 130px;", rendered)
+        self.assertIn("max-width: 300px;", rendered)
 
     def test_fulltext_edit_storage_keeps_newlines_unchanged(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

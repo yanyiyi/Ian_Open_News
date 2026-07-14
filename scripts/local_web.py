@@ -5783,11 +5783,14 @@ def inline_markdown_html(text: str) -> str:
 
     parts: list[str] = []
     position = 0
-    for match in re.finditer(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", text):
+    for match in re.finditer(r"\[([^\]]+)\]\((https?://[^)\s]+|#[^)\s]+)\)", text):
         parts.append(format_segment(text[position : match.start()]))
         label = format_segment(match.group(1))
         url = h(match.group(2))
-        parts.append(f'<a href="{url}" target="_blank" rel="noreferrer">{label}</a>')
+        if match.group(2).startswith("#"):
+            parts.append(f'<a href="{url}">{label}</a>')
+        else:
+            parts.append(f'<a href="{url}" target="_blank" rel="noreferrer">{label}</a>')
         position = match.end()
     parts.append(format_segment(text[position:]))
     return "".join(parts)
@@ -5873,10 +5876,31 @@ def markdown_table_html(header_cells: list[str], alignments: list[str], rows: li
 
 
 ENGLISH_POSSESSIVE_APOSTROPHE_RE = re.compile(r"(?<=[A-Za-z])[\u2018\u2019]\s*([sS])\b")
+MARKDOWN_HEADING_ID_RE = re.compile(r"\s+\{#([A-Za-z][A-Za-z0-9._:-]*)\}\s*$")
 
 
 def normalize_markdown_heading_text(text: object) -> str:
     return ENGLISH_POSSESSIVE_APOSTROPHE_RE.sub(r"'\1", str(text or ""))
+
+
+def markdown_heading_parts(text: object) -> tuple[str, str]:
+    """拆出 `## 標題 {#stable-id}`；明確 id 優先於自動 slug。"""
+    value = normalize_markdown_heading_text(text).strip()
+    match = MARKDOWN_HEADING_ID_RE.search(value)
+    if not match:
+        return value, ""
+    return value[: match.start()].rstrip(), match.group(1)
+
+
+def markdown_heading_slug(text: object) -> str:
+    """產生保留中文的 GitHub 風格 fallback slug，供未標明 id 的舊 Markdown 使用。"""
+    value = str(text or "")
+    value = re.sub(r"!\[([^\]]*)\]\([^)]+\)", r"\1", value)
+    value = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", value)
+    value = re.sub(r"[#*_`~]+", "", value).casefold()
+    value = re.sub(r"[^\w\s-]", "", value, flags=re.UNICODE)
+    value = re.sub(r"[\s-]+", "-", value).strip("-")
+    return value or "section"
 
 
 def normalized_title_key(text: object) -> str:
@@ -5919,6 +5943,7 @@ def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
     list_tag = ""
     code_fence = ""
     code_language = ""
+    heading_id_counts: dict[str, int] = {}
 
     def close_list() -> None:
         nonlocal list_tag
@@ -6001,8 +6026,12 @@ def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
             flush_paragraph()
             close_list()
             level = min(len(heading.group(1)), 5)
-            heading_text = normalize_markdown_heading_text(heading.group(2))
-            parts.append(f"<h{level}>{inline_markdown_html(heading_text)}</h{level}>")
+            heading_text, explicit_id = markdown_heading_parts(heading.group(2))
+            base_id = explicit_id or markdown_heading_slug(heading_text)
+            duplicate_index = heading_id_counts.get(base_id, 0)
+            heading_id_counts[base_id] = duplicate_index + 1
+            heading_id = base_id if duplicate_index == 0 else f"{base_id}-{duplicate_index}"
+            parts.append(f'<h{level} id="{h(heading_id)}">{inline_markdown_html(heading_text)}</h{level}>')
             continue
         if re.match(r"^(-{3,}|\*{3,}|_{3,})$", line):
             flush_paragraph()
