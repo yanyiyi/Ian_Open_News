@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from page_metadata import is_access_prompt_text
+from ai_model_settings import task_model, task_provider
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -759,7 +760,7 @@ def run_codex(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[dic
         "--output-last-message",
         str(output_path),
     ]
-    model = (getattr(args, "model", "") or "").strip()
+    model = task_model("reading_review", "codex", getattr(args, "model", ""))
     if model:
         command += ["-m", model]
     command += ["-"]
@@ -804,7 +805,7 @@ def run_claude(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[di
         "--output-format",
         "json",
     ]
-    model = (getattr(args, "model", "") or "").strip()
+    model = task_model("reading_review", "claude", getattr(args, "model", ""))
     if model:
         command += ["--model", model]
     env = os.environ.copy()
@@ -843,7 +844,7 @@ def run_gemini(batch: list[dict[str, Any]], args: argparse.Namespace) -> list[di
         "--print",
         prompt,
     ]
-    model = (getattr(args, "model", "") or "").strip()
+    model = task_model("reading_review", "gemini", getattr(args, "model", ""))
     if model:
         command += ["--model", model]
     env = os.environ.copy()
@@ -878,7 +879,7 @@ def run_ollama(batch: list[dict[str, Any]], args: argparse.Namespace, provider: 
     prompt += f"\n\n請務必只輸出 JSON 物件，且完全符合以下 JSON Schema，不要任何額外說明或 markdown 包裝：\n{json.dumps(schema, ensure_ascii=False, indent=2)}\n"
     safe_provider = re.sub(r"[^a-z0-9_-]+", "-", provider.lower())
     (cache / f"{safe_provider}-review-prompt.json").write_text(prompt, encoding="utf-8")
-    model = (getattr(args, "model", "") or "").strip() or ollama_model(provider)
+    model = task_model("reading_review", provider, getattr(args, "model", "")) or ollama_model(provider)
     command = [
         ollama_path(),
         "run",
@@ -1257,7 +1258,7 @@ def process_file(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Use an AI CLI to add reading recommendations and summaries.")
-    parser.add_argument("--provider", choices=sorted([*AI_PROVIDERS, "random"]), default="codex")
+    parser.add_argument("--provider", choices=sorted([*AI_PROVIDERS, "random"]), default=task_provider("reading_review"))
     parser.add_argument("--model", default="", help="指定該 AI CLI 要用的模型（空＝沿用各 CLI 預設；random 時傳給被抽中的引擎自行解讀）")
     parser.add_argument("--target", choices=["candidates", "items", "both"], default="candidates")
     parser.add_argument("--items", type=Path, default=ITEMS)

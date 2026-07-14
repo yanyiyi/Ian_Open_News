@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from codex_enrich_reviews import agy_path, claude_path, codex_path, load_json_from_text, ollama_model, ollama_path
+from ai_model_settings import task_model, task_provider
 from pdf_materials import item_comparison_text, item_title
 
 
@@ -51,20 +52,24 @@ def parse_payload(raw: str) -> dict[str, Any]:
     return payload
 
 
-def run(provider: str, prompt: str, timeout: int) -> dict[str, Any]:
+def run(provider: str, prompt: str, timeout: int, model_override: str = "") -> dict[str, Any]:
     cache = ROOT / ".cache"
     cache.mkdir(exist_ok=True)
     env = os.environ.copy()
     env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
     if provider == "codex":
+        model = task_model("pdf_relation", provider, model_override)
         schema_path = cache / "pdf-relation.schema.json"
         output_path = cache / "pdf-relation-codex-output.json"
         schema_path.write_text(json.dumps(schema(), ensure_ascii=False, indent=2), encoding="utf-8")
         command = [
             codex_path(), "-a", "never", "exec", "--ephemeral", "--cd", str(ROOT),
             "--sandbox", "read-only", "--color", "never",
-            "--output-schema", str(schema_path), "--output-last-message", str(output_path), "-",
+            "--output-schema", str(schema_path), "--output-last-message", str(output_path),
         ]
+        if model:
+            command += ["-m", model]
+        command.append("-")
         result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=env)
         if result.returncode != 0:
             raise RuntimeError((result.stderr or result.stdout or "Codex 執行失敗")[-2400:])
@@ -76,10 +81,15 @@ def run(provider: str, prompt: str, timeout: int) -> dict[str, Any]:
         command = [agy_path(), "--print", prompt]
         stdin_data = None
     elif provider.startswith("ollama"):
-        command = [ollama_path(), "run", ollama_model(provider), "--format", "json", "--nowordwrap", "--hidethinking"]
+        model = task_model("pdf_relation", provider, model_override) or ollama_model(provider)
+        command = [ollama_path(), "run", model, "--format", "json", "--nowordwrap", "--hidethinking"]
         stdin_data = prompt
     else:
         raise RuntimeError(f"不支援的 provider：{provider}")
+    if provider in {"claude", "gemini"}:
+        model = task_model("pdf_relation", provider, model_override)
+        if model:
+            command += ["--model", model]
     result = subprocess.run(command, cwd=ROOT, input=stdin_data, text=True, capture_output=True, timeout=timeout, env=env)
     if result.returncode != 0:
         raise RuntimeError((result.stderr or result.stdout or f"{provider} 執行失敗")[-2400:])
@@ -90,7 +100,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Use one local AI CLI to confirm the relationship between a PDF item and another material.")
     parser.add_argument("--item-id", required=True)
     parser.add_argument("--candidate-id", required=True)
-    parser.add_argument("--provider", choices=["codex", "claude", "gemini", "ollama", "ollama-gemma4", "ollama-twinkle"], required=True)
+    parser.add_argument("--provider", choices=["codex", "claude", "gemini", "ollama", "ollama-gemma4", "ollama-twinkle"], default=task_provider("pdf_relation"))
+    parser.add_argument("--model", default="")
     parser.add_argument("--timeout", type=int, default=1200)
     args = parser.parse_args()
 
@@ -125,7 +136,7 @@ B（既有材料）
 文字：
 {candidate_text}
 """
-    result = run(args.provider, prompt, args.timeout)
+    result = run(args.provider, prompt, args.timeout, args.model)
     relation = str(result.get("relation") or "")
     if relation not in {"same-source", "full-source", "subset", "related", "unrelated"}:
         raise SystemExit("CLI 回傳了不支援的關係。")

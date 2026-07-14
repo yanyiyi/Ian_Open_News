@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from codex_enrich_reviews import agy_path, claude_path, codex_path, load_json_from_text, ollama_model, ollama_path
+from ai_model_settings import task_model, task_provider
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -138,20 +139,24 @@ def generic_payload(raw: str) -> dict[str, Any]:
     raise RuntimeError("CLI output missing JSON object")
 
 
-def run_provider(provider: str, prompt: str, timeout: int) -> dict[str, Any]:
+def run_provider(provider: str, prompt: str, timeout: int, model_override: str = "") -> dict[str, Any]:
     cache = ROOT / ".cache"
     cache.mkdir(exist_ok=True)
     env = os.environ.copy()
     env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
     if provider == "codex":
+        model = task_model("pdf_split", provider, model_override)
         schema_path = cache / "pdf-split.schema.json"
         output_path = cache / "pdf-split-codex-output.json"
         schema_path.write_text(json.dumps(output_schema(), ensure_ascii=False, indent=2), encoding="utf-8")
         command = [
             codex_path(), "-a", "never", "exec", "--ephemeral", "--cd", str(ROOT),
             "--sandbox", "read-only", "--color", "never",
-            "--output-schema", str(schema_path), "--output-last-message", str(output_path), "-",
+            "--output-schema", str(schema_path), "--output-last-message", str(output_path),
         ]
+        if model:
+            command += ["-m", model]
+        command.append("-")
         result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=env)
         if result.returncode != 0:
             raise RuntimeError((result.stderr or result.stdout or "Codex 執行失敗")[-2400:])
@@ -163,10 +168,15 @@ def run_provider(provider: str, prompt: str, timeout: int) -> dict[str, Any]:
         command = [agy_path(), "--print", prompt]
         stdin_data = None
     elif provider.startswith("ollama"):
-        command = [ollama_path(), "run", ollama_model(provider), "--format", "json", "--nowordwrap", "--hidethinking"]
+        model = task_model("pdf_split", provider, model_override) or ollama_model(provider)
+        command = [ollama_path(), "run", model, "--format", "json", "--nowordwrap", "--hidethinking"]
         stdin_data = prompt
     else:
         raise RuntimeError(f"不支援的 provider：{provider}")
+    if provider in {"claude", "gemini"}:
+        model = task_model("pdf_split", provider, model_override)
+        if model:
+            command += ["--model", model]
     result = subprocess.run(command, cwd=ROOT, input=stdin_data, text=True, capture_output=True, timeout=timeout, env=env)
     if result.returncode != 0:
         raise RuntimeError((result.stderr or result.stdout or f"{provider} 執行失敗")[-2400:])
@@ -203,7 +213,8 @@ def validate_proposal(payload: dict[str, Any], markdown: str) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Ask one local AI CLI for a PDF split proposal.")
     parser.add_argument("--item-id", required=True)
-    parser.add_argument("--provider", choices=["codex", "claude", "gemini", "ollama", "ollama-gemma4", "ollama-twinkle"], required=True)
+    parser.add_argument("--provider", choices=["codex", "claude", "gemini", "ollama", "ollama-gemma4", "ollama-twinkle"], default=task_provider("pdf_split"))
+    parser.add_argument("--model", default="")
     parser.add_argument("--items", type=Path, default=ITEMS)
     parser.add_argument("--status-file", type=Path, default=STATUS)
     parser.add_argument("--timeout", type=int, default=1800)
@@ -219,7 +230,7 @@ def main() -> None:
 
     write_status(args.status_file, {"state": "running", "item_id": args.item_id, "provider": args.provider, "message": "正在閱讀 PDF 全文並提出拆分草案。"})
     try:
-        payload = run_provider(args.provider, build_prompt(item, markdown), args.timeout)
+        payload = run_provider(args.provider, build_prompt(item, markdown), args.timeout, args.model)
         proposal = validate_proposal(payload, markdown)
         metadata = item.get("reading_metadata") if isinstance(item.get("reading_metadata"), dict) else {}
         proposals = metadata.get("pdf_split_proposals") if isinstance(metadata.get("pdf_split_proposals"), dict) else {}

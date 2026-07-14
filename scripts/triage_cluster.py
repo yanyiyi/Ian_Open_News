@@ -50,6 +50,7 @@ from codex_enrich_reviews import (
     write_jsonl,
     write_status,
 )
+from ai_model_settings import task_model, task_provider
 
 ARTICLES = ROOT / "database" / "articles.jsonl"
 MATERIAL_LINKS = ROOT / "database" / "material-links.jsonl"
@@ -291,8 +292,9 @@ def build_prompt(
 
 def run_claude(prompt: str, args: argparse.Namespace) -> dict[str, Any]:
     command = [claude_path(), "-p", prompt, "--output-format", "json"]
-    if args.model:
-        command += ["--model", args.model]
+    model = task_model("triage_cluster", "claude", args.model)
+    if model:
+        command += ["--model", model]
     env = os.environ.copy()
     env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
     result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=args.timeout, env=env)
@@ -325,8 +327,9 @@ def run_codex(prompt: str, args: argparse.Namespace) -> dict[str, Any]:
         "--output-last-message",
         str(output_path),
     ]
-    if args.model:
-        command += ["-m", args.model]
+    model = task_model("triage_cluster", "codex", args.model)
+    if model:
+        command += ["-m", model]
     command.append("-")
     env = os.environ.copy()
     env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
@@ -340,8 +343,9 @@ def run_codex(prompt: str, args: argparse.Namespace) -> dict[str, Any]:
 
 def run_gemini(prompt: str, args: argparse.Namespace) -> dict[str, Any]:
     command = [agy_path(), "--print", prompt]
-    if args.model:
-        command += ["--model", args.model]
+    model = task_model("triage_cluster", "gemini", args.model)
+    if model:
+        command += ["--model", model]
     result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=args.timeout, env=cli_env())
     if result.returncode != 0:
         raise RuntimeError(f"agy print failed\nSTDERR:\n{result.stderr[-2000:]}")
@@ -350,7 +354,7 @@ def run_gemini(prompt: str, args: argparse.Namespace) -> dict[str, Any]:
 
 
 def run_ollama(prompt: str, args: argparse.Namespace, provider: str) -> dict[str, Any]:
-    model = args.model or ollama_model(provider)
+    model = task_model("triage_cluster", provider, args.model) or ollama_model(provider)
     command = [ollama_path(), "run", model, "--format", "json", "--nowordwrap", "--hidethinking"]
     try:
         result = subprocess.run(
@@ -533,7 +537,7 @@ def eval_replay(args: argparse.Namespace) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="跨篇分群分流（AI 分堆+預選，落地由人批次確認）")
-    parser.add_argument("--engine", choices=CLUSTER_ENGINES, default="claude")
+    parser.add_argument("--engine", choices=CLUSTER_ENGINES, default=task_provider("triage_cluster"))
     parser.add_argument("--model", default="", help="選用：指定引擎的模型（不帶 = 引擎預設）")
     parser.add_argument("--limit", type=int, default=120)
     parser.add_argument(

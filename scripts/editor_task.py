@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from ai_model_settings import task_key_for_editor, task_model
 from page_metadata import is_access_prompt_text
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -877,7 +878,7 @@ def main() -> None:
         schema = schema_for.get(args.task_type)
         web = args.task_type in WEB_TASKS
 
-        requested_model = (args.model or "").strip()
+        requested_model = task_model(task_key_for_editor(args.task_type), args.engine, args.model)
         if args.engine == "codex":
             raw, model = run_codex(prompt, schema, args.timeout, web=web, model=requested_model)
         elif args.engine == "gemini":

@@ -32,6 +32,18 @@ from zoneinfo import ZoneInfo
 
 from editorial_triage import build_editorial_context, evaluate_editorial_triage
 from fetch_rss import evaluate_triage
+from ai_model_settings import (
+    MODEL_CATALOG as AI_MODEL_CATALOG,
+    PROVIDERS as MODEL_PROVIDERS,
+    TASKS as MODEL_TASKS,
+    discover_cli_models,
+    load_settings as load_ai_model_settings,
+    model_tier,
+    save_settings as save_ai_model_settings,
+    task_key_for_editor,
+    task_model as configured_task_model,
+    task_provider as configured_task_provider,
+)
 import fulltext_store
 from page_metadata import (
     attrs_from_tag,
@@ -575,7 +587,7 @@ COMMANDS = {
             sys.executable,
             str(ROOT / "scripts" / "triage_cluster.py"),
             "--engine",
-            "claude",
+            configured_task_provider("triage_cluster"),
             "--limit",
             "120",
             "--status-file",
@@ -590,7 +602,7 @@ COMMANDS = {
             sys.executable,
             str(ROOT / "scripts" / "taste_retro.py"),
             "--engine",
-            "claude",
+            configured_task_provider("taste_retro"),
             "--status-file",
             str(COMMAND_STATUS),
         ],
@@ -1889,21 +1901,29 @@ def _insight_cli_run(engine: str, prompt: str, status_label: str, timeout: int =
         return "", f"找不到 {engine} CLI（未安裝或不在 PATH）"
 
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    model = configured_task_model("insight_analysis", engine)
     if engine == "codex":
         out_path = CACHE_DIR / "insight-codex-out.txt"
         sandbox = "workspace-write" if allow_write else "read-only"
         cmd = [cli, "-a", "never", "exec", "--ephemeral", "--cd", str(ROOT),
                "--sandbox", sandbox, "--color", "never",
-               "--output-last-message", str(out_path), "-"]
+               "--output-last-message", str(out_path)]
+        if model:
+            cmd += ["-m", model]
+        cmd.append("-")
         stdin_data = prompt
     elif engine == "claude":
         cmd = [cli, "-p", prompt, "--output-format", "json"]
+        if model:
+            cmd += ["--model", model]
         stdin_data = None
     elif engine.startswith("ollama"):
-        cmd = [cli, "run", ollama_model(engine), "--nowordwrap", "--hidethinking"]
+        cmd = [cli, "run", model or ollama_model(engine), "--nowordwrap", "--hidethinking"]
         stdin_data = prompt
     else:  # gemini → agy
         cmd = [cli, "--print", prompt]
+        if model:
+            cmd += ["--model", model]
         stdin_data = None
 
     started = now_iso()
@@ -9748,6 +9768,7 @@ def page(title: str, body: str) -> bytes:
           <a href="/sources">{icon_span("source", "S")}RSS 來源</a>
           <a href="/insights">{icon_span("note", "I")}決策洞察{_insights_nav_badge()}</a>
           <a href="/notifications">{icon_span("share", "T")}推播通知</a>
+          <a href="/settings/models">{icon_span("settings", "M")}AI 模型設定</a>
         </div>
       </details>
     </nav>
@@ -12412,7 +12433,7 @@ def pdf_relation_modal_html(item: dict, auto_open: bool = False) -> str:
 <form class="pdf-cli-confirm-form" data-pdf-relation-confirm>
   <input type="hidden" name="id" value="{h(item_id)}">
   <input type="hidden" name="candidate_id" value="{h(candidate_id)}">
-  <select name="engine" aria-label="確認關係引擎">{option_list([("random", "隨機 CLI"), *[(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER]], "random")}</select>
+  <select name="engine" aria-label="確認關係引擎">{option_list([("random", "隨機 CLI"), *[(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER]], configured_task_provider("pdf_relation"))}</select>
   <button type="submit" class="button button-small quiet">{button_content("用 CLI 再確認關係", "sparkle")}</button>
 </form>
 """
@@ -12614,6 +12635,120 @@ EDITOR_TIMELINE_ASSETS = """
   }
 })();
 </script>
+"""
+
+
+def model_settings_page_html(query: dict[str, list[str]]) -> str:
+    settings = load_ai_model_settings()
+    discovery = discover_cli_models()
+    saved = clean_text((query.get("saved") or [""])[0]) == "1"
+    notice = '<div class="notice">模型設定已儲存；下一次執行功能時生效。</div>' if saved else ""
+
+    provider_cards: list[str] = []
+    datalists: list[str] = []
+    for provider, meta in MODEL_PROVIDERS.items():
+        state = discovery.get(provider) or {}
+        installed = bool(state.get("installed"))
+        models = [clean_text(value, 120) for value in state.get("models") or [] if clean_text(value)]
+        datalists.append(
+            f'<datalist id="model-list-{h(provider)}">'
+            + "".join(f'<option value="{h(model)}"></option>' for model in models)
+            + "</datalist>"
+        )
+        model_list = "、".join(h(model) for model in models) or "CLI 未提供清單；仍可手動填模型名稱。"
+        provider_cards.append(
+            '<article class="card model-provider-card">'
+            f'<div><strong>{h(meta["label"])}</strong> {badge("可用" if installed else "未安裝", "suggest-keep" if installed else "suggest-skip")}</div>'
+            f'<p class="help">CLI：<code>{h(state.get("path") or meta["cli"])}</code><br>'
+            f'版本：{h(state.get("version") or "無法讀取")}<br>'
+            f'CLI 全域預設：<strong>{h(state.get("cli_default") or "未固定")}</strong></p>'
+            f'<details><summary>這台機器可選的模型（{len(models)}）</summary><p class="help model-list">{model_list}</p></details>'
+            '</article>'
+        )
+
+    task_cards: list[str] = []
+    tasks = settings.get("tasks") or {}
+    for task_key, task_meta in MODEL_TASKS.items():
+        task = tasks.get(task_key) if isinstance(tasks.get(task_key), dict) else {}
+        selected_provider = clean_text(task.get("provider")) or configured_task_provider(task_key)
+        models = task.get("models") if isinstance(task.get("models"), dict) else {}
+        provider_options = option_list(
+            [(provider, meta["label"]) for provider, meta in MODEL_PROVIDERS.items()],
+            selected_provider,
+        )
+        fields: list[str] = []
+        for provider, provider_meta in MODEL_PROVIDERS.items():
+            model = clean_text(models.get(provider), 120) or configured_task_model(task_key, provider)
+            tier = model_tier(provider, model)
+            tier_label = {"economy": "省", "balanced": "均衡", "premium": "高階", "local": "本機", "custom": "自訂"}.get(tier, tier)
+            fields.append(
+                '<label class="model-field">'
+                f'<span>{h(provider_meta["label"])} <small class="model-tier model-tier--{h(tier)}">{h(tier_label)}</small></span>'
+                f'<input name="model--{h(task_key)}--{h(provider)}" value="{h(model)}" list="model-list-{h(provider)}" required>'
+                '</label>'
+            )
+        selected_model = clean_text(models.get(selected_provider)) or configured_task_model(task_key, selected_provider)
+        selected_tier = model_tier(selected_provider, selected_model)
+        task_cards.append(
+            '<details class="card model-task-card">'
+            f'<summary><span><strong>{h(task_meta["label"])}</strong><small>{h(task_meta["description"])}</small></span>'
+            f'<span class="model-task-current">{h(MODEL_PROVIDERS[selected_provider]["label"])} · {h(selected_model)} · {h(selected_tier)}</span></summary>'
+            '<div class="model-task-body">'
+            f'<label>這個功能的預設廠商<select name="provider--{h(task_key)}">{provider_options}</select></label>'
+            '<p class="help">下方同時保存每一家在這個功能要用的模型；操作時臨時換廠商，也會套用該欄的模型。</p>'
+            f'<div class="model-field-grid">{"".join(fields)}</div>'
+            '</div></details>'
+        )
+
+    checked = " checked" if bool((settings.get("policy") or {}).get("allow_premium_defaults")) else ""
+    return f"""
+{back_nav_html("/")}
+{notice}
+<section class="model-settings-hero">
+  <h1>{icon_span("settings")}AI CLI 與模型設定</h1>
+  <p class="lede">依功能指定預設廠商，並為每一家保存該功能要用的模型。系統預設採省／均衡級，不讓簡單工作繼承 CLI 的最高價全域預設。</p>
+</section>
+<section>
+  <h2>這台機器目前可用的 CLI</h2>
+  <div class="model-provider-grid">{"".join(provider_cards)}</div>
+</section>
+<form method="post" action="/settings/models" class="model-settings-form">
+  <section class="card model-policy-card">
+    <h2>成本護欄</h2>
+    <label class="checkbox-row"><input type="checkbox" name="allow_premium_defaults" value="1"{checked}> 允許把 premium 高階模型設為某功能的預設</label>
+    <p class="help">不勾時仍可在單次操作人工改用高階模型，但儲存設定時會阻止任何功能把 premium 當日常預設。</p>
+  </section>
+  <section class="model-task-list">
+    <h2>各功能設定</h2>
+    {''.join(task_cards)}
+  </section>
+  <div class="sticky-save"><button type="submit">儲存模型設定</button><span class="help">儲存到 database/ai-model-settings.json</span></div>
+</form>
+{''.join(datalists)}
+<style>
+  .model-provider-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }}
+  .model-provider-card {{ display:grid; align-content:start; gap:8px; }}
+  .model-provider-card p, .model-provider-card details {{ margin:0; }}
+  .model-list {{ word-break:break-word; }}
+  .model-settings-form {{ display:grid; gap:18px; margin-top:22px; }}
+  .model-policy-card h2 {{ margin-top:0; }}
+  .checkbox-row {{ display:flex; gap:8px; align-items:flex-start; font-weight:700; }}
+  .model-task-list {{ display:grid; gap:10px; }}
+  .model-task-card {{ padding:0; overflow:hidden; }}
+  .model-task-card > summary {{ cursor:pointer; display:flex; justify-content:space-between; gap:16px; align-items:center; padding:16px; }}
+  .model-task-card > summary small {{ display:block; color:var(--muted); font-weight:400; }}
+  .model-task-current {{ color:var(--muted); text-align:right; font-size:13px; }}
+  .model-task-body {{ border-top:1px solid var(--line); padding:16px; }}
+  .model-task-body select {{ display:block; width:min(460px,100%); margin-top:5px; }}
+  .model-field-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:10px; margin-top:14px; }}
+  .model-field {{ display:grid; gap:5px; }}
+  .model-field input {{ width:100%; }}
+  .model-tier {{ border-radius:999px; padding:2px 7px; background:var(--soft); }}
+  .model-tier--premium {{ background:#ffe0e0; color:#8b1c1c; }}
+  .model-tier--local {{ background:#e1f5e8; color:#176536; }}
+  .sticky-save {{ position:sticky; bottom:12px; z-index:8; display:flex; gap:12px; align-items:center; padding:12px; background:rgba(255,255,255,.95); border:1px solid var(--line); border-radius:10px; box-shadow:0 5px 20px rgba(15,25,35,.12); }}
+  @media (max-width:700px) {{ .model-task-card > summary {{ align-items:flex-start; flex-direction:column; }} .model-task-current {{ text-align:left; }} }}
+</style>
 """
 
 
@@ -13115,8 +13250,43 @@ class Handler(BaseHTTPRequestHandler):
             self.resend_notification(self.read_form())
         elif parsed.path == "/notifications/save-channels":
             self.save_notify_channels(self.read_form())
+        elif parsed.path == "/settings/models":
+            self.save_model_settings(self.read_form())
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
+
+    # ------------------------------------------------------------------ #
+    # 管理：AI 模型設定
+    # ------------------------------------------------------------------ #
+    def show_model_settings(self, query: dict[str, list[str]]) -> None:
+        self.send_html("AI 模型設定", model_settings_page_html(query))
+
+    def save_model_settings(self, data: dict[str, list[str]]) -> None:
+        settings = load_ai_model_settings()
+        settings.setdefault("policy", {})["allow_premium_defaults"] = form_value(data, "allow_premium_defaults") == "1"
+        tasks = settings.setdefault("tasks", {})
+        for task_key in MODEL_TASKS:
+            task = tasks.setdefault(task_key, {})
+            provider = clean_text(form_value(data, f"provider--{task_key}"))
+            if provider in MODEL_PROVIDERS:
+                task["provider"] = provider
+            models = task.setdefault("models", {})
+            for provider_key in MODEL_PROVIDERS:
+                model = clean_text(form_value(data, f"model--{task_key}--{provider_key}"), 120)
+                if model:
+                    models[provider_key] = model
+        try:
+            save_ai_model_settings(settings)
+        except ValueError as exc:
+            body = f"""
+{back_nav_html('/settings/models')}
+<h1>模型設定未儲存</h1>
+<div class="notice error"><pre>{h(str(exc))}</pre></div>
+<p><a class="button" href="/settings/models">回模型設定</a></p>
+"""
+            self.send_html("模型設定未儲存", body, HTTPStatus.BAD_REQUEST)
+            return
+        self.redirect("/settings/models?saved=1")
 
     # ------------------------------------------------------------------ #
     # 編輯台
@@ -13136,7 +13306,11 @@ class Handler(BaseHTTPRequestHandler):
         available_json = json.dumps(available_payload, ensure_ascii=False).replace("<", "\\u003c")
         selected_json = json.dumps(selected_payload, ensure_ascii=False).replace("<", "\\u003c")
 
-        engine_default = "random"
+        engine_default = configured_task_provider(task_key_for_editor(default_task))
+        editor_task_provider_map = {
+            task_type: configured_task_provider(task_key_for_editor(task_type))
+            for task_type in EDITOR_TASK_LABELS
+        }
 
         def engine_option(name: str, label: str) -> str:
             available = engines.get(name)
@@ -13205,7 +13379,7 @@ class Handler(BaseHTTPRequestHandler):
     <input type="hidden" name="items" data-selected-items>
     <div class="editor-control-grid">
       <label class="editor-label">模型
-        <select name="engine" class="editor-select"><option value="random" selected>隨機（失敗自動換其他可用 CLI）</option>{''.join(engine_option(provider, AI_PROVIDER_META[provider]['label']) for provider in AI_PROVIDER_ORDER)}</select>
+        <select name="engine" class="editor-select"><option value="random">隨機（失敗自動換其他可用 CLI）</option>{''.join(engine_option(provider, AI_PROVIDER_META[provider]['label']) for provider in AI_PROVIDER_ORDER)}</select>
       </label>
       <label class="editor-label">任務
         <select name="task_type" id="editor-task-type" class="editor-select">{task_options}</select>
@@ -13413,9 +13587,13 @@ class Handler(BaseHTTPRequestHandler):
     renderResults(true);
   }});
   var taskType = document.getElementById("editor-task-type");
+  var taskProviders = {json.dumps(editor_task_provider_map, ensure_ascii=False)};
   var hints = form.querySelectorAll("[data-task-hint]");
   function syncHints() {{
     hints.forEach(function(el) {{ el.hidden = (el.getAttribute("data-task-hint") !== taskType.value); }});
+    var engineSelect = form.querySelector("[name=engine]");
+    var configured = taskProviders[taskType.value];
+    if (engineSelect && configured && !engineSelect.querySelector(`option[value="${{configured}}"]`)?.disabled) engineSelect.value = configured;
   }}
   if (taskType) taskType.addEventListener("change", syncHints);
   var statusEl = document.getElementById("editor-run-status");
@@ -13445,8 +13623,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_html("編輯台", body)
 
     def run_editor_task(self, data: dict[str, list[str]]) -> None:
-        engine = form_value(data, "engine", "claude")
         task_type = form_value(data, "task_type", "theme-check")
+        engine = form_value(data, "engine") or configured_task_provider(task_key_for_editor(task_type))
         choice = form_value(data, "choice")
         items_raw = form_value(data, "items")
         instructions = form_value(data, "instructions")
@@ -15097,7 +15275,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <span id="sample-result" class="muted" style="font-size:0.85em;display:none"></span>
     <div>
       <form method="post" action="/insights/generate-report" data-insight-job="分析已填說明的分歧">
-        <select name="engine" aria-label="分析引擎" style="width:100%;margin-bottom:6px">{option_list([(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER], "claude")}</select>
+        <select name="engine" aria-label="分析引擎" style="width:100%;margin-bottom:6px">{option_list([(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER], configured_task_provider("insight_analysis"))}</select>
         <button type="submit" class="button" style="width:100%"{analyze_disabled}>分析已填說明的 {explained_count} 筆</button>
       </form>
       {analyze_hint}
@@ -15111,7 +15289,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <div>
       <form method="post" action="/commands/run" data-command-form>
         <input type="hidden" name="command" value="taste_retro">
-        <select name="provider" aria-label="決策回顧引擎" style="width:100%;margin-bottom:6px">{option_list([(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER], "claude")}</select>
+        <select name="provider" aria-label="決策回顧引擎" style="width:100%;margin-bottom:6px">{option_list([(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER], configured_task_provider("taste_retro"))}</select>
         <button type="submit" class="button secondary" style="width:100%">{button_content("跑決策回顧（產生提案）", "chart", "")}</button>
       </form>
       <p class="section-sub" style="margin:4px 0 0">統計收/不收模式並蒸餾成下方提案；核准後才會套用。建議兩週一次。</p>
@@ -15536,7 +15714,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             self.redirect(f"/insights?sampled={added}")
 
     def generate_divergence_report(self, data: dict[str, list[str]], mode: str = "explained") -> None:
-        engine = form_value(data, "engine") or "claude"
+        engine = form_value(data, "engine") or configured_task_provider("insight_analysis")
         if engine not in AI_PROVIDER_META:
             engine = "claude"
         divs = load_jsonl(DECISION_DIVERGENCES)
@@ -15557,7 +15735,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 
     def apply_report_with_cli(self, data: dict[str, list[str]]) -> None:
         rpt_id = form_value(data, "id")
-        engine = form_value(data, "engine") or "claude"
+        engine = form_value(data, "engine") or configured_task_provider("insight_analysis")
         if engine not in AI_PROVIDER_META:
             engine = "claude"
         report = next((r for r in load_jsonl(INSIGHT_REPORTS) if r.get("id") == rpt_id), None)
@@ -16660,7 +16838,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         <div class="batch-ai-review">
           <p class="help" style="margin-top:10px">批次補 AI 閱讀建議（不改分流）</p>
           <div class="button-row">
-            <select id="batch-ai-engine" aria-label="選擇 AI 引擎">{option_list([(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER], "codex")}</select>
+            <select id="batch-ai-engine" aria-label="選擇 AI 引擎">{option_list([(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER], configured_task_provider("reading_review"))}</select>
             <button type="button" id="batch-ai-review" class="secondary">{button_content("批次跑 AI 閱讀建議", "wand", "I")}</button>
           </div>
           <p class="help">用選定引擎對勾選項目逐筆生成閱讀建議；進度看右下角狀態列，可能需要數分鐘。</p>
@@ -16668,7 +16846,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         <div class="batch-ai-review">
           <p class="help" style="margin-top:10px">AI 分群建議（跨篇比較，不改分流）</p>
           <div class="button-row">
-            <select id="cluster-engine" aria-label="選擇分群引擎">{option_list([("random", "隨機"), *[(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER]], "claude")}</select>
+            <select id="cluster-engine" aria-label="選擇分群引擎">{option_list([("random", "隨機"), *[(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER]], configured_task_provider("triage_cluster"))}</select>
             <button type="button" id="run-cluster" class="secondary">{button_content("跑 AI 分群", "wand", "G")}</button>
           </div>
           <p class="help">把目前 pending 候選與 inbox 依「會被抓在一起寫成文章」分群並預選；完成後左側自動切到分群檢視。你仍逐群調整、按上面的批次按鈕才算數。</p>
@@ -18676,7 +18854,7 @@ if (document.readyState === "loading") {{
                         f"""
     <form method="post" action="/items/repaginate-fulltext">
       <input type="hidden" name="id" value="{h(item_id)}">
-      <input type="hidden" name="provider" value="claude">
+      <input type="hidden" name="provider" value="{h(configured_task_provider('pdf_repaginate'))}">
       <button type="submit" class="secondary">{button_content("用 AI 重新分段（快速）", "sparkle")}</button>
     </form>
 """
@@ -20071,7 +20249,7 @@ if (document.readyState === "loading") {{
     def pdf_relation_confirm(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         candidate_id = form_value(data, "candidate_id")
-        provider = normalize_ai_provider(form_value(data, "provider", "codex"), allow_random=True)
+        provider = normalize_ai_provider(form_value(data, "provider") or configured_task_provider("pdf_relation"), allow_random=True)
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
         command = [
             sys.executable,
@@ -20098,7 +20276,7 @@ if (document.readyState === "loading") {{
 
     def pdf_split_suggest(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
-        provider = normalize_ai_provider(form_value(data, "provider", "codex"), allow_random=True)
+        provider = normalize_ai_provider(form_value(data, "provider") or configured_task_provider("pdf_split"), allow_random=True)
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
         command = [
             sys.executable,
@@ -20430,7 +20608,7 @@ if (document.readyState === "loading") {{
 
     def repaginate_fulltext(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
-        provider = clean_text(form_value(data, "provider", "claude")) or "claude"
+        provider = clean_text(form_value(data, "provider")) or configured_task_provider("pdf_repaginate")
         redirect_to = f"/items/view?id={quote(item_id)}"
         item, _path = self._find_item_any(item_id)
         if not item:
@@ -20516,7 +20694,7 @@ if (document.readyState === "loading") {{
 
     def codex_review_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
-        provider = normalize_ai_provider(form_value(data, "provider", "codex"), allow_random=True)
+        provider = normalize_ai_provider(form_value(data, "provider") or configured_task_provider("reading_review"), allow_random=True)
         force_review = form_value(data, "force", "") == "1"
         replace_reviews = form_value(data, "replace_reviews", "") == "1"
         redirect_to = form_value(data, "redirect", f"/items/view?id={quote(item_id)}")
@@ -20596,7 +20774,7 @@ if (document.readyState === "loading") {{
         """對勾選的多筆項目，用指定引擎批次補 AI 閱讀建議。沿用 runEngineJob（右下角狀態列）。"""
         raw_ids = ",".join(data.get("ids") or [])
         item_ids = [item_id.strip() for item_id in raw_ids.split(",") if item_id.strip()]
-        provider = normalize_ai_provider(form_value(data, "provider", "codex"), allow_random=True)
+        provider = normalize_ai_provider(form_value(data, "provider") or configured_task_provider("reading_review"), allow_random=True)
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
         status_command = "codex_review_batch"
         if not item_ids:
@@ -20893,7 +21071,7 @@ if (document.readyState === "loading") {{
 
     def translate_item_zh(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
-        provider = normalize_ai_provider(form_value(data, "provider", "codex"))
+        provider = normalize_ai_provider(form_value(data, "provider") or configured_task_provider("translation"))
         redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/items/view?id={quote(item_id)}")
         wants_json = self.is_async_request() or form_value(data, "format") == "json"
         force_translation = form_value(data, "force", "") == "1"

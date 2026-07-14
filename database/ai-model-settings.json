@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "policy": {
+    "allow_premium_defaults": false,
+    "note": "日常功能預設 economy / balanced；premium 只能人工明確選用。"
+  },
+  "tasks": {
+    "reading_review": {
+      "provider": "gemini",
+      "models": {
+        "codex": "gpt-5.4-mini",
+        "claude": "haiku",
+        "gemini": "Gemini 3.5 Flash (Low)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "translation": {
+      "provider": "codex",
+      "models": {
+        "codex": "gpt-5.4",
+        "claude": "haiku",
+        "gemini": "Gemini 3.5 Flash (Medium)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "triage_cluster": {
+      "provider": "codex",
+      "models": {
+        "codex": "gpt-5.6-luna",
+        "claude": "haiku",
+        "gemini": "Gemini 3.5 Flash (Medium)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "editor_theme_check": {
+      "provider": "codex",
+      "models": {
+        "codex": "gpt-5.6-luna",
+        "claude": "sonnet",
+        "gemini": "Gemini 3.5 Flash (High)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "editor_compose_thematic": {
+      "provider": "claude",
+      "models": {
+        "codex": "gpt-5.6-terra",
+        "claude": "sonnet",
+        "gemini": "Gemini 3.1 Pro (Low)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "editor_compose_digest": {
+      "provider": "claude",
+      "models": {
+        "codex": "gpt-5.6-luna",
+        "claude": "sonnet",
+        "gemini": "Gemini 3.5 Flash (Medium)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "editor_factcheck": {
+      "provider": "codex",
+      "models": {
+        "codex": "gpt-5.6-terra",
+        "claude": "sonnet",
+        "gemini": "Gemini 3.1 Pro (Low)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "editor_extract_viewpoints": {
+      "provider": "claude",
+      "models": {
+        "codex": "gpt-5.6-luna",
+        "claude": "haiku",
+        "gemini": "Gemini 3.5 Flash (Medium)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "editor_newsletter_extract": {
+      "provider": "claude",
+      "models": {
+        "codex": "gpt-5.6-luna",
+        "claude": "haiku",
+        "gemini": "Gemini 3.5 Flash (Medium)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "pdf_relation": {
+      "provider": "codex",
+      "models": {
+        "codex": "gpt-5.4-mini",
+        "claude": "haiku",
+        "gemini": "Gemini 3.5 Flash (Low)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "pdf_split": {
+      "provider": "gemini",
+      "models": {
+        "codex": "gpt-5.6-luna",
+        "claude": "haiku",
+        "gemini": "Gemini 3.5 Flash (Medium)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "pdf_repaginate": {
+      "provider": "gemini",
+      "models": {
+        "codex": "gpt-5.4-mini",
+        "claude": "haiku",
+        "gemini": "Gemini 3.5 Flash (Low)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "taste_retro": {
+      "provider": "codex",
+      "models": {
+        "codex": "gpt-5.6-terra",
+        "claude": "sonnet",
+        "gemini": "Gemini 3.1 Pro (Low)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    },
+    "insight_analysis": {
+      "provider": "codex",
+      "models": {
+        "codex": "gpt-5.6-terra",
+        "claude": "sonnet",
+        "gemini": "Gemini 3.1 Pro (Low)",
+        "ollama-gemma4": "gemma4:12b-mlx",
+        "ollama-twinkle": "TwinkleAI/gemma-3-4B-T1-it"
+      }
+    }
+  },
+  "updated_at": "2026-07-14T05:52:47.071558+00:00"
+}

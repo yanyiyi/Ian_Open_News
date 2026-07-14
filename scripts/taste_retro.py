@@ -27,6 +27,7 @@ from collections import Counter
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
+from ai_model_settings import task_model, task_provider
 
 ROOT = Path(__file__).resolve().parents[1]
 DATABASE = ROOT / "database"
@@ -686,7 +687,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--engine",
         choices=["claude", "codex", "gemini", "ollama-gemma4", "ollama-twinkle"],
-        default="claude",
+        default=task_provider("taste_retro"),
         help="全部引擎開放自選；本機 ollama 小模型消化大量統計可能失敗，風險自負",
     )
     parser.add_argument("--model", default="", help="覆寫引擎預設模型（選用）。")
@@ -725,7 +726,7 @@ def main(argv: list[str] | None = None) -> int:
         source_report = f"retro-{date.today().isoformat()}"
         try:
             raw_proposals = run_ai(build_ai_prompt(stats, taste_profile, keyword_config),
-                                   args.engine, args.model, args.timeout)
+                                   args.engine, task_model("taste_retro", args.engine, args.model), args.timeout)
         except Exception as exc:  # noqa: BLE001 — 回報 UI 後照樣結束
             write_status(status_file, {"state": "error", "stage": "stage2-ai", "error": str(exc)[:800]})
             print(f"Stage 2 AI 失敗：{exc}", file=sys.stderr)

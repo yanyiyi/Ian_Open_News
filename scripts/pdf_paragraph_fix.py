@@ -13,6 +13,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
+from ai_model_settings import task_model, task_provider
 
 ROOT = Path(__file__).resolve().parents[1]
 ITEMS = ROOT / "database" / "items.jsonl"
@@ -146,6 +147,9 @@ def run_claude(prompt: str, timeout: int) -> str:
         claude_path(), "--print", "--input-format", "text", "--output-format", "text",
         "--no-session-persistence", "--permission-mode", "dontAsk", "--tools", "",
     ]
+    model = task_model("pdf_repaginate", "claude")
+    if model:
+        command += ["--model", model]
     result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=base_env())
     if result.returncode != 0:
         raise RuntimeError(f"claude failed\n{result.stderr[-800:]}")
@@ -158,8 +162,12 @@ def run_codex(prompt: str, timeout: int) -> str:
     output_path = cache / "pdf-repaginate-output.txt"
     command = [
         codex_path(), "-a", "never", "exec", "--ephemeral", "--cd", str(ROOT),
-        "--sandbox", "read-only", "--color", "never", "--output-last-message", str(output_path), "-",
+        "--sandbox", "read-only", "--color", "never", "--output-last-message", str(output_path),
     ]
+    model = task_model("pdf_repaginate", "codex")
+    if model:
+        command += ["-m", model]
+    command.append("-")
     result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=base_env())
     if result.returncode != 0:
         raise RuntimeError(f"codex failed\n{result.stderr[-800:]}")
@@ -168,6 +176,9 @@ def run_codex(prompt: str, timeout: int) -> str:
 
 def run_gemini(prompt: str, timeout: int) -> str:
     command = [agy_path(), "--print", prompt]
+    model = task_model("pdf_repaginate", "gemini")
+    if model:
+        command += ["--model", model]
     result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=timeout, env=base_env())
     if result.returncode != 0:
         raise RuntimeError(f"agy failed\n{result.stderr[-800:]}")
@@ -175,7 +186,7 @@ def run_gemini(prompt: str, timeout: int) -> str:
 
 
 def run_ollama(provider: str, prompt: str, timeout: int) -> str:
-    model = ollama_model(provider)
+    model = task_model("pdf_repaginate", provider) or ollama_model(provider)
     command = [ollama_path(), "run", model, "--nowordwrap", "--hidethinking"]
     result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=base_env())
     if result.returncode != 0:
@@ -196,7 +207,7 @@ def run_provider(provider: str, prompt: str, timeout: int) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--id", required=True)
-    parser.add_argument("--provider", default="claude")
+    parser.add_argument("--provider", default=task_provider("pdf_repaginate"))
     parser.add_argument("--timeout", type=int, default=480)
     args = parser.parse_args()
 
