@@ -846,6 +846,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       font-variant-ligatures: common-ligatures contextual;
       min-width: 0;
       max-width: 100%;
+      overflow-wrap: anywhere;
     }}
     .article-text img {{ max-width: 100%; height: auto; border-radius: 6px; }}
     .article-hero {{ margin: 0 0 16px; }}

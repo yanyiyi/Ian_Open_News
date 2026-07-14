@@ -357,6 +357,7 @@ class MarkdownRenderingTest(unittest.TestCase):
         self.assertIn("width: 100%;", rendered)
         self.assertIn("max-width: 100%;", rendered)
         self.assertIn("min-width: 0;", rendered)
+        self.assertIn("overflow-wrap: anywhere;", rendered)
         self.assertIn("overflow-x: auto;", rendered)
         self.assertIn("width: max-content;", rendered)
         self.assertIn("min-width: 130px;", rendered)
