@@ -494,6 +494,34 @@ def apply_cluster_to_records(
     return updated
 
 
+def report_status(args: argparse.Namespace, state: str, message: str, **extra: Any) -> None:
+    """統一寫進度檔：帶 command/state 欄位，/api/command-status 的過濾與右下角進度框才讀得到。"""
+    write_status(
+        args.status_file,
+        {
+            "command": "triage_cluster",
+            "state": state,
+            "message": message,
+            "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            **extra,
+        },
+    )
+
+
+def apply_result_to_disk(result: dict[str, Any], run_id: str, generated_at: str) -> tuple[int, int]:
+    """重讀正本再回標：長跑期間其他流程可能已寫入，不能拿開跑時的記憶體舊狀態整檔蓋回。"""
+    updated_counts: list[int] = []
+    for path in (CANDIDATES, ITEMS):
+        records = load_jsonl(path)
+        updated = apply_cluster_to_records(result, records, run_id, generated_at)
+        if updated:
+            for record in records:
+                record.pop("_line", None)
+            write_jsonl(path, records)
+        updated_counts.append(updated)
+    return updated_counts[0], updated_counts[1]
+
+
 def eval_replay(args: argparse.Namespace) -> int:
     """離線評測：把某篇已發布文章的成員混入拒絕項重跑，量「被分在同群」召回率。"""
     articles = load_jsonl(ARTICLES)
@@ -557,7 +585,7 @@ def main() -> int:
     if args.eval_replay:
         return eval_replay(args)
 
-    write_status(args.status_file, {"phase": "loading", "message": "讀取候選與稿件"})
+    report_status(args, "running", "讀取候選與稿件", phase="loading")
     candidates = load_jsonl(CANDIDATES)
     items = load_jsonl(ITEMS)
 
@@ -568,7 +596,7 @@ def main() -> int:
         inbox = [i for i in inbox if clean_text(i.get("track")) == args.track]
     pool = pending + inbox
     if not pool:
-        write_status(args.status_file, {"phase": "done", "message": "沒有待分群的候選"})
+        report_status(args, "done", "沒有待分群的候選", phase="done")
         print("沒有 pending 候選或 inbox item，無事可做。")
         return 0
     # 一律先照規則建議排優先序：分批時最值得看的先跑，中途失敗也已涵蓋高優先者。
@@ -619,16 +647,18 @@ def main() -> int:
         input_ids = [d["id"] for d in digests]
         for digest in digests:
             titles[digest["id"]] = digest.get("zh_title") or digest.get("title") or digest["id"]
-        write_status(
-            args.status_file,
-            {
-                "phase": "clustering",
-                "message": (
-                    f"以 {args.engine} 分群第 {batch_no}/{len(batches)} 批（{len(batch)} 筆，"
-                    f"已完成 {len(merged_clusters)} 群）"
-                ),
-                "run_id": run_id,
-            },
+        report_status(
+            args,
+            "running",
+            (
+                f"以 {args.engine} 分群第 {batch_no}/{len(batches)} 批（{len(batch)} 筆，"
+                f"已完成 {len(merged_clusters)} 群）"
+            ),
+            phase="clustering",
+            run_id=run_id,
+            batch_done=batch_no - 1,
+            batches_total=len(batches),
+            clusters_total=len(merged_clusters),
         )
         existing = existing_cluster_summaries(merged_clusters, titles)
         prompt = build_prompt(digests, anchors, bundles, existing=existing)
@@ -638,6 +668,16 @@ def main() -> int:
             failed_ids.extend(input_ids)
             notes_parts.append(f"第 {batch_no} 批失敗（{len(input_ids)} 筆未分群）")
             print(f"第 {batch_no}/{len(batches)} 批失敗，略過續跑：{exc}", file=sys.stderr)
+            report_status(
+                args,
+                "running",
+                f"第 {batch_no}/{len(batches)} 批失敗（{len(input_ids)} 筆未分群），續跑下一批",
+                phase="clustering",
+                run_id=run_id,
+                batch_done=batch_no - 1,
+                batches_total=len(batches),
+                clusters_total=len(merged_clusters),
+            )
             continue
         engines_used.append(used_engine)
         result = validate_and_normalize(payload, input_ids, anchor_ids)
@@ -655,9 +695,29 @@ def main() -> int:
         # 每批完成即落地最新快照：中途失敗或中斷，已完成的批次不會白跑。
         target = CLUSTERS_PREVIEW if args.dry_run else CLUSTERS_LATEST
         target.write_text(json.dumps(snapshot(batch_no < len(batches)), ensure_ascii=False, indent=1), encoding="utf-8")
+        applied_candidates = applied_items = 0
+        if not args.dry_run:
+            # 階段成果即時回標：這批起就能在分群檢視使用，中斷也不會白跑。
+            applied_candidates, applied_items = apply_result_to_disk(
+                {"clusters": merged_clusters}, run_id, generated_at
+            )
+        report_status(
+            args,
+            "running",
+            (
+                f"第 {batch_no}/{len(batches)} 批完成：累計 {len(merged_clusters)} 群、"
+                f"已回標 {applied_candidates + applied_items} 筆"
+            ),
+            phase="clustering",
+            run_id=run_id,
+            batch_done=batch_no,
+            batches_total=len(batches),
+            clusters_total=len(merged_clusters),
+        )
+        print(f"第 {batch_no}/{len(batches)} 批完成：累計 {len(merged_clusters)} 群。", flush=True)
 
     if not engines_used:
-        write_status(args.status_file, {"phase": "error", "message": "所有批次都失敗，沒有產出分群", "run_id": run_id})
+        report_status(args, "failed", "所有批次都失敗，沒有產出分群", phase="error", run_id=run_id)
         print("所有批次都失敗，沒有產出分群結果。", file=sys.stderr)
         return 1
 
@@ -672,23 +732,20 @@ def main() -> int:
     with CLUSTERS_RUNS.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(output, ensure_ascii=False) + "\n")
 
-    updated_candidates = apply_cluster_to_records(result, candidates, run_id, generated_at)
-    updated_items = apply_cluster_to_records(result, items, run_id, generated_at)
-    if updated_candidates:
-        write_jsonl(CANDIDATES, candidates)
-    if updated_items:
-        write_jsonl(ITEMS, items)
+    updated_candidates, updated_items = apply_result_to_disk(result, run_id, generated_at)
 
     failed_note = f"，{len(failed_ids)} 筆因批次失敗未分群" if failed_ids else ""
-    write_status(
-        args.status_file,
-        {
-            "phase": "done",
-            "message": (
-                f"分成 {len(result['clusters'])} 群（候選 {updated_candidates} 筆、item {updated_items} 筆已標記{failed_note}）"
-            ),
-            "run_id": run_id,
-        },
+    report_status(
+        args,
+        "done",
+        (
+            f"分成 {len(result['clusters'])} 群（候選 {updated_candidates} 筆、item {updated_items} 筆已標記{failed_note}）"
+        ),
+        phase="done",
+        run_id=run_id,
+        batch_done=len(batches),
+        batches_total=len(batches),
+        clusters_total=len(merged_clusters),
     )
     print(
         f"run {run_id}：{len(result['clusters'])} 群、ungrouped {len(result['ungrouped_ids'])}{failed_note}；"
