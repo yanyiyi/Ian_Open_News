@@ -779,7 +779,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     .article-layout {{ display: grid; grid-template-columns: minmax(0, 760px) minmax(0, 360px); gap: 18px; align-items: start; justify-content: center; transition: grid-template-columns .28s ease, gap .28s ease; }}
     .article-layout.is-sidebar-hidden {{ grid-template-columns: minmax(0, 760px) minmax(0, 0px); gap: 0; }}
     .article-layout.is-sidebar-hidden .side-panel {{ overflow: hidden; transform: translateX(24px); opacity: 0; pointer-events: none; }}
-    .article-main {{ display: grid; gap: 18px; min-width: 0; }}
+    .article-main {{ display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }}
     .article-summary-card, .article-fulltext-card, .side-panel {{
       background: #fff;
       border: 1px solid var(--line);
@@ -844,6 +844,8 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
       line-height: 2.05;
       font-kerning: normal;
       font-variant-ligatures: common-ligatures contextual;
+      min-width: 0;
+      max-width: 100%;
     }}
     .article-text img {{ max-width: 100%; height: auto; border-radius: 6px; }}
     .article-hero {{ margin: 0 0 16px; }}
@@ -894,7 +896,14 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     .article-text strong,
     .article-text b,
     .article-text a {{ font-weight: 550; }}
-    .pdf-table-scroll {{ overflow-x: auto; margin: 12px 0 18px; }}
+    .pdf-table-scroll {{
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      overflow-x: auto;
+      margin: 12px 0 18px;
+    }}
     .pdf-layout-table {{
       width: max-content;
       min-width: 100%;
@@ -984,7 +993,7 @@ def page_shell(title: str, body: str, current: str = "index", depth: int = 0, in
     .empty {{ background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 18px; }}
     @media (max-width: 820px) {{
       main, .masthead {{ padding-left: 16px; padding-right: 16px; }}
-      .article-layout, .article-layout.is-sidebar-hidden {{ grid-template-columns: 1fr; gap: 18px; }}
+      .article-layout, .article-layout.is-sidebar-hidden {{ grid-template-columns: minmax(0, 1fr); gap: 18px; }}
       .article-sequence-nav {{ grid-template-columns: 1fr; }}
       .side-panel {{ position: static; }}
       .article-layout.is-sidebar-hidden .side-panel {{ display: none; }}

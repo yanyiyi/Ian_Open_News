@@ -352,7 +352,12 @@ class MarkdownRenderingTest(unittest.TestCase):
     def test_public_reader_includes_local_table_layout_styles(self) -> None:
         rendered = render_ghpages_reader.page_shell("測試", "<p>內容</p>", current="article", depth=1)
 
-        self.assertIn(".pdf-table-scroll { overflow-x: auto; margin: 12px 0 18px; }", rendered)
+        self.assertIn(".article-main { display: grid; grid-template-columns: minmax(0, 1fr);", rendered)
+        self.assertIn(".pdf-table-scroll {", rendered)
+        self.assertIn("width: 100%;", rendered)
+        self.assertIn("max-width: 100%;", rendered)
+        self.assertIn("min-width: 0;", rendered)
+        self.assertIn("overflow-x: auto;", rendered)
         self.assertIn("width: max-content;", rendered)
         self.assertIn("min-width: 130px;", rendered)
         self.assertIn("max-width: 300px;", rendered)
