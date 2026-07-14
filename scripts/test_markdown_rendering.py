@@ -281,6 +281,33 @@ class MarkdownRenderingTest(unittest.TestCase):
         self.assertIn("<td>value</td><td>result</td>", rendered)
         self.assertNotIn("```tsv", rendered)
 
+    def test_pipe_table_renders_as_html_table_with_inline_markdown(self) -> None:
+        rendered = local_web.markdown_to_html(
+            "| 欄位 | 內容 |\n"
+            "|:---|---:|\n"
+            "| **作者** | [Nicholas](https://example.test/author) |\n"
+            "| 關鍵詞 | 開源<br>數位主權 |",
+            preserve_soft_breaks=True,
+        )
+
+        self.assertIn('<table class="pdf-layout-table markdown-table">', rendered)
+        self.assertIn('<th style="text-align:left">欄位</th>', rendered)
+        self.assertIn('<th style="text-align:right">內容</th>', rendered)
+        self.assertIn("<strong>作者</strong>", rendered)
+        self.assertIn('href="https://example.test/author"', rendered)
+        self.assertIn("開源<br>數位主權", rendered)
+        self.assertNotIn("<p>| 欄位 |", rendered)
+
+    def test_pipe_table_keeps_escaped_and_code_span_pipes_in_cells(self) -> None:
+        rendered = local_web.markdown_to_html(
+            "| 語法 | 說明 |\n"
+            "|---|---|\n"
+            r"| A \| B | `x|y` |"
+        )
+
+        self.assertIn("A | B", rendered)
+        self.assertIn("<code>x|y</code>", rendered)
+
     def test_fulltext_edit_storage_keeps_newlines_unchanged(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             items_path = Path(tmp) / "items.jsonl"

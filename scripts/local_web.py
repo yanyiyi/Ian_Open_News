@@ -5715,6 +5715,85 @@ def inline_markdown_html(text: str) -> str:
     return "".join(parts)
 
 
+def split_markdown_table_row(line: str) -> list[str] | None:
+    """切開 GFM pipe table 的一列，保留 code span 裡的 pipe 與跳脫 pipe。"""
+    value = str(line or "").strip()
+    if "|" not in value:
+        return None
+    if value.startswith("|"):
+        value = value[1:]
+    if value.endswith("|") and not value.endswith(r"\|"):
+        value = value[:-1]
+
+    cells: list[str] = []
+    buffer: list[str] = []
+    in_code = False
+    index = 0
+    while index < len(value):
+        char = value[index]
+        if char == "\\" and index + 1 < len(value) and value[index + 1] == "|":
+            buffer.append("|")
+            index += 2
+            continue
+        if char == "`":
+            in_code = not in_code
+            buffer.append(char)
+            index += 1
+            continue
+        if char == "|" and not in_code:
+            cells.append("".join(buffer).strip())
+            buffer.clear()
+        else:
+            buffer.append(char)
+        index += 1
+    cells.append("".join(buffer).strip())
+    return cells
+
+
+def markdown_table_alignments(cells: list[str] | None) -> list[str] | None:
+    if not cells:
+        return None
+    alignments: list[str] = []
+    for cell in cells:
+        marker = cell.strip()
+        if not re.fullmatch(r":?-{3,}:?", marker):
+            return None
+        if marker.startswith(":") and marker.endswith(":"):
+            alignments.append("center")
+        elif marker.endswith(":"):
+            alignments.append("right")
+        else:
+            alignments.append("left")
+    return alignments
+
+
+def markdown_table_cell_html(text: str) -> str:
+    """表格仍走安全 inline renderer，只額外允許 Markdown 常用的 <br>。"""
+    segments = re.split(r"<br\s*/?>", str(text or ""), flags=re.IGNORECASE)
+    return "<br>".join(inline_markdown_html(segment.strip()) for segment in segments)
+
+
+def markdown_table_html(header_cells: list[str], alignments: list[str], rows: list[list[str]]) -> str:
+    width = len(header_cells)
+
+    def normalized(cells: list[str]) -> list[str]:
+        return (cells + [""] * width)[:width]
+
+    def cell_html(tag: str, text: str, column: int) -> str:
+        alignment = alignments[column] if column < len(alignments) else "left"
+        return f'<{tag} style="text-align:{alignment}">{markdown_table_cell_html(text) or "&nbsp;"}</{tag}>'
+
+    header = "".join(cell_html("th", text, column) for column, text in enumerate(normalized(header_cells)))
+    body = "".join(
+        "<tr>" + "".join(cell_html("td", text, column) for column, text in enumerate(normalized(row))) + "</tr>"
+        for row in rows
+    )
+    return (
+        '<div class="pdf-table-scroll"><table class="pdf-layout-table markdown-table">'
+        f"<thead><tr>{header}</tr></thead><tbody>{body}</tbody></table></div>"
+    )
+
+
 ENGLISH_POSSESSIVE_APOSTROPHE_RE = re.compile(r"(?<=[A-Za-z])[\u2018\u2019]\s*([sS])\b")
 
 
@@ -5794,7 +5873,10 @@ def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
             parts.append(f"<pre><code>{h(chr(10).join(code_block))}</code></pre>")
         code_block.clear()
 
-    for raw_line in lines:
+    line_index = 0
+    while line_index < len(lines):
+        raw_line = lines[line_index]
+        line_index += 1
         stripped_line = raw_line.strip()
         if code_fence:
             if re.match(rf"^{re.escape(code_fence)}\s*$", stripped_line):
@@ -5816,6 +5898,25 @@ def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
             code_fence = fence.group(1)
             code_language = clean_text(fence.group(2)).casefold()
             code_block.clear()
+            continue
+        header_cells = split_markdown_table_row(raw_line)
+        separator_cells = split_markdown_table_row(lines[line_index]) if line_index < len(lines) else None
+        alignments = markdown_table_alignments(separator_cells)
+        if header_cells and alignments and len(header_cells) == len(alignments):
+            flush_paragraph()
+            close_list()
+            line_index += 1  # 分隔列
+            table_rows: list[list[str]] = []
+            while line_index < len(lines):
+                row_line = lines[line_index]
+                if not row_line.strip():
+                    break
+                row_cells = split_markdown_table_row(row_line)
+                if row_cells is None:
+                    break
+                table_rows.append(row_cells)
+                line_index += 1
+            parts.append(markdown_table_html(header_cells, alignments, table_rows))
             continue
         heading = re.match(r"^(#{1,6})\s+(.+)$", line)
         if heading:
