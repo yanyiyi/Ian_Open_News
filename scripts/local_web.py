@@ -78,6 +78,10 @@ DISMISSED = ROOT / ".cache" / "rss-dismissed.jsonl"
 RSS_FETCH_STATUS = ROOT / ".cache" / "rss-fetch-status.json"
 DATA_COMMIT_STATUS = ROOT / ".cache" / "data-autocommit-status.json"
 COMMAND_STATUS = ROOT / ".cache" / "command-status.json"
+# 長時、可背景跑的指令用專屬進度檔，避免與其他指令共用一檔互相蓋寫、進度框讀不到。
+COMMAND_STATUS_FILES = {
+    "triage_cluster": ROOT / ".cache" / "command-status-triage-cluster.json",
+}
 TRIAGE_CLUSTERS = ROOT / ".cache" / "triage-clusters.json"
 TRACKING_LINK_CACHE = ROOT / ".cache" / "tracking-link-cache.json"
 VIEWPOINTS = DATABASE / "viewpoints.jsonl"
@@ -550,6 +554,54 @@ REJECTION_REASON_ALIASES = {
     "地緣脈絡非台資訊": "地緣脈絡非台資訊",
 }
 
+
+def command_status_path(command_name: str) -> Path:
+    return COMMAND_STATUS_FILES.get(command_name, COMMAND_STATUS)
+
+
+# 背景指令登記簿：同一指令同時只跑一份；server 單一進程，記憶體登記即權威。
+BACKGROUND_JOBS: dict[str, subprocess.Popen] = {}
+BACKGROUND_JOBS_LOCK = threading.Lock()
+
+
+def background_command_worker(command_name: str, proc: subprocess.Popen, timeout_seconds: int) -> None:
+    """等背景指令收尾並寫終局狀態；逾時砍掉但保留 script 已逐批落地的成果。"""
+    timed_out = False
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        proc.kill()
+        stdout, stderr = proc.communicate()
+    returncode = 124 if timed_out else proc.returncode
+    ok = returncode == 0
+    error_message = ""
+    if not ok:
+        if timed_out:
+            error_message = f"執行超過 {timeout_seconds} 秒，已被中止（exit 124）。已完成批次的成果已保留。"
+        else:
+            error_message = (stderr or stdout or "").strip()[-600:] or f"exit {returncode}"
+    status_path = command_status_path(command_name)
+    current = load_json(status_path)
+    final = current if clean_text(current.get("command")) == command_name else {"command": command_name}
+    if not ok or not clean_text(final.get("message")):
+        final["message"] = "完成" if ok else ("執行逾時" if timed_out else "執行失敗")
+    final.update(
+        {
+            "command": command_name,
+            "state": "done" if ok else "failed",
+            "returncode": returncode,
+            "error": error_message,
+            "output_tail": ((stdout or "") + ("\nSTDERR:\n" + stderr if stderr else "")).strip()[-1500:],
+            "finished_at": now_iso(),
+        }
+    )
+    write_json(status_path, final)
+    with BACKGROUND_JOBS_LOCK:
+        if BACKGROUND_JOBS.get(command_name) is proc:
+            BACKGROUND_JOBS.pop(command_name, None)
+
+
 COMMANDS = {
     "fetch_rss": {
         "label": "立刻抓 RSS 候選",
@@ -591,8 +643,12 @@ COMMANDS = {
             "--limit",
             "120",
             "--status-file",
-            str(COMMAND_STATUS),
+            str(COMMAND_STATUS_FILES["triage_cluster"]),
         ],
+        # 120 筆分 5 批、單批內層 timeout 900 秒；外層要涵蓋全部批次，否則跑到一半被砍成 exit 124。
+        "timeout": 4800,
+        # 允許背景執行（前端帶 background=1 才生效）：回應立即返回，進度靠專屬狀態檔輪詢。
+        "background": True,
     },
     "taste_retro": {
         "label": "決策回顧：蒸餾收/不收模式成提案",
@@ -606,6 +662,8 @@ COMMANDS = {
             "--status-file",
             str(COMMAND_STATUS),
         ],
+        # 內層單次 CLI timeout 就是 600 秒，外層若同為 600 秒會先砍；留統計與收尾緩衝。
+        "timeout": 900,
     },
     "export_sqlite": {
         "label": "匯出 SQLite",
@@ -10347,6 +10405,81 @@ def page(title: str, body: str) -> bytes:
     return false;
   }};
 
+  // 背景 AI 工作執行器：POST 立即返回，工作在伺服器端跑完（關頁不中斷）；
+  // 之後輪詢專屬狀態檔顯示逐批進度，每次進度更新都回呼 onProgress 讓畫面長出階段成果。
+  window.runBackgroundEngineJob = async ({{ label, url, baseBody, engine, statusUrl, onProgress, onDone }}) => {{
+    const engineLabel = ENGINE_LABELS[engine] || (engine === "random" ? "隨機" : engine);
+    openCommandWindow(label, `使用 ${{engineLabel}} 在背景執行中…`);
+    commandLoading.hidden = false;
+    let payload;
+    try {{
+      const data = new URLSearchParams(baseBody);
+      data.set("format", "json");
+      data.set("provider", engine);
+      data.set("engine", engine);
+      data.set("background", "1");
+      const response = await fetch(url, {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8", "X-Requested-With": "local-web-fetch" }},
+        body: data
+      }});
+      payload = await response.json();
+    }} catch (error) {{
+      payload = {{ ok: false, error: String(error) }};
+    }}
+    if (!payload || payload.ok === false) {{
+      commandLoading.hidden = true;
+      const errMsg = (payload && (payload.error || payload.summary)) || "無法啟動";
+      commandStatus.textContent = `✗ ${{label}} 啟動失敗：${{errMsg}}`;
+      commandOutput.hidden = false;
+      commandOutput.textContent = errMsg;
+      return false;
+    }}
+    if (payload.summary) commandStatus.textContent = payload.summary;
+    return await new Promise((resolve) => {{
+      let timer = null;
+      let finished = false;
+      const poll = async () => {{
+        let status;
+        try {{
+          const response = await fetch(statusUrl, {{headers: {{"X-Requested-With": "local-web-fetch"}}}});
+          if (!response.ok) return;
+          status = await response.json();
+        }} catch (_error) {{
+          return; // 暫時斷線就等下一輪，工作本身在伺服器端不受影響
+        }}
+        if (!status || finished || status.state === "idle") return;
+        if (status.state === "running") {{
+          if (status.message) commandStatus.textContent = commandStatusLine(status);
+          if (onProgress) {{
+            try {{ await onProgress(status); }} catch (_e) {{ /* 畫面更新失敗不中斷輪詢 */ }}
+          }}
+          return;
+        }}
+        if (status.state === "done" || status.state === "failed") {{
+          finished = true;
+          if (timer) window.clearInterval(timer);
+          commandLoading.hidden = true;
+          const okDone = status.state === "done";
+          if (okDone) {{
+            commandStatus.textContent = `✓ ${{engineLabel}} 完成：${{status.message || ""}}`;
+          }} else {{
+            const errMsg = status.error || status.message || `exit ${{status.returncode}}`;
+            commandStatus.textContent = `✗ ${{engineLabel}} 失敗：${{errMsg}}`;
+            window.alert(`${{label}}\n${{engineLabel}} 失敗：${{errMsg}}`);
+          }}
+          if (status.output_tail) {{ commandOutput.hidden = false; commandOutput.textContent = status.output_tail; }}
+          if (onDone) {{
+            try {{ await onDone(status); }} catch (_e) {{ /* 完成後的畫面刷新失敗不影響結果 */ }}
+          }}
+          resolve(okDone);
+        }}
+      }};
+      timer = window.setInterval(poll, 1500);
+      poll();
+    }});
+  }};
+
   window.runFetchJob = async ({{ label, url, baseBody, statusUrl, onSuccess, onError }}) => {{
     markJobStart();
     let timer = null;
@@ -13050,8 +13183,8 @@ class Handler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/data-commit-status":
             self.send_json(load_json(DATA_COMMIT_STATUS))
         elif parsed.path == "/api/command-status":
-            status = load_json(COMMAND_STATUS)
             requested_command = clean_text((query.get("command") or [""])[0])
+            status = load_json(command_status_path(requested_command) if requested_command else COMMAND_STATUS)
             if requested_command and clean_text(status.get("command")) != requested_command:
                 status = {"state": "idle", "command": requested_command}
             self.send_json(status)
@@ -16849,7 +16982,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             <select id="cluster-engine" aria-label="選擇分群引擎">{option_list([("random", "隨機"), *[(provider, AI_PROVIDER_META[provider]["label"]) for provider in AI_PROVIDER_ORDER]], configured_task_provider("triage_cluster"))}</select>
             <button type="button" id="run-cluster" class="secondary">{button_content("跑 AI 分群", "wand", "G")}</button>
           </div>
-          <p class="help">把目前 pending 候選與 inbox 依「會被抓在一起寫成文章」分群並預選；完成後左側自動切到分群檢視。你仍逐群調整、按上面的批次按鈕才算數。</p>
+          <p class="help">把目前 pending 候選與 inbox 依「會被抓在一起寫成文章」分群並預選；在背景每 25 筆一批跑，每批完成就即時把新群長進左側分群檢視，右下角顯示第幾批進度，關掉頁面也不會中斷。你仍逐群調整、按上面的批次按鈕才算數。</p>
         </div>
         <p class="help">只處理已勾選項目；完成後會離開入庫建檔區。</p>
       </div>
@@ -16988,7 +17121,7 @@ function setClusterToggleState(on) {{
   }}
 }}
 
-function enterClusterView(data) {{
+function enterClusterView(data, opts) {{
   if (!itemsList || clusterViewOn || !data) return;
   clusterOriginalOrder = Array.from(itemsList.children);
   const fragment = document.createDocumentFragment();
@@ -17075,7 +17208,7 @@ function enterClusterView(data) {{
   }});
   if (!movedCards) {{
     clusterOriginalOrder = null;
-    window.alert("分群結果對不上目前畫面上的項目（可能已被分流過）；請重新跑一次 AI 分群。");
+    if (!opts || !opts.silent) window.alert("分群結果對不上目前畫面上的項目（可能已被分流過）；請重新跑一次 AI 分群。");
     return;
   }}
   const remaining = Array.from(itemsList.children).filter((node) => node.classList?.contains("candidate-card"));
@@ -17116,10 +17249,32 @@ if (clusterToggle && clusterToggle.dataset.clusterBound !== "1") {{
   }});
 }}
 
+// 階段成果即時上畫面：重新抓最新快照、重排分群檢視。
+// 已在群裡的卡片保留使用者手動調過的勾選；只有新進群的卡片吃預選值。
+async function refreshClusterView() {{
+  const data = await fetchClusterData().catch(() => null);
+  if (!data || !(data.clusters || []).length) return;
+  clusterData = data;
+  const keptChecked = new Map();
+  if (clusterViewOn) {{
+    itemsList?.querySelectorAll(".cluster-group .candidate-card").forEach((card) => {{
+      const box = card.querySelector(".item-select");
+      if (card.dataset.itemId && box) keptChecked.set(card.dataset.itemId, box.checked);
+    }});
+    exitClusterView();
+  }}
+  enterClusterView(clusterData, {{silent: true}});
+  keptChecked.forEach((checked, id) => {{
+    const box = findItemCard(id)?.querySelector(".item-select");
+    if (box) box.checked = checked;
+  }});
+  syncSelection();
+}}
+
 if (runClusterBtn && runClusterBtn.dataset.clusterBound !== "1") {{
   runClusterBtn.dataset.clusterBound = "1";
   runClusterBtn.addEventListener("click", async () => {{
-    if (typeof window.runEngineJob !== "function") {{
+    if (typeof window.runBackgroundEngineJob !== "function") {{
       window.alert("頁面還沒接上右下角狀態列，請重新整理後再試。");
       return;
     }}
@@ -17129,20 +17284,22 @@ if (runClusterBtn && runClusterBtn.dataset.clusterBound !== "1") {{
     runClusterBtn.dataset.running = "1";
     runClusterBtn.disabled = true;
     runClusterBtn.textContent = "分群中…（看右下角）";
+    let lastBatchDone = 0;
     try {{
-      await window.runEngineJob({{
+      await window.runBackgroundEngineJob({{
         label: "AI 分群建議",
         url: "/commands/run",
         baseBody: "command=triage_cluster",
         engine: engine,
         statusUrl: "/api/command-status?command=triage_cluster",
-        onSuccess: async () => {{
-          clusterData = await fetchClusterData().catch(() => null);
-          if (clusterData && (clusterData.clusters || []).length) {{
-            if (clusterViewOn) exitClusterView();
-            enterClusterView(clusterData);
+        onProgress: async (status) => {{
+          const done = Number(status.batch_done || 0);
+          if (done > lastBatchDone) {{
+            lastBatchDone = done;
+            await refreshClusterView();
           }}
         }},
+        onDone: refreshClusterView,
       }});
     }} finally {{
       runClusterBtn.dataset.running = "";
@@ -23956,8 +24113,64 @@ if (document.readyState === "loading") {{
             if idx + 1 < len(command):
                 command[idx + 1] = requested_provider
                 active_provider = requested_provider
+        status_path = command_status_path(command_name)
+        timeout_seconds = int(config.get("timeout", 600))
+        if config.get("background") and wants_json and form_value(data, "background") == "1":
+            with BACKGROUND_JOBS_LOCK:
+                existing = BACKGROUND_JOBS.get(command_name)
+                if existing and existing.poll() is None:
+                    self.send_json(
+                        {
+                            "ok": True,
+                            "background": True,
+                            "already_running": True,
+                            "label": config["label"],
+                            "summary": "這個指令已在背景執行中，直接接上它的進度。",
+                        },
+                        HTTPStatus.OK,
+                    )
+                    return
+                write_json(
+                    status_path,
+                    {
+                        "command": command_name,
+                        "state": "running",
+                        "message": f"正在執行：{config['label']}",
+                        "started_at": now_iso(),
+                    },
+                )
+                proc = subprocess.Popen(
+                    command, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+                BACKGROUND_JOBS[command_name] = proc
+            threading.Thread(
+                target=background_command_worker,
+                args=(command_name, proc, timeout_seconds),
+                daemon=True,
+            ).start()
+            self.send_json(
+                {
+                    "ok": True,
+                    "background": True,
+                    "started": True,
+                    "label": config["label"],
+                    "provider": active_provider,
+                    "summary": "已在背景開跑：每批完成會即時回標並更新畫面，關掉頁面也不會中斷。",
+                },
+                HTTPStatus.OK,
+            )
+            return
+        with BACKGROUND_JOBS_LOCK:
+            existing = BACKGROUND_JOBS.get(command_name)
+            if existing and existing.poll() is None:
+                message = "這個指令已在背景執行中，等它跑完再啟動新的一輪。"
+                if wants_json:
+                    self.send_json({"ok": False, "label": config["label"], "error": message}, HTTPStatus.CONFLICT)
+                else:
+                    self.send_html(str(config["label"]), f"<h1>{h(config['label'])}</h1><p>{h(message)}</p>", HTTPStatus.CONFLICT)
+                return
         write_json(
-            COMMAND_STATUS,
+            status_path,
             {
                 "command": command_name,
                 "state": "running",
@@ -23965,17 +24178,25 @@ if (document.readyState === "loading") {{
                 "started_at": now_iso(),
             },
         )
+        timed_out = False
         try:
-            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=int(config.get("timeout", 600)))
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=timeout_seconds)
         except subprocess.TimeoutExpired as exc:
+            timed_out = True
             result = subprocess.CompletedProcess(
                 command,
                 124,
                 stdout=clean_text(exc.stdout or ""),
-                stderr=(clean_text(exc.stderr or "") + "\n指令逾時。").strip(),
+                stderr=(clean_text(exc.stderr or "") + f"\n指令逾時：執行超過 {timeout_seconds} 秒，已中止。").strip(),
             )
         output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
         ok = result.returncode == 0
+        error_message = ""
+        if not ok:
+            if timed_out:
+                error_message = f"執行超過 {timeout_seconds} 秒，已被中止（exit 124）。已完成的部分結果若有逐批快照會保留，可再跑一次接續。"
+            else:
+                error_message = (result.stderr or result.stdout or "").strip()[-600:] or f"exit {result.returncode}"
         response_returncode = result.returncode
         status_extra: dict[str, object] = {}
         if ok and command_name == "render_ghpages_reader":
@@ -23988,11 +24209,11 @@ if (document.readyState === "loading") {{
                 if part
             )
         write_json(
-            COMMAND_STATUS,
+            status_path,
             {
                 "command": command_name,
                 "state": "done" if ok else "failed",
-                "message": "完成" if ok else "執行失敗",
+                "message": "完成" if ok else ("執行逾時" if timed_out else "執行失敗"),
                 "returncode": response_returncode,
                 "finished_at": now_iso(),
                 **status_extra,
@@ -24007,6 +24228,7 @@ if (document.readyState === "loading") {{
                     "provider": active_provider,
                     "returncode": response_returncode,
                     "output": output,
+                    "error": error_message,
                 },
                 HTTPStatus.OK,
             )
