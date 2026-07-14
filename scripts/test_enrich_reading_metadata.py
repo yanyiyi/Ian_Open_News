@@ -360,6 +360,52 @@ class ReadingMetadataRulesTest(unittest.TestCase):
         self.assertIn("repeal and renew approach", markdown)
         self.assertNotIn("Artificial Intelligence and Democracy", markdown)
 
+    def test_article_body_container_beats_larger_page_main(self) -> None:
+        html = """
+        <html>
+          <head><title>Open source AI policy</title></head>
+          <body>
+            <main>
+              <div id="article-body" class="article__body">
+                <p>The government announced a detailed open source AI policy with funding for public-interest services.</p>
+                <div class="fancy-box">
+                  <p>The nested policy example remains part of the article and must not be cut off at the first closing div.</p>
+                </div>
+                <p>Independent experts also described the sovereignty, scalability, and skills needed for implementation.</p>
+                <h3>FOLLOW US ON SOCIAL MEDIA</h3>
+                <p><a href="https://news.example.com/publication">Follow the publisher on a news aggregation service for more stories.</a></p>
+              </div>
+              <div class="author-bio">
+                <p>The author biography is long enough to look like article text but sits outside the explicit article body.</p>
+              </div>
+              <section class="listing listing--related">
+                <a class="listing__link" data-analytics-id="related-article" href="/unrelated-story">
+                  <span class="listing__title">This recommended story should have a clean link title</span>
+                  <p class="listing__text listing__text--strapline"><span class="listing__label">News</span>A long summary must not become part of the Markdown link label.</p>
+                </a>
+              </section>
+            </main>
+          </body>
+        </html>
+        """
+
+        markdown, method = page_metadata.extract_article_markdown(
+            html,
+            final_url="https://example.com/open-source-ai-policy",
+            title="Open source AI policy",
+        )
+
+        self.assertEqual(method, "semantic-block")
+        self.assertIn("nested policy example", markdown)
+        self.assertIn("sovereignty, scalability, and skills", markdown)
+        self.assertNotIn("news aggregation service", markdown)
+        self.assertNotIn("author biography", markdown)
+        self.assertIn(
+            "[This recommended story should have a clean link title](https://example.com/unrelated-story)",
+            markdown,
+        )
+        self.assertNotIn("News A long summary", markdown)
+
     def test_text_to_markdown_preserves_paragraph_separators(self) -> None:
         markdown = page_metadata.text_to_markdown(
             "First paragraph has enough content to be useful.\n\n"

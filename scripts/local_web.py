@@ -6318,6 +6318,14 @@ def classify_newsletter_link(item: dict, link: dict) -> tuple[bool, str]:
         return False, "功能性或社群連結"
     if re.search(r"/(?:series|categor(?:y|ies)|tags?|authors?|contributors?)(?:/|$)", parsed.path, re.I):
         return False, "系列、分類或作者索引頁"
+    metadata = item_reading_metadata(item)
+    related_article_urls = {
+        canonical_item_url(record.get("url"))
+        for record in (metadata.get("related_article_links") or [])
+        if isinstance(record, dict) and canonical_item_url(record.get("url"))
+    }
+    if url in related_article_urls:
+        return True, "來源網站的建議文章卡片"
     if NEWSLETTER_FUNCTIONAL_LINK_RE.search(functional_haystack):
         return False, "功能性 / 機會型連結"
     if label.casefold() in GENERIC_NEWSLETTER_LINK_LABELS and len(title) >= 8:

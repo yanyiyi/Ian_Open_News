@@ -42,6 +42,14 @@ BOILERPLATE_PATTERNS = [
     "延伸閱讀",
 ]
 
+TERMINAL_BOILERPLATE_HEADINGS = (
+    "follow us on social media",
+    "follow us",
+    "about the author",
+    "related articles",
+    "recommended",
+)
+
 CODELIKE_PATTERNS = [
     "function(",
     "function (",
@@ -470,7 +478,31 @@ def article_body_from_jsonld(html_text: str) -> str:
     return max(bodies, key=len) if bodies else ""
 
 
+def balanced_element_blocks(html_text: str, opening_pattern: str, tag: str = "div") -> list[str]:
+    """Return complete matching elements, including nested elements of the same tag."""
+    blocks: list[str] = []
+    token_pattern = re.compile(fr"(?is)<{tag}\b[^>]*>|</{tag}\s*>")
+    for opening in re.finditer(opening_pattern, html_text, flags=re.I | re.S):
+        depth = 1
+        for token in token_pattern.finditer(html_text, opening.end()):
+            if token.group(0).lstrip().startswith("</"):
+                depth -= 1
+                if depth == 0:
+                    blocks.append(html_text[opening.start() : token.end()])
+                    break
+            else:
+                depth += 1
+    return blocks
+
+
 def candidate_blocks(html_text: str) -> list[str]:
+    preferred_blocks = balanced_element_blocks(
+        html_text,
+        r"<div\b[^>]*(?:id|class)=['\"][^'\"]*\b(?:article[-_ ]body|article[-_ ]content|entry[-_ ]content|post[-_ ]content|story[-_ ]body)\b[^'\"]*['\"][^>]*>",
+    )
+    if preferred_blocks:
+        return preferred_blocks
+
     blocks: list[str] = []
     wysiwyg_blocks = [
         match.group(0)
@@ -498,9 +530,13 @@ def paragraph_texts(block: str) -> list[str]:
     texts: list[str] = []
     for match in re.finditer(r"(?is)<(h[1-6]|p|li|blockquote)\b[^>]*>(.*?)</\1>", block):
         text = clean_text(match.group(2), 1200)
+        lowered = text.casefold()
+        if match.group(1).lower().startswith("h") and any(
+            lowered.startswith(heading) for heading in TERMINAL_BOILERPLATE_HEADINGS
+        ):
+            break
         if len(text) < 28:
             continue
-        lowered = text.casefold()
         if any(pattern in lowered for pattern in BOILERPLATE_PATTERNS):
             continue
         if is_code_like_text(text):
@@ -571,6 +607,10 @@ def block_to_markdown(block: str, title: str = "", base_url: str = "", limit: in
         if is_code_like_text(plain):
             continue
         lowered = plain.casefold()
+        if tag.startswith("h") and any(
+            lowered.startswith(heading) for heading in TERMINAL_BOILERPLATE_HEADINGS
+        ):
+            break
         if any(pattern in lowered for pattern in BOILERPLATE_PATTERNS):
             continue
         if tag.startswith("h"):
@@ -591,6 +631,47 @@ def block_to_markdown(block: str, title: str = "", base_url: str = "", limit: in
     return clean_markdown("\n".join(lines), limit)
 
 
+def related_article_links_from_html(html_text: str, base_url: str = "") -> list[tuple[str, str]]:
+    """Extract recommendation-card URLs with their title, excluding card metadata and straplines."""
+    links: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for match in re.finditer(r"(?is)<a\b([^>]*)>(.*?)</a>", html_text):
+        attrs = attrs_from_tag(match.group(1))
+        classes = attrs.get("class", "").casefold().split()
+        analytics_id = attrs.get("data-analytics-id", "").casefold()
+        if "listing__link" not in classes or analytics_id not in {"related-article", "featured-article"}:
+            continue
+        url = urljoin(base_url, attrs.get("href", "").strip())
+        if not url.startswith(("http://", "https://")) or url in seen:
+            continue
+        title_match = re.search(
+            r"(?is)<span\b[^>]*class=['\"][^'\"]*\blisting__title\b[^'\"]*['\"][^>]*>(.*?)</span>",
+            match.group(2),
+        )
+        title = clean_text(title_match.group(1), 500) if title_match else ""
+        if not title or title.casefold().startswith("sponsored_"):
+            continue
+        seen.add(url)
+        links.append((title, url))
+    return links
+
+
+def append_related_article_links(markdown: str, html_text: str, base_url: str = "", limit: int = 60000) -> str:
+    related_links = related_article_links_from_html(html_text, base_url)
+    if not related_links:
+        return markdown
+    existing_urls = set(re.findall(r"\]\((https?://[^)\s]+)\)", markdown))
+    rows = []
+    for title, url in related_links:
+        if url in existing_urls:
+            continue
+        safe_title = title.replace("[", r"\[").replace("]", r"\]")
+        rows.append(f"- [{safe_title}]({url})")
+    if not rows:
+        return markdown
+    return clean_markdown(f"{markdown}\n\n## ITPro 建議文章\n\n" + "\n".join(rows), limit)
+
+
 def extract_article_markdown(html_text: str, final_url: str = "", title: str = "", limit: int = 60000) -> tuple[str, str]:
     jsonld = article_body_from_jsonld(html_text)
     if jsonld:
@@ -606,10 +687,10 @@ def extract_article_markdown(html_text: str, final_url: str = "", title: str = "
                 candidates.append((chars, markdown, "semantic-block"))
     if candidates:
         _, markdown, method = max(candidates, key=lambda row: row[0])
-        return markdown, method
+        return append_related_article_links(markdown, html_text, final_url, limit), method
 
     markdown = block_to_markdown(html_text, title=title, base_url=final_url, limit=limit)
-    return markdown, "all-paragraphs"
+    return append_related_article_links(markdown, html_text, final_url, limit), "all-paragraphs"
 
 
 def extract_article_text(html_text: str, limit: int = 30000) -> tuple[str, str]:
@@ -770,6 +851,12 @@ def metadata_from_response(
         "content_type": content_type,
         "status": "ok",
     }
+    related_article_links = related_article_links_from_html(html_text, final_url)
+    if related_article_links:
+        metadata["related_article_links"] = [
+            {"title": related_title, "url": related_url}
+            for related_title, related_url in related_article_links
+        ]
     if published_at:
         metadata["published_at"] = published_at
         metadata["published_at_source"] = published_at_source

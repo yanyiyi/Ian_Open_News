@@ -177,6 +177,31 @@ class ManualItemAutofillTest(unittest.TestCase):
         self.assertEqual([candidate["title"] for candidate in candidates], ["10. From Data to Display: Infrastructures of Openness in the Making"])
         self.assertEqual(skipped[0]["reason"], "系列、分類或作者索引頁")
 
+    def test_newsletter_link_candidates_keep_source_recommendation_cards(self) -> None:
+        recommended_url = "https://www.itpro.com/business/data-and-insights/amazon-opensearch-update"
+        item = {
+            "url": "https://www.itpro.com/software/open-source/example",
+            "reading_metadata": {
+                "article_markdown": (
+                    "## ITPro 建議文章\n\n"
+                    f"- [Amazon OpenSearch update targets performance boosts and lower costs]({recommended_url})"
+                ),
+                "related_article_links": [
+                    {
+                        "title": "Amazon OpenSearch update targets performance boosts and lower costs",
+                        "url": recommended_url,
+                    }
+                ],
+            },
+        }
+
+        candidates, skipped = local_web.newsletter_link_candidates(item)
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0]["title"], "Amazon OpenSearch update targets performance boosts and lower costs")
+        self.assertEqual(candidates[0]["reason"], "來源網站的建議文章卡片")
+        self.assertEqual(skipped, [])
+
     def test_newsletter_link_candidates_show_translated_title_with_original(self) -> None:
         url = "https://example.org/news/open-source-policy"
         item = {
