@@ -1472,8 +1472,10 @@ def remove_jsonl_ids(path: Path, record_ids: set[str]) -> int:
 
 
 def database_integrity_report() -> dict:
-    """掃出 validate_database.py 會擋下、且能在本機一鍵決斷的兩類問題：
-    1) 同一筆 id 同時在可用材料區(items)與已退件(rejected) 2) 指向不存在項目的孤兒審查事件。"""
+    """掃出 validate_database.py 會擋下、且能在本機一鍵決斷的問題：
+    1) 同一筆 id 同時在可用材料區(items)與已退件(rejected)
+    2) 指向不存在項目的孤兒審查事件
+    3) 沒有對應 item 的孤兒全文側檔。"""
     items = load_jsonl(ITEMS)
     rejected = load_jsonl(REJECTED_ITEMS)
     reviews = load_jsonl(REVIEW_EVENTS)
@@ -1520,6 +1522,22 @@ def database_integrity_report() -> dict:
                 "recommended": "drop_event",
             }
         )
+
+    known_item_ids = item_ids | rejected_ids
+    if fulltext_store.FULLTEXT_DIR.exists():
+        for path in sorted(fulltext_store.FULLTEXT_DIR.glob("*.json")):
+            item_id = path.stem
+            if item_id in known_item_ids:
+                continue
+            issues.append(
+                {
+                    "type": "orphan_fulltext",
+                    "id": item_id,
+                    "filename": path.name,
+                    "detail": f"全文側檔 {path.name} 找不到對應的可用材料或已退件項目，CI 會把它視為孤兒檔案。",
+                    "recommended": "drop_sidecar",
+                }
+            )
 
     return {"ok": not issues, "issues": issues, "count": len(issues)}
 
@@ -3865,6 +3883,21 @@ def render_integrity_issue(issue: dict) -> str:
             "<button type='submit'>移除這筆審查事件（建議）</button>"
             "</form>"
             "<p class='help'>若項目只是被誤刪，可先去『已退件』找回再回來重檢；否則移除孤兒事件即可。</p>"
+            "</div>"
+        )
+    if issue_type == "orphan_fulltext":
+        return (
+            "<div class='card'>"
+            "<strong>孤兒全文側檔</strong>"
+            f"<p class='muted'>{h(issue.get('detail'))}</p>"
+            f"<p class='help'>項目 id：<code>{target_id}</code>　檔案：<code>{h(issue.get('filename'))}</code></p>"
+            "<form method='post' action='/integrity/fix' style='display:inline'>"
+            "<input type='hidden' name='issue_type' value='orphan_fulltext'>"
+            f"<input type='hidden' name='target_id' value='{target_id}'>"
+            "<input type='hidden' name='action' value='drop_sidecar'>"
+            "<button type='submit'>移除孤兒全文側檔（建議）</button>"
+            "</form>"
+            "<p class='help'>若主項目只是被誤刪，請先復原主項目；否則可移除這個已無法被讀取的側檔。</p>"
             "</div>"
         )
     return ""
@@ -16114,7 +16147,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
   </div>
   <div class="card">
     <h3>資料庫健檢</h3>
-    <p class="muted">檢查可用材料區與已退件有沒有重複 id、審查事件有沒有指向不存在的項目，並附建議讓你一鍵修好。</p>
+    <p class="muted">檢查可用材料區與已退件有沒有重複 id、審查事件或全文側檔有沒有指向不存在的項目，並附建議讓你一鍵修好。</p>
     <div class="metric-row">{metric_tile(integrity_count, "待處理", "/integrity", "去處理")}</div>
     <p><a class="button {'secondary' if integrity_count == 0 else ''}" href="/integrity">打開資料庫健檢</a></p>
     <p class="help">{'目前沒有發現問題。' if integrity_count == 0 else '送 PR 前先把這裡清成 0，避免 CI 擋下。'}</p>
@@ -22756,10 +22789,10 @@ if (document.readyState === "loading") {{
         if not issues:
             body = (
                 "<h1>資料庫健檢</h1>"
-                "<p class='lede'>檢查可用材料區與已退件有沒有重複 id，以及審查事件是否指向已不存在的項目。送 PR 前這頁是綠的就沒問題。</p>"
+                "<p class='lede'>檢查可用材料區與已退件有沒有重複 id，以及審查事件或全文側檔是否指向已不存在的項目。送 PR 前這頁是綠的就沒問題。</p>"
                 f"{flash}"
                 "<div class='card'><strong>✓ 資料庫健檢通過</strong>"
-                "<p class='muted'>目前沒有重複項目，也沒有孤兒審查事件。</p></div>"
+                "<p class='muted'>目前沒有重複項目、孤兒審查事件或孤兒全文側檔。</p></div>"
                 "<p><a class='button quiet' href='/'>回總覽</a></p>"
             )
             self.send_html("資料庫健檢", body)
@@ -22797,6 +22830,22 @@ if (document.readyState === "loading") {{
                     return {"ok": True, "message": f"已移除孤兒審查事件 {target_id}。"}
                 return {"ok": False, "message": "找不到對應的審查事件，可能已處理過。"}
             return {"ok": False, "message": "未知的處理方式。"}
+        if issue_type == "orphan_fulltext":
+            if action != "drop_sidecar":
+                return {"ok": False, "message": "未知的處理方式。"}
+            known_ids = {
+                clean_text(record.get("id"))
+                for record in [*load_jsonl(ITEMS), *load_jsonl(REJECTED_ITEMS)]
+                if record.get("id")
+            }
+            if target_id in known_ids:
+                return {"ok": False, "message": "這個全文側檔已有對應項目，未移除。"}
+            path = fulltext_store.fulltext_path(target_id)
+            if path is None or path.parent != fulltext_store.FULLTEXT_DIR or not path.exists():
+                return {"ok": False, "message": "找不到對應的孤兒全文側檔，可能已處理過。"}
+            path.unlink()
+            fulltext_store._STORE_CACHE.pop(str(path), None)
+            return {"ok": True, "message": f"已移除孤兒全文側檔 {path.name}。"}
         return {"ok": False, "message": "未知的健檢項目類型。"}
 
     def apply_integrity_fix_request(self, data: dict[str, list[str]]) -> None:
