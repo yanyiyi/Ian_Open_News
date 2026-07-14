@@ -86,6 +86,8 @@ TRANSLATE_STATUS = ROOT / ".cache" / "translate-status.json"
 NOTIFY_STATE = ROOT / ".cache" / "notified-events.jsonl"
 NOTIFY_REACTIONS = ROOT / ".cache" / "notification-reactions.json"
 PDF_UPLOADS = ROOT / ".cache" / "uploads"
+PDF_TABLES_DIR = ROOT / "database" / "pdf-tables"
+PDF_ARTICLES_DIR = ROOT / "database" / "pdf-articles"
 EDITOR_TASK_LABELS = {
     "theme-check": "選法檢查",
     "compose-thematic": "主題式撰稿",
@@ -367,13 +369,18 @@ DATA_AUTOCOMMIT_FILES = [
     NOTIFICATION_FEEDBACK,  # 推播表情/回覆回流正本（collect_notification_reactions 追加）
     fulltext_store.FULLTEXT_DIR,  # 全文側檔目錄：跟主檔一起 commit，避免 git 裡漂移
 ]
-TRANSLATION_SOURCE_MARKDOWN_LIMIT = 42000
-TRANSLATION_SOURCE_TEXT_LIMIT = 36000
+TRANSLATION_SOURCE_MARKDOWN_LIMIT = 500000
+TRANSLATION_SOURCE_TEXT_LIMIT = 500000
 DATA_AUTOCOMMIT_LOCK = threading.Lock()
 # 序列化資料庫的「讀取→修改→整檔覆寫」交易。ThreadingHTTPServer 會並發處理請求，
 # 沒有這把鎖時，批次或快速連點的收件/分流會 lost-update：item 被另一執行緒的舊
 # 快照覆寫掉，但 review-event 是 append 故倖存，留下對不到 item 的孤兒事件。
 DB_WRITE_LOCK = threading.RLock()
+
+
+def translate_status_path(item_id: object = "") -> Path:
+    safe_id = re.sub(r"[^A-Za-z0-9._-]+", "-", clean_text(item_id)).strip("-")
+    return ROOT / ".cache" / f"translate-status-{safe_id}.json" if safe_id else TRANSLATE_STATUS
 
 
 def with_db_write_lock(func):
@@ -779,6 +786,16 @@ def translation_source_clean_markdown(value: object, limit: int | None = None) -
     text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", text)
     text = re.sub(r"[ \t\f\v]+", " ", text)
     text = re.sub(r" *\n *", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    if limit and len(text) > limit:
+        return text[:limit].rstrip() + "\n\n..."
+    return text
+
+
+def translation_source_clean_layout_markdown(value: object, limit: int | None = None) -> str:
+    """Normalize a fixed-width Markdown supplement without collapsing columns."""
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text).strip()
     if limit and len(text) > limit:
         return text[:limit].rstrip() + "\n\n..."
@@ -5402,16 +5419,28 @@ def item_translation_source_markdown(item: dict) -> str:
     metadata = item_reading_metadata(item)
     edited = translation_source_clean_markdown(metadata.get("edited_markdown"), TRANSLATION_SOURCE_MARKDOWN_LIMIT)
     edited_base = clean_text(metadata.get("edited_markdown_base")).casefold()
+    integrated = translation_source_clean_layout_markdown(
+        item_pdf_article_markdown(item), TRANSLATION_SOURCE_MARKDOWN_LIMIT
+    )
     if edited and not edited_base.startswith("zh"):
-        return edited
-    markdown = translation_source_clean_markdown(metadata.get("article_markdown"), TRANSLATION_SOURCE_MARKDOWN_LIMIT)
-    if markdown and not is_access_prompt_text(markdown):
-        return markdown
-    text = translation_source_clean_text(metadata.get("article_text"), TRANSLATION_SOURCE_TEXT_LIMIT)
-    if text and not is_access_prompt_text(text):
-        title = clean_text(metadata.get("title") or item.get("title"), 320)
-        return f"# {title}\n\n{text}" if title else text
-    return ""
+        source = edited
+    elif integrated:
+        source = integrated
+    else:
+        markdown = translation_source_clean_markdown(metadata.get("article_markdown"), TRANSLATION_SOURCE_MARKDOWN_LIMIT)
+        if markdown and not is_access_prompt_text(markdown):
+            source = markdown
+        else:
+            text = translation_source_clean_text(metadata.get("article_text"), TRANSLATION_SOURCE_TEXT_LIMIT)
+            if not text or is_access_prompt_text(text):
+                return ""
+            title = clean_text(metadata.get("title") or item.get("title"), 320)
+            source = f"# {title}\n\n{text}" if title else text
+    tables = item_pdf_tables_markdown(item)
+    if tables and not integrated:
+        tables = translation_source_clean_layout_markdown(tables, 150000)
+        source = f"{source}\n\n---\n\n{tables}"
+    return source
 
 
 def item_translation_source_hash(item: dict) -> str:
@@ -5608,7 +5637,21 @@ def item_article_text(item: dict) -> str:
     return "" if is_access_prompt_text(text) else text
 
 
+def item_pdf_article_markdown(item: dict) -> str:
+    item_id = re.sub(r"[^A-Za-z0-9._-]+", "-", clean_text(item.get("id"))).strip("-")
+    if not item_id:
+        return ""
+    path = PDF_ARTICLES_DIR / f"{item_id}.md"
+    try:
+        return path.read_text(encoding="utf-8").strip() if path.is_file() else ""
+    except OSError:
+        return ""
+
+
 def item_article_markdown(item: dict) -> str:
+    integrated = item_pdf_article_markdown(item)
+    if integrated:
+        return integrated
     metadata = item_reading_metadata(item)
     markdown = clean_markdown_text(metadata.get("article_markdown"))
     if markdown and not is_access_prompt_text(markdown):
@@ -5678,8 +5721,6 @@ def strip_duplicate_leading_heading(markdown: str, title: object) -> str:
 def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
     raw = html.unescape(str(markdown or ""))
     raw = raw.replace("\r\n", "\n").replace("\r", "\n")
-    raw = re.sub(r"[ \t\f\v]+", " ", raw)
-    raw = re.sub(r"\n[ \t]+", "\n", raw)
     raw = re.sub(r"\n{3,}", "\n\n", raw).strip()
     lines = raw.split("\n")
     parts: list[str] = []
@@ -5687,6 +5728,7 @@ def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
     code_block: list[str] = []
     list_tag = ""
     code_fence = ""
+    code_language = ""
 
     def close_list() -> None:
         nonlocal list_tag
@@ -5701,28 +5743,45 @@ def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
             paragraph.clear()
 
     def flush_code_block() -> None:
-        if code_fence:
+        if code_fence and code_language == "tsv":
+            rows = [line.split("\t") for line in code_block if line.strip()]
+            width = max((len(row) for row in rows), default=0)
+            if rows and width:
+                padded = [row + [""] * (width - len(row)) for row in rows]
+                header = "".join(f"<th>{h(cell) if cell else '&nbsp;'}</th>" for cell in padded[0])
+                body = "".join(
+                    "<tr>" + "".join(f"<td>{h(cell) if cell else '&nbsp;'}</td>" for cell in row) + "</tr>"
+                    for row in padded[1:]
+                )
+                parts.append(
+                    '<div class="pdf-table-scroll"><table class="pdf-layout-table">'
+                    f"<thead><tr>{header}</tr></thead><tbody>{body}</tbody></table></div>"
+                )
+        elif code_fence:
             parts.append(f"<pre><code>{h(chr(10).join(code_block))}</code></pre>")
-            code_block.clear()
+        code_block.clear()
 
     for raw_line in lines:
-        line = raw_line.strip()
+        stripped_line = raw_line.strip()
         if code_fence:
-            if re.match(rf"^{re.escape(code_fence)}\s*$", line):
+            if re.match(rf"^{re.escape(code_fence)}\s*$", stripped_line):
                 flush_code_block()
                 code_fence = ""
+                code_language = ""
             else:
                 code_block.append(raw_line)
             continue
+        line = re.sub(r"[ \t\f\v]+", " ", raw_line).strip()
         if not line:
             flush_paragraph()
             close_list()
             continue
-        fence = re.match(r"^(```+|~~~+)(?:\S+)?\s*$", line)
+        fence = re.match(r"^(```+|~~~+)(\S+)?\s*$", line)
         if fence:
             flush_paragraph()
             close_list()
             code_fence = fence.group(1)
+            code_language = clean_text(fence.group(2)).casefold()
             code_block.clear()
             continue
         heading = re.match(r"^(#{1,6})\s+(.+)$", line)
@@ -5766,6 +5825,26 @@ def markdown_to_html(markdown: str, preserve_soft_breaks: bool = False) -> str:
 
 def item_article_html(item: dict) -> str:
     return markdown_to_html(item_article_markdown(item))
+
+
+def item_pdf_tables_markdown(item: dict) -> str:
+    item_id = re.sub(r"[^A-Za-z0-9._-]+", "-", clean_text(item.get("id"))).strip("-")
+    if not item_id:
+        return ""
+    path = PDF_TABLES_DIR / f"{item_id}.md"
+    try:
+        return path.read_text(encoding="utf-8").strip() if path.is_file() else ""
+    except OSError:
+        return ""
+
+
+def item_has_readable_fulltext(item: dict) -> bool:
+    """Return whether the item already has a usable local body.
+
+    Translation and AI-review actions must not refresh the remote URL first when
+    a PDF upload, manual edit, or earlier extraction already supplied the body.
+    """
+    return bool(item_edited_markdown(item) or item_article_markdown(item) or item_article_text(item))
 
 
 def ensure_article_markdown(item: dict) -> tuple[dict, bool]:
@@ -6185,7 +6264,13 @@ def item_markdown_needs_paragraphs(item: dict) -> bool:
 def normalize_pdf_markdown_item(item: dict) -> tuple[dict, bool, str]:
     metadata = dict(item_reading_metadata(item))
     raw_markdown = str(metadata.get("article_markdown") or "").replace("\r\n", "\n").replace("\r", "\n").strip()
-    raw = raw_markdown or clean_text(metadata.get("article_text")) or clean_text(item.get("summary"))
+    raw_article_text = str(metadata.get("article_text") or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    # A publisher redirect/interstitial can overwrite article_markdown while
+    # the longer PDF extraction remains intact in article_text.  Recover from
+    # the authoritative PDF text instead of treating the tiny page as content.
+    if len(raw_markdown) < 240 and len(raw_article_text) >= 240:
+        raw_markdown = ""
+    raw = raw_markdown or raw_article_text or clean_text(item.get("summary"))
     if len(raw) < 240:
         return item, False, "沒有足夠文字可轉成 PDF Markdown 全文。"
     title = item_original_title(item) or item_display_title(item)
@@ -9309,6 +9394,35 @@ def page(title: str, body: str) -> bytes:
       padding: 0;
       font-size: .95em;
       line-height: 1.65;
+    }}
+    .pdf-table-panel .article-markdown pre {{
+      white-space: pre;
+      font-size: .78em;
+      line-height: 1.45;
+      max-width: 100%;
+    }}
+    .pdf-table-scroll {{ overflow-x: auto; margin: 12px 0 18px; }}
+    .pdf-layout-table {{
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      table-layout: auto;
+      font-size: .82em;
+      line-height: 1.35;
+      background: #fff;
+    }}
+    .pdf-layout-table th,
+    .pdf-layout-table td {{
+      min-width: 130px;
+      max-width: 300px;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }}
+    .pdf-layout-table th {{
+      background: var(--paper-soft);
+      font-weight: 750;
     }}
     .article-markdown strong,
     .article-markdown b,
@@ -12705,13 +12819,16 @@ class Handler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/pdf-split-status":
             self.send_json(load_json(PDF_SPLIT_STATUS))
         elif parsed.path == "/api/translate-status":
-            status = load_json(TRANSLATE_STATUS)
             requested = clean_text((query.get("id") or [""])[0])
-            if requested and clean_text(status.get("item_id")) and clean_text(status.get("item_id")) != requested:
-                status = {"state": "running", "message": "翻譯啟動中…"}
+            status = load_json(translate_status_path(requested)) if requested else load_json(TRANSLATE_STATUS)
+            if requested and not status:
+                legacy = load_json(TRANSLATE_STATUS)
+                status = legacy if clean_text(legacy.get("item_id")) == requested else {"state": "running", "message": "翻譯啟動中…"}
             self.send_json(status)
         elif parsed.path == "/notifications":
             self.show_notifications(query)
+        elif parsed.path == "/settings/models":
+            self.show_model_settings(query)
         else:
             self.send_html("找不到", "<h1>找不到頁面</h1>", HTTPStatus.NOT_FOUND)
 
@@ -18056,6 +18173,8 @@ if (document.readyState === "loading") {{
         )
         article_text = item_article_text(item)
         article_markdown = item_article_markdown(item)
+        integrated_pdf_article = bool(item_pdf_article_markdown(item))
+        pdf_tables_markdown = item_pdf_tables_markdown(item)
         article_meta = item_reading_metadata(item)
         display_title = item_display_title(item)
         edited_markdown = item_edited_markdown(item)
@@ -18074,7 +18193,9 @@ if (document.readyState === "loading") {{
         translate_actions_row = f'<div class="button-row" data-translation-actions{"" if translate_actions else " hidden"}>{translate_actions}</div>'
         fulltext_hidden = "" if article_markdown or article_text else " hidden"
         fulltext_message = (
-            f"Markdown 閱讀版，約 {article_meta.get('article_markdown_chars', len(article_markdown)) or article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_markdown_method') or article_meta.get('article_text_method', 'metadata')}。"
+            f"PDF 版面整合全文，約 {len(article_markdown)} 字；已依閱讀順序內嵌修復表格。"
+            if integrated_pdf_article
+            else f"Markdown 閱讀版，約 {article_meta.get('article_markdown_chars', len(article_markdown)) or article_meta.get('article_text_chars', len(article_text))} 字；抽取方式：{article_meta.get('article_markdown_method') or article_meta.get('article_text_method', 'metadata')}。"
             if article_markdown or article_text
             else "按「展開全文」後會從原始連結往下抓全文，載入完成後以 Markdown 閱讀版顯示在這裡。"
         )
@@ -18146,11 +18267,24 @@ if (document.readyState === "loading") {{
             translation_panel = translation_panels_html(item)
         else:
             translation_panel = ""
+        pdf_tables_panel = (
+            f"""
+<details class="card fulltext-panel source-card source-card--source pdf-table-panel" id="pdf-tables-panel">
+  <summary><div class="section-kicker">PDF 表格校對底稿</div></summary>
+  <p class="help">正文已在原位置內嵌這 6 張表；此處只保留集中校對版本。</p>
+  <div class="article-text article-markdown">{markdown_to_html(pdf_tables_markdown)}</div>
+</details>
+"""
+            if pdf_tables_markdown
+            else ""
+        )
         # 閱讀區順序：最新版中文翻譯優先；若只有原文手修版或舊翻譯，仍保留比對用原文。
-        if has_translation and is_edited and translation_has_current and not edited_base.startswith("zh"):
-            reading_panels = translation_panel + primary_fulltext_panel + original_fulltext_panel
+        if integrated_pdf_article:
+            reading_panels = primary_fulltext_panel + translation_panel + original_fulltext_panel + pdf_tables_panel
+        elif has_translation and is_edited and translation_has_current and not edited_base.startswith("zh"):
+            reading_panels = translation_panel + primary_fulltext_panel + pdf_tables_panel + original_fulltext_panel
         else:
-            reading_panels = primary_fulltext_panel + translation_panel + original_fulltext_panel
+            reading_panels = primary_fulltext_panel + translation_panel + pdf_tables_panel + original_fulltext_panel
         note = personal_note_text(item)
         item_url = clean_text(item.get("url"), 1200)
         online_article_url = public_reader_article_url(item)
@@ -19439,7 +19573,12 @@ if (document.readyState === "loading") {{
                 updated_records.append(item)
                 continue
             found = True
-            updated, did_change, error = enrich_item_metadata(item)
+            # A PDF upload is the authoritative fulltext source.  A DOI or
+            # publisher landing page may only return a redirect/interstitial;
+            # preserve the local body even when the user explicitly refreshes
+            # remote metadata.
+            preserve_pdf_fulltext = item_is_pdf_like(item) and item_has_readable_fulltext(item)
+            updated, did_change, error = enrich_item_metadata(item, preserve_existing=preserve_pdf_fulltext)
             updated, markdown_changed = ensure_article_markdown(updated)
             updated_records.append(updated)
             changed = did_change or markdown_changed
@@ -20267,7 +20406,12 @@ if (document.readyState === "loading") {{
             return
 
         if form_value(data, "with_fulltext", "1") == "1":
-            self.update_read_more_record(target_path, item_id)
+            current_item = next(
+                (row for row in load_jsonl(target_path) if clean_text(row.get("id")) == item_id),
+                None,
+            )
+            if not current_item or not item_has_readable_fulltext(current_item):
+                self.update_read_more_record(target_path, item_id)
 
         command = [
             sys.executable,
@@ -20630,7 +20774,14 @@ if (document.readyState === "loading") {{
                 return
             self.send_html("找不到項目", "<h1>找不到可翻譯項目</h1><p><a class='button' href='/items'>回入庫建檔區</a></p>", HTTPStatus.NOT_FOUND)
             return
-        found, changed, response_item, error = self.update_read_more_record(target_path, item_id)
+        current_item = next(
+            (item for item in load_jsonl(target_path) if clean_text(item.get("id")) == item_id),
+            None,
+        )
+        if current_item and item_has_readable_fulltext(current_item):
+            found, changed, response_item, error = True, False, current_item, ""
+        else:
+            found, changed, response_item, error = self.update_read_more_record(target_path, item_id)
         article_markdown = item_edited_markdown(response_item or {}) or item_article_markdown(response_item or {})
         if not found or (error and not article_markdown) or not article_markdown:
             if wants_json:
@@ -20639,14 +20790,15 @@ if (document.readyState === "loading") {{
             separator = "&" if "?" in redirect_to else "?"
             self.redirect(f"{redirect_to}{separator}error=translation")
             return
-        write_json(TRANSLATE_STATUS, {"state": "running", "item_id": item_id, "message": f"準備翻譯…（{ai_provider_label(provider)}）"})
+        status_path = translate_status_path(item_id)
+        write_json(status_path, {"state": "running", "item_id": item_id, "message": f"準備翻譯…（{ai_provider_label(provider)}）"})
         command = [
             sys.executable,
             str(ROOT / "scripts" / "codex_translate_article.py"),
             "--provider", provider,
             "--items", str(target_path),
             "--id", item_id,
-            "--status-file", str(TRANSLATE_STATUS),
+            "--status-file", str(status_path),
         ]
         if force_translation:
             command.append("--force")
@@ -20663,7 +20815,7 @@ if (document.readyState === "loading") {{
         separator = "&" if "?" in redirect_to else "?"
         final_redirect = f"{redirect_to}{separator}{'saved=translation' if ok else 'error=translation'}"
         if wants_json:
-            status = load_json(TRANSLATE_STATUS)
+            status = load_json(status_path)
             self.send_json(
                 {
                     "ok": ok,

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -13,6 +15,74 @@ import local_web  # noqa: E402
 
 
 class MarkdownRenderingTest(unittest.TestCase):
+    def test_uploaded_pdf_fulltext_is_readable_without_remote_refresh(self) -> None:
+        item = {
+            "origin": "manual-pdf",
+            "source_type": "pdf-upload",
+            "reading_metadata": {
+                "article_markdown": "# Uploaded paper\n\nComplete PDF body.",
+                "fulltext_source": "uploaded-pdf",
+            },
+        }
+
+        self.assertTrue(local_web.item_has_readable_fulltext(item))
+
+    def test_integrated_pdf_article_is_preferred_for_reading(self) -> None:
+        item = {"id": "item-integrated", "reading_metadata": {"article_markdown": "# Broken extraction"}}
+        with tempfile.TemporaryDirectory() as tmpdir:
+            article_dir = Path(tmpdir)
+            (article_dir / "item-integrated.md").write_text(
+                "# Complete article\n\n```tsv\nA\tB\n1\t2\n```",
+                encoding="utf-8",
+            )
+            with patch.object(local_web, "PDF_ARTICLES_DIR", article_dir):
+                markdown = local_web.item_article_markdown(item)
+
+        self.assertIn("# Complete article", markdown)
+        self.assertNotIn("Broken extraction", markdown)
+
+    def test_read_more_preserves_uploaded_pdf_body(self) -> None:
+        item = {
+            "id": "item-uploaded-pdf-test",
+            "url": "https://doi.org/10.0000/example",
+            "origin": "manual-pdf",
+            "source_type": "pdf-upload",
+            "reading_metadata": {
+                "article_markdown": "# Uploaded paper\n\nComplete PDF body.",
+                "fulltext_source": "uploaded-pdf",
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "items.jsonl"
+            path.write_text(json.dumps(item) + "\n", encoding="utf-8")
+            with patch.object(local_web, "enrich_item_metadata", return_value=(item, False, "")) as enrich:
+                found, changed, _updated, error = local_web.Handler.update_read_more_record(None, path, item["id"])
+
+        self.assertTrue(found)
+        self.assertFalse(changed)
+        self.assertEqual(error, "")
+        enrich.assert_called_once_with(item, preserve_existing=True)
+
+    def test_pdf_normalization_recovers_from_redirect_overwrite(self) -> None:
+        pdf_text = "Original PDF paragraph.\n\n" + ("Substantive research text. " * 30)
+        item = {
+            "id": "item-pdf-redirect-test",
+            "title": "Uploaded paper",
+            "origin": "manual-pdf",
+            "reading_metadata": {
+                "article_markdown": "# Redirecting",
+                "article_text": pdf_text,
+                "fulltext_source": "uploaded-pdf",
+            },
+        }
+
+        updated, changed, error = local_web.normalize_pdf_markdown_item(item)
+
+        self.assertTrue(changed)
+        self.assertEqual(error, "")
+        self.assertIn("Original PDF paragraph.", local_web.item_article_markdown(updated))
+        self.assertNotIn("Redirecting", local_web.item_article_markdown(updated))
+
     def test_article_markdown_reader_keeps_blank_lines(self) -> None:
         markdown = "# Title\n\nFirst paragraph.\n\nSecond paragraph."
 
@@ -130,6 +200,22 @@ class MarkdownRenderingTest(unittest.TestCase):
         self.assertEqual(local_web.item_translation_source_hash(item), source_hash)
         self.assertFalse(local_web.item_provider_translation_is_stale(item, "codex"))
 
+    def test_translation_source_hash_includes_layout_preserving_pdf_tables(self) -> None:
+        item = {
+            "id": "item-table-hash",
+            "reading_metadata": {"article_markdown": "# Source\n\nBody."},
+        }
+        tables = "## Table 1\n\n```text\nColumn A        Column B\n```"
+        with patch.object(local_web, "item_pdf_tables_markdown", return_value=tables):
+            source = local_web.item_translation_source_markdown(item)
+            source_hash = local_web.item_translation_source_hash(item)
+
+        self.assertIn("Column A        Column B", source)
+        self.assertEqual(
+            local_web.hashlib.sha1(source.encode("utf-8")).hexdigest()[:16],
+            source_hash,
+        )
+
     def test_edited_markdown_reader_does_not_collapse_blank_lines(self) -> None:
         markdown = "第一行\n\n第二段"
 
@@ -176,6 +262,24 @@ class MarkdownRenderingTest(unittest.TestCase):
             rendered,
         )
         self.assertNotIn("```", rendered)
+
+    def test_fenced_code_block_preserves_fixed_width_table_columns(self) -> None:
+        rendered = local_web.markdown_to_html(
+            "## Table 1\n\n```text\nColumn A        Column B\nvalue           result\n```"
+        )
+
+        self.assertIn("Column A        Column B", rendered)
+        self.assertIn("value           result", rendered)
+
+    def test_tsv_fence_renders_as_html_table(self) -> None:
+        rendered = local_web.markdown_to_html(
+            "## Table 1\n\n```tsv\nColumn A\tColumn B\nvalue\tresult\n```"
+        )
+
+        self.assertIn('<table class="pdf-layout-table">', rendered)
+        self.assertIn("<th>Column A</th><th>Column B</th>", rendered)
+        self.assertIn("<td>value</td><td>result</td>", rendered)
+        self.assertNotIn("```tsv", rendered)
 
     def test_fulltext_edit_storage_keeps_newlines_unchanged(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
