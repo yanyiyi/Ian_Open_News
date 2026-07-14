@@ -7619,7 +7619,7 @@ def page(title: str, body: str) -> bytes:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{h(title)} - Ian Open News</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@260;400;550;600;700&family=Noto+Serif+TC:wght@260;400;550;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;550;600;700&family=Noto+Serif+TC:wght@400;550;600;700&display=swap");
     :root {{
       --ocf-primary: #6450dc;
       --ocf-light: #d7dcf0;
@@ -7637,7 +7637,7 @@ def page(title: str, body: str) -> bytes:
       --accent: var(--ocf-primary);
       --humanities: var(--ocf-dark);
       --danger: #9f2525;
-      --article-serif: "Noto Serif", "Noto Serif Traditional Chinese", "Noto Serif TC", "Noto Serif CJK TC", "Source Han Serif TC", "PingFang TC", serif;
+      --article-serif: "Noto Serif TC", "Noto Serif Traditional Chinese", "Noto Serif CJK TC", "Source Han Serif TC", "Noto Serif", "PingFang TC", serif;
       --latin-title: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans";
       --article-heading: var(--latin-title), "LINE Seed TW", "LINE Seed Sans TW", "Noto Sans TC", "PingFang TC", sans-serif;
       --paper: #fffdf7;
@@ -9566,7 +9566,7 @@ def page(title: str, body: str) -> bytes:
       color: #17212f;
       font-size: 16px;
       font-family: var(--article-serif);
-      font-weight: 260;
+      font-weight: 400;
       line-height: 2.05;
       letter-spacing: 0;
       font-kerning: normal;

@@ -253,6 +253,15 @@ class MarkdownRenderingTest(unittest.TestCase):
         )
         self.assertIn("Government&#x27;s Test", rendered_spaced)
 
+    def test_article_body_prefers_traditional_chinese_serif_at_regular_weight(self) -> None:
+        rendered = local_web.page("Typography test", "").decode("utf-8")
+
+        self.assertIn('--article-serif: "Noto Serif TC",', rendered)
+        self.assertIn(
+            "font-family: var(--article-serif);\n      font-weight: 400;",
+            rendered,
+        )
+
     def test_fenced_code_block_renders_without_raw_fences(self) -> None:
         rendered = local_web.markdown_to_html(
             "# 標題\n\n```\nZDNET 的重點摘要：設計人類與 AI 之間的健康關係。\n```\n\n下一段",
