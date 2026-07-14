@@ -2,6 +2,8 @@
 reference/.DS_Store
 .cache/
 __pycache__/
+# 本機處理 PDF 等素材的暫存產物（頁面截圖、版面文字），不進版控
+tmp/
 *.pyc
 *.sqlite
 *.sqlite3
