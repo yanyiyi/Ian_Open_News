@@ -10027,6 +10027,12 @@ def page(title: str, body: str) -> bytes:
     .command-edge-trigger:focus + .command-chip {{
       opacity: 1; pointer-events: auto; transform: translateX(0);
     }}
+    body.has-article-sequence-nav .command-window,
+    body.has-article-sequence-nav .command-chip {{ bottom: 80px; }}
+    body.has-article-sequence-nav .command-edge-trigger {{
+      bottom: 70px;
+      height: 110px;
+    }}
     .job-list {{ display: grid; gap: 12px; }}
     .job-row {{ border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fff; }}
     .job-heading {{ display: flex; justify-content: space-between; gap: 12px; font-weight: 650; }}
@@ -10379,7 +10385,14 @@ def page(title: str, body: str) -> bytes:
     if (layout) layout.classList.toggle("is-filtering", active);
     form.setAttribute("aria-busy", active ? "true" : "false");
   }};
+  const syncFloatingJobClearance = () => {{
+    document.body.classList.toggle(
+      "has-article-sequence-nav",
+      Boolean(document.querySelector(".article-sequence-nav")),
+    );
+  }};
   const rebindPageAfterPartialUpdate = () => {{
+    syncFloatingJobClearance();
     setupLocalWebDynamicControls(document);
     if (typeof window.initItemsPage === "function") window.initItemsPage();
     if (typeof window.initReaderPage === "function") window.initReaderPage();
@@ -10502,6 +10515,7 @@ def page(title: str, body: str) -> bytes:
     setupWorkspaceToggleControls(root);
     setupInstantFilterForms(root);
   }};
+  syncFloatingJobClearance();
   setupLocalWebDynamicControls(document);
 
   document.querySelectorAll(".article-title-menu").forEach((menu) => {{
