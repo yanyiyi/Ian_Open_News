@@ -4520,6 +4520,34 @@ def item_matches_text_filter(item: dict, query: object) -> bool:
     return all(term in haystack for term in terms)
 
 
+def item_matches_items_filters(
+    item: dict,
+    *,
+    track: str = "all",
+    recommendation: str = "all",
+    license_name: str = "all",
+    text: str = "",
+    keywords: set[str] | None = None,
+    match_any: bool = False,
+) -> bool:
+    """入庫篩選；單篇清單走 AND，分群檢視可改走有條件即命中的 OR。"""
+    checks: list[bool] = []
+    if track != "all":
+        checks.append(item.get("track") == track)
+    if recommendation != "all":
+        checks.append(candidate_recommendation(item) == recommendation)
+    if license_name != "all":
+        checks.append(item_license_name(item) == license_name)
+    if text:
+        checks.append(item_matches_text_filter(item, text))
+    selected_keywords = keywords or set()
+    if selected_keywords:
+        checks.append(bool(item_triage_keywords(item) & selected_keywords))
+    if not checks:
+        return True
+    return any(checks) if match_any else all(checks)
+
+
 def taxonomy_beats(track: str) -> list[str]:
     taxonomy = load_json(DATABASE / "taxonomy.json")
     tracks = taxonomy.get("tracks") if isinstance(taxonomy.get("tracks"), dict) else {}
@@ -7522,6 +7550,12 @@ def item_cluster_info(item: dict) -> dict:
     editorial = item.get("editorial_triage") if isinstance(item.get("editorial_triage"), dict) else {}
     cluster = editorial.get("cluster")
     return cluster if isinstance(cluster, dict) else {}
+
+
+def item_cluster_key(item: dict) -> tuple[str, str]:
+    """分群 id 只在同一次 run 內唯一；跨批次比較必須連 run_id 一起看。"""
+    cluster = item_cluster_info(item)
+    return clean_text(cluster.get("run_id")), clean_text(cluster.get("cluster_id"))
 
 
 def item_cluster_attrs(item: dict) -> str:
@@ -12832,7 +12866,7 @@ def model_settings_page_html(query: dict[str, list[str]]) -> str:
             f'<p class="help">CLI：<code>{h(state.get("path") or meta["cli"])}</code><br>'
             f'版本：{h(state.get("version") or "無法讀取")}<br>'
             f'CLI 全域預設：<strong>{h(state.get("cli_default") or "未固定")}</strong></p>'
-            f'<details><summary>這台機器可選的模型（{len(models)}）</summary><p class="help model-list">{model_list}</p></details>'
+            f'<details><summary>CLI 模型快取回報（{len(models)}）</summary><p class="help model-list">{model_list}<br>快取列出不代表目前 CLI 版本一定能啟動；若 Codex 回報需升級，執行端會自動退回同級相容模型。</p></details>'
             '</article>'
         )
 
@@ -16618,6 +16652,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         text_filter = clean_text((query.get("q") or [""])[0], 180)
         selected_keywords = {keyword for keyword in (query.get("keyword") or []) if keyword}
         show_all = (query.get("show") or [""])[0] == "all"
+        cluster_view_requested = (query.get("view") or [""])[0] == "cluster"
 
         def matches_basic(record: dict) -> bool:
             if track_filter != "all" and record.get("track") != track_filter:
@@ -16631,11 +16666,14 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             return True
 
         def matches(record: dict) -> bool:
-            if not matches_basic(record):
-                return False
-            if selected_keywords and not (item_triage_keywords(record) & selected_keywords):
-                return False
-            return True
+            return item_matches_items_filters(
+                record,
+                track=track_filter,
+                recommendation=recommendation_filter,
+                license_name=license_filter,
+                text=text_filter,
+                keywords=selected_keywords,
+            )
 
         keyword_source_entries = [entry for entry in pending_entries if matches_basic(entry[1])]
         keyword_counts = Counter(keyword for _, record in keyword_source_entries for keyword in item_triage_keywords(record))
@@ -16644,9 +16682,37 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             if keyword not in keyword_options:
                 keyword_options.insert(0, keyword)
 
-        filtered = [entry for entry in pending_entries if matches(entry[1])]
+        if cluster_view_requested:
+            direct_matches = [
+                entry
+                for entry in pending_entries
+                if item_matches_items_filters(
+                    entry[1],
+                    track=track_filter,
+                    recommendation=recommendation_filter,
+                    license_name=license_filter,
+                    text=text_filter,
+                    keywords=selected_keywords,
+                    match_any=True,
+                )
+            ]
+            direct_ids = {clean_text(record.get("id")) for _, record in direct_matches}
+            matched_cluster_keys = {
+                item_cluster_key(record)
+                for _, record in direct_matches
+                if all(item_cluster_key(record))
+            }
+            filtered = [
+                entry
+                for entry in pending_entries
+                if clean_text(entry[1].get("id")) in direct_ids
+                or item_cluster_key(entry[1]) in matched_cluster_keys
+            ]
+        else:
+            filtered = [entry for entry in pending_entries if matches(entry[1])]
         filtered.sort(key=candidate_sort_key, reverse=True)
-        visible = filtered if show_all else filtered[:150]
+        # 分群檢視不能在 150 筆邊界把同一群切掉；命中的群一律完整顯示。
+        visible = filtered if show_all or cluster_view_requested else filtered[:150]
         summary_entries = [
             entry
             for entry in pending_entries
@@ -16660,6 +16726,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 
         def items_metric_href(recommendation: str = "") -> str:
             params = []
+            if cluster_view_requested:
+                params.append(("view", "cluster"))
             if track_filter != "all":
                 params.append(("track", track_filter))
             if recommendation:
@@ -16840,6 +16908,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         more_link = ""
         if not show_all and len(filtered) > len(visible):
             parts = []
+            if cluster_view_requested:
+                parts.append("view=cluster")
             if track_filter != "all":
                 parts.append(f"track={quote(track_filter)}")
             if recommendation_filter != "all":
@@ -16880,6 +16950,8 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
                 f'<input type="hidden" name="track" value="{h(track_filter)}">',
                 f'<input type="hidden" name="recommendation" value="{h(recommendation)}">',
             ]
+            if cluster_view_requested:
+                hidden_inputs.append('<input type="hidden" name="view" value="cluster">')
             if license_filter != "all":
                 hidden_inputs.append(f'<input type="hidden" name="license" value="{h(license_filter)}">')
             if text_filter:
@@ -16941,7 +17013,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     <h2>待入庫材料</h2>
     <p class="muted">符合條件：{len(filtered)} 筆。{'' if show_all else f'目前先顯示 {len(visible)} 筆。'}</p>
     {more_link}
-    <div class="list" id="items-list" data-layout="list" data-layout-persist>{''.join(rows)}</div>
+    <div class="list" id="items-list" data-layout="list" data-layout-persist data-cluster-view="{'1' if cluster_view_requested else '0'}">{''.join(rows)}</div>
     {more_link}
   </section>
   <aside class="workspace-sidebar" id="items-sidebar">
@@ -16950,6 +17022,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
       <form class="filter-panel" method="get" action="/items" id="items-filter-form"
         data-instant-filter data-instant-filter-targets=".grid,#items-workspace .workspace-main,#items-sidebar">
         {'<input type="hidden" name="show" value="all">' if show_all else ''}
+        {'<input type="hidden" name="view" value="cluster">' if cluster_view_requested else ''}
         <label>搜尋</label>
         <input type="search" name="q" class="auto-filter" value="{h(text_filter)}" placeholder="標題、來源、URL、摘要、tag">
         <div class="form-grid">
@@ -16969,10 +17042,10 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         <label>關鍵字 / tag</label>
         <div class="keyword-filters">{keyword_filter_html}</div>
         <div class="button-row">
-          <a class="button secondary" href="/items">清除篩選</a>
+          <a class="button secondary" href="/items{'?view=cluster' if cluster_view_requested else ''}">清除篩選</a>
           <a class="button quiet" href="/keywords">調整關鍵字</a>
         </div>
-        <p class="help">搜尋與篩選會同步套用到左側清單、統計與批次處理。</p>
+        <p class="help">{'分群檢視採「任一條件符合」：群內任一篇命中任一篩選條件，就顯示完整分群。' if cluster_view_requested else '搜尋與篩選會同步套用到左側清單、統計與批次處理。'}</p>
       </form>
     </section>
     <section class="workspace-sidebar-section">
@@ -17131,6 +17204,7 @@ const clusterToggle = document.getElementById("cluster-view-toggle");
 const runClusterBtn = document.getElementById("run-cluster");
 const clusterEngine = document.getElementById("cluster-engine");
 const itemsList = document.getElementById("items-list");
+const clusterViewRequested = itemsList?.dataset.clusterView === "1";
 let clusterData = null;
 let clusterViewOn = false;
 let clusterOriginalOrder = null;
@@ -17276,14 +17350,30 @@ function exitClusterView() {{
 if (clusterToggle && clusterToggle.dataset.clusterBound !== "1") {{
   clusterToggle.dataset.clusterBound = "1";
   clusterToggle.addEventListener("click", async () => {{
-    if (clusterViewOn) {{ exitClusterView(); return; }}
+    if (clusterViewRequested) {{
+      const url = new URL(window.location.href);
+      url.searchParams.delete("view");
+      window.location.href = url.toString();
+      return;
+    }}
     if (!clusterData) clusterData = await fetchClusterData().catch(() => null);
     if (!clusterData || !(clusterData.clusters || []).length) {{
       window.alert("還沒有分群結果。先按右側批次工具裡的「跑 AI 分群」。");
       return;
     }}
-    enterClusterView(clusterData);
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", "cluster");
+    window.location.href = url.toString();
   }});
+}}
+
+if (clusterViewRequested) {{
+  fetchClusterData()
+    .then((data) => {{
+      clusterData = data;
+      if (data && (data.clusters || []).length) enterClusterView(data, {{silent: true}});
+    }})
+    .catch(() => null);
 }}
 
 // 階段成果即時上畫面：重新抓最新快照、重排分群檢視。

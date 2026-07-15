@@ -150,11 +150,42 @@ def task_model(task_key: str, provider: str, override: str = "", path: Path = SE
     if str(override or "").strip():
         return str(override).strip()
     task = load_settings(path).get("tasks", {}).get(task_key) or {}
-    return str((task.get("models") or {}).get(provider) or "").strip()
+    model = str((task.get("models") or {}).get(provider) or "").strip()
+    if provider != "codex" or not model:
+        return model
+    available, _current = _codex_models()
+    if not available or model in available:
+        return model
+    tier = model_tier("codex", model)
+    if tier == "custom":
+        # 自訂模型可能由 API 動態提供；只有內建 catalog 能安全判斷為版本不相容。
+        return model
+    for candidate in MODEL_CATALOG["codex"]:
+        if candidate["tier"] == tier and candidate["id"] in available:
+            return str(candidate["id"])
+    return model
 
 
 def model_tier(provider: str, model: str) -> str:
     return next((row["tier"] for row in MODEL_CATALOG.get(provider, []) if row["id"] == model), "custom")
+
+
+def codex_compatibility_fallback(model: str) -> str:
+    """內建新模型要求新版 CLI 時，退回 catalog 內同級且較早的模型。"""
+    tier = model_tier("codex", model)
+    if tier == "custom":
+        return ""
+    candidates = [row["id"] for row in MODEL_CATALOG["codex"] if row["tier"] == tier]
+    try:
+        index = candidates.index(model)
+    except ValueError:
+        return ""
+    return str(candidates[index - 1]) if index > 0 else ""
+
+
+def codex_requires_newer_version(output: str) -> bool:
+    text = str(output or "").casefold()
+    return "requires a newer version of codex" in text or "需要較新版本" in text
 
 
 def validate_settings(candidate: dict[str, Any]) -> list[str]:
@@ -261,7 +292,10 @@ def discover_cli_models(refresh: bool = False) -> dict[str, dict[str, Any]]:
         cli = str(meta["cli"])
         path = _cli_path(cli)
         version = _run([path, "--version"], timeout=5).splitlines()[-1] if path else ""
-        available = list(dict.fromkeys([*discovered.get(provider, []), *[row["id"] for row in MODEL_CATALOG.get(provider, [])]]))
+        detected = discovered.get(provider, [])
+        # CLI 有回報時只列真正可用的模型；靜態 catalog 僅供無法盤點時備援，
+        # 避免把「需要新版 CLI」的模型誤標成這台機器目前可選。
+        available = list(dict.fromkeys(detected or [row["id"] for row in MODEL_CATALOG.get(provider, [])]))
         result[provider] = {
             "installed": bool(path), "path": path or "", "version": version,
             "cli_default": current.get(provider, ""), "models": available,

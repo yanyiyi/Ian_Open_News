@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import copy
+import json
+import tempfile
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
+import triage_cluster
 from triage_cluster import apply_cluster_to_records, validate_and_normalize
 
 
@@ -115,6 +121,40 @@ class ApplyClusterTest(unittest.TestCase):
         self.assertEqual(cluster_info["label"], "開放資料授權")
         # 不在任何群的 record 完全不動
         self.assertEqual(records[1], before[1])
+
+
+class CodexCompatibilityRetryTest(unittest.TestCase):
+    def test_newer_cli_error_retries_same_batch_with_compatible_model(self) -> None:
+        calls: list[list[str]] = []
+        result_payload = {"clusters": [], "ungrouped_ids": ["item-a"], "notes": "ok"}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            def fake_run(command: list[str], **_kwargs: object) -> SimpleNamespace:
+                calls.append(list(command))
+                if len(calls) == 1:
+                    return SimpleNamespace(
+                        returncode=1,
+                        stdout="",
+                        stderr="The 'gpt-5.6-luna' model requires a newer version of Codex.",
+                    )
+                output_path = root / ".cache" / "triage-cluster-output.json"
+                output_path.write_text(json.dumps(result_payload), encoding="utf-8")
+                return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+            args = SimpleNamespace(model="", timeout=10)
+            with patch.object(triage_cluster, "ROOT", root), \
+                 patch.object(triage_cluster, "codex_path", return_value="codex"), \
+                 patch.object(triage_cluster, "task_model", return_value="gpt-5.6-luna"), \
+                 patch.object(triage_cluster.subprocess, "run", side_effect=fake_run):
+                result = triage_cluster.run_codex("prompt", args)
+
+        self.assertEqual(result_payload, result)
+        self.assertEqual(2, len(calls))
+        first_model_index = calls[0].index("-m") + 1
+        second_model_index = calls[1].index("-m") + 1
+        self.assertEqual("gpt-5.6-luna", calls[0][first_model_index])
+        self.assertEqual("gpt-5.4-mini", calls[1][second_model_index])
 
 
 if __name__ == "__main__":

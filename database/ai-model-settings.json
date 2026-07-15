@@ -28,7 +28,7 @@
     "triage_cluster": {
       "provider": "codex",
       "models": {
-        "codex": "gpt-5.6-luna",
+        "codex": "gpt-5.4-mini",
         "claude": "haiku",
         "gemini": "Gemini 3.5 Flash (Medium)",
         "ollama-gemma4": "gemma4:12b-mlx",
@@ -38,7 +38,7 @@
     "editor_theme_check": {
       "provider": "codex",
       "models": {
-        "codex": "gpt-5.6-luna",
+        "codex": "gpt-5.4-mini",
         "claude": "sonnet",
         "gemini": "Gemini 3.5 Flash (High)",
         "ollama-gemma4": "gemma4:12b-mlx",
@@ -48,7 +48,7 @@
     "editor_compose_thematic": {
       "provider": "claude",
       "models": {
-        "codex": "gpt-5.6-terra",
+        "codex": "gpt-5.4",
         "claude": "sonnet",
         "gemini": "Gemini 3.1 Pro (Low)",
         "ollama-gemma4": "gemma4:12b-mlx",
@@ -58,7 +58,7 @@
     "editor_compose_digest": {
       "provider": "claude",
       "models": {
-        "codex": "gpt-5.6-luna",
+        "codex": "gpt-5.4-mini",
         "claude": "sonnet",
         "gemini": "Gemini 3.5 Flash (Medium)",
         "ollama-gemma4": "gemma4:12b-mlx",
@@ -68,7 +68,7 @@
     "editor_factcheck": {
       "provider": "codex",
       "models": {
-        "codex": "gpt-5.6-terra",
+        "codex": "gpt-5.4",
         "claude": "sonnet",
         "gemini": "Gemini 3.1 Pro (Low)",
         "ollama-gemma4": "gemma4:12b-mlx",
@@ -78,7 +78,7 @@
     "editor_extract_viewpoints": {
       "provider": "claude",
       "models": {
-        "codex": "gpt-5.6-luna",
+        "codex": "gpt-5.4-mini",
         "claude": "haiku",
         "gemini": "Gemini 3.5 Flash (Medium)",
         "ollama-gemma4": "gemma4:12b-mlx",
@@ -88,7 +88,7 @@
     "editor_newsletter_extract": {
       "provider": "claude",
       "models": {
-        "codex": "gpt-5.6-luna",
+        "codex": "gpt-5.4-mini",
         "claude": "haiku",
         "gemini": "Gemini 3.5 Flash (Medium)",
         "ollama-gemma4": "gemma4:12b-mlx",
@@ -108,7 +108,7 @@
     "pdf_split": {
       "provider": "gemini",
       "models": {
-        "codex": "gpt-5.6-luna",
+        "codex": "gpt-5.4-mini",
         "claude": "haiku",
         "gemini": "Gemini 3.5 Flash (Medium)",
         "ollama-gemma4": "gemma4:12b-mlx",
@@ -128,7 +128,7 @@
     "taste_retro": {
       "provider": "codex",
       "models": {
-        "codex": "gpt-5.6-terra",
+        "codex": "gpt-5.4",
         "claude": "sonnet",
         "gemini": "Gemini 3.1 Pro (Low)",
         "ollama-gemma4": "gemma4:12b-mlx",
@@ -138,7 +138,7 @@
     "insight_analysis": {
       "provider": "codex",
       "models": {
-        "codex": "gpt-5.6-terra",
+        "codex": "gpt-5.4",
         "claude": "sonnet",
         "gemini": "Gemini 3.1 Pro (Low)",
         "ollama-gemma4": "gemma4:12b-mlx",

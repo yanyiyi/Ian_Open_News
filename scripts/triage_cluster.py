@@ -50,7 +50,12 @@ from codex_enrich_reviews import (
     write_jsonl,
     write_status,
 )
-from ai_model_settings import task_model, task_provider
+from ai_model_settings import (
+    codex_compatibility_fallback,
+    codex_requires_newer_version,
+    task_model,
+    task_provider,
+)
 
 ARTICLES = ROOT / "database" / "articles.jsonl"
 MATERIAL_LINKS = ROOT / "database" / "material-links.jsonl"
@@ -336,6 +341,15 @@ def run_codex(prompt: str, args: argparse.Namespace) -> dict[str, Any]:
     result = subprocess.run(
         command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=args.timeout, env=env
     )
+    fallback = ""
+    if result.returncode != 0 and model and codex_requires_newer_version(f"{result.stdout}\n{result.stderr}"):
+        fallback = codex_compatibility_fallback(model)
+        if fallback:
+            model_index = command.index("-m") + 1
+            command[model_index] = fallback
+            result = subprocess.run(
+                command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=args.timeout, env=env
+            )
     if result.returncode != 0:
         raise RuntimeError(f"codex exec failed\nSTDERR:\n{result.stderr[-2000:]}")
     return json.loads(output_path.read_text(encoding="utf-8"))
