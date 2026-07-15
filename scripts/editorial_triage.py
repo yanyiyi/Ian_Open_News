@@ -85,6 +85,13 @@ LOW_VALUE_CUES = [
     "名額",
 ]
 
+ACTIVITY_PROMOTION_CUES = ["年會", "論壇", "盛大登場", "邀請", "助攻", "立即報名", "早鳥報名", "免費參加", "招商"]
+SUBSTANTIVE_GOVERNANCE_CUES = ["法案", "立法", "法規", "規則", "標準", "問責", "調查", "裁罰", "衝突", "制度變動", "修法"]
+INSTITUTIONAL_GOVERNANCE_CUES = ["governance architecture", "governance", "制度設計", "治理架構", "標準制定", "rulemaking", "問責", "accountability", "程序", "申訴", "age assurance", "digital sovereignty", "數位主權"]
+PLATFORM_DEPENDENCY_CUES = ["runtime", "local llm", "local model", "本地部署", "platform", "平台", "cloud", "雲端", "model access", "模型接入", "ollama"]
+DEPENDENCY_CONCERN_CUES = ["vendor lock-in", "供應商鎖定", "switching cost", "轉換成本", "portability", "可攜性", "model choice", "模型選擇", "dependency", "依賴", "keep running", "持續運行", "worst way"]
+INTEREST_NOTE_CUES = ["會好奇", "值得看", "很重要"]
+
 # 已知商業／顧問來源：這些來源常觸發語氣負分，但常含可萃取的政策/治理/開源社會責任概念。
 # 命中時不直接否決，先查前段是否有可萃取概念（見 evaluate_editorial_triage 商業萃取層）。
 COMMERCIAL_SOURCE_HINTS = [
@@ -325,6 +332,12 @@ def tags_for(record: dict[str, Any]) -> list[str]:
 
 def source_key(record: dict[str, Any]) -> str:
     return clean_text(record.get("source_name") or record.get("author"), 120)
+
+
+def source_is_blocked(source: str, taste: dict[str, Any]) -> bool:
+    global_cfg = taste.get("global") if isinstance(taste.get("global"), dict) else {}
+    blocked = global_cfg.get("source_blocklist") if isinstance(global_cfg, dict) else []
+    return normalized(source) in {normalized(value) for value in blocked if normalized(value)}
 
 
 def local_decision_action(record: dict[str, Any]) -> str:
@@ -583,6 +596,19 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
         if name and kws:
             tracked_beats.append({"beat": name, "keywords": kws})
 
+    interest_terms: Counter[str] = Counter()
+    for record in prior_records:
+        record_date = parse_record_date(record)
+        if not record_date or (date.today() - record_date).days > 30:
+            continue
+        decision = record.get("local_decision") if isinstance(record.get("local_decision"), dict) else {}
+        note = clean_text(decision.get("reason"))
+        if not any(cue in note for cue in INTEREST_NOTE_CUES):
+            continue
+        interest_terms.update(normalized(tag) for tag in tags_for(record) if len(normalized(tag)) >= 4)
+        interest_terms.update(matched_keyword_keys(record))
+    short_term_interest_clusters = [term for term, count in interest_terms.items() if count >= 2]
+
     # 進行中稿件（researching/drafting）：供跨篇關聯掃描，找可互為佐證的稿件
     active_research = []
     for r in records:
@@ -612,6 +638,7 @@ def build_editorial_context(records: list[dict[str, Any]], keyword_config: dict[
         "taste_profile": taste,
         "personal_beats": personal_beats,
         "tracked_beats": tracked_beats,
+        "short_term_interest_clusters": short_term_interest_clusters,
         "active_research": active_research,
         "named_event_index": named_event_index,
     }
@@ -637,6 +664,11 @@ def evaluate_taste_fit(text: str, tags: list[str], track: str, taste: dict[str, 
     if g.get("taiwan_context_required") and ("台灣" in haystack or "臺灣" in haystack):
         score += 1
         signals.append("含台灣脈絡（品味設為必要）")
+    de_emphasize = [term for term in (g.get("de_emphasize") or []) if term]
+    de_hits = [term for term in de_emphasize if normalized(term) in normalized(haystack)]
+    if de_hits:
+        score -= len(de_hits)
+        signals.append("命中全域淡化詞：" + "、".join(de_hits[:6]))
     return score, signals
 
 
@@ -755,6 +787,14 @@ def evaluate_editorial_triage(
     skip_keywords = [clean_text(keyword) for keyword in triage.get("skip_keywords", []) if clean_text(keyword)]
     low_value_matches = cue_matches(text, LOW_VALUE_CUES)
     kind = content_kind(record)
+    taste = context.get("taste_profile") or {}
+    source_blocked = source_is_blocked(source, taste)
+    title = clean_text(record.get("title"))
+    activity_hits = cue_matches(title, ACTIVITY_PROMOTION_CUES)
+    substantive_hits = cue_matches(text, SUBSTANTIVE_GOVERNANCE_CUES)
+    institutional_hits = cue_matches(text, INSTITUTIONAL_GOVERNANCE_CUES)
+    platform_hits = cue_matches(text, PLATFORM_DEPENDENCY_CUES)
+    dependency_hits = cue_matches(text, DEPENDENCY_CONCERN_CUES)
 
     keyword_score = (len(matched_keywords) * 2) - (len(skip_keywords) * 3)
     if triage.get("recommendation") == "suggest-skip" and not matched_keywords:
@@ -769,6 +809,8 @@ def evaluate_editorial_triage(
     prior_score = min(5, len(prior_signals))
 
     deletion_signals = []
+    if source_blocked:
+        deletion_signals.append(f"來源「{source}」命中設定的 source_blocklist，直接略過")
     if source and context["rejected_sources"].get(source, 0):
         deletion_signals.append(f"來源「{source}」也曾出現在不收紀錄 {context['rejected_sources'][source]} 次")
     deletion_signals.extend(overlap_signals(tags, context["rejected_tags"], "標籤", limit=3))
@@ -779,7 +821,7 @@ def evaluate_editorial_triage(
     published = parse_record_date(record)
     if published and (date.today() - published).days >= 730 and clean_text(record.get("origin")) == "inoreader-starred":
         deletion_signals.append("Inoreader 舊收藏且發布超過兩年，容易只是歷史待清資料")
-    deletion_score = min(6, len(deletion_signals) + len(skip_keywords))
+    deletion_score = 6 if source_blocked else min(6, len(deletion_signals) + len(skip_keywords))
 
     taste_score, taste_signals = evaluate_taste_fit(text, tags, track, context.get("taste_profile") or {})
 
@@ -795,13 +837,13 @@ def evaluate_editorial_triage(
         recommendation = "suggest-skip"
 
     # 品味微調：只往「收」的方向。命中偏好且非明確該刪時，把 skip 升為 review，降低誤刪。
-    if taste_score >= 2 and recommendation == "suggest-skip" and deletion_score < 3:
+    if not source_blocked and taste_score >= 2 and recommendation == "suggest-skip" and deletion_score < 3:
         recommendation = "suggest-review"
         taste_signals.append("因符合個人品味，從建議略過上修為建議人工看過")
 
     # personal-beat 保護層：命中使用者明示的個人 beat 主題時，輸出 suggest-ask 而非 skip。
     # 只在 deletion_score < 4 且尚為 suggest-skip 時觸發，避免和明確 spam 衝突。
-    if recommendation == "suggest-skip" and deletion_score < 4:
+    if not source_blocked and recommendation == "suggest-skip" and deletion_score < 4:
         personal_beats = context.get("personal_beats") or []
         beat_hits = [b for b in personal_beats if b and normalized(b) and normalized(b) in normalized(text)]
         if beat_hits:
@@ -810,7 +852,7 @@ def evaluate_editorial_triage(
 
     # 機制關鍵字保護層：表層主題沒命中主線、但命中底層機制框架詞（FOIA、公共數位基礎建設、
     # 開源永續、貢獻者權利、數位人權等）時，輸出 suggest-ask 而非自主 skip，避免誤刪有切角價值的稿件。
-    if recommendation == "suggest-skip" and deletion_score < 4:
+    if not source_blocked and recommendation == "suggest-skip" and deletion_score < 4:
         track_cfg = (keyword_config.get("tracks") or {}).get(track, {})
         mechanism_keywords = track_cfg.get("mechanism_keywords") or []
         mech_hits = [kw for kw in mechanism_keywords if normalized(kw) and normalized(kw) in normalized(text)]
@@ -823,7 +865,7 @@ def evaluate_editorial_triage(
     # keep 正訊號保護層：triage 已命中 keep 關鍵字（正訊號）卻被歷史/負分/共現的 skip 詞壓成 skip 時，
     # 不整篇否決，改 suggest-ask 讓使用者決定。純 spam 不會命中 keep，故即使同時有 skip 詞也安全。
     # 這是提案#3「正訊號不應被語氣/歷史/共現負分壓過」的核心。
-    if recommendation == "suggest-skip" and matched_keywords:
+    if not source_blocked and recommendation == "suggest-skip" and matched_keywords:
         recommendation = "suggest-ask"
         extra = ("（雖同時命中排除詞「" + "、".join(skip_keywords[:3]) + "」）") if skip_keywords else ""
         taste_signals.append("命中收錄關鍵字「" + "、".join(matched_keywords[:4])
@@ -832,7 +874,7 @@ def evaluate_editorial_triage(
     # 歷史命中率校準層：高價值國際科技政策訊號不因非台灣來源被略過；相反地，
     # 低收下率來源/關鍵字若只命中泛文化詞，就不要讓 keep 泛詞直接推高到 ask/collect。
     history_cfg = history_calibration_settings(context.get("taste_profile") or {})
-    if history_cfg.get("enabled") is not False:
+    if not source_blocked and history_cfg.get("enabled") is not False:
         high_value_hits = cue_matches(text, cfg_terms(history_cfg, "high_value_signals"))
         if high_value_hits:
             high_value_note = (
@@ -890,7 +932,7 @@ def evaluate_editorial_triage(
 
     # tracked-beat 監測層：命中使用者長期追蹤線（taste_profile.tracked_beats 的關鍵字）時，
     # 即使單篇品質普通也強制把 suggest-skip 升為 suggest-ask，附追蹤線脈絡；命中明確 spam 排除詞則不動。
-    if recommendation == "suggest-skip" and not skip_keywords:
+    if not source_blocked and recommendation == "suggest-skip" and not skip_keywords:
         beat_hit_names = []
         for tb in (context.get("tracked_beats") or []):
             if any(kw in norm_text for kw in tb.get("keywords", [])):
@@ -903,7 +945,7 @@ def evaluate_editorial_triage(
     # 商業來源前段萃取層：已知商業/顧問來源即使被歷史或語氣壓成 skip，
     # 若摘要前段（前 200 字）含可萃取概念（keep / mechanism / 偏好主題詞），改 suggest-ask，
     # 標「前段有 X 概念可萃取」而不因來源整篇否決；命中明確 spam 排除詞則不動。
-    if recommendation == "suggest-skip" and not skip_keywords:
+    if not source_blocked and recommendation == "suggest-skip" and not skip_keywords:
         commercial_hay = normalized(source) + " " + normalized(record.get("title")) + " " + normalized(record.get("author"))
         if any(cs in commercial_hay for cs in COMMERCIAL_SOURCE_HINTS):
             early = normalized(clean_text(record.get("summary"))[:200] + " " + clean_text(record.get("title")))
@@ -921,7 +963,7 @@ def evaluate_editorial_triage(
     # 命名事件串保護層：同一具名事件近期已有收錄/閱讀中的資料時，後續稿可能補足事件演變。
     # 單篇密度低仍不直接刪，改 suggest-ask；但 deletion_score >= 4 的明確垃圾/低價值訊號不動。
     event_hits = named_event_chain_hits(record, keyword_config, context)
-    if event_hits:
+    if event_hits and not source_blocked:
         event_names = "、".join(dict.fromkeys(hit["label"] for hit in event_hits[:3]))
         prior_names = "；".join(
             f"《{hit['title']}》({hit['id']})" if hit.get("id") else f"《{hit['title']}》"
@@ -935,7 +977,7 @@ def evaluate_editorial_triage(
     # 跨篇關聯層：與庫中 researching/drafting 稿件共用 >= XREF_TAG_THRESHOLD 個 tag 時，
     # 標注可互為佐證，並把保留優先度提升一級（suggest-skip → suggest-review）。
     cur_tags = {normalized(t) for t in tags if normalized(t)}
-    if cur_tags:
+    if cur_tags and not source_blocked:
         cur_id = clean_text(record.get("id"))
         xrefs = []
         for it in (context.get("active_research") or []):
@@ -948,6 +990,28 @@ def evaluate_editorial_triage(
             taste_signals.append("可與進行中稿件互為佐證：" + names)
             if recommendation == "suggest-skip" and not skip_keywords:
                 recommendation = "suggest-review"
+
+    # 論述型制度稿、平台依賴結構與短期興趣簇在一般關鍵字不足時先送人工判斷；
+    # 明確略過來源、活動 CTA 或垃圾訊號不會被這些保護層救回。
+    if not source_blocked and deletion_score < 4 and not skip_keywords:
+        if institutional_hits and recommendation == "suggest-skip":
+            recommendation = "suggest-ask"
+            taste_signals.append("命中制度問題訊號：" + "、".join(institutional_hits[:4]) + "；先判斷治理架構而非文體")
+        if platform_hits and dependency_hits and recommendation == "suggest-skip":
+            recommendation = "suggest-ask"
+            taste_signals.append("命中平台依賴結構：" + "、".join((platform_hits + dependency_hits)[:4]) + "；先判斷控制權與替換成本")
+        interest_hits = [term for term in context.get("short_term_interest_clusters", []) if term and term in norm_text]
+        if interest_hits and recommendation == "suggest-skip":
+            recommendation = "suggest-ask"
+            taste_signals.append("命中近 30 天短期興趣簇：" + "、".join(interest_hits[:4]) + "；先保留觀察")
+
+    # 活動宣傳先行降權：沒有制度、問責或規則變動等實質訊號時，不能被一般治理詞直接推成收錄/詢問。
+    if activity_hits and not substantive_hits and recommendation in {"suggest-collect", "suggest-ask"}:
+        recommendation = "suggest-review"
+        taste_signals.append("活動宣傳語氣：" + "、".join(activity_hits[:4]) + "；缺乏實質制度訊號，最高人工看過")
+    elif taste_score < 0 and recommendation == "suggest-collect":
+        recommendation = "suggest-review"
+        taste_signals.append("命中全域淡化偏好；由建議收錄降為人工看過")
 
     confidence_points = 0
     confidence_points += 2 if abs(keyword_score) >= 3 else 1 if abs(keyword_score) >= 1 else 0
