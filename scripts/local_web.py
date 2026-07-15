@@ -84,6 +84,9 @@ COMMAND_STATUS = ROOT / ".cache" / "command-status.json"
 # 長時、可背景跑的指令用專屬進度檔，避免與其他指令共用一檔互相蓋寫、進度框讀不到。
 COMMAND_STATUS_FILES = {
     "triage_cluster": ROOT / ".cache" / "command-status-triage-cluster.json",
+    "codex_review_batch": ROOT / ".cache" / "command-status-codex-review-batch.json",
+    "codex_enrich_reviews": ROOT / ".cache" / "command-status-codex-enrich-reviews.json",
+    "enrich_reader_metadata": ROOT / ".cache" / "command-status-enrich-reader-metadata.json",
 }
 TRIAGE_CLUSTERS = ROOT / ".cache" / "triage-clusters.json"
 TRACKING_LINK_CACHE = ROOT / ".cache" / "tracking-link-cache.json"
@@ -608,6 +611,28 @@ def background_command_worker(command_name: str, proc: subprocess.Popen, timeout
             BACKGROUND_JOBS.pop(command_name, None)
 
 
+def start_background_process(
+    command_name: str,
+    command: list[str],
+    timeout_seconds: int,
+    initial_status: dict[str, object],
+) -> dict[str, object]:
+    """Start one registered background command, or attach to the existing process."""
+    with BACKGROUND_JOBS_LOCK:
+        existing = BACKGROUND_JOBS.get(command_name)
+        if existing and existing.poll() is None:
+            return {"ok": True, "background": True, "already_running": True}
+        write_json(command_status_path(command_name), initial_status)
+        proc = subprocess.Popen(command, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        BACKGROUND_JOBS[command_name] = proc
+    threading.Thread(
+        target=background_command_worker,
+        args=(command_name, proc, timeout_seconds),
+        daemon=True,
+    ).start()
+    return {"ok": True, "background": True, "started": True}
+
+
 def translation_job_key(item_id: str) -> str:
     return f"translation:{item_id}"
 
@@ -717,8 +742,9 @@ COMMANDS = {
             "--engine",
             configured_task_provider("taste_retro"),
             "--status-file",
-            str(COMMAND_STATUS),
+            str(COMMAND_STATUS_FILES["enrich_reader_metadata"]),
         ],
+        "background": True,
         # 內層單次 CLI timeout 就是 600 秒，外層若同為 600 秒會先砍；留統計與收尾緩衝。
         "timeout": 900,
     },
@@ -753,7 +779,7 @@ COMMANDS = {
             "--limit",
             "40",
             "--status-file",
-            str(COMMAND_STATUS),
+            str(COMMAND_STATUS_FILES["codex_enrich_reviews"]),
         ],
     },
     "enrich_article_summaries": {
@@ -790,11 +816,12 @@ COMMANDS = {
             "--batch-size",
             "1",
             "--status-file",
-            str(COMMAND_STATUS),
+            str(COMMAND_STATUS_FILES["codex_enrich_reviews"]),
             "--status-command",
             "codex_enrich_reviews",
         ],
         "timeout": 3600,
+        "background": True,
     },
     "commit_database_state": {
         "label": "送 commit 儲存資料庫狀態",
@@ -4031,9 +4058,11 @@ def command_card(name: str, config: dict) -> str:
     shortcut = COMMAND_SHORTCUTS.get(name, "")
     supports_provider = "--provider" in (config.get("command") or []) or "--engine" in (config.get("command") or [])
     if supports_provider:
+        background_attr = " data-background='1'" if config.get("background") else ""
+        status_attr = f" data-status-url='/api/command-status?command={h(name)}'"
         engine_buttons = "".join(
             f"<button type='button' class='secondary' data-engine-job "
-            f"data-command='{h(name)}' data-engine='{eng}' data-label='{h(config['label'])}'>{h(label)}</button>"
+            f"data-command='{h(name)}' data-engine='{eng}' data-label='{h(config['label'])}'{background_attr}{status_attr}>{h(label)}</button>"
             for eng, label in (("random", "隨機"), *[(provider, AI_PROVIDER_META[provider]["short"]) for provider in AI_PROVIDER_ORDER])
         )
         controls = (
@@ -7026,6 +7055,8 @@ def action_icon(action: str) -> str:
         "reject": '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 8l8 8"></path><path d="M16 8l-8 8"></path></svg>',
         "select": '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 12l3 3 5-6"></path></svg>',
         "clear": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>',
+        "collapse": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>',
+        "hourglass": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10"></path><path d="M7 21h10"></path><path d="M8 3c0 4 1.5 6.2 4 8-2.5 1.8-4 4-4 8"></path><path d="M16 3c0 4-1.5 6.2-4 8 2.5 1.8 4 4 4 8"></path></svg>',
         "preview": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
         "refresh": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5"></path><path d="M4 18v-5h5"></path><path d="M19 11a7 7 0 0 0-12-4"></path><path d="M5 13a7 7 0 0 0 12 4"></path></svg>',
         "edit": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11a2.5 2.5 0 0 0-4-4L4 16z"></path><path d="M13 6l5 5"></path></svg>',
@@ -9957,12 +9988,53 @@ def page(title: str, body: str) -> bytes:
     .command-window.is-visible {{ display: grid; grid-template-rows: auto minmax(0, 1fr); }}
     .command-window header {{
       position: static;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
       padding: 12px 14px;
       border-bottom: 1px solid var(--line);
       background: var(--soft);
     }}
+    .command-window-close {{
+      display: inline-grid; place-items: center; width: 34px; height: 34px; margin: 0;
+      padding: 0; border: 1px solid transparent; border-radius: 50%;
+      background: transparent; color: var(--muted);
+    }}
+    .command-window-close .icon {{ width: 18px; height: 18px; }}
+    .command-window-close:hover {{ border-color: var(--line); background: #fff; color: var(--ocf-primary); }}
     .command-window-body {{ padding: 14px; overflow: auto; }}
     .command-window pre {{ max-height: 44vh; }}
+    .command-chip {{
+      position: fixed; right: 22px; bottom: 22px; z-index: 119;
+      border: 1px solid var(--ocf-primary); border-radius: 999px;
+      background: #fff; color: var(--ocf-primary); box-shadow: 0 8px 28px rgba(15,25,35,.18);
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 14px; font-weight: 650;
+      opacity: 0; pointer-events: none;
+      transform: translateX(calc(100% + 28px));
+      transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+    }}
+    .command-chip .icon {{ width: 17px; height: 17px; }}
+    .command-chip:hover, .command-chip:focus-visible {{
+      opacity: 1; pointer-events: auto; transform: translateX(0);
+      background: var(--soft); color: var(--ocf-primary);
+    }}
+    .command-edge-trigger {{
+      position: fixed; right: 0; bottom: 0; z-index: 118;
+      width: 22px; height: 132px;
+      margin: 0; padding: 0; border: 0; background: transparent;
+    }}
+    .command-edge-trigger:hover, .command-edge-trigger:focus {{ background: transparent; }}
+    .command-edge-trigger:hover + .command-chip,
+    .command-edge-trigger:focus + .command-chip {{
+      opacity: 1; pointer-events: auto; transform: translateX(0);
+    }}
+    .job-list {{ display: grid; gap: 12px; }}
+    .job-row {{ border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fff; }}
+    .job-heading {{ display: flex; justify-content: space-between; gap: 12px; font-weight: 650; }}
+    .job-progress {{ height: 4px; margin: 8px 0; border-radius: 999px; overflow: hidden; background: var(--line); }}
+    .job-progress-fill {{ height: 100%; width: 0; background: var(--ocf-primary); transition: width .2s ease; }}
+    .job-message, .job-meta {{ margin: 5px 0 0; }}
+    .job-meta {{ color: var(--muted); font-size: 12px; }}
+    .job-output {{ margin-top: 8px; white-space: pre-wrap; }}
     .pdf-relation-dialog {{
       width: min(1040px, calc(100vw - 28px));
       max-height: calc(100vh - 40px);
@@ -10098,15 +10170,15 @@ def page(title: str, body: str) -> bytes:
   <main>{body}</main>{OMNIBAR_CSS}{OMNIBAR_JS}
   <section class="command-window" id="command-window" aria-live="polite" aria-hidden="true">
     <header>
-      <strong id="command-title">本機指令</strong>
-      <button type="button" class="quiet" id="command-close">關閉</button>
+      <strong>工作進度</strong>
+      <button type="button" class="command-window-close" id="command-close" aria-label="縮小工作進度" title="縮小成右下角工作提示">{icon_span("collapse")}</button>
     </header>
     <div class="command-window-body">
-      <p class="muted" id="command-status">等待執行。</p>
-      <div class="loading-dots" id="command-loading" hidden><span></span><span></span><span></span></div>
-      <pre id="command-output" hidden></pre>
+      <div class="job-list" id="job-list"></div>
     </div>
   </section>
+  <button type="button" class="command-edge-trigger" id="command-edge-trigger" aria-label="顯示工作進度提示" hidden></button>
+  <button type="button" class="command-chip" id="command-chip" hidden>{icon_span("hourglass")}<span id="command-chip-label">0 項工作進行中</span></button>
   <script>
   const setShortcutMode = (active) => {{
     document.body.classList.toggle("show-shortcuts", Boolean(active));
@@ -10313,6 +10385,19 @@ def page(title: str, body: str) -> bytes:
     if (typeof window.initReaderPage === "function") window.initReaderPage();
     window.dispatchEvent(new CustomEvent("localweb:partial-update"));
   }};
+  window.refreshFragment = async (selector) => {{
+    const response = await fetch(window.location.href, {{headers: {{"X-Requested-With": "local-web-fragment"}}}});
+    if (!response.ok) throw new Error(`HTTP ${{response.status}}`);
+    const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+    const fresh = doc.querySelector(selector);
+    const current = document.querySelector(selector);
+    if (!fresh || !current) return false;
+    current.replaceWith(fresh);
+    rebindPageAfterPartialUpdate();
+    if (typeof window.bindReadMoreForms === "function") window.bindReadMoreForms(fresh);
+    if (typeof window.bindCodexReviewForms === "function") window.bindCodexReviewForms(fresh);
+    return true;
+  }};
   const loadInstantFilter = async (url, form, options = {{}}) => {{
     if (!window.fetch || !window.DOMParser) {{
       location.href = url.toString();
@@ -10477,32 +10562,124 @@ def page(title: str, body: str) -> bytes:
   }});
 
   const commandWindow = document.getElementById("command-window");
-  const commandTitle = document.getElementById("command-title");
-  const commandStatus = document.getElementById("command-status");
-  const commandOutput = document.getElementById("command-output");
-  const commandLoading = document.getElementById("command-loading");
+  const commandChip = document.getElementById("command-chip");
+  const commandChipLabel = document.getElementById("command-chip-label");
+  const commandEdgeTrigger = document.getElementById("command-edge-trigger");
+  const jobList = document.getElementById("job-list");
+  const formatDuration = (seconds) => {{
+    const value = Math.max(0, Math.round(seconds || 0));
+    if (value < 60) return `${{value}} 秒`;
+    const minutes = Math.floor(value / 60);
+    const rest = value % 60;
+    return rest ? `${{minutes}} 分 ${{rest}} 秒` : `${{minutes}} 分`;
+  }};
+  let pendingJobs = 0;
+  const markJobStart = () => {{ pendingJobs += 1; }};
+  const markJobEnd = () => {{ pendingJobs = Math.max(0, pendingJobs - 1); }};
+  const jobs = new Set();
+  const refreshCommandChip = () => {{
+    const running = Array.from(jobs).filter((job) => job.running).length;
+    const visible = commandWindow?.classList.contains("is-visible");
+    if (commandChip) {{
+      if (commandChipLabel) commandChipLabel.textContent = `${{running}} 項工作進行中`;
+      commandChip.hidden = visible || running === 0;
+    }}
+    if (commandEdgeTrigger) commandEdgeTrigger.hidden = visible || running === 0;
+    if (!visible && running === 0) {{
+      Array.from(jobs).filter((job) => !job.running).forEach((job) => {{
+        job.element.remove(); jobs.delete(job);
+      }});
+    }}
+  }};
+  const showCommandWindow = () => {{
+    commandWindow?.classList.add("is-visible");
+    commandWindow?.setAttribute("aria-hidden", "false");
+    refreshCommandChip();
+  }};
   document.getElementById("command-close")?.addEventListener("click", () => {{
     commandWindow?.classList.remove("is-visible");
     commandWindow?.setAttribute("aria-hidden", "true");
+    refreshCommandChip();
   }});
-
-  const openCommandWindow = (label, status = "已送出，正在執行固定指令...") => {{
-    commandTitle.textContent = label || "本機指令";
-    commandStatus.textContent = status;
-    commandOutput.hidden = true;
-    commandOutput.textContent = "";
-    commandLoading.hidden = false;
-    commandWindow.classList.add("is-visible");
-    commandWindow.setAttribute("aria-hidden", "false");
+  commandChip?.addEventListener("click", showCommandWindow);
+  commandEdgeTrigger?.addEventListener("click", showCommandWindow);
+  window.localJobs = {{
+    start(label, {{trackUnload = false}} = {{}}) {{
+      const startedAt = new Date();
+      const row = document.createElement("article");
+      row.className = "job-row";
+      row.innerHTML = `<div class="job-heading"><span class="job-label"></span><span class="job-percent"></span></div><div class="job-progress" hidden><div class="job-progress-fill"></div></div><p class="job-message muted">準備中…</p><p class="job-meta"></p><pre class="job-output" hidden></pre>`;
+      row.querySelector(".job-label").textContent = label || "本機工作";
+      jobList?.prepend(row);
+      const handle = {{
+        element: row, startedAt, running: true, fraction: null, trackUnload,
+        update({{message, fraction, meta}} = {{}}) {{
+          if (message !== undefined) row.querySelector(".job-message").textContent = message;
+          if (fraction !== undefined) this.fraction = Number.isFinite(fraction) ? Math.max(0, Math.min(1, fraction)) : null;
+          this.extraMeta = meta || "";
+          const progress = row.querySelector(".job-progress");
+          const percent = row.querySelector(".job-percent");
+          progress.hidden = this.fraction === null;
+          percent.textContent = this.fraction === null ? "" : `${{Math.round(this.fraction * 100)}}%`;
+          row.querySelector(".job-progress-fill").style.width = `${{(this.fraction || 0) * 100}}%`;
+          updateJobMeta(this);
+        }},
+        output(text) {{ const out = row.querySelector(".job-output"); out.textContent = text || ""; out.hidden = !text; }},
+        done(ok, finalMessage) {{
+          if (!this.running) return;
+          this.running = false;
+          if (this.trackUnload) markJobEnd();
+          if (ok && this.fraction !== null) this.update({{fraction: 1}});
+          if (finalMessage) row.querySelector(".job-message").textContent = finalMessage;
+          row.dataset.state = ok ? "done" : "failed";
+          updateJobMeta(this); refreshCommandChip();
+        }}
+      }};
+      if (trackUnload) markJobStart();
+      jobs.add(handle); showCommandWindow(); updateJobMeta(handle); return handle;
+    }}
   }};
-
-  const startElapsedStatus = () => {{
-    const startedAt = Date.now();
-    return window.setInterval(() => {{
-      const seconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
-      commandStatus.textContent = `執行中，已等待 ${{seconds}} 秒。`;
-    }}, 1000);
+  const updateJobMeta = (job) => {{
+    const elapsed = (Date.now() - job.startedAt.getTime()) / 1000;
+    const parts = [`開始 ${{job.startedAt.toLocaleTimeString("zh-TW", {{hour12: false}})}}`, `已經過 ${{formatDuration(elapsed)}}`];
+    if (job.running && job.fraction >= .05 && job.fraction < 1) parts.push(`預估還要 ${{formatDuration(elapsed / job.fraction - elapsed)}}`);
+    if (job.extraMeta) parts.push(job.extraMeta);
+    job.element.querySelector(".job-meta").textContent = parts.join(" · ");
   }};
+  window.setInterval(() => {{ jobs.forEach((job) => {{ if (job.running) updateJobMeta(job); }}); }}, 1000);
+
+  // 單篇詳情分流留在原頁；建立 session／手動入庫等創建型流程不在此攔截。
+  const detailFlow = document.querySelector(".flow-current");
+  const detailFlowCard = detailFlow?.closest(".card");
+  if (detailFlowCard) {{
+    detailFlowCard.querySelectorAll("form").forEach((form) => {{
+      const path = new URL(form.getAttribute("action") || form.action, window.location.href).pathname;
+      if (!["/items/accept", "/items/direct-pr", "/items/reject", "/candidates/accept", "/candidates/dismiss"].includes(path)) return;
+      form.dataset.detailDecision = "1";
+      form.addEventListener("submit", async (event) => {{
+        event.preventDefault();
+        const button = event.submitter || form.querySelector("button");
+        if (button) button.disabled = true;
+        try {{
+          const response = await fetch(form.getAttribute("action") || form.action, {{
+            method: "POST", body: new URLSearchParams(new FormData(form)), credentials: "same-origin",
+            headers: {{"X-Requested-With":"local-web-fetch"}},
+          }});
+          if (!response.ok) throw new Error(`HTTP ${{response.status}}`);
+          let state = "accept", label = "可用材料（可進編輯台）";
+          if (path.endsWith("reject") || path.endsWith("dismiss")) {{ state="reject"; label="不收 / 封存"; }}
+          else if (path.endsWith("direct-pr") || form.querySelector("[name=decision][value=direct_pr]")) {{ state="small-news"; label="小消息（直接送 PR）"; }}
+          else if (form.querySelector("[name=mark_reading]") || form.querySelector("[name=decision][value=accept_reading]")) {{ state="reading"; label="閱讀中 / 超想看"; }}
+          detailFlow.className = `flow-current flow-current--${{state}}`; detailFlow.textContent = label;
+          const notice = document.createElement("div"); notice.className="notice"; notice.textContent="已更新分流，留在這一頁。";
+          detailFlowCard.prepend(notice);
+        }} catch (error) {{ alert("剛剛沒有送成功，請再試一次。"); }}
+        finally {{ if (button) button.disabled = false; }}
+      }});
+    }});
+  }}
+
+  const startElapsedStatus = (job) => window.setInterval(() => job.update({{message: "執行中。"}}), 1000);
 
   const rssStatusLine = (payload) => {{
     const message = payload?.message || "正在抓取 RSS。";
@@ -10525,13 +10702,14 @@ def page(title: str, body: str) -> bytes:
     return `${{payload.message}}${{index}}${{title}}`;
   }};
 
-  const startRssStatusPolling = () => {{
+  const startRssStatusPolling = (job) => {{
     const poll = async () => {{
       try {{
         const response = await fetch("/api/rss-status", {{headers: {{"X-Requested-With": "local-web-fetch"}}}});
         if (!response.ok) return;
         const payload = await response.json();
-        commandStatus.textContent = rssStatusLine(payload);
+        const fraction = payload?.source_index && payload?.selected_sources ? payload.source_index / payload.selected_sources : null;
+        job.update({{message: rssStatusLine(payload), fraction}});
       }} catch (_error) {{
         // Keep the command window alive; the command response will still show the final output.
       }}
@@ -10540,14 +10718,16 @@ def page(title: str, body: str) -> bytes:
     return window.setInterval(poll, 1200);
   }};
 
-  const startCommandStatusPolling = (commandName) => {{
+  const startCommandStatusPolling = (commandName, job) => {{
     const poll = async () => {{
       try {{
         const response = await fetch(`/api/command-status?command=${{encodeURIComponent(commandName)}}`, {{headers: {{"X-Requested-With": "local-web-fetch"}}}});
         if (!response.ok) return;
         const payload = await response.json();
         if (payload?.command === commandName && payload?.state === "running") {{
-          commandStatus.textContent = commandStatusLine(payload);
+          const current = payload.end_index || payload.index || payload.batch_done;
+          const total = payload.total || payload.batches_total;
+          job.update({{message: commandStatusLine(payload), fraction: current && total ? current / total : null}});
         }}
       }} catch (_error) {{
         // The final command response still carries stdout/stderr if polling is unavailable.
@@ -10557,13 +10737,17 @@ def page(title: str, body: str) -> bytes:
     return window.setInterval(poll, 1200);
   }};
 
-  const startJsonStatusPolling = (url) => {{
+  const startJsonStatusPolling = (url, job) => {{
     const poll = async () => {{
       try {{
         const response = await fetch(url, {{headers: {{"X-Requested-With": "local-web-fetch"}}}});
         if (!response.ok) return;
         const payload = await response.json();
-        if (payload?.message) commandStatus.textContent = commandStatusLine(payload);
+        if (payload?.message) {{
+          const current = payload.end_index || payload.index || payload.batch_done;
+          const total = payload.total || payload.batches_total;
+          job.update({{message: commandStatusLine(payload), fraction: current && total ? current / total : null}});
+        }}
       }} catch (_error) {{
         // Keep the elapsed/final result path available when polling is interrupted.
       }}
@@ -10572,15 +10756,11 @@ def page(title: str, body: str) -> bytes:
     return window.setInterval(poll, 1200);
   }};
 
-  const commandTimerFor = (commandName) => {{
-    if (commandName === "fetch_rss") return startRssStatusPolling();
-    if (commandName === "enrich_reader_metadata" || commandName === "codex_enrich_reviews" || commandName === "codex_review_batch" || commandName === "triage_cluster" || commandName === "taste_retro") return startCommandStatusPolling(commandName);
-    return startElapsedStatus();
+  const commandTimerFor = (commandName, job) => {{
+    if (commandName === "fetch_rss") return startRssStatusPolling(job);
+    if (commandName === "enrich_reader_metadata" || commandName === "codex_enrich_reviews" || commandName === "codex_review_batch" || commandName === "triage_cluster" || commandName === "taste_retro") return startCommandStatusPolling(commandName, job);
+    return startElapsedStatus(job);
   }};
-
-  let pendingJobs = 0;
-  const markJobStart = () => {{ pendingJobs += 1; }};
-  const markJobEnd = () => {{ pendingJobs = Math.max(0, pendingJobs - 1); }};
   window.addEventListener("beforeunload", (event) => {{
     if (pendingJobs > 0) {{
       event.preventDefault();
@@ -10605,15 +10785,14 @@ def page(title: str, body: str) -> bytes:
       order = [engine];
     }}
     const allowFallback = engine === "random";
-    markJobStart();
+    const job = window.localJobs.start(label, {{trackUnload: true}});
     let timer = null;
     try {{
       for (let i = 0; i < order.length; i++) {{
         const eng = order[i];
-        openCommandWindow(label, `使用 ${{ENGINE_LABELS[eng] || eng}} 執行中...`);
-        commandLoading.hidden = false;
+        job.update({{message: `使用 ${{ENGINE_LABELS[eng] || eng}} 執行中...`, fraction: null}});
         if (timer) window.clearInterval(timer);
-        timer = statusUrl ? startJsonStatusPolling(statusUrl) : startElapsedStatus();
+        timer = statusUrl ? startJsonStatusPolling(statusUrl, job) : startElapsedStatus(job);
         let payload;
         try {{
           const data = new URLSearchParams(baseBody);
@@ -10632,24 +10811,20 @@ def page(title: str, body: str) -> bytes:
         if (timer) {{ window.clearInterval(timer); timer = null; }}
         const ok = payload && payload.ok !== false && (payload.returncode === undefined || payload.returncode === 0);
         if (ok) {{
-          commandLoading.hidden = true;
-          commandStatus.textContent = `✓ ${{ENGINE_LABELS[eng] || eng}} 完成。`;
-          if (payload.output) {{ commandOutput.hidden = false; commandOutput.textContent = payload.output; }}
+          job.output(payload.output || "");
+          job.done(true, `✓ ${{ENGINE_LABELS[eng] || eng}} 完成。`);
           if (onSuccess) onSuccess(payload, eng);
           return true;
         }}
         const errMsg = (payload && (payload.error || payload.summary)) || `exit ${{payload ? payload.returncode : "?"}}`;
         const others = ALL_ENGINES.filter((e) => e !== eng).map((e) => ENGINE_LABELS[e]).join(" 或 ");
         if (allowFallback && i < order.length - 1) {{
-          commandLoading.hidden = true;
-          commandStatus.textContent = `✗ ${{ENGINE_LABELS[eng]}} 失敗，改用 ${{ENGINE_LABELS[order[i + 1]]}} 重試…`;
+          job.update({{message: `✗ ${{ENGINE_LABELS[eng]}} 失敗，改用 ${{ENGINE_LABELS[order[i + 1]]}} 重試…`}});
           window.alert(`${{label}}\n${{ENGINE_LABELS[eng]}} 失敗：${{errMsg}}\n改用 ${{ENGINE_LABELS[order[i + 1]]}} 重試。`);
           continue;
         }}
-        commandLoading.hidden = true;
-        commandStatus.textContent = `✗ ${{ENGINE_LABELS[eng] || eng}} 失敗：${{errMsg}}`;
-        commandOutput.hidden = false;
-        commandOutput.textContent = errMsg;
+        job.output(errMsg);
+        job.done(false, `✗ ${{ENGINE_LABELS[eng] || eng}} 失敗：${{errMsg}}`);
         if (allowFallback) {{
           window.alert(`${{label}}\n所有可用 AI CLI 都失敗了，請稍後再試或檢查登入狀態。`);
         }} else {{
@@ -10659,7 +10834,7 @@ def page(title: str, body: str) -> bytes:
       }}
     }} finally {{
       if (timer) window.clearInterval(timer);
-      markJobEnd();
+      if (job.running) job.done(false, "✗ 工作未完成。");
     }}
     return false;
   }};
@@ -10668,8 +10843,8 @@ def page(title: str, body: str) -> bytes:
   // 之後輪詢專屬狀態檔顯示逐批進度，每次進度更新都回呼 onProgress 讓畫面長出階段成果。
   window.runBackgroundEngineJob = async ({{ label, url, baseBody, engine, statusUrl, onProgress, onDone }}) => {{
     const engineLabel = ENGINE_LABELS[engine] || (engine === "random" ? "隨機" : engine);
-    openCommandWindow(label, `使用 ${{engineLabel}} 在背景執行中…`);
-    commandLoading.hidden = false;
+    const job = window.localJobs.start(label);
+    job.update({{message: `使用 ${{engineLabel}} 在背景執行中…`, fraction: null}});
     let payload;
     try {{
       const data = new URLSearchParams(baseBody);
@@ -10687,14 +10862,12 @@ def page(title: str, body: str) -> bytes:
       payload = {{ ok: false, error: String(error) }};
     }}
     if (!payload || payload.ok === false) {{
-      commandLoading.hidden = true;
       const errMsg = (payload && (payload.error || payload.summary)) || "無法啟動";
-      commandStatus.textContent = `✗ ${{label}} 啟動失敗：${{errMsg}}`;
-      commandOutput.hidden = false;
-      commandOutput.textContent = errMsg;
+      job.output(errMsg);
+      job.done(false, `✗ ${{label}} 啟動失敗：${{errMsg}}`);
       return false;
     }}
-    if (payload.summary) commandStatus.textContent = payload.summary;
+    if (payload.summary) job.update({{message: payload.summary}});
     return await new Promise((resolve) => {{
       let timer = null;
       let finished = false;
@@ -10709,7 +10882,9 @@ def page(title: str, body: str) -> bytes:
         }}
         if (!status || finished || status.state === "idle") return;
         if (status.state === "running") {{
-          if (status.message) commandStatus.textContent = commandStatusLine(status);
+          const current = status.end_index || status.index || status.batch_done;
+          const total = status.total || status.batches_total;
+          job.update({{message: commandStatusLine(status), fraction: current && total ? current / total : null}});
           if (onProgress) {{
             try {{ await onProgress(status); }} catch (_e) {{ /* 畫面更新失敗不中斷輪詢 */ }}
           }}
@@ -10718,16 +10893,15 @@ def page(title: str, body: str) -> bytes:
         if (status.state === "done" || status.state === "failed") {{
           finished = true;
           if (timer) window.clearInterval(timer);
-          commandLoading.hidden = true;
           const okDone = status.state === "done";
           if (okDone) {{
-            commandStatus.textContent = `✓ ${{engineLabel}} 完成：${{status.message || ""}}`;
+            job.done(true, `✓ ${{engineLabel}} 完成：${{status.message || ""}}`);
           }} else {{
             const errMsg = status.error || status.message || `exit ${{status.returncode}}`;
-            commandStatus.textContent = `✗ ${{engineLabel}} 失敗：${{errMsg}}`;
+            job.done(false, `✗ ${{engineLabel}} 失敗：${{errMsg}}`);
             window.alert(`${{label}}\n${{engineLabel}} 失敗：${{errMsg}}`);
           }}
-          if (status.output_tail) {{ commandOutput.hidden = false; commandOutput.textContent = status.output_tail; }}
+          if (status.output_tail) job.output(status.output_tail);
           if (onDone) {{
             try {{ await onDone(status); }} catch (_e) {{ /* 完成後的畫面刷新失敗不影響結果 */ }}
           }}
@@ -10740,12 +10914,11 @@ def page(title: str, body: str) -> bytes:
   }};
 
   window.runFetchJob = async ({{ label, url, baseBody, statusUrl, onSuccess, onError }}) => {{
-    markJobStart();
+    const job = window.localJobs.start(label, {{trackUnload: true}});
     let timer = null;
     try {{
-      openCommandWindow(label, "執行中…");
-      commandLoading.hidden = false;
-      timer = statusUrl ? startJsonStatusPolling(statusUrl) : startElapsedStatus();
+      job.update({{message: "執行中…", fraction: null}});
+      timer = statusUrl ? startJsonStatusPolling(statusUrl, job) : startElapsedStatus(job);
       let payload;
       try {{
         const data = new URLSearchParams(baseBody);
@@ -10762,20 +10935,18 @@ def page(title: str, body: str) -> bytes:
       if (timer) {{ window.clearInterval(timer); timer = null; }}
       const ok = payload && payload.ok !== false;
       if (ok) {{
-        commandLoading.hidden = true;
-        commandStatus.textContent = payload.message || "✓ 完成。";
-        if (payload.output) {{ commandOutput.hidden = false; commandOutput.textContent = payload.output; }}
+        job.output(payload.output || "");
+        job.done(true, payload.message || "✓ 完成。");
         if (onSuccess) onSuccess(payload);
         return true;
       }}
-      commandLoading.hidden = true;
       const errMsg = (payload && (payload.error || payload.message)) || "執行失敗";
-      commandStatus.textContent = "✗ " + errMsg;
+      job.done(false, "✗ " + errMsg);
       if (onError) onError(payload);
       return false;
     }} finally {{
       if (timer) window.clearInterval(timer);
-      markJobEnd();
+      if (job.running) job.done(false, "✗ 工作未完成。");
     }}
   }};
 
@@ -10871,12 +11042,12 @@ def page(title: str, body: str) -> bytes:
       const label = form.closest(".command-card")?.querySelector("strong")?.textContent?.trim()
         || form.closest(".card")?.querySelector("h3")?.textContent?.trim()
         || "本機指令";
-      openCommandWindow(label);
-      markJobStart();
+      const job = window.localJobs.start(label, {{trackUnload: true}});
+      job.update({{message: "已送出，正在執行固定指令...", fraction: null}});
       if (button) button.disabled = true;
       const data = new URLSearchParams(new FormData(form));
       data.set("format", "json");
-      const timer = commandTimerFor(data.get("command") || "");
+      const timer = commandTimerFor(data.get("command") || "", job);
       try {{
         const response = await fetch(form.getAttribute("action") || form.action, {{
           method: "POST",
@@ -10887,17 +11058,15 @@ def page(title: str, body: str) -> bytes:
           body: data
         }});
         const payload = await response.json();
-        commandStatus.textContent = payload.summary || `完成，exit code ${{payload.returncode}}。`;
-        commandOutput.hidden = false;
-        commandOutput.textContent = payload.output || "(沒有輸出)";
+        const ok = payload.returncode === undefined || payload.returncode === 0;
+        job.output(payload.output || "(沒有輸出)");
+        job.done(ok, payload.summary || `完成，exit code ${{payload.returncode}}。`);
       }} catch (error) {{
-        commandStatus.textContent = "指令沒有順利回傳，請看終端機或稍後再試。";
-        commandOutput.hidden = false;
-        commandOutput.textContent = String(error);
+        job.output(String(error));
+        job.done(false, "指令沒有順利回傳，請看終端機或稍後再試。");
       }} finally {{
         if (timer) window.clearInterval(timer);
-        commandLoading.hidden = true;
-        markJobEnd();
+        if (job.running) job.done(false, "✗ 工作未完成。");
         if (button) button.disabled = false;
       }}
     }});
@@ -10906,11 +11075,13 @@ def page(title: str, body: str) -> bytes:
   document.querySelectorAll("[data-engine-job]").forEach((btn) => {{
     btn.addEventListener("click", () => {{
       if (!window.runEngineJob) return;
-      window.runEngineJob({{
+      const runner = btn.dataset.background === "1" ? window.runBackgroundEngineJob : window.runEngineJob;
+      runner({{
         label: btn.dataset.label || "AI 工作",
         url: "/commands/run",
         baseBody: {{ command: btn.dataset.command }},
         engine: btn.dataset.engine,
+        statusUrl: btn.dataset.statusUrl || `/api/command-status?command=${{encodeURIComponent(btn.dataset.command)}}`,
       }});
     }});
   }});
@@ -10923,12 +11094,12 @@ def page(title: str, body: str) -> bytes:
       const sourceName = form.closest("tr")?.querySelector("strong")?.textContent?.trim()
         || document.querySelector("h1")?.textContent?.trim()
         || "RSS";
-      openCommandWindow(`手動更新 RSS：${{sourceName}}`, "已送出，正在抓取這個 RSS...");
-      markJobStart();
+      const job = window.localJobs.start(`手動更新 RSS：${{sourceName}}`, {{trackUnload: true}});
+      job.update({{message: "已送出，正在抓取這個 RSS...", fraction: null}});
       if (button) button.disabled = true;
       const data = new URLSearchParams(new FormData(form));
       data.set("format", "json");
-      const timer = startRssStatusPolling();
+      const timer = startRssStatusPolling(job);
       try {{
         const response = await fetch(form.getAttribute("action") || form.action, {{
           method: "POST",
@@ -10939,17 +11110,15 @@ def page(title: str, body: str) -> bytes:
           body: data
         }});
         const payload = await response.json();
-        commandStatus.textContent = payload.summary || `完成，exit code ${{payload.returncode}}。`;
-        commandOutput.hidden = false;
-        commandOutput.textContent = payload.output || payload.summary || "(沒有輸出)";
+        const ok = payload.returncode === undefined || payload.returncode === 0;
+        job.output(payload.output || payload.summary || "(沒有輸出)");
+        job.done(ok, payload.summary || `完成，exit code ${{payload.returncode}}。`);
       }} catch (error) {{
-        commandStatus.textContent = "手動更新 RSS 沒有順利回傳，請看終端機或稍後再試。";
-        commandOutput.hidden = false;
-        commandOutput.textContent = String(error);
+        job.output(String(error));
+        job.done(false, "手動更新 RSS 沒有順利回傳，請看終端機或稍後再試。");
       }} finally {{
         if (timer) window.clearInterval(timer);
-        commandLoading.hidden = true;
-        markJobEnd();
+        if (job.running) job.done(false, "✗ 工作未完成。");
         if (button) button.disabled = false;
       }}
     }});
@@ -11385,10 +11554,30 @@ def page(title: str, body: str) -> bytes:
       statusUrl: "/api/translate-status?id=" + encodeURIComponent(id),
       onDone: (status) => {{
         if (status && status.state === "done") {{
-          window.location.href = status.redirect || redirect;
+          window.refreshFragment?.("#fulltext-panel").then(() => {{
+            const notice = document.createElement("div"); notice.className = "notice"; notice.textContent = "✓ 翻譯完成，全文已更新。";
+            document.querySelector("#fulltext-panel")?.insertAdjacentElement("beforebegin", notice);
+          }});
         }}
       }}
     }});
+  }});
+
+  document.addEventListener("submit", async (event) => {{
+    const form = event.target.closest("form[data-clear-edited-fulltext]");
+    if (!form || event.defaultPrevented) return;
+    event.preventDefault();
+    const button = event.submitter || form.querySelector("button");
+    if (button) button.disabled = true;
+    try {{
+      const response = await fetch(form.getAttribute("action") || form.action, {{
+        method: "POST", body: new URLSearchParams(new FormData(form)),
+        headers: {{"X-Requested-With":"local-web-fetch"}}, credentials: "same-origin",
+      }});
+      if (!response.ok) throw new Error(`HTTP ${{response.status}}`);
+      await window.refreshFragment?.("#fulltext-panel");
+    }} catch (error) {{ alert("清除失敗，畫面先保留。"); }}
+    finally {{ if (button) button.disabled = false; }}
   }});
 
   document.querySelectorAll("[data-source-group-field]").forEach((field) => {{
@@ -11745,7 +11934,10 @@ def page(title: str, body: str) -> bytes:
     if (previewInputValue(form)) window.setTimeout(() => runUrlPreview(form), 250);
   }});
 
-  document.querySelectorAll("form[data-read-more-form]").forEach((form) => {{
+  window.bindReadMoreForms = function bindReadMoreForms(root = document) {{
+  root.querySelectorAll("form[data-read-more-form]").forEach((form) => {{
+    if (form.dataset.readMoreBound === "1") return;
+    form.dataset.readMoreBound = "1";
     form.addEventListener("submit", (event) => {{
       if (!window.fetch || !window.runFetchJob) return;
       event.preventDefault();
@@ -11790,8 +11982,13 @@ def page(title: str, body: str) -> bytes:
       }});
     }});
   }});
+  }};
+  window.bindReadMoreForms(document);
 
-  document.querySelectorAll("form[data-codex-review-form]").forEach((form) => {{
+  window.bindCodexReviewForms = function bindCodexReviewForms(root = document) {{
+  root.querySelectorAll("form[data-codex-review-form]").forEach((form) => {{
+    if (form.dataset.codexReviewBound === "1") return;
+    form.dataset.codexReviewBound = "1";
     form.addEventListener("submit", (event) => {{
       if (!window.fetch || !window.runEngineJob) return;
       event.preventDefault();
@@ -11807,10 +12004,12 @@ def page(title: str, body: str) -> bytes:
         url: form.getAttribute("action") || "/items/codex-review",
         baseBody: formBody,
         engine: provider,
-        onSuccess: (payload) => {{ window.location.href = (payload && payload.redirect) || redirect; }}
+        onSuccess: () => {{ window.refreshFragment?.("#ai-review-panel"); }}
       }});
     }});
   }});
+  }};
+  window.bindCodexReviewForms(document);
   </script>
 </body>
 </html>"""
@@ -15956,19 +16155,10 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     });
   });
 
-  var cw = document.getElementById('command-window');
-  var ct = document.getElementById('command-title');
-  var cs = document.getElementById('command-status');
-  var co = document.getElementById('command-output');
-  var cl = document.getElementById('command-loading');
-  if(!cw) return;
+  var insightJob = null;
   function openWin(label){
-    if(ct) ct.textContent = label || '決策洞察';
-    if(cs) cs.textContent = '已送出，正在啟動…';
-    if(co){ co.hidden = true; co.textContent=''; }
-    if(cl) cl.hidden = false;
-    cw.classList.add('is-visible');
-    cw.setAttribute('aria-hidden','false');
+    insightJob = window.localJobs ? window.localJobs.start(label || '決策洞察') : null;
+    if(insightJob) insightJob.update({message:'已送出，正在啟動…', fraction:null});
   }
   var polling = null;
   function startPoll(){
@@ -15978,15 +16168,18 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
         var r = await fetch('/api/insight-status', {headers:{'X-Requested-With':'local-web-fetch'}});
         if(!r.ok) return;
         var p = await r.json();
-        if(p && p.message && cs) cs.textContent = p.message;
+        if(p && p.message && insightJob) insightJob.update({message:p.message, fraction:(p.index && p.total) ? p.index/p.total : null});
         if(p && (p.state==='done' || p.state==='failed')){
           clearInterval(polling); polling=null;
-          if(cl) cl.hidden = true;
           if(p.state==='done'){
-            if(cs) cs.textContent = '✓ ' + (p.message||'完成');
-            setTimeout(function(){ window.location = p.redirect || '/insights'; }, 1200);
+            if(insightJob){
+              insightJob.done(true, '✓ ' + (p.message||'完成'));
+              var link = document.createElement('a');
+              link.className='button button-small'; link.href=p.redirect||'/insights'; link.textContent='查看報告';
+              insightJob.element.appendChild(link);
+            }
           } else {
-            if(cs) cs.textContent = '✗ ' + (p.message||'失敗');
+            if(insightJob) insightJob.done(false, '✗ ' + (p.message||'失敗'));
           }
         }
       }catch(e){}
@@ -16031,15 +16224,13 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
           body: body});
         var data = await resp.json().catch(function(){ return {}; });
         if(data && data.ok === false){
-          if(cl) cl.hidden = true;
-          if(cs) cs.textContent = '✗ ' + (data.error || '無法啟動');
+          if(insightJob) insightJob.done(false, '✗ ' + (data.error || '無法啟動'));
           if(polling){ clearInterval(polling); polling=null; }
           restore();
         }
         // 成功時不還原按鈕：startPoll 會在 done 後自動重整整頁
       }catch(e){
-        if(cl) cl.hidden = true;
-        if(cs) cs.textContent = '✗ 送出失敗：' + e;
+        if(insightJob) insightJob.done(false, '✗ 送出失敗：' + e);
         if(polling){ clearInterval(polling); polling=null; }
         restore();
       }
@@ -17178,7 +17369,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             auto_hidden_inputs = auto_batch_hidden_inputs("suggest-skip")
             auto_batch_panel = f"""
 <div class="card auto-batch-panel">
-  <form method="post" action="/items/auto-batch-skip">
+  <form method="post" action="/items/auto-batch-skip" data-auto-batch>
     {''.join(auto_hidden_inputs)}
     <button type="submit" class="secondary">{button_content("自動批次處理", "wand", "W")}</button>
   </form>
@@ -17192,12 +17383,12 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
             auto_batch_panel = f"""
 <div class="card auto-batch-panel">
   <div class="button-row">
-    <form method="post" action="/items/auto-batch-keep">
+    <form method="post" action="/items/auto-batch-keep" data-auto-batch>
       {''.join(auto_hidden_inputs)}
       <input type="hidden" name="mode" value="accept_all">
       <button type="submit" class="secondary">{button_content("全部收進可用材料區", "wand", "W")}</button>
     </form>
-    <form method="post" action="/items/auto-batch-keep">
+    <form method="post" action="/items/auto-batch-keep" data-auto-batch>
       {''.join(auto_hidden_inputs)}
       <input type="hidden" name="mode" value="prune_low_pr">
       <input type="hidden" name="threshold" value="{low_pr_threshold}">
@@ -17223,7 +17414,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 <div class="workspace-layout" id="items-workspace">
   <section class="workspace-main">
     <h2>待入庫材料</h2>
-    <p class="muted">符合條件：{len(filtered)} 筆。{'' if show_all else f'目前先顯示 {len(visible)} 筆。'}</p>
+    <p class="muted" id="items-count-line" data-total="{len(filtered)}">符合條件：{len(filtered)} 筆。{'' if show_all else f'目前先顯示 {len(visible)} 筆。'}</p>
     {more_link}
     <div class="list" id="items-list" data-layout="list" data-layout-persist data-cluster-view="{'1' if cluster_view_requested else '0'}">{''.join(rows)}</div>
     {more_link}
@@ -17374,11 +17565,11 @@ clearSelectionButton.addEventListener("click", () => {{
 }});
 }}
 
-// 批次 AI 閱讀建議：用選定引擎對勾選項目逐筆生成，走右下角狀態列（runEngineJob）。
+// 批次 AI 閱讀建議：背景逐筆生成，關頁不會中斷。
 if (aiBatchBtn && aiBatchBtn.dataset.aiBatchBound !== "1") {{
   aiBatchBtn.dataset.aiBatchBound = "1";
   aiBatchBtn.addEventListener("click", async () => {{
-    if (typeof window.runEngineJob !== "function") {{
+    if (typeof window.runBackgroundEngineJob !== "function") {{
       window.alert("頁面還沒接上右下角狀態列，請重新整理後再試。");
       return;
     }}
@@ -17391,16 +17582,22 @@ if (aiBatchBtn && aiBatchBtn.dataset.aiBatchBound !== "1") {{
     aiBatchBtn.disabled = true;
     aiBatchBtn.textContent = "執行中…（看右下角）";
     try {{
-      await window.runEngineJob({{
+      await window.runBackgroundEngineJob({{
         label: `批次 AI 閱讀建議（${{ids.length}} 筆）`,
         url: "/items/codex-review-batch",
         baseBody: "ids=" + encodeURIComponent(ids.join(",")),
         engine: engine,
         statusUrl: "/api/command-status?command=codex_review_batch",
-        onSuccess: (payload) => {{
-          if (payload && payload.redirect) {{
-            setTimeout(() => {{ window.location = payload.redirect; }}, 1000);
-          }}
+        onProgress: (status) => {{
+          // 狀態檔可能比 JSONL 寫入早幾秒；badge 只表示該筆已進入完成階段。
+          (status.item_ids || [status.item_id]).filter(Boolean).forEach((id) => {{
+            const card = findItemCard(id);
+            if (!card || card.dataset.reviewBadged === "1") return;
+            card.dataset.reviewBadged = "1";
+            const badge = document.createElement("span");
+            badge.className = "tag-pill"; badge.textContent = "已補建議";
+            (card.querySelector(".tag-row") || card).appendChild(badge);
+          }});
         }},
       }});
     }} finally {{
@@ -17460,6 +17657,7 @@ function enterClusterView(data, opts) {{
     const summary = document.createElement("summary");
     const title = document.createElement("span");
     title.className = "cluster-group-title";
+    title.dataset.clusterLabel = cluster.label || cluster.cluster_id;
     title.textContent = `${{cluster.label || cluster.cluster_id}}（${{cards.length}} 則）`;
     summary.appendChild(title);
     const chip = document.createElement("span");
@@ -17718,8 +17916,101 @@ function removeCards(ids) {{
     document.querySelectorAll(".cluster-group").forEach((group) => {{
       if (!group.querySelector(".candidate-card")) group.remove();
     }});
+    updateClusterGroupCounts();
     syncSelection();
   }}, 260);
+}}
+
+function updateClusterGroupCounts() {{
+  document.querySelectorAll(".cluster-group").forEach((group) => {{
+    const title = group.querySelector(".cluster-group-title");
+    if (!title) return;
+    const count = group.querySelectorAll(".candidate-card:not(.is-removing)").length;
+    title.textContent = `${{title.dataset.clusterLabel || "分群"}}（${{count}} 則）`;
+  }});
+  const heading = document.querySelector(".cluster-ungrouped-heading");
+  if (heading) {{
+    const controls = heading.closest(".cluster-ungrouped-controls");
+    let count = 0;
+    for (let node = controls?.nextElementSibling; node && node.classList.contains("candidate-card"); node = node.nextElementSibling) {{
+      if (!node.classList.contains("is-removing")) count += 1;
+    }}
+    heading.textContent = `未分群 ${{count}} 則——維持單篇挑選`;
+  }}
+}}
+
+function updateItemsCountLine(delta) {{
+  const line = document.getElementById("items-count-line");
+  if (!line) return;
+  const total = Math.max(0, Number(line.dataset.total || 0) - Number(delta || 0));
+  line.dataset.total = String(total);
+  line.textContent = `符合條件：${{total}} 筆。`;
+}}
+
+document.querySelectorAll("form[data-auto-batch]").forEach((form) => {{
+  if (form.dataset.autoBatchBound === "1") return;
+  form.dataset.autoBatchBound = "1";
+  form.addEventListener("submit", async (event) => {{
+    event.preventDefault();
+    const button = event.submitter || form.querySelector("button");
+    const job = window.localJobs.start("自動批次處理", {{trackUnload: true}});
+    job.update({{message: "正在依目前篩選處理…", fraction: null}});
+    if (button) button.disabled = true;
+    try {{
+      const response = await fetch(form.getAttribute("action") || form.action, {{
+        method: "POST", body: new URLSearchParams(new FormData(form)),
+        headers: {{"X-Requested-With":"local-web-fetch"}}, credentials: "same-origin",
+      }});
+      const payload = await response.json();
+      if (!response.ok || payload.ok === false) throw new Error(payload.error || `HTTP ${{response.status}}`);
+      removeCards(payload.ids || []); updateItemsCountLine(payload.count || 0);
+      form.closest(".auto-batch-panel")?.setAttribute("hidden", "");
+      const notice = document.createElement("div"); notice.className = "notice";
+      notice.textContent = `自動批次處理完成：${{payload.count || 0}} 則。`;
+      document.querySelector("h1")?.insertAdjacentElement("afterend", notice);
+      job.done(true, `✓ 已處理 ${{payload.count || 0}} 則`);
+    }} catch (error) {{ job.output(String(error)); job.done(false, "✗ 自動批次處理失敗"); }}
+    finally {{ if (button) button.disabled = false; }}
+  }});
+}});
+
+async function runChunkedBatch(form, submitter, ids) {{
+  if (form.dataset.running === "1") return;
+  form.dataset.running = "1";
+  const fields = Array.from(form.querySelectorAll("button, select, textarea, input:not([type='hidden'])"));
+  fields.forEach((field) => {{ field.disabled = true; }});
+  const total = ids.length;
+  let completed = 0;
+  const job = window.localJobs.start(`批次處理（${{total}} 則）`, {{trackUnload: true}});
+  job.update({{message: `準備處理 0/${{total}} 則`, fraction: 0}});
+  try {{
+    for (let offset = 0; offset < total; offset += 20) {{
+      const chunk = ids.slice(offset, offset + 20);
+      // refreshClusterView/syncSelection 會改 hidden input，所以每一塊送出前都重設。
+      batchIds.value = chunk.join(",");
+      const requestBody = buildRequestBody(form, submitter);
+      if (submitter?.name) requestBody.set(submitter.name, submitter.value);
+      const response = await fetch(form.getAttribute("action") || form.action, {{
+        method: form.getAttribute("method") || "POST",
+        body: requestBody, credentials: "same-origin",
+        headers: {{"X-Requested-With": "local-web-fetch"}},
+      }});
+      if (!response.ok) throw new Error(`HTTP ${{response.status}}`);
+      chunk.forEach((id) => {{ const box = findItemCard(id)?.querySelector(".item-select"); if (box) box.checked = false; }});
+      removeCards(chunk); updateItemsCountLine(chunk.length);
+      completed += chunk.length;
+      job.update({{message: `已處理 ${{completed}}/${{total}} 則`, fraction: completed / total}});
+    }}
+    job.done(true, `✓ 已處理 ${{total}}/${{total}} 則`);
+  }} catch (error) {{
+    job.output(String(error));
+    job.done(false, `✗ 已處理 ${{completed}}/${{total}} 則，剩餘保留`);
+    alert("批次處理中途失敗；已完成的卡片已移除，剩餘項目保留在畫面上。");
+  }} finally {{
+    form.dataset.running = "";
+    fields.forEach((field) => {{ field.disabled = false; }});
+    syncSelection();
+  }}
 }}
 
 async function submitWithoutLeaving(form, submitter, idsToRemove) {{
@@ -17797,7 +18088,7 @@ itemsBatchForm.addEventListener("submit", (event) => {{
     customReason?.focus();
     return;
   }}
-  submitWithoutLeaving(event.currentTarget, submitter, ids);
+  runChunkedBatch(event.currentTarget, submitter, ids);
 }});
 }}
 syncSelection();
@@ -19046,6 +19337,7 @@ if (document.readyState === "loading") {{
         clear_edited_fulltext_form = (
             f"""
     <form method="post" action="/items/clear-edited-fulltext"
+      data-clear-edited-fulltext
       onsubmit="return confirm('確定要清除手動修正全文？原始主文與自動翻譯會保留。');">
       <input type="hidden" name="id" value="{h(item_id)}">
       <input type="hidden" name="redirect" value="{h(item_detail_href(item))}">
@@ -19175,6 +19467,7 @@ if (document.readyState === "loading") {{
             inbox_actions = f"""
 <div class="card">
   <h2>RSS 新進決定 <span class="help-dot" title="確認收或直接送 PR 會先寫進 database/items.jsonl；不收會寫入學習檔與略過清單。">?</span></h2>
+  <p class="flow-line">目前為：<span class="flow-current flow-current--inbox">入庫建檔區（待整理）</span></p>
   <div class="button-row">
     <form method="post" action="/candidates/accept">
       <input type="hidden" name="id" value="{h(item_id)}">
@@ -19696,7 +19989,7 @@ if (document.readyState === "loading") {{
 
 {reading_panels}
 
-<section class="article-detail-stack">
+<section class="article-detail-stack" id="ai-review-panel">
   <h2>閱讀建議與判斷來源</h2>
   {editorial_triage_html(item, reject_action='/candidates/dismiss' if is_rss_candidate else '/items/reject')}
   {skill_rows}
@@ -20039,12 +20332,20 @@ if (document.readyState === "loading") {{
 
         targets = [record for _, record in pending_entries if matches_auto_batch(record)]
         count = 0
+        processed_ids: list[str] = []
         for item in targets:
             item_id = clean_text(item.get("id"))
             if not item_id:
                 continue
             reason = automatic_batch_rejection_reason(item)
-            count += self.update_pending_decisions([item_id], "reject", reason)
+            changed = self.update_pending_decisions([item_id], "reject", reason)
+            count += changed
+            if changed:
+                processed_ids.append(item_id)
+
+        if self.is_async_request():
+            self.send_json({"ok": True, "count": count, "ids": processed_ids, "saved": "auto_rejected"})
+            return
 
         params = []
         if track_filter != "all":
@@ -20091,6 +20392,7 @@ if (document.readyState === "loading") {{
 
         targets = [record for _, record in pending_entries if matches_auto_batch(record)]
         count = 0
+        processed_ids: list[str] = []
         if mode == "prune_low_pr":
             for item in targets:
                 item_id = clean_text(item.get("id"))
@@ -20098,14 +20400,24 @@ if (document.readyState === "loading") {{
                     continue
                 score = candidate_priority_scores(item)["overall"] * 10
                 if score <= threshold:
-                    count += self.update_pending_decisions([item_id], "reject", automatic_low_pr_rejection_reason(item, threshold))
+                    changed = self.update_pending_decisions([item_id], "reject", automatic_low_pr_rejection_reason(item, threshold))
+                    count += changed
+                    if changed:
+                        processed_ids.append(item_id)
             saved = "auto_pruned"
         else:
             for item in targets:
                 item_id = clean_text(item.get("id"))
                 if item_id:
-                    count += self.update_pending_decisions([item_id], "accept")
+                    changed = self.update_pending_decisions([item_id], "accept")
+                    count += changed
+                    if changed:
+                        processed_ids.append(item_id)
             saved = "accepted"
+
+        if self.is_async_request():
+            self.send_json({"ok": True, "count": count, "ids": processed_ids, "saved": saved})
+            return
 
         params = []
         if track_filter != "all":
@@ -21143,6 +21455,9 @@ if (document.readyState === "loading") {{
             if not item:
                 self.send_html("找不到項目", "<h1>找不到可清除全文覆寫層的材料</h1>", HTTPStatus.NOT_FOUND)
                 return
+        if self.is_async_request():
+            self.send_json({"ok": True})
+            return
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=fulltext_edit_cleared")
 
@@ -21338,7 +21653,7 @@ if (document.readyState === "loading") {{
             "--batch-size",
             "4",
             "--status-file",
-            str(COMMAND_STATUS),
+            str(COMMAND_STATUS_FILES[status_command]),
             "--status-command",
             status_command,
         ]
@@ -21346,17 +21661,19 @@ if (document.readyState === "loading") {{
             command += ["--id", item_id]
 
         started_at = now_iso()
-        write_json(
-            COMMAND_STATUS,
-            {
+        initial_status = {
                 "command": status_command,
                 "state": "running",
                 "message": f"正在用 {ai_provider_label(provider)} 產生 {len(item_ids)} 筆 AI 閱讀建議…",
                 "started_at": started_at,
                 "provider": provider,
                 "total": len(item_ids),
-            },
-        )
+            }
+        write_json(COMMAND_STATUS_FILES[status_command], initial_status)
+        if wants_json and form_value(data, "background") == "1":
+            result = start_background_process(status_command, command, 1800, initial_status)
+            self.send_json({**result, "provider": provider, "total": len(item_ids), "summary": "已在背景產生 AI 閱讀建議。"})
+            return
         try:
             result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800)
             output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
@@ -21372,7 +21689,7 @@ if (document.readyState === "loading") {{
         else:
             final_redirect = "/items?error=codex_review"
         write_json(
-            COMMAND_STATUS,
+            COMMAND_STATUS_FILES[status_command],
             {
                 "command": status_command,
                 "state": "done" if ok else "failed",
@@ -24924,33 +25241,6 @@ if (document.readyState === "loading") {{
         page_js = """
 <script>
 (() => {
-  // #command-window 在 </main> 之後才解析，這段 script 在 main 內：元素要在事件發生當下才查。
-  const windowParts = () => ({
-    root: document.getElementById("command-window"),
-    title: document.getElementById("command-title"),
-    status: document.getElementById("command-status"),
-    output: document.getElementById("command-output"),
-    loading: document.getElementById("command-loading")
-  });
-  const showWindow = (label) => {
-    const parts = windowParts();
-    if (!parts.root) return;
-    parts.title.textContent = label || "推播通知";
-    parts.status.textContent = "已送出，正在推播...";
-    parts.output.hidden = true;
-    parts.output.textContent = "";
-    parts.loading.hidden = false;
-    parts.root.classList.add("is-visible");
-    parts.root.setAttribute("aria-hidden", "false");
-  };
-  const finishWindow = (message, output) => {
-    const parts = windowParts();
-    if (!parts.root) return;
-    parts.status.textContent = message;
-    parts.loading.hidden = true;
-    parts.output.hidden = !output;
-    parts.output.textContent = output || "";
-  };
   const fetchHeaders = {
     "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
     "X-Requested-With": "local-web-fetch"
@@ -24989,9 +25279,11 @@ if (document.readyState === "loading") {{
       event.preventDefault();
       const button = event.submitter || form.querySelector("button");
       const statusEl = form.querySelector("[data-notify-status]");
+      const successLabel = form.dataset.successLabel || "已送出";
       if (button) button.disabled = true;
-      if (statusEl) statusEl.textContent = "送出中…";
-      showWindow(form.dataset.label);
+      if (statusEl) statusEl.textContent = "處理中…";
+      const job = window.localJobs ? window.localJobs.start(form.dataset.label || "推播通知") : null;
+      if (job) job.update({message: "正在處理...", fraction: null});
       const data = new URLSearchParams(new FormData(form));
       data.set("format", "json");
       let ok = false;
@@ -24999,16 +25291,19 @@ if (document.readyState === "loading") {{
         const response = await fetch(form.action, {method: "POST", headers: fetchHeaders, body: data});
         const payload = await response.json();
         ok = response.ok && payload && payload.ok !== false;
-        finishWindow(ok ? "完成。" : "推播失敗。", (payload && payload.output) || (payload && payload.error) || "");
-        if (statusEl) statusEl.textContent = ok ? "已送出" : "失敗，詳見右下角視窗";
+        if (job) {
+          job.output((payload && payload.output) || (payload && payload.error) || "");
+          job.done(ok, ok ? "✓ 完成。" : "✗ 處理失敗。");
+        }
+        if (statusEl) statusEl.textContent = ok ? successLabel : "失敗，詳見右下角視窗";
       } catch (error) {
-        finishWindow("推播失敗。", String(error));
+        if (job) { job.output(String(error)); job.done(false, "✗ 處理失敗。"); }
         if (statusEl) statusEl.textContent = "失敗，詳見右下角視窗";
       }
       if (ok) {
         const card = form.closest("[data-notify-card]");
         if (card) card.style.opacity = "0.55";
-        if (button) button.textContent = "已送出";
+        if (button) button.textContent = successLabel;
       } else if (button) {
         button.disabled = false;
       }
@@ -25241,46 +25536,18 @@ if (document.readyState === "loading") {{
         status_path = command_status_path(command_name)
         timeout_seconds = int(config.get("timeout", 600))
         if config.get("background") and wants_json and form_value(data, "background") == "1":
-            with BACKGROUND_JOBS_LOCK:
-                existing = BACKGROUND_JOBS.get(command_name)
-                if existing and existing.poll() is None:
-                    self.send_json(
-                        {
-                            "ok": True,
-                            "background": True,
-                            "already_running": True,
-                            "label": config["label"],
-                            "summary": "這個指令已在背景執行中，直接接上它的進度。",
-                        },
-                        HTTPStatus.OK,
-                    )
-                    return
-                write_json(
-                    status_path,
-                    {
-                        "command": command_name,
-                        "state": "running",
-                        "message": f"正在執行：{config['label']}",
-                        "started_at": now_iso(),
-                    },
-                )
-                proc = subprocess.Popen(
-                    command, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-                BACKGROUND_JOBS[command_name] = proc
-            threading.Thread(
-                target=background_command_worker,
-                args=(command_name, proc, timeout_seconds),
-                daemon=True,
-            ).start()
+            result = start_background_process(
+                command_name,
+                command,
+                timeout_seconds,
+                {"command": command_name, "state": "running", "message": f"正在執行：{config['label']}", "started_at": now_iso()},
+            )
             self.send_json(
                 {
-                    "ok": True,
-                    "background": True,
-                    "started": True,
+                    **result,
                     "label": config["label"],
                     "provider": active_provider,
-                    "summary": "已在背景開跑：每批完成會即時回標並更新畫面，關掉頁面也不會中斷。",
+                    "summary": "這個指令已在背景執行中，直接接上它的進度。" if result.get("already_running") else "已在背景開跑：每批完成會即時回標並更新畫面，關掉頁面也不會中斷。",
                 },
                 HTTPStatus.OK,
             )

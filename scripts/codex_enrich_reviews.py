@@ -1151,6 +1151,7 @@ def progress_status(
         payload["end_index"] = progress["end_index"]
     if batch_records:
         payload["item_id"] = clean_text(batch_records[0].get("id"))
+        payload["item_ids"] = [clean_text(record.get("id")) for record in batch_records if clean_text(record.get("id"))]
         payload["item_title"] = status_item_title(batch_records)
     if returncode is not None:
         payload["returncode"] = returncode
