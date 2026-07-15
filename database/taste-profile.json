@@ -71,6 +71,13 @@
       "澎湖縣政府全球資訊網",
       "Open Access Government"
     ],
+    "source_de_emphasize": [
+      "澎湖縣政府全球資訊網",
+      "東台先鋒報",
+      "市府全球網機關新聞",
+      "國家中醫藥研究所 Facebook",
+      "Taipei Travel City News"
+    ],
     "history_calibration": {
       "enabled": true,
       "window_days": 45,
@@ -587,6 +594,20 @@
         "AI cloud dependency",
         "US cloud",
         "Europe tech policy"
+      ]
+    },
+    {
+      "beat": "AI 公共治理與民主實驗",
+      "keywords": [
+        "deliberative",
+        "deliberative democracy",
+        "United Nations",
+        "UN",
+        "government AI",
+        "public sector AI",
+        "job applicants",
+        "AI discrimination",
+        "Estonia"
       ]
     }
   ]

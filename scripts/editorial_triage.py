@@ -340,6 +340,13 @@ def source_is_blocked(source: str, taste: dict[str, Any]) -> bool:
     return normalized(source) in {normalized(value) for value in blocked if normalized(value)}
 
 
+def source_is_de_emphasized(source: str, taste: dict[str, Any]) -> bool:
+    global_cfg = taste.get("global") if isinstance(taste.get("global"), dict) else {}
+    sources = global_cfg.get("source_de_emphasize") if isinstance(global_cfg, dict) else []
+    source_norm = normalized(source)
+    return any(normalized(value) and normalized(value) in source_norm for value in sources)
+
+
 def local_decision_action(record: dict[str, Any]) -> str:
     decision = record.get("local_decision")
     if not isinstance(decision, dict):
@@ -789,6 +796,7 @@ def evaluate_editorial_triage(
     kind = content_kind(record)
     taste = context.get("taste_profile") or {}
     source_blocked = source_is_blocked(source, taste)
+    source_de_emphasized = source_is_de_emphasized(source, taste)
     title = clean_text(record.get("title"))
     activity_hits = cue_matches(title, ACTIVITY_PROMOTION_CUES)
     substantive_hits = cue_matches(text, SUBSTANTIVE_GOVERNANCE_CUES)
@@ -824,6 +832,9 @@ def evaluate_editorial_triage(
     deletion_score = 6 if source_blocked else min(6, len(deletion_signals) + len(skip_keywords))
 
     taste_score, taste_signals = evaluate_taste_fit(text, tags, track, context.get("taste_profile") or {})
+    if source_de_emphasized and not source_blocked:
+        taste_score -= 1
+        taste_signals.append(f"來源「{source}」命中全域來源降權設定")
 
     if deletion_score >= 3 and keyword_score <= 2:
         recommendation = "suggest-skip"
