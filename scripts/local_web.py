@@ -8699,7 +8699,31 @@ def page(title: str, body: str) -> bytes:
       border: 1px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;
     }}
     .cluster-ungrouped-heading {{ font-weight: 600; margin-right: auto; }}
-    #cluster-view-toggle.is-active {{ background: var(--ocf-cyan); color: #fff; }}
+    .cluster-group .cluster-select-all,
+    .cluster-ungrouped-select-all {{
+      border: 1px solid #00699f;
+      background: #00699f;
+      color: #fff;
+    }}
+    .cluster-group .cluster-select-all:hover,
+    .cluster-ungrouped-select-all:hover {{
+      border-color: #005783;
+      background: #005783;
+      color: #fff;
+    }}
+    .cluster-group .cluster-deselect-all,
+    .cluster-ungrouped-deselect-all {{
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ocf-dark);
+    }}
+    .cluster-group .cluster-deselect-all:hover,
+    .cluster-ungrouped-deselect-all:hover {{
+      border-color: #aeb8cf;
+      background: var(--soft);
+      color: var(--ocf-dark);
+    }}
+    #cluster-view-toggle.is-active {{ background: #00699f; color: #fff; }}
     #cluster-view-toggle.is-active:hover {{ color: #fff; }}
     .batch-panel {{ border-left: 4px solid var(--ocf-cyan); }}
     .auto-batch-panel {{
@@ -9330,6 +9354,8 @@ def page(title: str, body: str) -> bytes:
       color: var(--muted);
       font-size: 13px;
     }}
+    .notify-section-actions {{ margin: -4px 0 12px; }}
+    .notify-section-actions .button {{ margin-top: 0; }}
     .notify-entry-grid {{
       display: grid;
       gap: 10px;
@@ -9417,6 +9443,11 @@ def page(title: str, body: str) -> bytes:
       background: #fff1e8;
       color: #a64d14;
       border-color: #f5c7a9;
+    }}
+    .notify-status-dismissed {{
+      background: #fff0f6;
+      color: var(--ocf-magenda);
+      border-color: #f1bfd3;
     }}
     .notify-url {{
       margin: 0;
@@ -13629,6 +13660,8 @@ class Handler(BaseHTTPRequestHandler):
             self.save_taste_profile_edit(self.read_form())
         elif parsed.path == "/notifications/resend":
             self.resend_notification(self.read_form())
+        elif parsed.path == "/notifications/dismiss":
+            self.dismiss_notification(self.read_form())
         elif parsed.path == "/notifications/save-channels":
             self.save_notify_channels(self.read_form())
         elif parsed.path == "/settings/models":
@@ -24343,7 +24376,12 @@ if (document.readyState === "loading") {{
             active_channels = []
 
         kind_labels = {"article": "新專文", "item": "新議題"}
-        action_labels = {"sent": "已推播", "sent-partial": "部分推播", "marked-existing": "標記為已通知"}
+        action_labels = {
+            "sent": "已推播",
+            "sent-partial": "部分推播",
+            "marked-existing": "標記為已通知",
+            "not-recommended": "不建議發送",
+        }
         layout = clean_text(form_value(query, "layout")) or "list"
         if layout not in LAYOUT_MODES:
             layout = "list"
@@ -24487,13 +24525,21 @@ if (document.readyState === "loading") {{
       <pre>{h(getattr(event, 'text', ''))}</pre>
     </details>
   </div>
-  <form class="notify-entry-actions" method="post" action="/notifications/resend" data-notify-run-form data-label="推播：{h(getattr(event, 'title', ''))}">
-    <input type="hidden" name="kind" value="{h(getattr(event, 'kind', ''))}">
-    <input type="hidden" name="id" value="{h(getattr(event, 'record_id', ''))}">
-    <input type="hidden" name="mode" value="send">
-    <button type="submit" class="button-small">{h(manual_label)}</button>
-    <span class="muted" data-notify-status></span>
-  </form>
+  <div class="notify-entry-actions">
+    <form method="post" action="/notifications/resend" data-notify-run-form data-label="推播：{h(getattr(event, 'title', ''))}" data-success-label="已送出">
+      <input type="hidden" name="kind" value="{h(getattr(event, 'kind', ''))}">
+      <input type="hidden" name="id" value="{h(getattr(event, 'record_id', ''))}">
+      <input type="hidden" name="mode" value="send">
+      <button type="submit" class="button button-small">{h(manual_label)}</button>
+      <span class="muted" data-notify-status></span>
+    </form>
+    <form method="post" action="/notifications/dismiss" data-notify-run-form data-label="排除推播：{h(getattr(event, 'title', ''))}" data-success-label="已排除" onsubmit="return confirm('確認將這筆標為不建議發送？之後仍可從已處理紀錄重送。');">
+      <input type="hidden" name="kind" value="{h(getattr(event, 'kind', ''))}">
+      <input type="hidden" name="id" value="{h(getattr(event, 'record_id', ''))}">
+      <button type="submit" class="button button-small danger">不建議發送</button>
+      <span class="muted" data-notify-status></span>
+    </form>
+  </div>
 </article>
 """
 
@@ -24567,6 +24613,8 @@ if (document.readyState === "loading") {{
             return "；".join(parts)
 
         def history_status(action: str) -> tuple[str, str]:
+            if action == "not-recommended":
+                return (action_labels.get(action, action), "notify-status-dismissed")
             if action == "sent-partial":
                 return (action_labels.get(action, action), "notify-status-partial")
             if action == "sent":
@@ -24580,7 +24628,11 @@ if (document.readyState === "loading") {{
             record_id = clean_text(record.get("record_id"))
             url = clean_text(record.get("url"))
             title = clean_text(record.get("title"), 120) or record_id
-            channels_label = "、".join(clean_text(c) for c in record.get("channels", []) if clean_text(c))
+            channels_label = "、".join(
+                clean_text(c)
+                for c in record.get("channels", [])
+                if clean_text(c) and clean_text(c) != "none"
+            )
             summary = reaction_summary(clean_text(record.get("event_key")))
             status_label, status_class = history_status(action)
             title_html = f'<a href="{h(url)}" target="_blank" rel="noopener">{h(title)}</a>' if url else h(title)
@@ -24597,10 +24649,13 @@ if (document.readyState === "loading") {{
       <input type="hidden" name="kind" value="{h(kind)}">
       <input type="hidden" name="id" value="{h(record_id)}">
       <input type="hidden" name="mode" value="resend">
-      <button type="submit" class="button-small quiet">重送</button>
+      <button type="submit" class="button button-small quiet">重送</button>
       <span class="muted" data-notify-status></span>
     </form>"""
             reaction_html = (
+                '<p class="notify-reaction-summary">已由人工排除推播；需要時仍可按「重送」。</p>'
+                if action == "not-recommended"
+                else
                 f'<p class="notify-reaction-summary">{h(summary)}</p>'
                 if summary
                 else '<p class="notify-reaction-summary">尚未收集到表情或回覆。</p>'
@@ -24611,7 +24666,7 @@ if (document.readyState === "loading") {{
     <div class="notify-entry-meta">
       <span class="notify-date-chip">{h(date_chip(parsed))}</span>
       <span class="notify-date-chip">{h(clean_text(record.get('notification_label')) or kind_labels.get(kind, kind))}</span>
-      <span class="notify-date-chip">{h(channels_label or "未標頻道")}</span>
+      <span class="notify-date-chip">{h(channels_label or ("未送出" if action == "not-recommended" else "未標頻道"))}</span>
       <span class="notify-status-chip {h(status_class)}">{h(status_label)}</span>
     </div>
     <h3>{title_html}</h3>
@@ -24730,7 +24785,7 @@ if (document.readyState === "loading") {{
             legacy_action_html = (
                 ""
                 if showing_all_legacy or len(legacy_recent) == len(legacy_pending)
-                else f'<a class="button-small quiet" href="{h(filter_url("legacy"))}">展開全部 {len(legacy_pending)} 筆</a>'
+                else f'<a class="button button-small quiet" href="{h(filter_url("legacy"))}">展開全部 {len(legacy_pending)} 筆</a>'
             )
             legacy_html = render_event_groups(legacy_records, "legacy", "目前沒有舊未發內容。")
             sections.append(
@@ -24748,10 +24803,10 @@ if (document.readyState === "loading") {{
             history_html = render_history_groups(history_recent)
             sections.append(
                 section_details(
-                    f"已推播紀錄（最近 {recent_days} 天）",
+                    f"推播處理紀錄（最近 {recent_days} 天）",
                     len(history_recent),
                     len(history),
-                    f"顯示最近 {recent_days} 天的發送紀錄；表情與回覆要按右側「收集表情與回覆」才會更新。",
+                    f"顯示最近 {recent_days} 天的送出、標記與排除紀錄；表情與回覆要按右側「收集表情與回覆」才會更新。",
                     history_html,
                     open_section=True,
                 )
@@ -24763,7 +24818,7 @@ if (document.readyState === "loading") {{
                 "ready": "可自動發",
                 "waiting": f"等待 {auto_min_minutes} 分鐘",
                 "legacy": "舊未發",
-                "sent": "已發紀錄",
+                "sent": "已處理紀錄",
             }
             filter_note = (
                 f'<p class="notify-section-note">目前篩選：{h(filter_labels.get(active_filter, active_filter))}。'
@@ -24776,7 +24831,7 @@ if (document.readyState === "loading") {{
                 stat_card("ready", ready_count, "可自動發", "已待滿 15 分鐘，背景排程可送出"),
                 stat_card("waiting", waiting_count, f"等待 {auto_min_minutes} 分鐘", "尚在緩衝倒數中的內容"),
                 stat_card("legacy", len(legacy_pending), "舊未發", "起算前或超過自動窗口的舊內容"),
-                stat_card("sent", len(history), "已發紀錄", "已送出或已標記的推播紀錄"),
+                stat_card("sent", len(history), "已處理紀錄", "已送出、已標記或已排除的推播紀錄"),
             ]
         )
 
@@ -24813,7 +24868,7 @@ if (document.readyState === "loading") {{
       <p class="muted">{h(config.get('description', ''))}</p>
       <form method="post" action="/commands/run" data-command-form>
         <input type="hidden" name="command" value="{h(name)}">
-        <button type="submit" class="button-small">{h(config.get('button', '執行'))}</button>
+        <button type="submit" class="button button-small">{h(config.get('button', '執行'))}</button>
       </form>
       </div>
     </details>"""
@@ -24857,7 +24912,7 @@ if (document.readyState === "loading") {{
 {secret_field("ION_PUBLIC_BASE_URL", "公開閱讀版網址", "預設 https://technews.ospo.tw/reader")}
 {secret_field("ION_NOTIFY_CHANNELS", "限定頻道（選填）", "例如 slack,telegram；留空自動判斷")}
         <div class="button-row">
-          <button type="submit" class="button-small">儲存頻道設定</button>
+          <button type="submit" class="button button-small">儲存頻道設定</button>
           <span class="muted" data-notify-status></span>
         </div>
       </form>
@@ -25056,6 +25111,49 @@ if (document.readyState === "loading") {{
         )
         if wants_json:
             self.send_json({"ok": ok, "returncode": result.returncode, "output": output})
+            return
+        self.redirect("/notifications")
+
+    def dismiss_notification(self, data: dict[str, list[str]]) -> None:
+        import notify_ready_items as notify_mod
+
+        wants_json = self.is_async_request() or form_value(data, "format") == "json"
+        kind = clean_text(form_value(data, "kind"))
+        record_id = clean_text(form_value(data, "id"))
+        if kind not in {"article", "item"} or not re.fullmatch(r"[A-Za-z0-9_-]+", record_id or ""):
+            if wants_json:
+                self.send_json({"ok": False, "error": "參數不正確。"}, HTTPStatus.BAD_REQUEST)
+                return
+            self.send_html("排除推播失敗", "<h1>排除推播失敗</h1><p>參數不正確。</p>", HTTPStatus.BAD_REQUEST)
+            return
+
+        env = notify_mod.merged_env()
+        base_url = clean_text(env.get("ION_PUBLIC_BASE_URL")) or notify_mod.DEFAULT_READER_BASE_URL
+        events = notify_mod.collect_events(
+            load_jsonl(ARTICLES),
+            load_jsonl(ITEMS),
+            base_url,
+            set(notify_mod.DEFAULT_ITEM_STATUSES),
+            include_needs_fulltext=True,
+            kind="articles" if kind == "article" else "items",
+            ids={record_id},
+        )
+        event = next((candidate for candidate in events if candidate.record_id == record_id), None)
+        if event is None:
+            if wants_json:
+                self.send_json({"ok": False, "error": "找不到這筆可記錄的推播內容。"}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_html(
+                "排除推播失敗",
+                "<h1>排除推播失敗</h1><p>找不到這筆可記錄的推播內容。</p>",
+                HTTPStatus.NOT_FOUND,
+            )
+            return
+
+        append_jsonl(NOTIFY_STATE, notify_mod.event_state_record(event, [], "not-recommended"))
+        output = f"已標記「{event.title}」為不建議發送。"
+        if wants_json:
+            self.send_json({"ok": True, "output": output})
             return
         self.redirect("/notifications")
 
