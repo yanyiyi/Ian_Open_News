@@ -120,6 +120,41 @@ class TranslationMarkdownTest(unittest.TestCase):
             local_web.translate_status_path("item-b"),
         )
 
+    def test_background_translation_worker_writes_terminal_status(self) -> None:
+        class FinishedProcess:
+            returncode = 0
+
+            def communicate(self, timeout: int):
+                self.timeout = timeout
+                return "translated", ""
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            status_path = Path(tmpdir) / "translate.json"
+            local_web.write_json(
+                status_path,
+                {"state": "running", "done": 2, "total": 2, "message": "翻譯完成，共 2 段。"},
+            )
+            proc = FinishedProcess()
+            local_web.background_translation_worker(
+                "item-bg",
+                proc,
+                status_path,
+                "/items/view?id=item-bg&saved=translation",
+            )
+            status = local_web.load_json(status_path)
+
+        self.assertEqual(status["state"], "done")
+        self.assertEqual(status["returncode"], 0)
+        self.assertEqual(status["done"], 2)
+        self.assertEqual(status["redirect"], "/items/view?id=item-bg&saved=translation")
+
+    def test_translation_form_uses_background_job_runner(self) -> None:
+        html = local_web.page("test", "<p>body</p>").decode("utf-8")
+
+        self.assertIn('form[data-translate-form]', html)
+        self.assertIn("window.runBackgroundEngineJob({", html)
+        self.assertIn('data.set("background", "1")', html)
+
     def test_source_markdown_does_not_truncate_long_pdf(self) -> None:
         markdown = "# Long PDF\n\n" + ("Complete source paragraph. " * 5000)
         record = {"id": "item-long-pdf", "reading_metadata": {"article_markdown": markdown}}
