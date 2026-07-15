@@ -1511,6 +1511,7 @@ def append_jsonl(path: Path, record: dict) -> None:
         invalidate_jsonl_cache(path)
 
 
+@with_db_write_lock
 def upsert_jsonl(path: Path, record: dict) -> None:
     record_id = record.get("id")
     if not record_id:
@@ -1530,6 +1531,7 @@ def upsert_jsonl(path: Path, record: dict) -> None:
     write_jsonl(path, updated)
 
 
+@with_db_write_lock
 def remove_jsonl_ids(path: Path, record_ids: set[str]) -> int:
     if not record_ids or not path.exists():
         return 0
@@ -1782,6 +1784,7 @@ def detect_and_log_divergence(item: dict) -> None:
     append_jsonl(DECISION_DIVERGENCES, _divergence_record_from_item(item, div_type, ai_sug, user_action))
 
 
+@with_db_write_lock
 def _patch_divergence(div_id: str, **kwargs: object) -> bool:
     """更新 decision-divergences.jsonl 中指定 id 的欄位。"""
     records = load_jsonl(DECISION_DIVERGENCES)
@@ -1818,6 +1821,7 @@ def _maybe_add_personal_beat(div_id: str, explanation: str) -> None:
     write_json(TASTE_PROFILE, profile)
 
 
+@with_db_write_lock
 def _patch_report(rpt_id: str, **kwargs: object) -> bool:
     """更新 insight-reports.jsonl 中指定 id 的欄位。"""
     records = load_jsonl(INSIGHT_REPORTS)
@@ -2305,6 +2309,7 @@ def build_report_prompt(rpt: dict) -> str:
     )
 
 
+@with_db_write_lock
 def _patch_proposal(prop_id: str, **kwargs: object) -> bool:
     records = load_jsonl(SYSTEM_CHANGE_PROPOSALS)
     found = False
@@ -2401,6 +2406,7 @@ def _apply_list_patch(current: list, add: list, remove: list) -> list:
     return result
 
 
+@with_db_write_lock
 def apply_structured_patch(patch: dict, report: dict, engine: str = "") -> dict:
     """把 CLI 回傳的結構化 patch 套用到 taste-profile / triage-keywords / sources。
     回傳套用摘要 dict。"""
@@ -2566,6 +2572,7 @@ def run_apply_job(report: dict, engine: str) -> None:
     insight_status("done", msg, report_id=rpt_id, redirect="/insights")
 
 
+@with_db_write_lock
 def _record_apply_run(rpt_id: str, engine: str, output: str, diff_text: str, changes: dict, summary: str = "", note: str = "") -> None:
     reports = load_jsonl(INSIGHT_REPORTS)
     for rec in reports:
@@ -7243,6 +7250,7 @@ def rss_dismissed_record(candidate: dict, decided_at: str, notes: str, reason: s
     return dismissed
 
 
+@with_db_write_lock
 def prune_candidate_shadows_for_records(records: list[dict], decided_at: str, reason: str = "", notes: str = "") -> int:
     target_ids = {clean_text(record.get("id")) for record in records if clean_text(record.get("id"))}
     target_url_keys = {url_key for record in records for url_key in item_url_keys(record)}
@@ -14967,6 +14975,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
 """
         self.send_html("觀點庫", body)
 
+    @with_db_write_lock
     def save_viewpoint(self, data: dict[str, list[str]]) -> None:
         title = form_value(data, "title")
         body = form_value(data, "body")
@@ -15040,6 +15049,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     # ------------------------------------------------------------------ #
     # 專文（article）：編修台
     # ------------------------------------------------------------------ #
+    @with_db_write_lock
     def create_article_from_session(self, data: dict[str, list[str]]) -> None:
         session_id = form_value(data, "session") or form_value(data, "id")
         session = next((s for s in load_jsonl(EDITOR_SESSIONS) if clean_text(s.get("id")) == session_id), None)
@@ -19883,6 +19893,7 @@ if (document.readyState === "loading") {{
             params.append(("threshold", score_label(threshold)))
         self.redirect(href_with_query("/items", params))
 
+    @with_db_write_lock
     def save_personal_note(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         note = form_value(data, "note")
@@ -19918,6 +19929,7 @@ if (document.readyState === "loading") {{
             append_unique_tag(output, seen, tag)
         return output
 
+    @with_db_write_lock
     def update_tags_record(self, path: Path, item_id: str, tags: list[str]) -> bool:
         records = load_jsonl(path)
         updated_records = []
@@ -19963,6 +19975,7 @@ if (document.readyState === "loading") {{
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=tags")
 
+    @with_db_write_lock
     def _apply_public_selection(self, item_id: str, container: str, field: str, provider: str) -> bool:
         """把「要公開的版本 provider」寫進 item 的 container（editorial_triage 或 reading_metadata）。"""
         records = load_jsonl(ITEMS)
@@ -20011,6 +20024,7 @@ if (document.readyState === "loading") {{
     def select_public_translation(self, data: dict[str, list[str]]) -> None:
         self._select_public_version(data, "reading_metadata", "preferred_translation_provider", "public-translation")
 
+    @with_db_write_lock
     def toggle_reading_priority(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         action = form_value(data, "action", "mark")
@@ -20110,6 +20124,7 @@ if (document.readyState === "loading") {{
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=publish_page")
 
+    @with_db_write_lock
     def requeue_skill_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         items = load_jsonl(ITEMS)
@@ -20157,6 +20172,7 @@ if (document.readyState === "loading") {{
         )
         self.redirect(f"/items/view?id={quote(item_id)}&saved=requeue")
 
+    @with_db_write_lock
     def update_read_more_record(self, path: Path, item_id: str) -> tuple[bool, bool, dict | None, str]:
         records = load_jsonl(path)
         changed = False
@@ -20183,6 +20199,7 @@ if (document.readyState === "loading") {{
             write_jsonl(path, updated_records)
         return found, changed, response_item, error
 
+    @with_db_write_lock
     def extract_newsletter_links_record(self, path: Path, item_id: str, selected_urls: list[str] | None = None) -> tuple[bool, dict]:
         target_records = load_jsonl(path)
         parent = next((item for item in target_records if clean_text(item.get("id")) == item_id), None)
@@ -20331,6 +20348,7 @@ if (document.readyState === "loading") {{
         updated["reference"] = reference
         return updated, True, ""
 
+    @with_db_write_lock
     def normalize_pdf_markdown_record(self, path: Path, item_id: str) -> tuple[bool, bool, str]:
         records = load_jsonl(path)
         updated_records = []
@@ -20371,6 +20389,7 @@ if (document.readyState === "loading") {{
             return
         self.redirect(f"{redirect_to}{separator}saved=pdf_markdown")
 
+    @with_db_write_lock
     def save_fulltext_link(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         url = fetchable_http_url(form_value(data, "url"))
@@ -20415,6 +20434,7 @@ if (document.readyState === "loading") {{
             return
         self.redirect(f"/items/view?id={quote(item_id)}&saved=fulltext")
 
+    @with_db_write_lock
     def save_fulltext_text(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         fulltext = str((data.get("fulltext") or [""])[0]).replace("\r\n", "\n").replace("\r", "\n").strip()
@@ -20458,6 +20478,7 @@ if (document.readyState === "loading") {{
         write_jsonl(ITEMS, updated_records)
         self.redirect(f"/items/view?id={quote(item_id)}&saved=fulltext")
 
+    @with_db_write_lock
     def pdf_relation_action(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         candidate_id = form_value(data, "candidate_id")
@@ -20585,6 +20606,7 @@ if (document.readyState === "loading") {{
             return
         self.redirect(f"/items/view?id={quote(item_id)}")
 
+    @with_db_write_lock
     def pdf_split_apply(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         provider = normalize_ai_provider(form_value(data, "provider", "codex"))
@@ -20713,6 +20735,7 @@ if (document.readyState === "loading") {{
                 return it, CANDIDATES
         return None, ITEMS
 
+    @with_db_write_lock
     def _apply_fulltext_edit(self, item_id: str, markdown: str, new_title: str, method: str, label: str, note: str) -> bool:
         for path in (ITEMS, CANDIDATES):
             records = load_jsonl(path)
@@ -20817,6 +20840,7 @@ if (document.readyState === "loading") {{
             return
         self.redirect(f"{redirect_to}&saved=fulltext_edit")
 
+    @with_db_write_lock
     def _apply_edited_markdown(self, item_id: str, markdown: str, new_title: str, base: str, note: str) -> bool:
         """把使用者手動修正後的全文存成 edited_markdown 覆寫層，不動原文與自動翻譯。"""
         for path in (ITEMS, CANDIDATES):
@@ -20844,6 +20868,7 @@ if (document.readyState === "loading") {{
                 return True
         return False
 
+    @with_db_write_lock
     def _clear_edited_markdown(self, item_id: str, note: str) -> bool:
         """移除 edited_markdown 覆寫層，回到原文／自動翻譯的顯示狀態。"""
         edited_keys = {
@@ -21146,6 +21171,7 @@ if (document.readyState === "loading") {{
             return
         self.redirect(final_redirect)
 
+    @with_db_write_lock
     def update_url_record(self, path: Path, item_id: str, new_url: str, action: str) -> tuple[bool, str]:
         records = load_jsonl(path)
         updated_records = []
@@ -21207,6 +21233,7 @@ if (document.readyState === "loading") {{
             return
         self.redirect(f"{redirect_to}{separator}saved=url")
 
+    @with_db_write_lock
     def update_title_record(self, path: Path, item_id: str, title: str) -> bool:
         records = load_jsonl(path)
         updated_records = []
@@ -21250,6 +21277,7 @@ if (document.readyState === "loading") {{
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=title")
 
+    @with_db_write_lock
     def update_track_record(self, path: Path, item_id: str, new_track: str) -> bool:
         if new_track not in TRACK_META:
             return False
@@ -21303,6 +21331,7 @@ if (document.readyState === "loading") {{
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=track")
 
+    @with_db_write_lock
     def update_metadata_record(self, path: Path, item_id: str, data: dict[str, list[str]]) -> bool:
         fields = [
             "original_site_title",
@@ -21557,6 +21586,7 @@ if (document.readyState === "loading") {{
         configured_keep_keyword_labels.cache_clear()
         self.redirect("/keywords?saved=1")
 
+    @with_db_write_lock
     def quick_update_source(self, data: dict[str, list[str]]) -> None:
         source_id = form_value(data, "id")
         field = form_value(data, "field")
@@ -21597,6 +21627,7 @@ if (document.readyState === "loading") {{
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=source_quick")
 
+    @with_db_write_lock
     def move_source_group(self, data: dict[str, list[str]]) -> None:
         source_id = form_value(data, "id")
         target_track = form_value(data, "track")
@@ -21650,6 +21681,7 @@ if (document.readyState === "loading") {{
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=source_group_move")
 
+    @with_db_write_lock
     def reorder_source_groups(self, data: dict[str, list[str]]) -> None:
         track = form_value(data, "track")
         redirect_to = safe_redirect_path(form_value(data, "redirect"), "/sources")
@@ -21694,6 +21726,7 @@ if (document.readyState === "loading") {{
         separator = "&" if "?" in redirect_to else "?"
         self.redirect(f"{redirect_to}{separator}saved=source_group_order")
 
+    @with_db_write_lock
     def rename_source_group(self, data: dict[str, list[str]]) -> None:
         track = form_value(data, "track")
         old_group = form_value(data, "old_group")
@@ -21810,6 +21843,7 @@ if (document.readyState === "loading") {{
         params = {"saved" if ok else "error": "source_fetch", **{key: str(value) for key, value in counts.items()}}
         self.redirect(f"{redirect_to}{separator}{urlencode(params)}")
 
+    @with_db_write_lock
     def rescan_source_keyword_exclusions(self, source: dict) -> dict[str, int]:
         source_id = clean_text(source.get("id"))
         if not source_id:
@@ -21856,6 +21890,7 @@ if (document.readyState === "loading") {{
                 dismissed_count += 1
         return {"items": len(archived_items), "candidates": dismissed_count}
 
+    @with_db_write_lock
     def restore_source_item(self, data: dict[str, list[str]]) -> None:
         item_id = form_value(data, "id")
         source_id = form_value(data, "source_id")
@@ -22280,6 +22315,7 @@ if (document.readyState === "loading") {{
 """
         self.send_html("上傳 PDF", body)
 
+    @with_db_write_lock
     def save_pdf_upload(self, data: dict[str, list[str]], files: dict[str, list[dict]]) -> None:
         upload = next(iter(files.get("pdf_file") or []), None)
         if not upload:
@@ -23282,6 +23318,7 @@ if (document.readyState === "loading") {{
 """
         self.send_html(title, body)
 
+    @with_db_write_lock
     def save_source(self, data: dict[str, list[str]]) -> None:
         sources = load_jsonl(SOURCES)
         existing_id = form_value(data, "id")
