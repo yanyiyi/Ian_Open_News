@@ -24631,9 +24631,11 @@ if (document.readyState === "loading") {{
             content_html: str,
             *,
             open_section: bool = True,
+            action_html: str = "",
         ) -> str:
             open_attr = " open" if open_section else ""
             note_html = f'<p class="notify-section-note">{h(note)}</p>' if note else ""
+            action_html = f'<p class="notify-section-actions">{action_html}</p>' if action_html else ""
             section_id = f"notify-section-{period_key_from_label(title)}"
             return f"""
       <details class="reader-period-details notify-period-details" id="{h(section_id)}"{open_attr}>
@@ -24642,6 +24644,7 @@ if (document.readyState === "loading") {{
           <span class="reader-period-count">{h(count_label(display_count, total_count))}</span>
         </summary>
         {note_html}
+        {action_html}
         {content_html}
       </details>
 """
@@ -24678,15 +24681,29 @@ if (document.readyState === "loading") {{
                 )
             )
         if active_filter in {"overview", "legacy"}:
-            legacy_html = render_event_groups(legacy_recent, "legacy", "目前沒有舊未發內容。")
+            showing_all_legacy = active_filter == "legacy"
+            legacy_records = legacy_pending if showing_all_legacy else legacy_recent
+            legacy_title = "舊未發（全部）" if showing_all_legacy else f"舊未發（最近 {recent_days} 天）"
+            legacy_note = (
+                "這些是起算前、超過自動送出窗口或缺少時間標記的舊內容；目前顯示全部 backlog。"
+                if showing_all_legacy
+                else f"這些是起算前、超過自動送出窗口或缺少時間標記的舊內容；先顯示最近 {recent_days} 天，避免 backlog 一次攤開。"
+            )
+            legacy_action_html = (
+                ""
+                if showing_all_legacy or len(legacy_recent) == len(legacy_pending)
+                else f'<a class="button-small quiet" href="{h(filter_url("legacy"))}">展開全部 {len(legacy_pending)} 筆</a>'
+            )
+            legacy_html = render_event_groups(legacy_records, "legacy", "目前沒有舊未發內容。")
             sections.append(
                 section_details(
-                    f"舊未發（最近 {recent_days} 天）",
-                    len(legacy_recent),
+                    legacy_title,
+                    len(legacy_records),
                     len(legacy_pending),
-                    f"這些是起算前、超過自動送出窗口或缺少時間標記的舊內容；先顯示最近 {recent_days} 天，避免 backlog 一次攤開。",
+                    legacy_note,
                     legacy_html,
                     open_section=active_filter == "legacy" or (active_filter == "overview" and not fresh_pending),
+                    action_html=legacy_action_html,
                 )
             )
         if active_filter in {"overview", "sent"}:
