@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from database_write_lock import database_write_lock
 from page_metadata import is_access_prompt_text
 from ai_model_settings import task_model, task_provider
 
@@ -167,11 +168,12 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    tmp.replace(path)
+    with database_write_lock():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text(text, encoding="utf-8")
+        tmp.replace(path)
 
 
 def write_status(path: Path | None, payload: dict[str, Any]) -> None:
@@ -1087,6 +1089,24 @@ def apply_reviews(records: list[dict[str, Any]], reviews: list[dict[str, Any]], 
     return changed
 
 
+def merge_reviews_into_latest(
+    path: Path,
+    reviews: list[dict[str, Any]],
+    provider: str,
+    *,
+    replace_existing: bool = False,
+) -> tuple[list[dict[str, Any]], int]:
+    """把 AI 結果套到寫入當下的最新檔案，避免長任務用舊快照吃掉新 item。"""
+    with database_write_lock():
+        latest_records = load_jsonl(path)
+        changed = apply_reviews(latest_records, reviews, provider, replace_existing=replace_existing)
+        if changed:
+            for record in latest_records:
+                record.pop("_line", None)
+            write_jsonl(path, latest_records)
+        return latest_records, changed
+
+
 def batched(records: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]:
     return [records[index : index + size] for index in range(0, len(records), size)]
 
@@ -1233,14 +1253,19 @@ def process_file(
                     f"{kind}: {label} failed; retried with {provider_meta(actual_provider)['label']}",
                     flush=True,
                 )
-            batch_changed = apply_reviews(records, reviews, actual_provider, replace_existing=args.replace_existing)
+            if args.dry_run:
+                batch_changed = apply_reviews(records, reviews, actual_provider, replace_existing=args.replace_existing)
+            else:
+                latest_records, batch_changed = merge_reviews_into_latest(
+                    path,
+                    reviews,
+                    actual_provider,
+                    replace_existing=args.replace_existing,
+                )
+                records[:] = latest_records
             changed += batch_changed
             progress["index"] = end_index
             progress["end_index"] = end_index
-            if batch_changed and not args.dry_run:
-                for record in records:
-                    record.pop("_line", None)
-                write_jsonl(path, records)
             progress_status(
                 args,
                 progress,

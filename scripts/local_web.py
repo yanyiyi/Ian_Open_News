@@ -47,6 +47,7 @@ from ai_model_settings import (
 import author_registry
 import fulltext_store
 import import_author_research as author_research
+from database_write_lock import database_write_lock
 from page_metadata import (
     attrs_from_tag,
     complete_item_metadata,
@@ -392,9 +393,9 @@ DATA_AUTOCOMMIT_FILES = [
 TRANSLATION_SOURCE_MARKDOWN_LIMIT = 500000
 TRANSLATION_SOURCE_TEXT_LIMIT = 500000
 DATA_AUTOCOMMIT_LOCK = threading.Lock()
-# 序列化資料庫的「讀取→修改→整檔覆寫」交易。ThreadingHTTPServer 會並發處理請求，
-# 沒有這把鎖時，批次或快速連點的收件/分流會 lost-update：item 被另一執行緒的舊
-# 快照覆寫掉，但 review-event 是 append 故倖存，留下對不到 item 的孤兒事件。
+# 序列化資料庫的「讀取→修改→整檔覆寫」交易。RLock 管同程序執行緒，搭配
+# database_write_lock 的 flock 管 AI 補摘要等外部程序；否則舊快照會覆寫新 item，
+# review-event 卻因 append 倖存，留下對不到 item 的孤兒事件。
 DB_WRITE_LOCK = threading.RLock()
 
 
@@ -407,7 +408,8 @@ def with_db_write_lock(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         with DB_WRITE_LOCK:
-            return func(*args, **kwargs)
+            with database_write_lock():
+                return func(*args, **kwargs)
 
     return wrapper
 REJECTION_REASON_CATEGORIES = [
@@ -1538,32 +1540,34 @@ def write_status_json(path: Path, record: dict) -> None:
 
 
 def write_jsonl(path: Path, records: list[dict]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path in (ITEMS, REJECTED_ITEMS) and fulltext_store.sidecar_enabled():
-        # 全文側檔：帶著 inline 重欄位的 record（剛翻譯/enrich/或被 hydrate 過）
-        # 在這裡統一抽回 database/fulltext/，主檔只留瘦身欄位，呼叫端零改動。
-        fulltext_store.dehydrate_items(records)
-    text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
-    with DB_WRITE_LOCK:  # 避免並發寫入交錯把檔案寫壞
-        path.write_text(text, encoding="utf-8")
-        invalidate_jsonl_cache(path)
+    with DB_WRITE_LOCK:
+        with database_write_lock():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if path in (ITEMS, REJECTED_ITEMS) and fulltext_store.sidecar_enabled():
+                # 全文側檔：帶著 inline 重欄位的 record（剛翻譯/enrich/或被 hydrate 過）
+                # 在這裡統一抽回 database/fulltext/，主檔只留瘦身欄位，呼叫端零改動。
+                fulltext_store.dehydrate_items(records)
+            text = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
+            path.write_text(text, encoding="utf-8")
+            invalidate_jsonl_cache(path)
 
 
 def append_jsonl(path: Path, record: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path in (ITEMS, REJECTED_ITEMS) and fulltext_store.sidecar_enabled():
-        fulltext_store.dehydrate_item(record)  # 全文側檔：與 write_jsonl 同一約定
-    with DB_WRITE_LOCK:  # 避免並發 append 與整檔覆寫交錯
-        needs_newline = path.exists() and path.stat().st_size > 0
-        if needs_newline:
-            with path.open("rb") as handle:
-                handle.seek(-1, 2)
-                needs_newline = handle.read(1) != b"\n"
-        with path.open("a", encoding="utf-8") as handle:
+    with DB_WRITE_LOCK:
+        with database_write_lock():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if path in (ITEMS, REJECTED_ITEMS) and fulltext_store.sidecar_enabled():
+                fulltext_store.dehydrate_item(record)  # 全文側檔：與 write_jsonl 同一約定
+            needs_newline = path.exists() and path.stat().st_size > 0
             if needs_newline:
-                handle.write("\n")
-            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
-        invalidate_jsonl_cache(path)
+                with path.open("rb") as handle:
+                    handle.seek(-1, 2)
+                    needs_newline = handle.read(1) != b"\n"
+            with path.open("a", encoding="utf-8") as handle:
+                if needs_newline:
+                    handle.write("\n")
+                handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+            invalidate_jsonl_cache(path)
 
 
 @with_db_write_lock
