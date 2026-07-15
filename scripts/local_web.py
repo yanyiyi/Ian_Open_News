@@ -8693,7 +8693,12 @@ def page(title: str, body: str) -> bytes:
     .cluster-angle {{ font-size: 0.88em; flex: 1 1 220px; }}
     .cluster-group-rationale {{ margin: 8px 0 0; font-size: 0.92em; }}
     .cluster-group-body {{ display: grid; gap: 12px; margin-top: 10px; }}
-    .cluster-ungrouped-heading {{ margin: 4px 0 10px; font-weight: 600; }}
+    .cluster-ungrouped-controls {{
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      margin: 4px 0 10px; padding: 10px 12px;
+      border: 1px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;
+    }}
+    .cluster-ungrouped-heading {{ font-weight: 600; margin-right: auto; }}
     #cluster-view-toggle.is-active {{ background: var(--ocf-cyan); color: #fff; }}
     #cluster-view-toggle.is-active:hover {{ color: #fff; }}
     .batch-panel {{ border-left: 4px solid var(--ocf-cyan); }}
@@ -17498,10 +17503,39 @@ function enterClusterView(data, opts) {{
   }}
   const remaining = Array.from(itemsList.children).filter((node) => node.classList?.contains("candidate-card"));
   if (remaining.length) {{
-    const heading = document.createElement("p");
+    const controls = document.createElement("div");
+    controls.className = "cluster-ungrouped-controls";
+    const heading = document.createElement("span");
     heading.className = "muted cluster-ungrouped-heading";
     heading.textContent = `未分群 ${{remaining.length}} 則——維持單篇挑選`;
-    itemsList.insertBefore(heading, remaining[0]);
+    controls.appendChild(heading);
+
+    const selectAllUngrouped = document.createElement("button");
+    selectAllUngrouped.type = "button";
+    selectAllUngrouped.className = "secondary button-small cluster-ungrouped-select-all";
+    selectAllUngrouped.textContent = "全選未分群";
+    selectAllUngrouped.addEventListener("click", () => {{
+      remaining.forEach((card) => {{
+        const box = card.querySelector(".item-select");
+        if (box && card.isConnected) box.checked = true;
+      }});
+      syncSelection();
+    }});
+    controls.appendChild(selectAllUngrouped);
+
+    const deselectAllUngrouped = document.createElement("button");
+    deselectAllUngrouped.type = "button";
+    deselectAllUngrouped.className = "quiet button-small cluster-ungrouped-deselect-all";
+    deselectAllUngrouped.textContent = "取消選取未分群";
+    deselectAllUngrouped.addEventListener("click", () => {{
+      remaining.forEach((card) => {{
+        const box = card.querySelector(".item-select");
+        if (box && card.isConnected) box.checked = false;
+      }});
+      syncSelection();
+    }});
+    controls.appendChild(deselectAllUngrouped);
+    itemsList.insertBefore(controls, remaining[0]);
   }}
   itemsList.prepend(fragment);
   setClusterToggleState(true);
@@ -17515,7 +17549,7 @@ function exitClusterView() {{
   clusterOriginalOrder.forEach((node) => {{
     if (node.isConnected && !node.classList?.contains("is-removing")) itemsList.appendChild(node);
   }});
-  itemsList.querySelectorAll(".cluster-group, .cluster-ungrouped-heading").forEach((node) => node.remove());
+  itemsList.querySelectorAll(".cluster-group, .cluster-ungrouped-controls").forEach((node) => node.remove());
   clusterOriginalOrder = null;
   setClusterToggleState(false);
   syncSelection();

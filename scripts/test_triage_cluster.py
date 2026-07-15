@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,7 +12,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import triage_cluster
-from triage_cluster import apply_cluster_to_records, validate_and_normalize
+from triage_cluster import apply_cluster_to_records, cluster_pool, validate_and_normalize
 
 
 def payload_fixture() -> dict:
@@ -121,6 +122,69 @@ class ApplyClusterTest(unittest.TestCase):
         self.assertEqual(cluster_info["label"], "開放資料授權")
         # 不在任何群的 record 完全不動
         self.assertEqual(records[1], before[1])
+
+
+class ClusterPoolTest(unittest.TestCase):
+    def test_pool_matches_intake_visibility_and_excludes_active_duplicate(self) -> None:
+        active = {
+            "id": "item-active",
+            "url": "https://example.test/already-in-items",
+            "status": "triaged",
+        }
+        hidden_candidate = {
+            "id": "candidate-hidden",
+            "url": "https://example.test/already-in-items",
+            "candidate_status": "pending",
+        }
+        visible_candidate = {
+            "id": "candidate-visible",
+            "url": "https://example.test/still-pending",
+            "candidate_status": "pending",
+        }
+
+        self.assertEqual(
+            cluster_pool([active], [hidden_candidate, visible_candidate]),
+            [visible_candidate],
+        )
+
+    def test_main_snapshot_uses_unified_pool_counts(self) -> None:
+        candidate = {
+            "id": "candidate-visible",
+            "url": "https://example.test/candidate",
+            "candidate_status": "pending",
+        }
+        inbox = {
+            "id": "item-inbox",
+            "url": "https://example.test/inbox",
+            "status": "inbox",
+        }
+        payload = {
+            "clusters": [],
+            "ungrouped_ids": [candidate["id"], inbox["id"]],
+            "notes": "",
+        }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            preview = Path(tmp) / "triage-clusters-preview.json"
+
+            def fake_load(path: Path) -> list[dict]:
+                if path == triage_cluster.CANDIDATES:
+                    return [candidate]
+                if path == triage_cluster.ITEMS:
+                    return [inbox]
+                return []
+
+            with patch.object(triage_cluster, "load_jsonl", side_effect=fake_load), \
+                 patch.object(triage_cluster, "cluster_pool", return_value=[candidate, inbox]), \
+                 patch.object(triage_cluster, "run_engine", return_value=("codex", payload)), \
+                 patch.object(triage_cluster, "CLUSTERS_PREVIEW", preview), \
+                 patch.object(sys, "argv", ["triage_cluster.py", "--dry-run"]):
+                self.assertEqual(triage_cluster.main(), 0)
+
+            snapshot = json.loads(preview.read_text(encoding="utf-8"))
+            self.assertEqual(snapshot["input_scope"]["pending"], 1)
+            self.assertEqual(snapshot["input_scope"]["inbox"], 1)
+            self.assertEqual(snapshot["input_scope"]["clustered"], 2)
 
 
 class CodexCompatibilityRetryTest(unittest.TestCase):

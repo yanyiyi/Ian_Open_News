@@ -56,6 +56,7 @@ from ai_model_settings import (
     task_model,
     task_provider,
 )
+from local_web import pending_review_entries
 
 ARTICLES = ROOT / "database" / "articles.jsonl"
 MATERIAL_LINKS = ROOT / "database" / "material-links.jsonl"
@@ -72,6 +73,16 @@ ANCHOR_STATUSES = {"researching", "drafting"}
 # 注意：本機 ollama 小模型（4B/12B）遇到上百筆跨篇比較很可能塞不下 context，
 # 用 ollama 時建議把 --limit 壓到 20 以下。
 CLUSTER_ENGINES = [*ACTIVE_PROVIDER_ORDER, "random"]
+
+
+def cluster_pool(items: list[dict], candidates: list[dict]) -> list[dict]:
+    """回傳「入庫建檔區」實際看得到、仍可處理的同一批材料。
+
+    分群結果會在 /items 的分群檢視中使用；不能把已經入庫、退件或被
+    URL 去重隱藏的 RSS 候選拿進來，否則卡片找不到對應成員而整個分群
+    檢視看起來像空的。
+    """
+    return [record for _, record in pending_review_entries(items, candidates)]
 
 
 def cluster_schema() -> dict[str, Any]:
@@ -603,16 +614,15 @@ def main() -> int:
     candidates = load_jsonl(CANDIDATES)
     items = load_jsonl(ITEMS)
 
-    pending = [c for c in candidates if clean_text(c.get("candidate_status")) == "pending"]
-    inbox = [i for i in items if clean_text(i.get("status")) == "inbox"]
+    pool = cluster_pool(items, candidates)
     if args.track:
-        pending = [c for c in pending if clean_text(c.get("track")) == args.track]
-        inbox = [i for i in inbox if clean_text(i.get("track")) == args.track]
-    pool = pending + inbox
+        pool = [record for record in pool if clean_text(record.get("track")) == args.track]
     if not pool:
         report_status(args, "done", "沒有待分群的候選", phase="done")
         print("沒有 pending 候選或 inbox item，無事可做。")
         return 0
+    pending_count = sum(1 for record in pool if clean_text(record.get("candidate_status")) == "pending")
+    inbox_count = sum(1 for record in pool if clean_text(record.get("status")) == "inbox")
     # 一律先照規則建議排優先序：分批時最值得看的先跑，中途失敗也已涵蓋高優先者。
     def priority(record: dict[str, Any]) -> int:
         rec = clean_text((record.get("triage") or {}).get("recommendation"))
@@ -644,8 +654,8 @@ def main() -> int:
             "model": args.model,
             "partial": partial,
             "input_scope": {
-                "pending": len(pending),
-                "inbox": len(inbox),
+                "pending": pending_count,
+                "inbox": inbox_count,
                 "clustered": len(pool),
                 "batches": len(batches),
                 "track": args.track,
