@@ -96,5 +96,26 @@
     "news-brief",
     "knowledge-worthy",
     "deep-read"
+  ],
+  "author_kinds": [
+    "person",
+    "organization",
+    "unknown",
+    "noise"
+  ],
+  "author_verification_statuses": [
+    "unverified",
+    "ai-suggested",
+    "verified",
+    "needs-review"
+  ],
+  "org_types": [
+    "media",
+    "academic",
+    "government",
+    "ngo",
+    "company",
+    "community",
+    "other"
   ]
 }

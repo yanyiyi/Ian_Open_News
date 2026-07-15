@@ -17,6 +17,8 @@ class DataAutocommitFilesTest(unittest.TestCase):
         self.assertIn("database/items.jsonl", labels)
         self.assertIn("database/rejected-items.jsonl", labels)
         self.assertIn("database/review-events.jsonl", labels)
+        self.assertIn("database/authors.jsonl", labels)
+        self.assertIn("database/organizations.jsonl", labels)
 
     def test_missing_untracked_optional_files_are_not_git_pathspecs(self) -> None:
         optional = local_web.DATABASE / "missing-autocommit-test-file.jsonl"

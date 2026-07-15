@@ -110,6 +110,17 @@
 - **Perplexity 輔助查證**：查核 session 頁一顆按鈕帶未解宣稱開 Perplexity；
   分享連結貼回即歸檔 `.cache/perplexity-research/`（不自動寫資料庫）。Claude Code 內可用
   `/perplexity-research` 接著整理與挑選引用。
+- **作者與組織（byline 實體化）**：材料區的 `/authors` 頁整理文章原始作者與所屬組織，
+  正本在 `database/authors.jsonl` 與 `database/organizations.jsonl`；作者↔文章靠 byline
+  字串比對（`scripts/author_registry.py`），items 不用改。單篇頁、閱讀區、可用材料區的
+  meta 行會顯示可點的作者名。查證流程：
+  1. 批次 backfill：`python3 scripts/build_author_registry.py` 產 `.cache/author-research/batch-NN.md`，
+     整段貼進 Perplexity，回覆存成 `batch-NN-result.json` 後跑
+     `python3 scripts/import_author_research.py --input <檔案>`（confidence low 自動標待複核）。
+  2. 單一作者：作者單頁右側「用 Perplexity 查此作者」帶 prompt 開頁，回覆貼回同頁表單即回填，
+     原文歸檔 `.cache/author-research/`。
+  3. 沒對上作者庫的新署名會出現在 `/authors` 右側「未整理署名」，可建檔、標雜訊或併入既有作者。
+  Claude Code 內可用 `/author-research` 收回結果並整理。
 - **非 RSS 來源**：RSSHub / bridge 出身欄位（`served_via`、`bridge`）、bridge 離線整組
   彙報與遷移工具見 [facebook-inoreader-alternatives.md](facebook-inoreader-alternatives.md)
   與 `templates/rsshub/`。

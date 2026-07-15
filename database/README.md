@@ -11,6 +11,8 @@
 - `rejected-items.jsonl`：不收學習檔，存放從 `items.jsonl` 移出的拒收資料與 RSS 新進拒收資料，供後續分析拒收原因、去重與本機規則初篩使用。
 - `review-events.jsonl`：審稿與查核事件，可人工追加。
 - `notification-feedback.jsonl`：推播（Slack/Telegram）表情與回覆的回流正本，由 `scripts/collect_notification_reactions.py` 追加。每行是一個事件的回饋快照（append-only，同狀態不重複追加），`target_kind`/`target_id` 對回 article 或 item。
+- `authors.jsonl`：作者實體庫（byline 實體化）。每筆一個署名實體：`kind`（person/organization/unknown/noise）、`byline_names`（出現在 items 的署名寫法，全庫唯一，比對用）、`intro_zh`、`org_ids`、`links`、`verification`（unverified/ai-suggested/verified/needs-review）。items 不寫 author_ids——作者↔文章由 `scripts/author_registry.py` 在讀取時以 byline 字串比對解析。由 `scripts/build_author_registry.py` 建檔、`scripts/import_author_research.py` 回填 Perplexity 查證。
+- `organizations.jsonl`：組織實體庫，作者的所屬組織與以組織名義發文的單位。欄位含 `org_type`、`aliases`、`intro_zh`、`links`、`verification`。
 - `schema.sql`：SQLite 輸出 schema。
 
 ## Item 欄位

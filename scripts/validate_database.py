@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 
+import author_registry
 import fulltext_store
 
 
@@ -287,6 +288,81 @@ def validate() -> list[str]:
             if isinstance(factcheck, dict) and "claims" in factcheck and not isinstance(factcheck.get("claims"), list):
                 errors.append(f"{articles_path}:{article['_line']}: factcheck.claims must be a list")
             validate_license(article, articles_path)
+        except ValueError as exc:
+            errors.append(str(exc))
+
+    author_kinds = set(taxonomy.get("author_kinds", ["person", "organization", "unknown", "noise"]))
+    verification_statuses = set(
+        taxonomy.get("author_verification_statuses", ["unverified", "ai-suggested", "verified", "needs-review"])
+    )
+    org_types = set(taxonomy.get("org_types", ["other"]))
+
+    authors_path = DATABASE / "authors.jsonl"
+    organizations_path = DATABASE / "organizations.jsonl"
+    authors = load_jsonl(authors_path)
+    organizations = load_jsonl(organizations_path)
+    validate_unique(authors, authors_path)
+    validate_unique(organizations, organizations_path)
+    organization_ids = {record["id"] for record in organizations}
+
+    def validate_verification(record: dict, path: Path) -> None:
+        verification = record.get("verification")
+        if verification in (None, {}):
+            return
+        if not isinstance(verification, dict):
+            errors.append(f"{path}:{record.get('_line', '?')}: verification must be an object")
+            return
+        status = str(verification.get("status") or "")
+        if status and status not in verification_statuses:
+            errors.append(f"{path}:{record.get('_line', '?')}: unknown verification status {status}")
+
+    seen_bylines: dict[str, int] = {}
+    for author in authors:
+        try:
+            require(author, authors_path, "name")
+            require(author, authors_path, "kind")
+            if not str(author.get("id", "")).startswith("author-"):
+                errors.append(f"{authors_path}:{author['_line']}: id must start with author-")
+            if author["kind"] not in author_kinds:
+                errors.append(f"{authors_path}:{author['_line']}: unknown author kind {author['kind']}")
+            if not isinstance(author.get("byline_names"), list):
+                errors.append(f"{authors_path}:{author['_line']}: byline_names must be a list")
+            else:
+                for byline in author["byline_names"]:
+                    key = author_registry.normalize_byline(byline)
+                    if not key:
+                        continue
+                    if key in seen_bylines:
+                        errors.append(
+                            f"{authors_path}:{author['_line']}: byline {byline!r} already claimed on line {seen_bylines[key]}"
+                        )
+                    else:
+                        seen_bylines[key] = author["_line"]
+            if not isinstance(author.get("org_ids"), list):
+                errors.append(f"{authors_path}:{author['_line']}: org_ids must be a list")
+            else:
+                for org_id in author["org_ids"]:
+                    if org_id not in organization_ids:
+                        errors.append(f"{authors_path}:{author['_line']}: org_id not found: {org_id}")
+            if not isinstance(author.get("links"), list):
+                errors.append(f"{authors_path}:{author['_line']}: links must be a list")
+            validate_verification(author, authors_path)
+        except ValueError as exc:
+            errors.append(str(exc))
+
+    for organization in organizations:
+        try:
+            require(organization, organizations_path, "name")
+            if not str(organization.get("id", "")).startswith("org-"):
+                errors.append(f"{organizations_path}:{organization['_line']}: id must start with org-")
+            org_type = str(organization.get("org_type") or "")
+            if org_type and org_type not in org_types:
+                errors.append(f"{organizations_path}:{organization['_line']}: unknown org_type {org_type}")
+            if not isinstance(organization.get("aliases"), list):
+                errors.append(f"{organizations_path}:{organization['_line']}: aliases must be a list")
+            if not isinstance(organization.get("links"), list):
+                errors.append(f"{organizations_path}:{organization['_line']}: links must be a list")
+            validate_verification(organization, organizations_path)
         except ValueError as exc:
             errors.append(str(exc))
 

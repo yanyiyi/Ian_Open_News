@@ -44,7 +44,9 @@ from ai_model_settings import (
     task_model as configured_task_model,
     task_provider as configured_task_provider,
 )
+import author_registry
 import fulltext_store
+import import_author_research as author_research
 from page_metadata import (
     attrs_from_tag,
     complete_item_metadata,
@@ -376,6 +378,8 @@ DATA_AUTOCOMMIT_FILES = [
     ITEMS,
     REJECTED_ITEMS,
     REVIEW_EVENTS,
+    DATABASE / "authors.jsonl",
+    DATABASE / "organizations.jsonl",
     SOURCES,
     PUBLISHED_PAGES,
     DECISION_DIVERGENCES,
@@ -600,6 +604,57 @@ def background_command_worker(command_name: str, proc: subprocess.Popen, timeout
     with BACKGROUND_JOBS_LOCK:
         if BACKGROUND_JOBS.get(command_name) is proc:
             BACKGROUND_JOBS.pop(command_name, None)
+
+
+def translation_job_key(item_id: str) -> str:
+    return f"translation:{item_id}"
+
+
+def background_translation_worker(
+    item_id: str,
+    proc: subprocess.Popen,
+    status_path: Path,
+    redirect_to: str,
+    timeout_seconds: int = 3600,
+) -> None:
+    """Finish a translation without keeping the browser's POST request open."""
+    timed_out = False
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        proc.kill()
+        stdout, stderr = proc.communicate()
+    returncode = 124 if timed_out else proc.returncode
+    ok = returncode == 0
+    output = ((stdout or "") + ("\nSTDERR:\n" + stderr if stderr else "")).strip()
+    current = load_json(status_path)
+    error_message = ""
+    if not ok:
+        if timed_out:
+            error_message = f"翻譯超過 {timeout_seconds} 秒，已中止；已完成的段落仍會保留。"
+        else:
+            error_message = clean_text(current.get("message") or stderr or stdout, 600) or f"exit {returncode}"
+    current.update(
+        {
+            "item_id": item_id,
+            "state": "done" if ok else "failed",
+            "returncode": returncode,
+            "redirect": redirect_to,
+            "error": error_message,
+            "output_tail": output[-1500:],
+            "finished_at": now_iso(),
+        }
+    )
+    if ok and not clean_text(current.get("message")):
+        current["message"] = "翻譯完成。"
+    elif not ok and not clean_text(current.get("message")):
+        current["message"] = error_message or "翻譯失敗。"
+    write_json(status_path, current)
+    job_key = translation_job_key(item_id)
+    with BACKGROUND_JOBS_LOCK:
+        if BACKGROUND_JOBS.get(job_key) is proc:
+            BACKGROUND_JOBS.pop(job_key, None)
 
 
 COMMANDS = {
@@ -3479,6 +3534,90 @@ def source_name_link(item: dict) -> str:
     if not source_id:
         return name
     return f'<a href="/sources/view?id={quote(source_id)}">{name}</a>'
+
+
+AUTHOR_KIND_LABELS = {"person": "人物", "organization": "組織", "unknown": "未確認", "noise": "雜訊"}
+AUTHOR_VERIFICATION_LABELS = {
+    "unverified": "未查證", "ai-suggested": "AI 建議", "verified": "已確認", "needs-review": "待複核",
+}
+ORG_TYPE_LABELS = {
+    "media": "媒體", "academic": "學術", "government": "政府", "ngo": "NGO",
+    "company": "企業", "community": "社群", "other": "其他",
+}
+
+_AUTHOR_INDEX_CACHE: dict[str, object] = {"mtime": None, "index": {}}
+
+
+def cached_author_index() -> dict[str, dict]:
+    """authors.jsonl 的 byline → 實體索引（mtime 快取，列表頁不用每筆重建）。"""
+    path = author_registry.AUTHORS_PATH
+    mtime = path.stat().st_mtime_ns if path.exists() else None
+    if _AUTHOR_INDEX_CACHE["mtime"] != mtime:
+        _AUTHOR_INDEX_CACHE["index"] = author_registry.build_author_index()
+        _AUTHOR_INDEX_CACHE["mtime"] = mtime
+    return _AUTHOR_INDEX_CACHE["index"]
+
+
+def author_detail_href(author: dict) -> str:
+    return f"/authors/view?id={quote(str(author.get('id') or ''))}"
+
+
+def organization_detail_href(org: dict) -> str:
+    return f"/organizations/view?id={quote(str(org.get('id') or ''))}"
+
+
+def author_verification_badge(record: dict) -> str:
+    status = str((record.get("verification") or {}).get("status") or "unverified")
+    label = AUTHOR_VERIFICATION_LABELS.get(status, status)
+    css = {"verified": "suggest-keep", "ai-suggested": "neutral",
+           "needs-review": "suggest-skip", "unverified": "neutral"}.get(status, "neutral")
+    return badge(label, css)
+
+
+def byline_links_html(item: dict, author_index: dict[str, dict] | None = None) -> str:
+    """meta 行作者片段：命中作者庫的連到作者單頁，沒命中的顯示純文字，雜訊不顯示。"""
+    index = author_index if author_index is not None else cached_author_index()
+    rendered: list[str] = []
+    for part in author_registry.item_byline_parts(item):
+        author = index.get(author_registry.normalize_byline(part))
+        if author is None:
+            rendered.append(h(part))
+        elif author.get("kind") != "noise":
+            rendered.append(f'<a href="{h(author_detail_href(author))}">{h(author.get("name") or part)}</a>')
+    return "、".join(rendered)
+
+
+def byline_meta_html(item: dict) -> str:
+    """meta 行的「 · 作者」片段；沒有可顯示的 byline 就回空字串不佔位。"""
+    byline = byline_links_html(item)
+    return f" · {byline}" if byline else ""
+
+
+def build_author_research_prompt(author: dict, items: list[dict]) -> str:
+    """單一作者的 Perplexity 查證 prompt，輸出 schema 與批次版一致。"""
+    context_lines: list[str] = []
+    sources = sorted({clean_text(item.get("source_name"), 120) for item in items if clean_text(item.get("source_name"))})
+    if sources:
+        context_lines.append(f"常出現於：{'、'.join(sources[:3])}")
+    for item in items[:3]:
+        title = clean_text(item.get("title"), 200)
+        url = clean_text(item.get("url"), 600)
+        if title:
+            context_lines.append(f"文章例：「{title}」{f'({url})' if url else ''}")
+    context = "\n".join(f"- {line}" for line in context_lines) or "-（站內沒有其他脈絡）"
+    return f"""你是嚴謹的研究助理。請查證這個新聞/部落格文章的署名（byline）：
+
+署名：{author.get('name', '')}
+{context}
+
+1. 判斷署名是「person」（人）、「organization」（組織/媒體/機構帳號）還是「unknown」（查不到可靠資訊）。
+2. 若是人：一句繁體中文介紹（現職職稱與領域）、主要所屬組織（現職優先）、1–2 個代表性連結。
+3. 若是組織：一句繁體中文介紹＋官網。所屬組織也附一句繁體中文介紹與官網。
+4. 查不到就標 unknown、intro 留空——寧缺勿錯，禁止推測或編造。
+5. confidence：high＝多個獨立來源一致；medium＝單一可靠來源；low＝資訊薄弱或可能同名混淆；若查到的人跟上述媒體領域對不上，標 low 並在 note 說明。
+
+輸出：只輸出一個 ```json code block，內容為只有一個物件的 JSON 陣列，欄位齊全（缺值填 "" 或 []）：
+{{"name": "{author.get('name', '')}", "kind": "person|organization|unknown", "intro_zh": "", "org": "", "org_intro_zh": "", "org_url": "", "links": [], "confidence": "high|medium|low", "note": ""}}"""
 
 
 def parse_loose_date(value: object) -> datetime | None:
@@ -9880,6 +10019,7 @@ def page(title: str, body: str) -> bytes:
           <a href="/recycle-bin">{icon_span("archive", "T")}資源回收區</a>
           <a href="/candidates">{icon_span("inbox", "C")}可用材料區</a>
           <a href="/reader">{icon_span("read", "B")}閱讀區</a>
+          <a href="/authors">{icon_span("bookmark", "A")}作者與組織</a>
         </div>
       </details>
       <details class="nav-menu">
@@ -11196,14 +11336,18 @@ def page(title: str, body: str) -> bytes:
     const formBody = new URLSearchParams(new FormData(form));
     formBody.set("id", id);
     formBody.set("redirect", redirect);
-    if (!window.runEngineJob) {{ form.submit(); return; }}
-    window.runEngineJob({{
+    if (!window.runBackgroundEngineJob) {{ form.submit(); return; }}
+    window.runBackgroundEngineJob({{
       label: "全文翻譯",
       url: form.getAttribute("action") || "/items/translate-zh",
       baseBody: formBody,
       engine: provider,
       statusUrl: "/api/translate-status?id=" + encodeURIComponent(id),
-      onSuccess: (payload) => {{ window.location.href = (payload && payload.redirect) || redirect; }}
+      onDone: (status) => {{
+        if (status && status.state === "done") {{
+          window.location.href = status.redirect || redirect;
+        }}
+      }}
     }});
   }});
 
@@ -13208,6 +13352,12 @@ class Handler(BaseHTTPRequestHandler):
             self.show_manual_items(query)
         elif parsed.path == "/sources/view":
             self.show_source_view(query)
+        elif parsed.path == "/authors":
+            self.show_authors_index(query)
+        elif parsed.path == "/authors/view":
+            self.show_author_view(query)
+        elif parsed.path == "/organizations/view":
+            self.show_organization_view(query)
         elif parsed.path == "/sources/new":
             self.show_source_form(
                 {
@@ -13390,6 +13540,16 @@ class Handler(BaseHTTPRequestHandler):
             self.archive_perplexity_result(self.read_form())
         elif parsed.path == "/perplexity/archive/delete":
             self.delete_perplexity_archive(self.read_form())
+        elif parsed.path == "/authors/update":
+            self.update_author_entity(self.read_form())
+        elif parsed.path == "/authors/create":
+            self.create_author_entity(self.read_form())
+        elif parsed.path == "/authors/assign":
+            self.assign_author_byline(self.read_form())
+        elif parsed.path == "/authors/research-import":
+            self.import_author_research_result(self.read_form())
+        elif parsed.path == "/organizations/update":
+            self.update_organization_entity(self.read_form())
         elif parsed.path == "/items/translate-zh":
             self.translate_item_zh(self.read_form())
         elif parsed.path == "/recycle-bin/restore":
@@ -16813,7 +16973,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     {license_badge_html(item)}
     <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{source_name_link(item)}{byline_meta_html(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   {tag_chips_html(item_visible_tags(item))}
   <div class="decision-panel">
@@ -16873,7 +17033,7 @@ document.querySelectorAll("form[data-extract-viewpoints]").forEach(function(form
     {license_badge_html(item)}
     <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{source_name_link(item)}{byline_meta_html(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   {tag_chips_html(item_visible_tags(item))}
   <div class="decision-panel">
@@ -17849,7 +18009,7 @@ if (document.readyState === "loading") {{
     {badge(recommendation_label(candidate_recommendation(item)), candidate_recommendation(item))}
     <strong><a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">{h(item_display_title(item))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{source_name_link(item)}{byline_meta_html(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))} · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 420))}</p>
   <p class="help">系統判斷：{h(workflow_display_text(triage.get('reason', '未標示')))}</p>
 </article>
@@ -17937,7 +18097,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
     {reader_flag_badges(item)}
     <strong><a href="{h(detail_href)}">{h(item_display_title(item))}</a></strong>
   </div>
-  <p class="muted break-anywhere">{source_name_link(item)} · 確認收：{h(decided_at)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
+  <p class="muted break-anywhere">{source_name_link(item)}{byline_meta_html(item)} · 確認收：{h(decided_at)} · <a href="{h(item.get('url'))}" target="_blank" rel="noreferrer">原始連結</a> · {h(item.get('url'))}</p>
   <p>{h(clean_text(item.get('summary'), 320))}</p>
   {tag_chips_html(item_visible_tags(item))}
   {editorial_triage_html(item, compact=True)}
@@ -18124,7 +18284,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
       {license_badge_html(item)}
     </div>
     <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
-    <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
+    <p class="muted break-anywhere">{source_name_link(item)}{byline_meta_html(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
     <p class="zh-summary">{h(tag_summary(item, 260))}</p>
     {tag_chips_html(item_visible_tags(item, 6))}
     {f'<div class="button-row reader-card-actions" aria-label="文章操作"><a class="button reader-action-button" href="{h(item_detail_href(item))}" aria-label="閱讀 / 記錄" title="閱讀 / 記錄">{icon_span("read", "O", "icon reader-action-icon")}{action_label("閱讀 / 記錄")}</a><a class="button secondary reader-action-button" href="{h(item_url)}" target="_blank" rel="noreferrer" aria-label="原始連結" title="原始連結">{icon_span("external", "L", "icon reader-action-icon")}{action_label("原始連結")}</a></div>' if item_url else ''}
@@ -18334,7 +18494,7 @@ document.querySelectorAll(".reason-preset").forEach((button) => {{
       {license_badge_html(item)}
     </div>
     <h3><a href="{h(item_detail_href(item))}">{h(item_display_title(item))}</a></h3>
-    <p class="muted break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
+    <p class="muted break-anywhere">{source_name_link(item)}{byline_meta_html(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
     <p class="zh-summary">{h(item_zh_summary(item, 260))}</p>
     {tag_chips_html(item_visible_tags(item, 5))}
     {note_html}
@@ -19444,7 +19604,7 @@ if (document.readyState === "loading") {{
       </div>
       <span class="help">原始標題：{h(original_title)}</span>
     </div>
-    <p class="lede break-anywhere">{source_name_link(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
+    <p class="lede break-anywhere">{source_name_link(item)}{byline_meta_html(item)} · {h(item_display_time(item, 'published_at', 'captured_at'))}</p>
   </div>
   {image_html}
 </div>
@@ -21427,6 +21587,48 @@ if (document.readyState === "loading") {{
         ]
         if force_translation:
             command.append("--force")
+        separator = "&" if "?" in redirect_to else "?"
+        success_redirect = f"{redirect_to}{separator}saved=translation"
+        if wants_json and form_value(data, "background") == "1":
+            job_key = translation_job_key(item_id)
+            with BACKGROUND_JOBS_LOCK:
+                existing = BACKGROUND_JOBS.get(job_key)
+                if existing and existing.poll() is None:
+                    self.send_json(
+                        {
+                            "ok": True,
+                            "background": True,
+                            "already_running": True,
+                            "redirect": success_redirect,
+                            "summary": "這篇全文翻譯仍在背景執行，已重新接上進度。",
+                        }
+                    )
+                    return
+                proc = subprocess.Popen(
+                    command,
+                    cwd=ROOT,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                BACKGROUND_JOBS[job_key] = proc
+            threading.Thread(
+                target=background_translation_worker,
+                args=(item_id, proc, status_path, success_redirect),
+                name=f"translate-{item_id}",
+                daemon=True,
+            ).start()
+            self.send_json(
+                {
+                    "ok": True,
+                    "background": True,
+                    "started": True,
+                    "provider": provider,
+                    "redirect": success_redirect,
+                    "summary": "全文翻譯已在背景開跑；關閉或重新整理頁面也不會中斷。",
+                }
+            )
+            return
         try:
             result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=3600)
             output = result.stdout + ("\nSTDERR:\n" + result.stderr if result.stderr else "")
@@ -21437,7 +21639,6 @@ if (document.readyState === "loading") {{
             ok = False
         if not ok:
             print(output, file=sys.stderr)
-        separator = "&" if "?" in redirect_to else "?"
         final_redirect = f"{redirect_to}{separator}{'saved=translation' if ok else 'error=translation'}"
         if wants_json:
             status = load_json(status_path)
@@ -22900,6 +23101,613 @@ if (document.readyState === "loading") {{
 {''.join(source_sections)}
 """
         self.send_html("RSS 來源", body)
+
+    # ---------- 作者與組織 ----------
+
+    def author_items_map(self) -> tuple[list[dict], dict[str, list[dict]], list[dict]]:
+        """回傳（authors, author_id → 命中 items, 未整理 byline 聚合）。"""
+        authors = author_registry.load_authors()
+        index = author_registry.build_author_index(authors)
+        items_by_author: dict[str, list[dict]] = {}
+        unmatched: dict[str, dict] = {}
+        seen: set[tuple[str, str]] = set()
+        for item in load_jsonl(ITEMS):
+            item_id = str(item.get("id") or "")
+            for part in author_registry.item_byline_parts(item):
+                key = author_registry.normalize_byline(part)
+                author = index.get(key)
+                if author is None:
+                    entry = unmatched.setdefault(key, {"name": part, "count": 0})
+                    entry["count"] += 1
+                    continue
+                pair = (author["id"], item_id)
+                if pair in seen:
+                    continue
+                seen.add(pair)
+                items_by_author.setdefault(author["id"], []).append(item)
+        unmatched_rows = sorted(unmatched.values(), key=lambda row: -row["count"])
+        return authors, items_by_author, unmatched_rows
+
+    def author_notice_html(self, query: dict[str, list[str]]) -> str:
+        saved = form_value(query, "saved")
+        error = form_value(query, "error")
+        messages = {
+            "author": "作者資料已儲存。",
+            "org": "組織資料已儲存。",
+            "created": "已建立新實體。",
+            "assigned": "已把署名併入作者。",
+            "noise": "已標為雜訊，前台不再顯示這個署名。",
+            "research": "已回填 Perplexity 查證結果。",
+        }
+        errors = {
+            "not_found": "找不到對應的實體。",
+            "byline_conflict": "儲存失敗：有署名已被其他作者實體使用，請先處理衝突。",
+            "assign_target": "併入失敗：找不到目標作者，請從清單選擇既有作者名。",
+            "research_parse": "解析失敗：貼上的內容找不到可用的 JSON 結果。",
+            "research_unmatched": "解析成功，但結果裡的 name 沒有任何一筆對得回作者庫（原文已歸檔）。請確認名字跟署名一致。",
+            "empty": "內容不能是空的。",
+        }
+        if saved in messages:
+            return f'<div class="notice">{h(messages[saved])}</div>'
+        if error in errors:
+            return f'<div class="notice">{h(errors[error])}</div>'
+        return ""
+
+    def show_authors_index(self, query: dict[str, list[str]]) -> None:
+        kind_filter = form_value(query, "kind") or "all"
+        status_filter = form_value(query, "status") or "all"
+        text_filter = clean_text(form_value(query, "q"), 120)
+        authors, items_by_author, unmatched_rows = self.author_items_map()
+        organizations = author_registry.load_organizations()
+        orgs_by_id = {org.get("id"): org for org in organizations}
+
+        def matches(author: dict) -> bool:
+            kind = author.get("kind", "unknown")
+            if kind_filter == "all":
+                if kind == "noise":
+                    return False
+            elif kind != kind_filter:
+                return False
+            status = str((author.get("verification") or {}).get("status") or "unverified")
+            if status_filter != "all" and status != status_filter:
+                return False
+            if text_filter:
+                haystack = " ".join(
+                    [str(author.get("name") or ""), str(author.get("intro_zh") or "")]
+                    + [str(name) for name in author.get("byline_names") or []]
+                ).casefold()
+                if text_filter.casefold() not in haystack:
+                    return False
+            return True
+
+        filtered = [author for author in authors if matches(author)]
+        filtered.sort(key=lambda a: (-len(items_by_author.get(a.get("id", ""), [])),
+                                     author_registry.normalize_byline(a.get("name", ""))))
+
+        def author_row(author: dict) -> str:
+            count = len(items_by_author.get(author.get("id", ""), []))
+            org_links = "、".join(
+                f'<a href="{h(organization_detail_href(orgs_by_id[org_id]))}">{h(orgs_by_id[org_id].get("name") or org_id)}</a>'
+                for org_id in author.get("org_ids") or [] if org_id in orgs_by_id
+            )
+            intro = clean_text(author.get("intro_zh"), 160)
+            return f"""
+<article class="reader-list-card">
+  <div class="reader-list-meta">
+    {badge(AUTHOR_KIND_LABELS.get(author.get("kind", "unknown"), author.get("kind", "")), "neutral")}
+    {author_verification_badge(author)}
+    {badge(f"{count} 篇", "neutral")}
+  </div>
+  <h3><a href="{h(author_detail_href(author))}">{h(author.get("name") or "未命名")}</a></h3>
+  <p class="zh-summary">{h(intro) if intro else '<span class="muted">尚未查證，還沒有介紹。</span>'}</p>
+  {f'<p class="muted">所屬組織：{org_links}</p>' if org_links else ''}
+</article>
+"""
+
+        member_counts: dict[str, int] = {}
+        for author in authors:
+            for org_id in author.get("org_ids") or []:
+                member_counts[org_id] = member_counts.get(org_id, 0) + 1
+
+        def org_row(org: dict) -> str:
+            intro = clean_text(org.get("intro_zh"), 160)
+            return f"""
+<article class="reader-list-card">
+  <div class="reader-list-meta">
+    {badge(ORG_TYPE_LABELS.get(org.get("org_type", "other"), org.get("org_type", "")), "neutral")}
+    {author_verification_badge(org)}
+    {badge(f"{member_counts.get(org.get('id', ''), 0)} 位作者", "neutral")}
+  </div>
+  <h3><a href="{h(organization_detail_href(org))}">{h(org.get("name") or "未命名")}</a></h3>
+  <p class="zh-summary">{h(intro) if intro else '<span class="muted">尚未查證，還沒有介紹。</span>'}</p>
+</article>
+"""
+
+        org_rows = "".join(org_row(org) for org in sorted(
+            organizations, key=lambda o: (-member_counts.get(o.get("id", ""), 0),
+                                          author_registry.normalize_byline(o.get("name", "")))))
+
+        status_counts: dict[str, int] = {}
+        kind_counts: dict[str, int] = {}
+        for author in authors:
+            kind_counts[author.get("kind", "unknown")] = kind_counts.get(author.get("kind", "unknown"), 0) + 1
+            status = str((author.get("verification") or {}).get("status") or "unverified")
+            status_counts[status] = status_counts.get(status, 0) + 1
+
+        kind_options = "".join(
+            f'<option value="{h(value)}"{" selected" if kind_filter == value else ""}>{h(label)}</option>'
+            for value, label in [("all", "全部（不含雜訊）"), ("person", "人物"), ("organization", "組織"),
+                                 ("unknown", "未確認"), ("noise", "雜訊")]
+        )
+        status_options = "".join(
+            f'<option value="{h(value)}"{" selected" if status_filter == value else ""}>{h(label)}</option>'
+            for value, label in [("all", "全部"), ("unverified", "未查證"), ("ai-suggested", "AI 建議"),
+                                 ("needs-review", "待複核"), ("verified", "已確認")]
+        )
+        author_datalist = "".join(
+            f'<option value="{h(author.get("name") or "")}"></option>'
+            for author in authors if author.get("kind") != "noise"
+        )
+
+        def triage_row(row: dict) -> str:
+            name = str(row.get("name") or "")
+            return f"""
+<div class="card workspace-tool-panel">
+  <p class="break-anywhere"><strong>{h(name)}</strong> <span class="muted">（{row.get('count', 0)} 處）</span></p>
+  <form class="chip-form" method="post" action="/authors/create">
+    <input type="hidden" name="name" value="{h(name)}">
+    <input type="hidden" name="redirect" value="/authors#authors-triage">
+    <button type="submit" class="reason-chip">建為作者</button>
+    <button type="submit" class="reason-chip" name="kind" value="noise">標為雜訊</button>
+  </form>
+  <form class="chip-form" method="post" action="/authors/assign">
+    <input type="hidden" name="byline" value="{h(name)}">
+    <input type="hidden" name="redirect" value="/authors#authors-triage">
+    <input list="author-name-options" name="target" placeholder="併入既有作者…" aria-label="併入既有作者">
+    <button type="submit" class="reason-chip">併入</button>
+  </form>
+</div>
+"""
+
+        triage_html = "".join(triage_row(row) for row in unmatched_rows[:40])
+        triage_more = (f'<p class="help">還有 {len(unmatched_rows) - 40} 個署名沒列出，處理完上面的會遞補。</p>'
+                       if len(unmatched_rows) > 40 else "")
+
+        body = f"""
+<h1>作者與組織</h1>
+{self.author_notice_html(query)}
+<p class="lede">整理文章「原始作者（頁面 byline）」與其所屬組織：每個實體有基礎介紹、查證狀態，並連到對應的文章。查證靠 Perplexity 批次或單頁的「查此作者」，回填後在這裡複核。</p>
+<div class="grid">
+  {metric_card(kind_counts.get("person", 0), "人物", "/authors?kind=person", "只看人物", "is-active" if kind_filter == "person" else "")}
+  {metric_card(kind_counts.get("organization", 0), "組織署名", "/authors?kind=organization", "只看組織", "is-active" if kind_filter == "organization" else "")}
+  {metric_card(status_counts.get("needs-review", 0), "待複核", "/authors?status=needs-review", "看待複核", "is-active" if status_filter == "needs-review" else "")}
+  {metric_card(len(unmatched_rows), "未整理署名", "#authors-triage", "去整理")}
+</div>
+<div class="workspace-toolbar">
+  {workspace_sidebar_toggle("authors-workspace", "authors-sidebar", "authors", "整理工具")}
+</div>
+<div class="workspace-layout" id="authors-workspace">
+  <section class="workspace-main">
+    <h2>作者 {help_dot("依 byline 整理出的署名實體；點名字看單頁、文章清單與編輯。")}</h2>
+    <p class="muted">符合條件：{len(filtered)} 筆（依文章數排序）。</p>
+    <div class="reader-list">{''.join(author_row(author) for author in filtered)}</div>
+    <h2 id="authors-orgs">組織 {help_dot("作者所屬的組織實體，含以組織名義發文的帳號。")}</h2>
+    <div class="reader-list">{org_rows or '<div class="card"><p class="muted">還沒有組織資料；回填 Perplexity 查證結果後會自動建立。</p></div>'}</div>
+  </section>
+  <aside class="workspace-sidebar" id="authors-sidebar">
+    <section class="workspace-sidebar-section">
+      <h2>篩選</h2>
+      <form class="filter-panel" method="get" action="/authors">
+        <label>搜尋</label>
+        <input type="search" name="q" value="{h(text_filter)}" placeholder="名字、署名、介紹">
+        <label>類型</label>
+        <select name="kind">{kind_options}</select>
+        <label>查證狀態</label>
+        <select name="status">{status_options}</select>
+        <button type="submit" class="secondary">套用</button>
+      </form>
+    </section>
+    <section class="workspace-sidebar-section" id="authors-triage">
+      <h2>未整理署名 {help_dot("items 裡出現、但還不在作者庫的 byline。可建為作者、標雜訊或併入既有作者（當別名）。")}</h2>
+      {triage_html or '<div class="card"><p class="muted">沒有未整理的署名，都在作者庫裡了。</p></div>'}
+      {triage_more}
+      <datalist id="author-name-options">{author_datalist}</datalist>
+    </section>
+  </aside>
+</div>
+"""
+        self.send_html("作者與組織", body)
+
+    def author_item_row(self, item: dict, author_index: dict[str, dict]) -> str:
+        title = item_display_title(item)
+        byline = byline_links_html(item, author_index)
+        return f"""
+<article class="reader-list-card">
+  <div class="reader-list-meta">
+    {badge(status_label(item.get("status", "")), "neutral")}
+    {badge(item_display_time(item, 'published_at', 'captured_at'), "neutral")}
+  </div>
+  <h3><a href="{h(item_detail_href(item))}">{h(title)}</a></h3>
+  <p class="lede break-anywhere">{source_name_link(item)}{f' · {byline}' if byline else ''}</p>
+  <p class="zh-summary">{h(item_zh_summary(item, 200))}</p>
+</article>
+"""
+
+    def show_author_view(self, query: dict[str, list[str]]) -> None:
+        author_id = form_value(query, "id")
+        authors, items_by_author, _unmatched = self.author_items_map()
+        author = next((row for row in authors if row.get("id") == author_id), None)
+        if not author:
+            self.send_html("找不到作者", "<h1>找不到作者</h1><p><a class='button' href='/authors'>回作者與組織</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        organizations = author_registry.load_organizations()
+        orgs_by_id = {org.get("id"): org for org in organizations}
+        author_index = author_registry.build_author_index(authors)
+        items = sorted(items_by_author.get(author_id, []),
+                       key=lambda item: (item_sort_time(item), item_display_title(item)), reverse=True)
+
+        org_link_parts: list[str] = []
+        for org_id in author.get("org_ids") or []:
+            org = orgs_by_id.get(org_id)
+            if not org:
+                continue
+            org_intro = clean_text(org.get("intro_zh"), 120)
+            suffix = f" — {h(org_intro)}" if org_intro else ""
+            org_link_parts.append(
+                f'<p><a href="{h(organization_detail_href(org))}">{h(org.get("name") or org_id)}</a>{suffix}</p>'
+            )
+        org_links = "".join(org_link_parts)
+        external_links = "".join(
+            f'<p class="break-anywhere"><a href="{h(link)}" target="_blank" rel="noreferrer">{h(link)}</a></p>'
+            for link in author.get("links") or []
+        )
+        byline_chips = "".join(f'<span class="reason-chip">{h(name)}</span>' for name in author.get("byline_names") or [])
+        verification = author.get("verification") or {}
+        checked_line = ""
+        if verification.get("checked_at"):
+            checked_line = f'<p class="help">查證：{h(verification.get("checked_at", ""))} · {h(verification.get("method", ""))} · {h(verification.get("evidence", ""))}</p>'
+
+        kind_select = "".join(
+            f'<option value="{h(value)}"{" selected" if author.get("kind") == value else ""}>{h(label)}</option>'
+            for value, label in AUTHOR_KIND_LABELS.items()
+        )
+        status_current = str(verification.get("status") or "unverified")
+        status_select = "".join(
+            f'<option value="{h(value)}"{" selected" if status_current == value else ""}>{h(label)}</option>'
+            for value, label in AUTHOR_VERIFICATION_LABELS.items()
+        )
+        org_names_value = "、".join(
+            orgs_by_id[org_id].get("name", "") for org_id in author.get("org_ids") or [] if org_id in orgs_by_id
+        )
+        org_datalist = "".join(f'<option value="{h(org.get("name") or "")}"></option>' for org in organizations)
+        research_prompt = build_author_research_prompt(author, items)
+        research_href = "https://www.perplexity.ai/?q=" + quote(research_prompt)
+        intro = clean_text(author.get("intro_zh"), 600)
+
+        body = f"""
+{self.author_notice_html(query)}
+<div class="article-detail-layout" id="author-detail-workspace">
+<div class="article-detail-main">
+  <h1>{h(author.get("name") or "未命名")}</h1>
+  <p class="lede">
+    {badge(AUTHOR_KIND_LABELS.get(author.get("kind", "unknown"), ""), "neutral")}
+    {author_verification_badge(author)}
+    {badge(f"{len(items)} 篇文章", "neutral")}
+  </p>
+  <section class="card">
+    <h2>基礎介紹</h2>
+    <p>{h(intro) if intro else '<span class="muted">尚未查證。右側可用 Perplexity 查此作者，回填後這裡會有一句話介紹。</span>'}</p>
+    {f'<h3>所屬組織</h3>{org_links}' if org_links else ''}
+    {f'<h3>相關連結</h3>{external_links}' if external_links else ''}
+    <h3>署名寫法</h3>
+    <div class="button-row">{byline_chips or '<span class="muted">—</span>'}</div>
+    {f'<p class="muted">{h(clean_text(author.get("notes"), 400))}</p>' if clean_text(author.get("notes")) else ''}
+    {checked_line}
+  </section>
+  <section>
+    <h2>文章（{len(items)}）</h2>
+    <div class="reader-list">{''.join(self.author_item_row(item, author_index) for item in items) or '<div class="card"><p class="muted">目前沒有命中這個署名的文章。</p></div>'}</div>
+  </section>
+</div>
+<aside class="article-action-dock" id="author-detail-sidebar">
+  <section class="card">
+    <h2>編輯資料</h2>
+    <form method="post" action="/authors/update">
+      <input type="hidden" name="id" value="{h(author_id)}">
+      <label>名稱</label>
+      <input type="text" name="name" value="{h(author.get("name") or "")}">
+      <label>類型</label>
+      <select name="kind">{kind_select}</select>
+      <label>一句話介紹</label>
+      <textarea name="intro_zh" rows="3">{h(author.get("intro_zh") or "")}</textarea>
+      <label>所屬組織（頓號分隔，沒有的會新建）</label>
+      <input type="text" name="org_names" value="{h(org_names_value)}" list="org-name-options">
+      <datalist id="org-name-options">{org_datalist}</datalist>
+      <label>署名寫法（一行一個，用於比對文章 byline）</label>
+      <textarea name="byline_names" rows="3">{h(chr(10).join(author.get("byline_names") or []))}</textarea>
+      <label>連結（一行一個）</label>
+      <textarea name="links" rows="3">{h(chr(10).join(author.get("links") or []))}</textarea>
+      <label>查證狀態</label>
+      <select name="status">{status_select}</select>
+      <label>備註</label>
+      <textarea name="notes" rows="2">{h(author.get("notes") or "")}</textarea>
+      <div class="button-row"><button type="submit">儲存</button></div>
+    </form>
+  </section>
+  <section class="card">
+    <h2>Perplexity 查此作者</h2>
+    <p class="help">按鈕會帶著這個署名與站內脈絡開 Perplexity；回覆整段貼回下面，會走與批次相同的解析回填（confidence low 自動標待複核），原文歸檔到 .cache/author-research/。</p>
+    <div class="button-row">
+      <a class="button secondary" href="{h(research_href)}" target="_blank" rel="noopener">{icon_span("search", "P")}<span>用 Perplexity 查證</span></a>
+    </div>
+    <form method="post" action="/authors/research-import">
+      <input type="hidden" name="id" value="{h(author_id)}">
+      <label>貼回查證結果</label>
+      <textarea name="result" rows="5" placeholder="貼 Perplexity 回覆全文（含 ```json 區塊）"></textarea>
+      <div class="button-row"><button type="submit" class="secondary">解析並回填</button></div>
+    </form>
+  </section>
+  <section class="card">
+    <div class="button-row">
+      <a class="button quiet" href="/authors">回作者與組織</a>
+    </div>
+  </section>
+</aside>
+</div>
+"""
+        self.send_html(str(author.get("name") or "作者"), body)
+
+    def show_organization_view(self, query: dict[str, list[str]]) -> None:
+        org_id = form_value(query, "id")
+        organizations = author_registry.load_organizations()
+        org = next((row for row in organizations if row.get("id") == org_id), None)
+        if not org:
+            self.send_html("找不到組織", "<h1>找不到組織</h1><p><a class='button' href='/authors'>回作者與組織</a></p>", HTTPStatus.NOT_FOUND)
+            return
+        authors, items_by_author, _unmatched = self.author_items_map()
+        author_index = author_registry.build_author_index(authors)
+        members = [author for author in authors if org_id in (author.get("org_ids") or [])]
+        members.sort(key=lambda a: (-len(items_by_author.get(a.get("id", ""), [])),
+                                    author_registry.normalize_byline(a.get("name", ""))))
+        seen_item_ids: set[str] = set()
+        items: list[dict] = []
+        for member in members:
+            for item in items_by_author.get(member.get("id", ""), []):
+                item_id = str(item.get("id") or "")
+                if item_id not in seen_item_ids:
+                    seen_item_ids.add(item_id)
+                    items.append(item)
+        items.sort(key=lambda item: (item_sort_time(item), item_display_title(item)), reverse=True)
+
+        member_rows = "".join(
+            f'<p><a href="{h(author_detail_href(member))}">{h(member.get("name") or "")}</a>'
+            f' <span class="muted">（{len(items_by_author.get(member.get("id", ""), []))} 篇）</span></p>'
+            for member in members
+        )
+        external_links = "".join(
+            f'<p class="break-anywhere"><a href="{h(link)}" target="_blank" rel="noreferrer">{h(link)}</a></p>'
+            for link in org.get("links") or []
+        )
+        org_type_select = "".join(
+            f'<option value="{h(value)}"{" selected" if org.get("org_type") == value else ""}>{h(label)}</option>'
+            for value, label in ORG_TYPE_LABELS.items()
+        )
+        intro = clean_text(org.get("intro_zh"), 600)
+
+        body = f"""
+{self.author_notice_html(query)}
+<div class="article-detail-layout" id="org-detail-workspace">
+<div class="article-detail-main">
+  <h1>{h(org.get("name") or "未命名組織")}</h1>
+  <p class="lede">
+    {badge(ORG_TYPE_LABELS.get(org.get("org_type", "other"), ""), "neutral")}
+    {author_verification_badge(org)}
+    {badge(f"{len(members)} 位作者", "neutral")}
+  </p>
+  <section class="card">
+    <h2>基礎介紹</h2>
+    <p>{h(intro) if intro else '<span class="muted">尚未查證。</span>'}</p>
+    {f'<h3>相關連結</h3>{external_links}' if external_links else ''}
+    {f'<h3>作者</h3>{member_rows}' if member_rows else ''}
+    {f'<p class="muted">{h(clean_text(org.get("notes"), 400))}</p>' if clean_text(org.get("notes")) else ''}
+  </section>
+  <section>
+    <h2>相關文章（{len(items)}）</h2>
+    <div class="reader-list">{''.join(self.author_item_row(item, author_index) for item in items) or '<div class="card"><p class="muted">目前沒有相關文章。</p></div>'}</div>
+  </section>
+</div>
+<aside class="article-action-dock" id="org-detail-sidebar">
+  <section class="card">
+    <h2>編輯資料</h2>
+    <form method="post" action="/organizations/update">
+      <input type="hidden" name="id" value="{h(org_id)}">
+      <label>名稱</label>
+      <input type="text" name="name" value="{h(org.get("name") or "")}">
+      <label>類型</label>
+      <select name="org_type">{org_type_select}</select>
+      <label>一句話介紹</label>
+      <textarea name="intro_zh" rows="3">{h(org.get("intro_zh") or "")}</textarea>
+      <label>別名（一行一個）</label>
+      <textarea name="aliases" rows="2">{h(chr(10).join(org.get("aliases") or []))}</textarea>
+      <label>連結（一行一個）</label>
+      <textarea name="links" rows="3">{h(chr(10).join(org.get("links") or []))}</textarea>
+      <label>備註</label>
+      <textarea name="notes" rows="2">{h(org.get("notes") or "")}</textarea>
+      <div class="button-row"><button type="submit">儲存</button></div>
+    </form>
+  </section>
+  <section class="card">
+    <div class="button-row">
+      <a class="button quiet" href="/authors#authors-orgs">回作者與組織</a>
+    </div>
+  </section>
+</aside>
+</div>
+"""
+        self.send_html(str(org.get("name") or "組織"), body)
+
+    def _resolve_org_names(self, raw: str, organizations: list[dict]) -> list[str]:
+        """把頓號/逗號分隔的組織名解析成 org_ids，沒有的就地新建（呼叫端負責寫檔）。"""
+        org_ids: list[str] = []
+        for name in re.split(r"[、,;；]", raw or ""):
+            name = clean_text(name, 160)
+            if not name:
+                continue
+            org = author_research._find_org(name, organizations)
+            if org is None:
+                org = author_registry.new_org_record(name)
+                organizations.append(org)
+            if org["id"] not in org_ids:
+                org_ids.append(org["id"])
+        return org_ids
+
+    @with_db_write_lock
+    def update_author_entity(self, data: dict[str, list[str]]) -> None:
+        author_id = form_value(data, "id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/authors/view?id={quote(author_id)}")
+        authors = author_registry.load_authors()
+        author = next((row for row in authors if row.get("id") == author_id), None)
+        if author is None:
+            self.redirect(f"{redirect_to}{'&' if '?' in redirect_to else '?'}error=not_found")
+            return
+        name = clean_text(form_value(data, "name"), 200)
+        if name:
+            author["name"] = name
+        kind = form_value(data, "kind")
+        if kind in author_registry.AUTHOR_KINDS:
+            author["kind"] = kind
+        author["intro_zh"] = clean_text(form_value(data, "intro_zh"), 600)
+        author["notes"] = form_value(data, "notes").strip()
+        author["links"] = [clean_text(line, 600) for line in form_value(data, "links").splitlines() if clean_text(line)]
+        new_bylines = [clean_text(line, 200) for line in form_value(data, "byline_names").splitlines() if clean_text(line)]
+        if name and name not in new_bylines:
+            new_bylines.append(name)
+        claimed: dict[str, str] = {}
+        for row in authors:
+            if row.get("id") == author_id:
+                continue
+            for byline in row.get("byline_names") or []:
+                claimed[author_registry.normalize_byline(byline)] = str(row.get("id"))
+        if any(author_registry.normalize_byline(byline) in claimed for byline in new_bylines):
+            self.redirect(f"{redirect_to}{'&' if '?' in redirect_to else '?'}error=byline_conflict")
+            return
+        author["byline_names"] = new_bylines
+        organizations = author_registry.load_organizations()
+        author["org_ids"] = self._resolve_org_names(form_value(data, "org_names"), organizations)
+        status = form_value(data, "status")
+        verification = dict(author.get("verification") or {})
+        if status in author_registry.VERIFICATION_STATUSES and status != verification.get("status"):
+            verification["status"] = status
+            if status == "verified":
+                verification["checked_at"] = now_iso()[:10]
+                verification["method"] = "manual"
+        author["verification"] = verification
+        author["updated_at"] = author_registry.now_utc_iso()
+        author_registry.write_jsonl(author_registry.ORGANIZATIONS_PATH, organizations)
+        author_registry.write_jsonl(author_registry.AUTHORS_PATH, authors)
+        self.redirect(f"{redirect_to}{'&' if '?' in redirect_to else '?'}saved=author")
+
+    @with_db_write_lock
+    def create_author_entity(self, data: dict[str, list[str]]) -> None:
+        name = clean_text(form_value(data, "name"), 200)
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), "/authors")
+        separator = "&" if "?" in redirect_to else "?"
+        if not name:
+            self.redirect(f"{redirect_to}{separator}error=empty")
+            return
+        kind = form_value(data, "kind")
+        authors = author_registry.load_authors()
+        index = author_registry.build_author_index(authors)
+        existing = index.get(author_registry.normalize_byline(name))
+        if existing is not None:
+            if kind == "noise" and existing.get("kind") != "noise":
+                existing["kind"] = "noise"
+                existing["updated_at"] = author_registry.now_utc_iso()
+                author_registry.write_jsonl(author_registry.AUTHORS_PATH, authors)
+                self.redirect(f"{redirect_to}{separator}saved=noise")
+                return
+            self.redirect(f"{redirect_to}{separator}saved=created")
+            return
+        record = author_registry.new_author_record(name, kind=kind if kind in author_registry.AUTHOR_KINDS else None)
+        authors.append(record)
+        author_registry.write_jsonl(author_registry.AUTHORS_PATH, authors)
+        self.redirect(f"{redirect_to}{separator}saved={'noise' if record.get('kind') == 'noise' else 'created'}")
+
+    @with_db_write_lock
+    def assign_author_byline(self, data: dict[str, list[str]]) -> None:
+        byline = clean_text(form_value(data, "byline"), 200)
+        target = clean_text(form_value(data, "target"), 200)
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), "/authors")
+        separator = "&" if "?" in redirect_to else "?"
+        if not byline or not target:
+            self.redirect(f"{redirect_to}{separator}error=assign_target")
+            return
+        authors = author_registry.load_authors()
+        index = author_registry.build_author_index(authors)
+        author = index.get(author_registry.normalize_byline(target))
+        if author is None:
+            self.redirect(f"{redirect_to}{separator}error=assign_target")
+            return
+        existing = index.get(author_registry.normalize_byline(byline))
+        if existing is not None and existing.get("id") != author.get("id"):
+            self.redirect(f"{redirect_to}{separator}error=byline_conflict")
+            return
+        names = author.setdefault("byline_names", [])
+        if byline not in names:
+            names.append(byline)
+            author["updated_at"] = author_registry.now_utc_iso()
+            author_registry.write_jsonl(author_registry.AUTHORS_PATH, authors)
+        self.redirect(f"{redirect_to}{separator}saved=assigned")
+
+    @with_db_write_lock
+    def import_author_research_result(self, data: dict[str, list[str]]) -> None:
+        author_id = form_value(data, "id")
+        result_text = form_value(data, "result")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/authors/view?id={quote(author_id)}")
+        separator = "&" if "?" in redirect_to else "?"
+        if not result_text.strip():
+            self.redirect(f"{redirect_to}{separator}error=empty")
+            return
+        try:
+            entries = author_research.parse_research_payload(result_text)
+        except ValueError:
+            self.redirect(f"{redirect_to}{separator}error=research_parse")
+            return
+        archive_dir = ROOT / ".cache" / "author-research"
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        archive_path = archive_dir / f"single-{author_id or 'unknown'}-{stamp}.md"
+        archive_path.write_text(result_text, encoding="utf-8")
+        evidence = str(archive_path.relative_to(ROOT))
+        report = author_research.apply_research_entries(entries, evidence=evidence, method="perplexity-single")
+        if not report["updated"]:
+            self.redirect(f"{redirect_to}{separator}error=research_unmatched")
+            return
+        self.redirect(f"{redirect_to}{separator}saved=research")
+
+    @with_db_write_lock
+    def update_organization_entity(self, data: dict[str, list[str]]) -> None:
+        org_id = form_value(data, "id")
+        redirect_to = safe_redirect_path(form_value(data, "redirect"), f"/organizations/view?id={quote(org_id)}")
+        separator = "&" if "?" in redirect_to else "?"
+        organizations = author_registry.load_organizations()
+        org = next((row for row in organizations if row.get("id") == org_id), None)
+        if org is None:
+            self.redirect(f"{redirect_to}{separator}error=not_found")
+            return
+        name = clean_text(form_value(data, "name"), 200)
+        if name:
+            org["name"] = name
+        org_type = form_value(data, "org_type")
+        if org_type in author_registry.ORG_TYPES:
+            org["org_type"] = org_type
+        org["intro_zh"] = clean_text(form_value(data, "intro_zh"), 600)
+        org["notes"] = form_value(data, "notes").strip()
+        org["aliases"] = [clean_text(line, 200) for line in form_value(data, "aliases").splitlines() if clean_text(line)]
+        org["links"] = [clean_text(line, 600) for line in form_value(data, "links").splitlines() if clean_text(line)]
+        org["updated_at"] = author_registry.now_utc_iso()
+        author_registry.write_jsonl(author_registry.ORGANIZATIONS_PATH, organizations)
+        self.redirect(f"{redirect_to}{separator}saved=org")
 
     def show_source_view(self, query: dict[str, list[str]]) -> None:
         source_id = form_value(query, "id")
