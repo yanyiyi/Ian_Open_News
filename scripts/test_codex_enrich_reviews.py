@@ -29,6 +29,28 @@ class CodexEnrichReviewsTaiwanGuardTest(unittest.TestCase):
         self.assertEqual(label, "只有標題")
         self.assertTrue(needs_fulltext)
 
+    def test_source_material_hydrates_article_text_sidecar(self) -> None:
+        record = {
+            "id": "item-sidecar",
+            "title": "Sidecar article",
+            "summary": "RSS 摘要",
+            "reading_metadata": {"article_text_chars": 1200},
+        }
+
+        with patch.object(
+            codex_enrich_reviews.fulltext_store,
+            "hydrate_item",
+            side_effect=lambda item: item["reading_metadata"].update(
+                {"article_text": "這是從全文側檔載入的完整主文。"}
+            ),
+        ) as hydrate:
+            text, label, needs_fulltext = codex_enrich_reviews.source_material(record)
+
+        hydrate.assert_called_once_with(record)
+        self.assertEqual(text, "這是從全文側檔載入的完整主文。")
+        self.assertEqual(label, "主文全文")
+        self.assertFalse(needs_fulltext)
+
     def test_prompt_treats_taiwan_context_as_evidence_bound(self) -> None:
         prompt = codex_enrich_reviews.build_prompt(
             [

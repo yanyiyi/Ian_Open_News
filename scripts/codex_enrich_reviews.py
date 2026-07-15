@@ -16,6 +16,7 @@ from typing import Any
 from database_write_lock import database_write_lock
 from page_metadata import is_access_prompt_text
 from ai_model_settings import task_model, task_provider
+import fulltext_store
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -503,6 +504,10 @@ def in_candidate_scope(record: dict[str, Any], tracks: set[str]) -> bool:
 
 
 def source_material(record: dict[str, Any]) -> tuple[str, str, bool]:
+    # items.jsonl 只保留輕量欄位；實際主文與翻譯可能已拆到
+    # database/fulltext/<item-id>.json。審閱前必須先補回側檔，否則頁面明明
+    # 有全文，AI review 卻只會讀到 RSS 摘要並留下 needs_fulltext=true。
+    fulltext_store.hydrate_item(record)
     reading = record.get("reading_metadata")
     reading = reading if isinstance(reading, dict) else {}
     enrichment = record.get("article_enrichment")
