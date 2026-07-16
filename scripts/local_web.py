@@ -17690,11 +17690,11 @@ let clusterOriginalOrder = null;
 
 const CLUSTER_DEPTH_LABELS = {{"news-brief": "小消息", "knowledge-worthy": "知識級", "deep-read": "必深讀"}};
 const CLUSTER_ACTION_META = {{
-  "collect-as-theme": {{label: "建議整群收", cls: "collect", preselect: true}},
-  "collect-individual": {{label: "建議單篇收", cls: "collect", preselect: true}},
-  "merge-into-item": {{label: "建議併入稿件", cls: "merge", preselect: false}},
-  "skip": {{label: "建議略過", cls: "skip", preselect: false}},
-  "ask": {{label: "拿不準，請人工看", cls: "ask", preselect: false}},
+  "collect-as-theme": {{label: "建議整群收", cls: "collect"}},
+  "collect-individual": {{label: "建議單篇收", cls: "collect"}},
+  "merge-into-item": {{label: "建議併入稿件", cls: "merge"}},
+  "skip": {{label: "建議略過", cls: "skip"}},
+  "ask": {{label: "拿不準，請人工看", cls: "ask"}},
 }};
 
 async function fetchClusterData() {{
@@ -17787,8 +17787,7 @@ function enterClusterView(data, opts) {{
     const body = document.createElement("div");
     body.className = "cluster-group-body";
     cards.forEach((card) => {{
-      const box = card.querySelector(".item-select");
-      if (box) box.checked = meta.preselect;
+      // 分群建議只提供編輯判斷，不替人預選；保留使用者既有勾選。
       const depth = card.dataset.clusterDepth;
       if (depth && CLUSTER_DEPTH_LABELS[depth]) card.setAttribute("data-depth-label", CLUSTER_DEPTH_LABELS[depth]);
       body.appendChild(card);
