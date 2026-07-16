@@ -10411,6 +10411,23 @@ def page(title: str, body: str) -> bytes:
     if (typeof window.bindCodexReviewForms === "function") window.bindCodexReviewForms(fresh);
     return true;
   }};
+  window.refreshResult = async (selector, {{focusSelector = selector, message = ""}} = {{}}) => {{
+    const refreshed = await window.refreshFragment(selector);
+    if (!refreshed) throw new Error(`找不到可更新的成果區：${{selector}}`);
+    const target = document.querySelector(focusSelector) || document.querySelector(selector);
+    if (!target) throw new Error(`成果已回傳，但頁面上找不到：${{focusSelector}}`);
+    if (target instanceof HTMLDetailsElement) target.open = true;
+    document.querySelectorAll("[data-job-result-notice]").forEach((notice) => notice.remove());
+    if (message) {{
+      const notice = document.createElement("div");
+      notice.className = "notice";
+      notice.dataset.jobResultNotice = "1";
+      notice.textContent = message;
+      target.insertAdjacentElement("beforebegin", notice);
+    }}
+    target.scrollIntoView({{behavior: "smooth", block: "start"}});
+    return target;
+  }};
   const loadInstantFilter = async (url, form, options = {{}}) => {{
     if (!window.fetch || !window.DOMParser) {{
       location.href = url.toString();
@@ -10826,8 +10843,18 @@ def page(title: str, body: str) -> bytes:
         const ok = payload && payload.ok !== false && (payload.returncode === undefined || payload.returncode === 0);
         if (ok) {{
           job.output(payload.output || "");
-          job.done(true, `✓ ${{ENGINE_LABELS[eng] || eng}} 完成。`);
-          if (onSuccess) onSuccess(payload, eng);
+          let finalMessage = `✓ ${{ENGINE_LABELS[eng] || eng}} 完成。`;
+          if (onSuccess) {{
+            try {{
+              await onSuccess(payload, eng);
+              finalMessage = `✓ ${{ENGINE_LABELS[eng] || eng}} 完成，成果已更新。`;
+            }} catch (error) {{
+              const refreshError = `成果畫面更新失敗：${{String(error)}}`;
+              job.output([payload.output || "", refreshError].filter(Boolean).join("\\n"));
+              finalMessage = `⚠ ${{ENGINE_LABELS[eng] || eng}} 已完成，但成果畫面未更新；請重新整理原頁。`;
+            }}
+          }}
+          job.done(true, finalMessage);
           return true;
         }}
         const errMsg = (payload && (payload.error || payload.summary)) || `exit ${{payload ? payload.returncode : "?"}}`;
@@ -10908,16 +10935,24 @@ def page(title: str, body: str) -> bytes:
           finished = true;
           if (timer) window.clearInterval(timer);
           const okDone = status.state === "done";
+          let resultRefreshError = "";
+          if (onDone) {{
+            try {{ await onDone(status); }} catch (error) {{ resultRefreshError = String(error); }}
+          }}
           if (okDone) {{
-            job.done(true, `✓ ${{engineLabel}} 完成：${{status.message || ""}}`);
+            const finalMessage = resultRefreshError
+              ? `⚠ ${{engineLabel}} 已完成，但成果畫面未更新；請重新整理原頁。`
+              : onDone
+                ? `✓ ${{engineLabel}} 完成，成果已更新。`
+                : `✓ ${{engineLabel}} 完成：${{status.message || ""}}`;
+            job.done(true, finalMessage);
           }} else {{
             const errMsg = status.error || status.message || `exit ${{status.returncode}}`;
             job.done(false, `✗ ${{engineLabel}} 失敗：${{errMsg}}`);
             window.alert(`${{label}}\n${{engineLabel}} 失敗：${{errMsg}}`);
           }}
-          if (status.output_tail) job.output(status.output_tail);
-          if (onDone) {{
-            try {{ await onDone(status); }} catch (_e) {{ /* 完成後的畫面刷新失敗不影響結果 */ }}
+          if (status.output_tail || resultRefreshError) {{
+            job.output([status.output_tail || "", resultRefreshError ? `成果畫面更新失敗：${{resultRefreshError}}` : ""].filter(Boolean).join("\\n"));
           }}
           resolve(okDone);
         }}
@@ -10950,8 +10985,18 @@ def page(title: str, body: str) -> bytes:
       const ok = payload && payload.ok !== false;
       if (ok) {{
         job.output(payload.output || "");
-        job.done(true, payload.message || "✓ 完成。");
-        if (onSuccess) onSuccess(payload);
+        let finalMessage = payload.message || "✓ 完成。";
+        if (onSuccess) {{
+          try {{
+            await onSuccess(payload);
+            finalMessage = `${{finalMessage}} 成果已更新。`;
+          }} catch (error) {{
+            const refreshError = `成果畫面更新失敗：${{String(error)}}`;
+            job.output([payload.output || "", refreshError].filter(Boolean).join("\\n"));
+            finalMessage = "⚠ 工作已完成，但成果畫面未更新；請重新整理原頁。";
+          }}
+        }}
+        job.done(true, finalMessage);
         return true;
       }}
       const errMsg = (payload && (payload.error || payload.message)) || "執行失敗";
@@ -11566,11 +11611,13 @@ def page(title: str, body: str) -> bytes:
       baseBody: formBody,
       engine: provider,
       statusUrl: "/api/translate-status?id=" + encodeURIComponent(id),
-      onDone: (status) => {{
+      onDone: async (status) => {{
         if (status && status.state === "done") {{
-          window.refreshFragment?.("#fulltext-panel").then(() => {{
-            const notice = document.createElement("div"); notice.className = "notice"; notice.textContent = "✓ 翻譯完成，全文已更新。";
-            document.querySelector("#fulltext-panel")?.insertAdjacentElement("beforebegin", notice);
+          const completedProvider = status.provider || provider;
+          const focusSelector = `#translation-panel-${{CSS.escape(completedProvider)}}`;
+          await window.refreshResult("#reading-results", {{
+            focusSelector,
+            message: `✓ 翻譯完成，成果已顯示如下（${{ENGINE_LABELS[completedProvider] || completedProvider}}）。`,
           }});
         }}
       }}
@@ -12018,7 +12065,11 @@ def page(title: str, body: str) -> bytes:
         url: form.getAttribute("action") || "/items/codex-review",
         baseBody: formBody,
         engine: provider,
-        onSuccess: () => {{ window.refreshFragment?.("#ai-review-panel"); }}
+        onSuccess: async () => {{
+          await window.refreshResult("#ai-review-panel", {{
+            message: "✓ AI 閱讀建議完成，成果已顯示如下。",
+          }});
+        }}
       }});
     }});
   }});
@@ -17613,6 +17664,11 @@ if (aiBatchBtn && aiBatchBtn.dataset.aiBatchBound !== "1") {{
             (card.querySelector(".tag-row") || card).appendChild(badge);
           }});
         }},
+        onDone: async (status) => {{
+          if (status?.state !== "done") return;
+          const refreshed = await window.refreshFragment("#items-list");
+          if (!refreshed) throw new Error("批次 AI 已完成，但找不到可更新的項目列表。");
+        }},
       }});
     }} finally {{
       aiBatchBtn.dataset.running = "";
@@ -20001,7 +20057,9 @@ if (document.readyState === "loading") {{
     {detail_summary_html}
   </section>
 
+<div class="article-detail-stack" id="reading-results">
 {reading_panels}
+</div>
 
 <section class="article-detail-stack" id="ai-review-panel">
   <h2>閱讀建議與判斷來源</h2>
