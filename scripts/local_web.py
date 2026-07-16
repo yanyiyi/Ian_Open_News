@@ -87,6 +87,11 @@ COMMAND_STATUS_FILES = {
     "codex_review_batch": ROOT / ".cache" / "command-status-codex-review-batch.json",
     "codex_enrich_reviews": ROOT / ".cache" / "command-status-codex-enrich-reviews.json",
     "enrich_reader_metadata": ROOT / ".cache" / "command-status-enrich-reader-metadata.json",
+    "enrich_article_summaries": ROOT / ".cache" / "command-status-enrich-article-summaries.json",
+    "taste_retro": ROOT / ".cache" / "command-status-taste-retro.json",
+    "notify_dry_run": ROOT / ".cache" / "command-status-notify-dry-run.json",
+    "notify_send": ROOT / ".cache" / "command-status-notify-send.json",
+    "notify_mark_existing": ROOT / ".cache" / "command-status-notify-mark-existing.json",
 }
 TRIAGE_CLUSTERS = ROOT / ".cache" / "triage-clusters.json"
 TRACKING_LINK_CACHE = ROOT / ".cache" / "tracking-link-cache.json"
@@ -742,7 +747,7 @@ COMMANDS = {
             "--engine",
             configured_task_provider("taste_retro"),
             "--status-file",
-            str(COMMAND_STATUS_FILES["enrich_reader_metadata"]),
+            str(COMMAND_STATUS_FILES["taste_retro"]),
         ],
         "background": True,
         # 內層單次 CLI timeout 就是 600 秒，外層若同為 600 秒會先砍；留統計與收尾緩衝。
@@ -779,7 +784,7 @@ COMMANDS = {
             "--limit",
             "40",
             "--status-file",
-            str(COMMAND_STATUS_FILES["codex_enrich_reviews"]),
+            str(COMMAND_STATUS_FILES["enrich_reader_metadata"]),
         ],
     },
     "enrich_article_summaries": {
@@ -797,6 +802,8 @@ COMMANDS = {
             "8",
             "--timeout",
             "8",
+            "--status-file",
+            str(COMMAND_STATUS_FILES["enrich_article_summaries"]),
         ],
     },
     "codex_enrich_reviews": {
@@ -845,19 +852,42 @@ COMMANDS = {
         "label": "預覽待推播內容",
         "description": "掃描已發布專文與「有中文翻譯＋AI 推薦」的文章，只列出符合 15 分鐘緩衝與自動窗口的訊息全文，不會真的推播。",
         "button": "預覽待推播",
-        "command": [sys.executable, str(ROOT / "scripts" / "notify_ready_items.py"), "--dry-run"],
+        "command": [
+            sys.executable,
+            str(ROOT / "scripts" / "notify_ready_items.py"),
+            "--dry-run",
+            "--status-file",
+            str(COMMAND_STATUS_FILES["notify_dry_run"]),
+            "--status-command",
+            "notify_dry_run",
+        ],
     },
     "notify_send": {
         "label": "推播新完成內容",
         "description": "把還沒通知過、已待滿 15 分鐘且不屬於舊 backlog 的新專文、新消息與新議題送到 Slack / Telegram，送出後記錄到 .cache/notified-events.jsonl 避免重複。",
         "button": "推播到 Slack / Telegram",
-        "command": [sys.executable, str(ROOT / "scripts" / "notify_ready_items.py")],
+        "command": [
+            sys.executable,
+            str(ROOT / "scripts" / "notify_ready_items.py"),
+            "--status-file",
+            str(COMMAND_STATUS_FILES["notify_send"]),
+            "--status-command",
+            "notify_send",
+        ],
     },
     "notify_mark_existing": {
         "label": "把現有內容標為已通知",
         "description": "第一次啟用推播前先跑這個：把目前所有符合條件的內容記為已通知（不送出），避免一次灌爆頻道。",
         "button": "全部標為已通知",
-        "command": [sys.executable, str(ROOT / "scripts" / "notify_ready_items.py"), "--mark-existing"],
+        "command": [
+            sys.executable,
+            str(ROOT / "scripts" / "notify_ready_items.py"),
+            "--mark-existing",
+            "--status-file",
+            str(COMMAND_STATUS_FILES["notify_mark_existing"]),
+            "--status-command",
+            "notify_mark_existing",
+        ],
     },
     "notify_collect_reactions": {
         "label": "收集表情與回覆",
@@ -10085,6 +10115,14 @@ def page(title: str, body: str) -> bytes:
     .job-heading {{ display: flex; justify-content: space-between; gap: 12px; font-weight: 650; }}
     .job-progress {{ height: 4px; margin: 8px 0; border-radius: 999px; overflow: hidden; background: var(--line); }}
     .job-progress-fill {{ height: 100%; width: 0; background: var(--ocf-primary); transition: width .2s ease; }}
+    .job-progress.is-indeterminate .job-progress-fill {{
+      width: 38%;
+      animation: job-progress-indeterminate 1.15s ease-in-out infinite;
+    }}
+    @keyframes job-progress-indeterminate {{
+      from {{ transform: translateX(-120%); }}
+      to {{ transform: translateX(300%); }}
+    }}
     .job-message, .job-meta {{ margin: 5px 0 0; }}
     .job-meta {{ color: var(--muted); font-size: 12px; }}
     .job-output {{ margin-top: 8px; white-space: pre-wrap; }}
@@ -10686,20 +10724,20 @@ def page(title: str, body: str) -> bytes:
       const startedAt = new Date();
       const row = document.createElement("article");
       row.className = "job-row";
-      row.innerHTML = `<div class="job-heading"><span class="job-label"></span><span class="job-percent"></span></div><div class="job-progress" hidden><div class="job-progress-fill"></div></div><p class="job-message muted">準備中…</p><p class="job-meta"></p><pre class="job-output" hidden></pre>`;
+      row.innerHTML = `<div class="job-heading"><span class="job-label"></span><span class="job-percent"></span></div><div class="job-progress is-indeterminate"><div class="job-progress-fill"></div></div><p class="job-message muted">準備中…</p><p class="job-meta"></p><pre class="job-output" hidden></pre>`;
       row.querySelector(".job-label").textContent = label || "本機工作";
       jobList?.prepend(row);
       const handle = {{
-        element: row, startedAt, running: true, fraction: null, trackUnload,
+        element: row, startedAt, running: true, fraction: null, message: "準備中…", trackUnload,
         update({{message, fraction, meta}} = {{}}) {{
-          if (message !== undefined) row.querySelector(".job-message").textContent = message;
+          if (message !== undefined) {{ this.message = message; row.querySelector(".job-message").textContent = message; }}
           if (fraction !== undefined) this.fraction = Number.isFinite(fraction) ? Math.max(0, Math.min(1, fraction)) : null;
           this.extraMeta = meta || "";
           const progress = row.querySelector(".job-progress");
           const percent = row.querySelector(".job-percent");
-          progress.hidden = this.fraction === null;
-          percent.textContent = this.fraction === null ? "" : `${{Math.round(this.fraction * 100)}}%`;
-          row.querySelector(".job-progress-fill").style.width = `${{(this.fraction || 0) * 100}}%`;
+          progress.classList.toggle("is-indeterminate", this.fraction === null && this.running);
+          percent.textContent = this.fraction === null ? "處理中" : `${{Math.round(this.fraction * 100)}}%`;
+          row.querySelector(".job-progress-fill").style.width = this.fraction === null ? "" : `${{this.fraction * 100}}%`;
           updateJobMeta(this);
         }},
         output(text) {{ const out = row.querySelector(".job-output"); out.textContent = text || ""; out.hidden = !text; }},
@@ -10707,8 +10745,12 @@ def page(title: str, body: str) -> bytes:
           if (!this.running) return;
           this.running = false;
           if (this.trackUnload) markJobEnd();
-          if (ok && this.fraction !== null) this.update({{fraction: 1}});
-          if (finalMessage) row.querySelector(".job-message").textContent = finalMessage;
+          if (ok) this.update({{fraction: 1}});
+          if (finalMessage) {{ this.message = finalMessage; row.querySelector(".job-message").textContent = finalMessage; }}
+          if (!ok) {{
+            row.querySelector(".job-progress").classList.remove("is-indeterminate");
+            row.querySelector(".job-percent").textContent = "失敗";
+          }}
           row.dataset.state = ok ? "done" : "failed";
           updateJobMeta(this); refreshCommandChip();
         }}
@@ -10757,7 +10799,10 @@ def page(title: str, body: str) -> bytes:
     }});
   }}
 
-  const startElapsedStatus = (job) => window.setInterval(() => job.update({{message: "執行中。"}}), 1000);
+  const startElapsedStatus = (job) => {{
+    job.update({{message: job.message || "執行中…", fraction: null}});
+    return null;
+  }};
 
   const rssStatusLine = (payload) => {{
     const message = payload?.message || "正在抓取 RSS。";
@@ -10836,7 +10881,7 @@ def page(title: str, body: str) -> bytes:
 
   const commandTimerFor = (commandName, job) => {{
     if (commandName === "fetch_rss") return startRssStatusPolling(job);
-    if (commandName === "enrich_reader_metadata" || commandName === "codex_enrich_reviews" || commandName === "codex_review_batch" || commandName === "triage_cluster" || commandName === "taste_retro") return startCommandStatusPolling(commandName, job);
+    if ({json.dumps(sorted(COMMAND_STATUS_FILES), ensure_ascii=False)}.includes(commandName)) return startCommandStatusPolling(commandName, job);
     return startElapsedStatus(job);
   }};
   window.addEventListener("beforeunload", (event) => {{

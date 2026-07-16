@@ -482,6 +482,13 @@ def should_process(item: dict, args: argparse.Namespace) -> bool:
     return True
 
 
+def write_status(path: Path | None, payload: dict) -> None:
+    if not path:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch original URLs and rewrite readable summaries and three reading reasons.")
     parser.add_argument("--items", type=Path, default=ITEMS)
@@ -493,6 +500,7 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--timeout", type=int, default=8)
     parser.add_argument("--only-missing", action="store_true")
+    parser.add_argument("--status-file", type=Path)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if not args.status:
@@ -505,21 +513,59 @@ def main() -> None:
         selected = selected[: args.limit]
     selected_ids = {item.get("id") for item in selected}
     print(f"selected={len(selected)} status={args.status} recommendation={args.recommendation} dry_run={args.dry_run}")
+    write_status(
+        args.status_file,
+        {
+            "command": "enrich_article_summaries",
+            "state": "running",
+            "message": "準備重抓待整理摘要",
+            "index": 0,
+            "total": len(selected),
+        },
+    )
 
     results: dict[str, dict] = {}
     statuses = {}
+    completed = 0
+    failed = 0
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as executor:
         futures = {executor.submit(enrich_one, item, keyword_config, args.timeout): item for item in selected}
         for future in as_completed(futures):
             item = futures[future]
+            completed += 1
             try:
                 item_id, updated, status = future.result()
             except Exception as exc:  # noqa: BLE001
+                failed += 1
                 print(f"failed {item.get('id')}: {exc}", file=sys.stderr)
+                write_status(
+                    args.status_file,
+                    {
+                        "command": "enrich_article_summaries",
+                        "state": "running",
+                        "message": "摘要重抓失敗，繼續下一筆",
+                        "index": completed,
+                        "total": len(selected),
+                        "item_id": item.get("id"),
+                        "item_title": clean_text(item.get("title"), 120),
+                    },
+                )
                 continue
             results[item_id] = updated
             statuses[status] = statuses.get(status, 0) + 1
             print(f"{status} {item_id} {clean_text(updated.get('title'), 80)}")
+            write_status(
+                args.status_file,
+                {
+                    "command": "enrich_article_summaries",
+                    "state": "running",
+                    "message": "正在重抓待整理摘要",
+                    "index": completed,
+                    "total": len(selected),
+                    "item_id": item_id,
+                    "item_title": clean_text(updated.get("title"), 120),
+                },
+            )
 
     output = []
     changed = 0
@@ -535,6 +581,18 @@ def main() -> None:
 
     if not args.dry_run:
         write_jsonl(args.items, output)
+    write_status(
+        args.status_file,
+        {
+            "command": "enrich_article_summaries",
+            "state": "failed" if failed else "done",
+            "message": "摘要重抓完成" if not failed else "摘要重抓完成，但有失敗項目",
+            "index": completed,
+            "total": len(selected),
+            "changed": changed,
+            "failed": failed,
+        },
+    )
     print(f"changed={changed} statuses={statuses}")
 
 

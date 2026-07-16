@@ -700,7 +700,15 @@ def main(argv: list[str] | None = None) -> int:
 
     status_file = None if args.dry_run else args.status_file
     since = resolve_since(args.since)
-    write_status(status_file, {"state": "running", "stage": "stage1", "since": since.isoformat()})
+    write_status(status_file, {
+        "command": "taste_retro",
+        "state": "running",
+        "stage": "stage1",
+        "message": "正在統計收下與不收的決策模式",
+        "index": 1,
+        "total": 2 if not args.skip_ai else 1,
+        "since": since.isoformat(),
+    })
 
     keyword_config = load_json(TRIAGE_KEYWORDS_FILE)
     taste_profile = load_json(TASTE_PROFILE_FILE)
@@ -722,13 +730,29 @@ def main(argv: list[str] | None = None) -> int:
     added = 0
     skipped = 0
     if not args.skip_ai:
-        write_status(status_file, {"state": "running", "stage": "stage2-ai", "engine": args.engine})
+        write_status(status_file, {
+            "command": "taste_retro",
+            "state": "running",
+            "stage": "stage2-ai",
+            "message": "正在由 AI 蒸餾系統調整提案",
+            "index": 2,
+            "total": 2,
+            "engine": args.engine,
+        })
         source_report = f"retro-{date.today().isoformat()}"
         try:
             raw_proposals = run_ai(build_ai_prompt(stats, taste_profile, keyword_config),
                                    args.engine, task_model("taste_retro", args.engine, args.model), args.timeout)
         except Exception as exc:  # noqa: BLE001 — 回報 UI 後照樣結束
-            write_status(status_file, {"state": "error", "stage": "stage2-ai", "error": str(exc)[:800]})
+            write_status(status_file, {
+                "command": "taste_retro",
+                "state": "failed",
+                "stage": "stage2-ai",
+                "message": "AI 蒸餾系統調整提案失敗",
+                "index": 2,
+                "total": 2,
+                "error": str(exc)[:800],
+            })
             print(f"Stage 2 AI 失敗：{exc}", file=sys.stderr)
             return 1
         proposals = finalize_proposals(raw_proposals, args.engine, source_report)
@@ -747,7 +771,11 @@ def main(argv: list[str] | None = None) -> int:
         CACHE.mkdir(exist_ok=True)
         STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     write_status(status_file, {
+        "command": "taste_retro",
         "state": "done",
+        "message": "決策回顧完成",
+        "index": 2 if not args.skip_ai else 1,
+        "total": 2 if not args.skip_ai else 1,
         "since": since.isoformat(),
         "kept": stats["counts"]["kept"],
         "rejected": stats["counts"]["rejected"],

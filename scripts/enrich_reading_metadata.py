@@ -209,6 +209,16 @@ def main() -> None:
     checked = 0
     changed = 0
     failed = 0
+    write_status(
+        args.status_file,
+        {
+            "command": "enrich_reader_metadata",
+            "state": "running",
+            "message": "準備補閱讀卡圖片、描述與主文",
+            "index": 0,
+            "total": len(selected_indexes),
+        },
+    )
     for item_index in selected_indexes:
         item = items[item_index]
         checked += 1
@@ -278,6 +288,8 @@ def main() -> None:
             "skipped": skipped,
             "cooldown": cooldown,
             "eligible": len(candidates),
+            "index": checked,
+            "total": len(selected_indexes),
         },
     )
     print(

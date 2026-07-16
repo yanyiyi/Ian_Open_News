@@ -980,6 +980,7 @@ def main() -> None:
     parser.add_argument("--timeout", type=int, default=10)
     parser.add_argument("--public-timeout", type=int, default=8, help="公開頁上線檢查 timeout；404 或連線失敗一律不推播。")
     parser.add_argument("--status-file", type=Path, default=None)
+    parser.add_argument("--status-command", default="notify_ready_items")
     parser.add_argument(
         "--min-age-minutes",
         type=int,
@@ -1030,7 +1031,13 @@ def main() -> None:
     if not args.mark_existing:
         write_status(
             args.status_file,
-            {"state": "running", "message": "正在確認推播公開頁已上線", "index": 0, "total": len(pending)},
+            {
+                "command": args.status_command,
+                "state": "running",
+                "message": "正在確認推播公開頁已上線",
+                "index": 0,
+                "total": len(pending),
+            },
         )
 
         def public_check_progress(index: int, total: int, event: NotificationEvent, result: dict[str, Any]) -> None:
@@ -1038,6 +1045,7 @@ def main() -> None:
             write_status(
                 args.status_file,
                 {
+                    "command": args.status_command,
                     "state": "running",
                     "message": f"正在確認公開頁（{status}）",
                     "index": index,
@@ -1064,6 +1072,7 @@ def main() -> None:
         write_status(
             args.status_file,
             {
+                "command": args.status_command,
                 "state": "done",
                 "message": "待推播預覽完成",
                 "index": len(pending) + len(blocked_public),
@@ -1076,11 +1085,27 @@ def main() -> None:
         return
 
     if args.mark_existing:
+        write_status(
+            args.status_file,
+            {
+                "command": args.status_command,
+                "state": "running",
+                "message": "正在標記現有推播內容",
+                "index": 0,
+                "total": len(pending),
+            },
+        )
         append_jsonl(args.state, event_state_records(pending, channels, "marked-existing"))
         print(f"eligible={len(events)} marked_existing={len(pending)} state={args.state}")
         write_status(
             args.status_file,
-            {"state": "done", "message": "現有內容已標記", "index": len(pending), "total": len(pending)},
+            {
+                "command": args.status_command,
+                "state": "done",
+                "message": "現有內容已標記",
+                "index": len(pending),
+                "total": len(pending),
+            },
         )
         return
 
@@ -1097,6 +1122,7 @@ def main() -> None:
         write_status(
             args.status_file,
             {
+                "command": args.status_command,
                 "state": "running",
                 "message": "正在推播已上線內容",
                 "index": index,
@@ -1124,6 +1150,7 @@ def main() -> None:
     write_status(
         args.status_file,
         {
+            "command": args.status_command,
             "state": "failed" if failed or blocked_public else "done",
             "message": "推播完成" if not failed and not blocked_public else "推播有未送項目",
             "index": len(pending),
