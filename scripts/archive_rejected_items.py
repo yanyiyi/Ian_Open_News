@@ -90,8 +90,9 @@ def main() -> None:
 
     merged_rejected = merge_archive(existing_rejected, moved)
     if not args.dry_run:
-        write_jsonl(args.items, kept)
+        # 先建立可供 review-events 指向的退件副本，再移出 active；即使中途停止也不會留下孤兒事件。
         write_jsonl(args.rejected_items, merged_rejected)
+        write_jsonl(args.items, kept)
 
     print(
         f"items: {len(items)} scanned, {len(kept)} kept, {len(moved)} moved; "

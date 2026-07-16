@@ -74,6 +74,24 @@ class DatabaseIntegrityFulltextTest(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertTrue(active.exists())
 
+    def test_review_event_refuses_missing_item_target(self) -> None:
+        event = {"id": "review-orphan", "item_id": "item-missing"}
+
+        with self.assertRaisesRegex(ValueError, "拒絕寫入孤兒審查事件"):
+            local_web.append_jsonl(self.reviews, event)
+
+        self.assertEqual(self.reviews.read_text(encoding="utf-8"), "")
+
+    def test_item_with_review_cannot_disappear_from_both_item_stores(self) -> None:
+        local_web.append_jsonl(self.reviews, {"id": "review-active", "item_id": "item-active"})
+
+        with self.assertRaisesRegex(ValueError, "拒絕產生孤兒審查事件"):
+            local_web.write_jsonl(self.items, [])
+
+        local_web.write_jsonl(self.rejected, [{"id": "item-active"}])
+        local_web.write_jsonl(self.items, [])
+        self.assertEqual(local_web.load_jsonl(self.items), [])
+
 
 if __name__ == "__main__":
     unittest.main()

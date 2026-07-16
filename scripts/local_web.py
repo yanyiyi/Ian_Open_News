@@ -1566,10 +1566,55 @@ def write_status_json(path: Path, record: dict) -> None:
     path.write_text(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def review_event_target_exists(item_id: object) -> bool:
+    target = clean_text(item_id)
+    if not target or target == "manual-seed":
+        return bool(target)
+    return any(
+        clean_text(record.get("id")) == target
+        for path in (ITEMS, REJECTED_ITEMS)
+        for record in load_jsonl(path)
+    )
+
+
+def assert_review_event_target(record: dict) -> None:
+    item_id = clean_text(record.get("item_id"))
+    if not review_event_target_exists(item_id):
+        raise ValueError(f"拒絕寫入孤兒審查事件：item_id {item_id or '(空白)'} 不存在於 items 或 rejected-items")
+
+
+def assert_review_targets_survive(path: Path, records: list[dict]) -> None:
+    """避免跨檔搬移中斷時，先刪掉 item、留下指向空處的 review event。"""
+    if path not in (ITEMS, REJECTED_ITEMS) or not path.exists():
+        return
+    before_ids = {clean_text(record.get("id")) for record in load_jsonl(path) if clean_text(record.get("id"))}
+    after_ids = {clean_text(record.get("id")) for record in records if clean_text(record.get("id"))}
+    removed_ids = before_ids - after_ids
+    if not removed_ids:
+        return
+    other_path = REJECTED_ITEMS if path == ITEMS else ITEMS
+    surviving_ids = {
+        clean_text(record.get("id"))
+        for record in load_jsonl(other_path)
+        if clean_text(record.get("id"))
+    }
+    referenced_ids = {
+        clean_text(review.get("item_id"))
+        for review in load_jsonl(REVIEW_EVENTS)
+        if clean_text(review.get("item_id")) not in {"", "manual-seed"}
+    }
+    orphaned = sorted((removed_ids & referenced_ids) - surviving_ids)
+    if orphaned:
+        preview = "、".join(orphaned[:5])
+        suffix = f" 等 {len(orphaned)} 筆" if len(orphaned) > 5 else ""
+        raise ValueError(f"拒絕產生孤兒審查事件：請先把 {preview}{suffix} 寫入另一個項目檔，再從 {path.name} 移除")
+
+
 def write_jsonl(path: Path, records: list[dict]) -> None:
     with DB_WRITE_LOCK:
         with database_write_lock():
             path.parent.mkdir(parents=True, exist_ok=True)
+            assert_review_targets_survive(path, records)
             if path in (ITEMS, REJECTED_ITEMS) and fulltext_store.sidecar_enabled():
                 # 全文側檔：帶著 inline 重欄位的 record（剛翻譯/enrich/或被 hydrate 過）
                 # 在這裡統一抽回 database/fulltext/，主檔只留瘦身欄位，呼叫端零改動。
@@ -1583,6 +1628,8 @@ def append_jsonl(path: Path, record: dict) -> None:
     with DB_WRITE_LOCK:
         with database_write_lock():
             path.parent.mkdir(parents=True, exist_ok=True)
+            if path == REVIEW_EVENTS:
+                assert_review_event_target(record)
             if path in (ITEMS, REJECTED_ITEMS) and fulltext_store.sidecar_enabled():
                 fulltext_store.dehydrate_item(record)  # 全文側檔：與 write_jsonl 同一約定
             needs_newline = path.exists() and path.stat().st_size > 0
@@ -20155,9 +20202,9 @@ if (document.readyState === "loading") {{
             else:
                 kept_items.append(item)
         if archived_active_items:
-            write_jsonl(ITEMS, kept_items)
             for archived_item in archived_active_items:
                 upsert_jsonl(REJECTED_ITEMS, archived_item)
+            write_jsonl(ITEMS, kept_items)
         else:
             upsert_jsonl(REJECTED_ITEMS, archived_candidate)
         upsert_jsonl(DISMISSED, rss_dismissed_record(candidate, decided_at, notes, reason))
@@ -22533,9 +22580,9 @@ if (document.readyState === "loading") {{
             archived_items.append(updated)
             events.append(review_event(updated, "rejected", note))
         if archived_items:
-            write_jsonl(ITEMS, kept_items)
             for item in archived_items:
                 upsert_jsonl(REJECTED_ITEMS, rejected_archive_record(item, decided_at, reason))
+            write_jsonl(ITEMS, kept_items)
             for event in events:
                 append_jsonl(REVIEW_EVENTS, event)
 
