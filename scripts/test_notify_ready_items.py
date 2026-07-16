@@ -46,7 +46,7 @@ class NotifyReadyItemsTest(unittest.TestCase):
                 "id": "item-test",
                 "status": "ready",
                 "title": "Original Title",
-                "track": "digital-humanities-local-knowledge",
+                "track": "open-tech-open-industry",
                 "tags": ["公共資料", "Open Data", "rss"],
                 "reading_metadata": {
                     "translated_article_markdown_zh": "# 中文全文\n\n第一段。",
@@ -118,6 +118,7 @@ class NotifyReadyItemsTest(unittest.TestCase):
         item = {
             "id": "item-pref",
             "status": "ready",
+            "track": "open-tech-open-industry",
             "reading_metadata": {"translated_article_markdown_zh": "# 中文全文\n\n第一段。"},
             "editorial_triage": {
                 "preferred_review_provider": "gemini",
@@ -149,6 +150,7 @@ class NotifyReadyItemsTest(unittest.TestCase):
             {
                 "id": "item-issue",
                 "status": "triaged",
+                "track": "open-tech-open-industry",
                 "local_decision": {"action": "accepted-for-editing"},
                 "reading_metadata": {
                     "translated_article_markdown_zh": "# 中文全文\n\n第一段。",
@@ -177,6 +179,7 @@ class NotifyReadyItemsTest(unittest.TestCase):
         item = {
             "id": "item-needs-fulltext",
             "status": "ready",
+            "track": "open-tech-open-industry",
             "reading_metadata": {"translated_article_markdown_zh": "# 中文全文\n\n第一段。"},
             "editorial_triage": {
                 "codex_review": {
@@ -202,6 +205,45 @@ class NotifyReadyItemsTest(unittest.TestCase):
 
         self.assertIsNone(skipped)
         self.assertIsNotNone(included)
+
+    def test_item_event_skips_content_that_public_reader_will_not_render(self) -> None:
+        base = {
+            "id": "item-private",
+            "status": "ready",
+            "track": "digital-humanities-local-knowledge",
+            "reading_metadata": {"translated_article_markdown_zh": "# 中文全文"},
+            "editorial_triage": {
+                "codex_review": {
+                    "one_line_recommendation": "一句話。",
+                    "reasons": ["一", "二", "三"],
+                    "needs_fulltext": False,
+                }
+            },
+        }
+
+        self.assertIsNone(
+            notify.item_event(base, "https://example.test/reader", notify.DEFAULT_ITEM_STATUSES, False)
+        )
+        self.assertIsNone(
+            notify.item_event(
+                {**base, "track": "open-tech-open-industry", "status": "researching"},
+                "https://example.test/reader",
+                notify.DEFAULT_ITEM_STATUSES,
+                False,
+            )
+        )
+
+    def test_live_page_filter_blocks_404_without_marking_event_sendable(self) -> None:
+        live = notify.NotificationEvent("live", "item", "live", "Live", "Message", "https://example.test/live")
+        missing = notify.NotificationEvent("missing", "item", "missing", "Missing", "Message", "https://example.test/missing")
+
+        def checker(url: str, _timeout: int) -> dict:
+            return {"ok": url.endswith("/live"), "status": 200 if url.endswith("/live") else 404, "url": url}
+
+        sendable, blocked = notify.filter_events_with_live_pages([live, missing], checker=checker)
+
+        self.assertEqual(sendable, [live])
+        self.assertEqual([(event, result["status"]) for event, result in blocked], [(missing, 404)])
 
     def test_notified_state_filters_pending_events(self) -> None:
         event = notify.NotificationEvent(

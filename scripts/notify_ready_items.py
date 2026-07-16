@@ -8,10 +8,11 @@ import re
 import sys
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import fulltext_store
 
@@ -24,6 +25,9 @@ DEFAULT_AUTO_START_FILE = ROOT / ".cache" / "notify-auto-start.txt"
 DEFAULT_READER_BASE_URL = "https://technews.ospo.tw/reader"
 DEFAULT_MIN_AGE_MINUTES = 15
 DEFAULT_AUTO_MAX_AGE_DAYS = 7
+PUBLIC_ITEM_KINDS = {"featured-article", "opinion-article", "small-news"}
+PUBLIC_ITEM_TRACK = "open-tech-open-industry"
+PUBLIC_CHECK_USER_AGENT = "IanOpenNewsBot/1.0 public-page-check"
 
 CHANNEL_ENV_KEYS = (
     "ION_SLACK_WEBHOOK_URL",
@@ -318,6 +322,13 @@ def append_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     with path.open("a", encoding="utf-8") as fh:
         for record in records:
             fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def write_status(path: Path | None, payload: dict[str, Any]) -> None:
+    if not path:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def load_env_file(path: Path = DEFAULT_ENV_FILE) -> dict[str, str]:
@@ -640,6 +651,11 @@ def item_event(record: dict[str, Any], base_url: str, allowed_statuses: set[str]
     item_id = clean_text(record.get("id"))
     if not item_id:
         return None
+    if clean_text(record.get("track")) != PUBLIC_ITEM_TRACK:
+        return None
+    display_kind = item_display_kind(record)
+    if display_kind not in PUBLIC_ITEM_KINDS:
+        return None
     if not translated_markdown(record):
         return None
     review_key, review = item_review(record)
@@ -655,7 +671,7 @@ def item_event(record: dict[str, Any], base_url: str, allowed_statuses: set[str]
     title = item_title(record, review)
     hook = clean_text(strip_editor_address(review.get("one_line_recommendation")), 360)
     summary = clean_text(strip_editor_address(review.get("summary")), 600)
-    prefix = item_notification_prefix(item_display_kind(record, review))
+    prefix = item_notification_prefix(display_kind)
     url = public_reader_article_url(item_id, base_url)
     hashtags = hashtags_from_tags(record.get("tags"))
     plain, slack, telegram = build_channel_messages(prefix, title, hook, reasons[:3], summary, hashtags, url, seed=item_id)
@@ -700,6 +716,65 @@ def collect_events(
                 events.append(event)
     events.sort(key=lambda event: (event.ready_at or "", event.kind, event.title, event.record_id))
     return events
+
+
+def public_url_status(url: str, timeout: int = 8) -> dict[str, Any]:
+    """Fail closed: only a public URL that currently returns 2xx is safe to notify."""
+    def request(method: str) -> dict[str, Any]:
+        headers = {"User-Agent": PUBLIC_CHECK_USER_AGENT, "Accept": "text/html,application/xhtml+xml"}
+        if method == "GET":
+            headers["Range"] = "bytes=0-1023"
+        req = urllib.request.Request(url, headers=headers, method=method)
+        with urllib.request.urlopen(req, timeout=max(1, timeout)) as response:
+            status = int(response.getcode() or 0)
+            final_url = clean_text(response.geturl()) or url
+            return {"ok": 200 <= status < 300, "status": status, "url": final_url, "error": ""}
+
+    try:
+        return request("HEAD")
+    except urllib.error.HTTPError as exc:
+        if exc.code not in {403, 405, 501}:
+            return {"ok": False, "status": exc.code, "url": url, "error": f"HTTP {exc.code}"}
+    except urllib.error.URLError as exc:
+        return {"ok": False, "status": 0, "url": url, "error": clean_text(exc.reason or exc, 500)}
+    except Exception as exc:  # noqa: BLE001 - delivery must fail closed on any transport error
+        return {"ok": False, "status": 0, "url": url, "error": clean_text(exc, 500)}
+
+    try:
+        return request("GET")
+    except urllib.error.HTTPError as exc:
+        return {"ok": False, "status": exc.code, "url": url, "error": f"HTTP {exc.code}"}
+    except urllib.error.URLError as exc:
+        return {"ok": False, "status": 0, "url": url, "error": clean_text(exc.reason or exc, 500)}
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "status": 0, "url": url, "error": clean_text(exc, 500)}
+
+
+def filter_events_with_live_pages(
+    events: list[NotificationEvent],
+    timeout: int = 8,
+    checker: Callable[[str, int], dict[str, Any]] | None = None,
+    on_progress: Callable[[int, int, NotificationEvent, dict[str, Any]], None] | None = None,
+) -> tuple[list[NotificationEvent], list[tuple[NotificationEvent, dict[str, Any]]]]:
+    if not events:
+        return [], []
+    check = checker or public_url_status
+    checks: dict[str, dict[str, Any]] = {}
+    workers = min(8, max(1, len(events)))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(check, event.url, timeout): event for event in events}
+        for index, future in enumerate(as_completed(futures), 1):
+            event = futures[future]
+            try:
+                result = future.result()
+            except Exception as exc:  # noqa: BLE001
+                result = {"ok": False, "status": 0, "url": event.url, "error": clean_text(exc, 500)}
+            checks[event.event_key] = result
+            if on_progress:
+                on_progress(index, len(events), event, result)
+    live = [event for event in events if checks.get(event.event_key, {}).get("ok") is True]
+    blocked = [(event, checks.get(event.event_key, {})) for event in events if event not in live]
+    return live, blocked
 
 
 def load_notified_keys(path: Path) -> set[str]:
@@ -903,6 +978,8 @@ def main() -> None:
     parser.add_argument("--mark-existing", action="store_true", help="Record eligible events as already handled without sending.")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--timeout", type=int, default=10)
+    parser.add_argument("--public-timeout", type=int, default=8, help="公開頁上線檢查 timeout；404 或連線失敗一律不推播。")
+    parser.add_argument("--status-file", type=Path, default=None)
     parser.add_argument(
         "--min-age-minutes",
         type=int,
@@ -949,15 +1026,62 @@ def main() -> None:
     if args.limit > 0:
         pending = pending[: args.limit]
 
+    blocked_public: list[tuple[NotificationEvent, dict[str, Any]]] = []
+    if not args.mark_existing:
+        write_status(
+            args.status_file,
+            {"state": "running", "message": "正在確認推播公開頁已上線", "index": 0, "total": len(pending)},
+        )
+
+        def public_check_progress(index: int, total: int, event: NotificationEvent, result: dict[str, Any]) -> None:
+            status = result.get("status") or result.get("error") or "無回應"
+            write_status(
+                args.status_file,
+                {
+                    "state": "running",
+                    "message": f"正在確認公開頁（{status}）",
+                    "index": index,
+                    "total": total,
+                    "item_id": event.record_id,
+                    "item_title": event.title,
+                    "url": event.url,
+                },
+            )
+
+        pending, blocked_public = filter_events_with_live_pages(
+            pending,
+            timeout=args.public_timeout,
+            on_progress=public_check_progress,
+        )
+        for event, result in blocked_public:
+            reason = result.get("status") or result.get("error") or "無回應"
+            print(f"blocked-public: {event.event_key}: {reason}: {event.url}", file=sys.stderr)
+
     if args.dry_run:
         for event in pending:
             print_event_preview(event)
-        print(f"eligible={len(events)} pending={len(pending)} dry_run=1")
+        print(f"eligible={len(events)} pending={len(pending)} blocked_public={len(blocked_public)} dry_run=1")
+        write_status(
+            args.status_file,
+            {
+                "state": "done",
+                "message": "待推播預覽完成",
+                "index": len(pending) + len(blocked_public),
+                "total": len(pending) + len(blocked_public),
+                "eligible": len(events),
+                "pending": len(pending),
+                "blocked_public": len(blocked_public),
+            },
+        )
         return
 
     if args.mark_existing:
         append_jsonl(args.state, event_state_records(pending, channels, "marked-existing"))
         print(f"eligible={len(events)} marked_existing={len(pending)} state={args.state}")
+        write_status(
+            args.status_file,
+            {"state": "done", "message": "現有內容已標記", "index": len(pending), "total": len(pending)},
+        )
         return
 
     if pending and not channels:
@@ -969,7 +1093,19 @@ def main() -> None:
     sent = 0
     partial = 0
     failed = 0
-    for event in pending:
+    for index, event in enumerate(pending, 1):
+        write_status(
+            args.status_file,
+            {
+                "state": "running",
+                "message": "正在推播已上線內容",
+                "index": index,
+                "total": len(pending),
+                "item_id": event.record_id,
+                "item_title": event.title,
+                "url": event.url,
+            },
+        )
         deliveries, failures = send_event(event, channels, env, args.timeout)
         for failure in failures:
             print(f"failed: {event.event_key}: {failure['channel']}: {failure['error']}", file=sys.stderr)
@@ -982,10 +1118,23 @@ def main() -> None:
         else:
             failed += 1
     print(
-        f"eligible={len(events)} sent={sent} partial={partial} failed={failed} "
+        f"eligible={len(events)} sent={sent} partial={partial} failed={failed} blocked_public={len(blocked_public)} "
         f"channels={','.join(channels) or 'none'} state={args.state}"
     )
-    if failed:
+    write_status(
+        args.status_file,
+        {
+            "state": "failed" if failed or blocked_public else "done",
+            "message": "推播完成" if not failed and not blocked_public else "推播有未送項目",
+            "index": len(pending),
+            "total": len(pending),
+            "sent": sent,
+            "partial": partial,
+            "failed": failed,
+            "blocked_public": len(blocked_public),
+        },
+    )
+    if failed or blocked_public:
         raise SystemExit(1)
 
 
