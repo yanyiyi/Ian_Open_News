@@ -27,6 +27,15 @@ class AiModelSettingsTest(unittest.TestCase):
             with patch.object(settings, "_codex_models", return_value=(["gpt-5.4-mini", "gpt-5.4"], "gpt-5.4")):
                 self.assertEqual("gpt-5.4-mini", settings.task_model("translation", "codex", path=path))
 
+    def test_older_codex_model_is_not_promoted_by_newer_desktop_cache(self) -> None:
+        config = settings.load_settings(Path("/nonexistent/ai-model-settings.json"))
+        config["tasks"]["translation"]["models"]["codex"] = "gpt-5.4"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "settings.json"
+            path.write_text(json.dumps(config), encoding="utf-8")
+            with patch.object(settings, "_codex_models", return_value=(["gpt-5.6-terra"], "gpt-5.6-terra")):
+                self.assertEqual("gpt-5.4", settings.task_model("translation", "codex", path=path))
+
     def test_custom_codex_model_is_not_replaced(self) -> None:
         config = settings.load_settings(Path("/nonexistent/ai-model-settings.json"))
         config["tasks"]["translation"]["models"]["codex"] = "company-custom-model"

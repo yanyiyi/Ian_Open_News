@@ -160,9 +160,18 @@ def task_model(task_key: str, provider: str, override: str = "", path: Path = SE
     if tier == "custom":
         # 自訂模型可能由 API 動態提供；只有內建 catalog 能安全判斷為版本不相容。
         return model
-    for candidate in MODEL_CATALOG["codex"]:
-        if candidate["tier"] == tier and candidate["id"] in available:
-            return str(candidate["id"])
+    same_tier = [str(row["id"]) for row in MODEL_CATALOG["codex"] if row["tier"] == tier]
+    try:
+        configured_index = same_tier.index(model)
+    except ValueError:
+        return model
+    # models_cache.json can be written by a newer desktop app than the standalone
+    # CLI used by local-web.  It is safe to downgrade a missing new model, but
+    # never promote an older configured model merely because only new models are
+    # visible in that shared cache.
+    for candidate in reversed(same_tier[:configured_index]):
+        if candidate in available:
+            return candidate
     return model
 
 

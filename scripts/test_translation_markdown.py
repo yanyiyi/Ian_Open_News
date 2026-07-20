@@ -294,6 +294,41 @@ class TranslationMarkdownTest(unittest.TestCase):
 
         self.assertEqual(output, "```tsv\n甲[[[IAN_TABLE_CELL]]]乙\n```")
 
+    def test_codex_text_retries_with_compatible_model_when_cli_is_too_old(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / ".cache").mkdir()
+            commands: list[list[str]] = []
+
+            def run_command(command: list[str], **_kwargs: object) -> translate.subprocess.CompletedProcess[str]:
+                commands.append(list(command))
+                model = command[command.index("-m") + 1]
+                if model == "gpt-5.6-terra":
+                    return translate.subprocess.CompletedProcess(
+                        command,
+                        returncode=1,
+                        stdout="",
+                        stderr="The 'gpt-5.6-terra' model requires a newer version of Codex.",
+                    )
+                output_path = Path(command[command.index("--output-last-message") + 1])
+                output_path.write_text("翻譯完成", encoding="utf-8")
+                return translate.subprocess.CompletedProcess(command, returncode=0, stdout="", stderr="")
+
+            with patch.object(translate, "ROOT", root), patch.object(
+                translate, "codex_path", return_value="codex",
+            ), patch.object(translate, "codex_translation_model", return_value="gpt-5.6-terra"), patch.object(
+                translate, "_codex_env", return_value={},
+            ), patch.object(
+                translate.subprocess, "run", side_effect=run_command,
+            ):
+                output = translate.run_codex_text("translate", 30)
+
+        self.assertEqual(output, "翻譯完成")
+        self.assertEqual(
+            [command[command.index("-m") + 1] for command in commands],
+            ["gpt-5.6-terra", "gpt-5.4"],
+        )
+
     def test_codex_text_uses_unique_output_paths_and_cleans_them(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

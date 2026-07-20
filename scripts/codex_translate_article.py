@@ -16,8 +16,19 @@ from typing import Any
 from page_metadata import infer_language_from_text, is_access_prompt_text
 
 try:
-    from ai_model_settings import task_model, task_provider
+    from ai_model_settings import (
+        codex_compatibility_fallback,
+        codex_requires_newer_version,
+        task_model,
+        task_provider,
+    )
 except ImportError:  # Keep the standalone translator usable before settings rollout.
+    def codex_compatibility_fallback(_model: str) -> str:
+        return ""
+
+    def codex_requires_newer_version(_output: str) -> bool:
+        return False
+
     def task_model(_task: str, _provider: str) -> str:
         return ""
 
@@ -870,12 +881,27 @@ def run_codex_text(prompt: str, timeout: int) -> str:
     # parallel from multiple item pages; a shared file lets one item consume
     # another item's last message.
     output_path = cache / f"codex-translate-{os.getpid()}-{uuid.uuid4().hex}.txt"
+    model = codex_translation_model()
     command = [
-        codex_path(), "-m", codex_translation_model(), "-a", "never", "exec", "--ephemeral", "--cd", str(ROOT),
+        codex_path(), "-m", model, "-a", "never", "exec", "--ephemeral", "--cd", str(ROOT),
         "--sandbox", "read-only", "--color", "never", "--output-last-message", str(output_path), "-",
     ]
     try:
         result = subprocess.run(command, cwd=ROOT, input=prompt, text=True, capture_output=True, timeout=timeout, env=_codex_env())
+        if result.returncode != 0 and codex_requires_newer_version(f"{result.stderr}\n{result.stdout}"):
+            fallback = codex_compatibility_fallback(model)
+            if fallback:
+                output_path.unlink(missing_ok=True)
+                command[command.index("-m") + 1] = fallback
+                result = subprocess.run(
+                    command,
+                    cwd=ROOT,
+                    input=prompt,
+                    text=True,
+                    capture_output=True,
+                    timeout=timeout,
+                    env=_codex_env(),
+                )
         if result.returncode != 0:
             raise RuntimeError(f"Codex CLI 失敗：{codex_failure_detail(result.stderr, result.stdout)}")
         if not output_path.is_file():
